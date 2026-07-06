@@ -78,7 +78,9 @@ Next.js Frontend
        ↓
 FastAPI Backend
        ↓
-yfinance (Yahoo Finance daily OHLCV)
+MarketDataService (provider abstraction)
+       ↓
+YahooProvider → yfinance (Yahoo Finance daily OHLCV)
        ↓
 pandas (indicators, signals, backtests)
        ↓
@@ -98,7 +100,10 @@ JSON API → Recharts visualization
 
 | Item | Detail |
 |------|--------|
-| Provider | Yahoo Finance via `yfinance` |
+| Active provider | Yahoo Finance via `yfinance` |
+| Abstraction | `MarketDataService` routes all price history requests |
+| Status API | `GET /api/data-sources/status` |
+| Database status | `GET /api/database/status` |
 | Frequency | Daily OHLCV |
 | Use case | Research and portfolio demonstration |
 | Not suitable for | Live execution or institutional-grade market data |
@@ -135,6 +140,25 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000). API docs: [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs)
 
+### Database setup (optional — Database Preparation v1)
+
+Supabase Postgres stores **durable research assets** (saved backtest runs and trades in a future step). Raw OHLCV is not stored in v1. Cache is postponed.
+
+1. Create a Supabase project.
+2. In **Connect**, copy the **Transaction Pooler** URI (not the direct connection if using pooler mode).
+3. Set locally in `backend/.env`:
+   ```bash
+   SUPABASE_DB_URL=postgresql://...
+   ```
+4. On Render, add `SUPABASE_DB_URL` under **Environment**.
+5. In Supabase **SQL Editor**, paste and run `backend/db/schema.sql`.
+6. Verify:
+   ```bash
+   curl http://localhost:8000/api/database/status
+   ```
+
+The app starts normally without `SUPABASE_DB_URL`; the status endpoint reports `configured: false`.
+
 **Tip:** If the dev server shows a missing chunk error, stop dev and run `npm run dev:clean` (clears `.next` cache). Do not run `npm run build` while `npm run dev` is active.
 
 ---
@@ -157,6 +181,8 @@ Open [http://localhost:3000](http://localhost:3000). API docs: [http://127.0.0.1
 
 Set `ALLOWED_ORIGINS` to your frontend URL(s), e.g. `https://your-app.vercel.app`.
 
+Optionally set `SUPABASE_DB_URL` (Transaction Pooler URI) for database connectivity checks and future Experiments persistence.
+
 ### Frontend (Vercel)
 
 | Setting | Value |
@@ -169,6 +195,8 @@ Set `NEXT_PUBLIC_API_BASE_URL` to your Render backend URL (no trailing slash).
 ### Checklist
 
 - [ ] `GET /health` returns `{"status":"ok",...}`
+- [ ] `GET /api/data-sources/status` returns `active_provider: yahoo`
+- [ ] `GET /api/database/status` returns expected `configured` / `connected` state
 - [ ] `ALLOWED_ORIGINS` includes the Vercel URL
 - [ ] Market Watch and Strategy Lab work from the deployed UI
 
@@ -179,6 +207,8 @@ Set `NEXT_PUBLIC_API_BASE_URL` to your Render backend URL (no trailing slash).
 | Method | Endpoint | Purpose |
 |--------|----------|---------|
 | `GET` | `/health` | Health check |
+| `GET` | `/api/data-sources/status` | Active and planned data provider status |
+| `GET` | `/api/database/status` | Supabase Postgres config and connectivity |
 | `GET` | `/api/price/{ticker}` | Daily price history |
 | `GET` | `/api/indicators/{ticker}` | Price + technical indicators |
 | `GET` | `/api/signal/{ticker}` | Latest signal score and components |
@@ -232,8 +262,11 @@ ai-quant-signal-platform/
 ├── backend/
 │   ├── app/
 │   │   ├── backtest/  # engine, metrics, OOS
+│   │   ├── db/        # Supabase Postgres client (v1)
 │   │   ├── recommendation/
 │   │   └── main.py
+│   ├── db/
+│   │   └── schema.sql # backtest_runs, backtest_trades
 │   └── tests/
 ├── render.yaml
 └── README.md
@@ -246,7 +279,8 @@ ai-quant-signal-platform/
 - Daily historical data only; no intraday timestamps in trade log
 - `yfinance` data may be delayed or incomplete for some symbols
 - Simplified backtest assumptions (no slippage model beyond flat transaction cost)
-- No broker, live trading, authentication, or database persistence
+- No broker, live trading, or authentication
+- Database persistence is **prepared** (schema + status endpoint); save-backtest Experiments not yet implemented
 - No machine learning in the current version
 
 ---

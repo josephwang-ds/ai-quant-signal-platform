@@ -44,6 +44,7 @@ Planned providers under `backend/app/data_providers/`:
 |----------|--------|--------|
 | `yahoo_provider.py` | US / global via Yahoo | **Current** |
 | `akshare_provider.py` | China A-share | Planned |
+| `coingecko_provider.py` | Crypto | Planned |
 | `tushare_provider.py` | China markets | Planned |
 | `csv_provider.py` | User upload | Planned |
 | Paid APIs | As needed | Future |
@@ -54,7 +55,77 @@ All providers implement a common interface in `base.py`:
 - Historical OHLCV fetch with adjustment mode
 - Provider health / freshness reporting
 
-The **Data Center** frontend module will surface provider selection, market type (US / HK / CN), adjustment mode, and data quality checks.
+The **Data Center** frontend module surfaces provider selection, market type (US / HK / CN), adjustment mode, and data quality checks.
+
+### Data Center v1 (frontend documentation module)
+
+Data Center v1 is a **frontend-only** module. It documents current and planned data coverage without changing backend fetch logic.
+
+| Provider | Asset focus | Status |
+|----------|-------------|--------|
+| Yahoo / yfinance | US stocks, ETFs, HK, basic CN A-share, basic crypto, indices, FX, futures | **Active** |
+| AKShare | China A-share historical prices, adjustment mode, CN metadata | Planned |
+| CoinGecko | Crypto market cap, volume, historical crypto data | Planned |
+| CSV upload | Custom local research datasets, Model Lab experiments | Planned |
+| Tushare / BaoStock | Alternative China market data | Coming later |
+
+Cache and database layers: **cache remains postponed**; **database preparation v1** adds config, health check, and schema only (no save-backtest yet).
+
+#### Market data normalization target schema
+
+Future providers should normalize into a common OHLCV schema before Strategy Lab or Model Lab consumes data:
+
+`date`, `open`, `high`, `low`, `close`, `volume`, `symbol`, `market`, `data_source`, `adjustment`, `currency`
+
+### Provider Abstraction v1 (backend)
+
+Provider Abstraction v1 introduces a unified backend entry point for market data without changing API contracts.
+
+| Component | Path | Role |
+|-----------|------|------|
+| `MarketDataRequest` | `backend/app/data_providers/base.py` | Request dataclass |
+| `MarketDataProvider` | `backend/app/data_providers/base.py` | Provider protocol |
+| `YahooProvider` | `backend/app/data_providers/yahoo_provider.py` | Active Yahoo/yfinance provider |
+| `MarketDataService` | `backend/app/services/market_data_service.py` | Routes `data_source` to provider |
+| `load_price_data()` | `yahoo_provider.py` | Backward-compatible helper → `MarketDataService` |
+
+Status:
+
+- **Active:** `yahoo`
+- **Planned:** `akshare`, `coingecko`, `csv`
+
+Rules:
+
+- Strategy, model, and research modules should not call provider-specific code directly.
+- All providers normalize to: `date`, `open`, `high`, `low`, `close`, `volume`
+- Optional metadata: `symbol`, `market`, `data_source`, `adjustment`
+- Cache will later wrap `MarketDataService` (not implemented in v1).
+- Database stores durable research assets, not raw market data in v1.
+
+Status endpoint: `GET /api/data-sources/status`
+
+### Database Preparation v1 (backend)
+
+Database Preparation v1 wires Supabase Postgres for future durable research assets without implementing full Experiments save/list yet.
+
+| Component | Path | Role |
+|-----------|------|------|
+| `SUPABASE_DB_URL` | backend env only | Transaction Pooler connection string |
+| `get_database_url()` | `backend/app/db/client.py` | Read env; returns `None` if unset |
+| `check_database_connection()` | `backend/app/db/client.py` | `select 1` health probe |
+| `schema.sql` | `backend/db/schema.sql` | `backtest_runs`, `backtest_trades` tables |
+
+Status endpoint: `GET /api/database/status`
+
+Rules:
+
+- Supabase Postgres is the planned database layer.
+- `SUPABASE_DB_URL` is **backend-only**; frontend does not connect directly to Supabase.
+- App must not crash if `SUPABASE_DB_URL` is missing.
+- `schema.sql` defines `backtest_runs` and `backtest_trades` (UUID PKs, RLS enabled, no policies yet).
+- Raw OHLCV market data is **not** stored in database v1.
+- Cache remains **postponed** (can introduce stale data and debugging complexity).
+- Full Experiments save/list API and Strategy Lab “Save Backtest Run” are **next step**.
 
 ---
 

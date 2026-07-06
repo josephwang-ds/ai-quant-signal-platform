@@ -65,7 +65,7 @@ export const WORKSPACE_MODULES: WorkspaceModule[] = [
     titleKey: "dataCenter",
     overviewDescKey: "moduleDataCenterOverviewDesc",
     pageDescKey: "dataCenterDesc",
-    status: "planned",
+    status: "active",
     skeletonKind: "planned",
     category: "data",
   },

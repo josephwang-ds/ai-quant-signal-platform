@@ -262,3 +262,15 @@ export type OOSResponse = {
   segments: OOSSegments;
   interpretation: string[];
 };
+
+export type DataSourceProviderStatus = {
+  name: string;
+  status: string;
+  asset_classes?: string[];
+  note?: string;
+};
+
+export type DataSourceStatusResponse = {
+  active_provider: string;
+  providers: DataSourceProviderStatus[];
+};

@@ -5,6 +5,8 @@ from typing import Any, Optional
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.api.routes.data_sources import router as data_sources_router
+from app.api.routes.database import router as database_router
 from app.config import get_allowed_origins
 from app.backtest.engine import (
     run_combined_signal_backtest,
@@ -39,6 +41,9 @@ app.add_middleware(
     allow_methods=["GET", "POST"],
     allow_headers=["*"],
 )
+
+app.include_router(data_sources_router)
+app.include_router(database_router)
 
 # 响应中最多返回的行数（仅用于 /api/price）
 MAX_PRICE_ROWS = 300

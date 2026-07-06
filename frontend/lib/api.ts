@@ -3,6 +3,7 @@ import type {
   BacktestStrategy,
   CombinedMode,
   CompareChartResponse,
+  DataSourceStatusResponse,
   IndicatorsResponse,
   MarketWatchResponse,
   OOSResponse,
@@ -54,6 +55,25 @@ export async function getBackendHealth(): Promise<HealthResponse> {
   }
 
   return response.json() as Promise<HealthResponse>;
+}
+
+/**
+ * 调用后端 GET /api/data-sources/status，获取实时数据源状态。
+ */
+export async function getDataSourceStatus(): Promise<DataSourceStatusResponse> {
+  const response = await fetch(buildApiUrl("/api/data-sources/status"), {
+    cache: "no-store",
+  });
+
+  if (!response.ok) {
+    const message = await parseApiError(
+      response,
+      `Data source status request failed with status ${response.status}`
+    );
+    throw new Error(message);
+  }
+
+  return response.json() as Promise<DataSourceStatusResponse>;
 }
 
 /**
