@@ -92,6 +92,7 @@ class BacktestRequest(BaseModel):
     short_window: int = 20
     long_window: int = 60
     momentum_window: int = 60
+    combined_mode: str = "conservative"
     transaction_cost: float = 0.001
 
     @field_validator("ticker")
@@ -106,9 +107,19 @@ class BacktestRequest(BaseModel):
     @field_validator("strategy")
     @classmethod
     def validate_strategy(cls, value: str) -> str:
-        """支持双均线交叉与动量策略。"""
-        if value not in ("ma_crossover", "momentum"):
-            raise ValueError('strategy must be "ma_crossover" or "momentum"')
+        """支持均线交叉、动量与组合信号策略。"""
+        allowed = ("ma_crossover", "momentum", "combined_signal")
+        if value not in allowed:
+            raise ValueError(
+                'strategy must be "ma_crossover", "momentum", or "combined_signal"'
+            )
+        return value
+
+    @field_validator("combined_mode")
+    @classmethod
+    def validate_combined_mode(cls, value: str) -> str:
+        if value not in ("conservative", "aggressive"):
+            raise ValueError('combined_mode must be "conservative" or "aggressive"')
         return value
 
     @field_validator("short_window")
@@ -116,6 +127,13 @@ class BacktestRequest(BaseModel):
     def validate_short_window(cls, value: int) -> int:
         if value < 2:
             raise ValueError("short_window must be >= 2")
+        return value
+
+    @field_validator("long_window")
+    @classmethod
+    def validate_long_window(cls, value: int) -> int:
+        if value < 2:
+            raise ValueError("long_window must be >= 2")
         return value
 
     @field_validator("momentum_window")
@@ -134,7 +152,62 @@ class BacktestRequest(BaseModel):
 
     @model_validator(mode="after")
     def validate_strategy_params(self) -> "BacktestRequest":
-        if self.strategy == "ma_crossover" and self.long_window <= self.short_window:
+        if self.strategy in ("ma_crossover", "combined_signal"):
+            if self.long_window <= self.short_window:
+                raise ValueError("long_window must be > short_window")
+        return self
+
+
+class StrategyComparisonRequest(BaseModel):
+    """多策略横向对比请求体。"""
+
+    ticker: str
+    start_date: str = "2022-01-01"
+    end_date: Optional[str] = None
+    transaction_cost: float = 0.001
+    short_window: int = 20
+    long_window: int = 60
+    momentum_window: int = 60
+
+    @field_validator("ticker")
+    @classmethod
+    def normalize_ticker(cls, value: str) -> str:
+        ticker = value.upper().strip()
+        if not ticker:
+            raise ValueError("ticker must not be empty")
+        return ticker
+
+    @field_validator("short_window")
+    @classmethod
+    def validate_short_window(cls, value: int) -> int:
+        if value < 2:
+            raise ValueError("short_window must be >= 2")
+        return value
+
+    @field_validator("long_window")
+    @classmethod
+    def validate_long_window(cls, value: int) -> int:
+        if value < 2:
+            raise ValueError("long_window must be >= 2")
+        return value
+
+    @field_validator("momentum_window")
+    @classmethod
+    def validate_momentum_window(cls, value: int) -> int:
+        if value < 5 or value > 252:
+            raise ValueError("momentum_window must be between 5 and 252")
+        return value
+
+    @field_validator("transaction_cost")
+    @classmethod
+    def validate_transaction_cost(cls, value: float) -> float:
+        if value < 0 or value > 0.05:
+            raise ValueError("transaction_cost must be between 0 and 0.05")
+        return value
+
+    @model_validator(mode="after")
+    def validate_windows(self) -> "StrategyComparisonRequest":
+        if self.long_window <= self.short_window:
             raise ValueError("long_window must be > short_window")
         return self
 

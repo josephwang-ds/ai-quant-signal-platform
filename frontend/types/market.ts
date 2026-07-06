@@ -82,7 +82,18 @@ export type CompareChartResponse = {
 
 export type ChartMode = "selected" | "compare";
 
-export type BacktestStrategy = "ma_crossover" | "momentum";
+export type BacktestStrategy = "ma_crossover" | "momentum" | "combined_signal";
+
+export type CombinedMode = "conservative" | "aggressive";
+
+export type BacktestStrategyConfig = {
+  strategy: BacktestStrategy;
+  short_window: number;
+  long_window: number;
+  momentum_window: number;
+  combined_mode: CombinedMode;
+  transaction_cost: number;
+};
 
 export type BacktestMetrics = {
   total_return: number | null;
@@ -103,7 +114,11 @@ export type BacktestRow = {
   close: number;
   ma_short?: number | null;
   ma_long?: number | null;
+  ma_signal?: number | null;
   momentum_return?: number | null;
+  momentum_signal?: number | null;
+  combined_signal?: number | null;
+  combined_mode?: string | null;
   signal: number;
   position: number;
   daily_return: number;
@@ -113,6 +128,19 @@ export type BacktestRow = {
   drawdown: number;
   strategy_drawdown: number | null;
   benchmark_drawdown: number | null;
+  trade_action?: "BUY" | "SELL" | null;
+  trade_reason?: string | null;
+};
+
+export type TradeLogRow = {
+  date: string;
+  ticker: string;
+  action: "BUY" | "SELL";
+  price: number;
+  signal: number;
+  position_after: number;
+  reason: string;
+  strategy: string;
 };
 
 export type BacktestResponse = {
@@ -125,10 +153,13 @@ export type BacktestResponse = {
     short_window?: number;
     long_window?: number;
     momentum_window?: number;
+    combined_mode?: CombinedMode;
     transaction_cost: number;
   };
+  strategy_config?: BacktestStrategyConfig;
   metrics: BacktestMetrics;
   data: BacktestRow[];
+  trade_log: TradeLogRow[];
 };
 
 export type SensitivityResultRow = {
@@ -162,6 +193,31 @@ export type SensitivityResponse = {
   data_source: string;
   results: SensitivityResultRow[];
   errors: SensitivityError[];
+};
+
+export type StrategyComparisonResult = {
+  label: string;
+  strategy: string;
+  strategy_config: Partial<BacktestStrategyConfig> & Record<string, unknown>;
+  metrics: BacktestMetrics;
+};
+
+export type StrategyComparisonSummary = {
+  best_total_return: string | null;
+  best_sharpe: string | null;
+  lowest_drawdown: string | null;
+  fewest_trades: string | null;
+};
+
+export type StrategyComparisonResponse = {
+  ticker: string;
+  start_date: string;
+  end_date: string | null;
+  transaction_cost: number;
+  data_source: string;
+  results: StrategyComparisonResult[];
+  summary: StrategyComparisonSummary;
+  interpretation: string[];
 };
 
 export type OOSSegmentMetrics = {

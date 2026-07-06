@@ -35,3 +35,4 @@ next-env.d.ts
 .pytest_cache/
 .coverage
 htmlcov/
+frontend/tsconfig.tsbuildinfo

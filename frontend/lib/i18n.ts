@@ -4,15 +4,25 @@ export const LANGUAGE_STORAGE_KEY = "ai-quant-language";
 
 export const translations = {
   en: {
-    appTitle: "AI Quant Signal Platform",
+    appTitle: "AI Quant Research Workspace",
     appSubtitle:
-      "Learning-stage quant research dashboard for signal scoring, backtesting, and robustness checks.",
-    educationalDemo: "Educational Demo",
+      "Modular quant research workspace for signals, rule-based strategies, experiments, and AI-assisted explanation.",
+    educationalDemo: "Portfolio Showcase",
     dailyMarketData: "Daily Market Data",
     notFinancialAdvice: "Not Financial Advice",
     navBacktesting: "Backtesting",
     navSensitivity: "Parameter Sensitivity",
     navOos: "OOS Validation",
+    navOverview: "Overview",
+    navDataCenter: "Data Center",
+    navMarketWatch: "Market Watch",
+    navStrategyLab: "Strategy Lab",
+    navComparison: "Comparison",
+    navRobustness: "Robustness",
+    navModelLab: "Model Lab",
+    navExperiments: "Experiments",
+    navResearchNotes: "Research Notes",
+    navAiAgent: "AI Agent",
     langEnglish: "English",
     langChinese: "中文",
 
@@ -28,6 +38,10 @@ export const translations = {
     marketWatch: "Market Watch",
     marketWatchDesc:
       "First pass: compare tickers with the same rules, then inspect the score, trend, risk, and rule components before looking at charts.",
+    marketWatchPageDesc:
+      "Rank tickers by rule-based signal scores and inspect the underlying indicators, reasons, and charts.",
+    marketWatchSignalNote:
+      "Signal scores are rule-based research indicators. They are not buy or sell recommendations.",
     tickers: "Tickers",
     tickersPlaceholder: "AAPL, MSFT, NVDA",
     tickersHelper: "Ticker = stock symbol. Separate multiple tickers with commas or spaces.",
@@ -45,7 +59,7 @@ export const translations = {
     dataFreshnessDesc:
       "A quant workflow starts here: stale or partial data can make every downstream signal misleading.",
     dataSource: "Data Source",
-    downloadStartDate: "Download Start Date",
+    downloadStartDate: "Data Download Start (Calendar Date)",
     latestAvailableDate: "Latest Available Date",
     dataNote: "Data Note",
     dataNoteDefault:
@@ -111,7 +125,7 @@ export const translations = {
     chartZoomHint: "Use the bottom range selector to zoom into a specific date range.",
     chartManyTickers: "Showing many tickers may make the chart harder to read.",
     chartLoadFailed: "Failed to load chart data.",
-    chartRange: "Chart Range",
+    actualDataRange: "Actual data",
     rows: "Rows",
     closeMaTitle: "{ticker} — Close, MA20, MA60",
     closeMaCaption:
@@ -120,13 +134,49 @@ export const translations = {
     compareChartCaption:
       "Normalized means every ticker starts at 100, making relative performance easier to compare even when prices are different.",
 
-    strategyResearch: "Strategy Research",
-    strategyResearchDesc:
-      "After signal inspection, the professional question is whether the rule beats a simple benchmark and survives robustness checks.",
-
-    backtesting: "Backtesting",
-    backtestingDesc:
-      "Core read order: compare strategy return with benchmark, then check Sharpe, drawdown, volatility, and trade count.",
+    strategyLab: "Strategy Lab",
+    strategyLabDesc:
+      "Select a decision method and compare how each rule triggers simulated buy/sell events in backtest.",
+    strategyLabSimulatedNote:
+      "These are simulated backtest results only. The system does not place real trades.",
+    combinedSignal: "MA + Momentum Combined",
+    momentumStrategy: "Momentum",
+    combinedMode: "Combined Mode",
+    conservative: "Conservative",
+    aggressive: "Aggressive",
+    strategySelectHint:
+      "Switch methods in the Strategy dropdown. The parameter fields below update for each strategy.",
+    strategyGuideWhat: "What it is",
+    strategyGuideParams: "What to set",
+    strategyGuideRead: "How to read results",
+    strategyMaWhat:
+      "A trend-following rule: hold the asset when the short moving average is above the long moving average; otherwise stay in cash.",
+    strategyMaParams:
+      "Short Window (default 20) and Long Window (default 60); long must be greater than short. Also choose ticker, date range, and transaction cost.",
+    strategyMaRead:
+      "After Run Backtest: compare the strategy vs buy-and-hold chart, Sharpe, and drawdown; open Trade Log for BUY/SELL dates and MA trigger reasons.",
+    strategyMomentumWhat:
+      "A trend-following rule: hold when the past N-day return is positive; exit when momentum is zero or negative.",
+    strategyMomentumParams:
+      "Momentum Window (default 60, range 5–252): number of trading days used to compute past return.",
+    strategyMomentumRead:
+      "After Run Backtest: check whether momentum timing beat buy-and-hold; Trade Log reasons mention positive vs non-positive past return.",
+    strategyCombinedWhat:
+      "Uses both MA crossover and momentum. Conservative holds only when both agree; Aggressive holds when either is positive.",
+    strategyCombinedParams:
+      "Short/Long windows (MA), Momentum Window, and Combined Mode dropdown: Conservative (both positive) or Aggressive (either positive).",
+    strategyCombinedRead:
+      "After Run Backtest: compare trade count vs single-rule strategies; conservative usually trades less, aggressive may trade more.",
+    combinedModeHelper:
+      "Conservative: both MA and momentum must be positive to hold. Aggressive: hold if either MA or momentum is positive.",
+    strategyMaCard:
+      "MA Crossover holds the asset when the short moving average is above the long moving average. It is a simple trend-following rule.",
+    strategyMomentumCard:
+      "Momentum holds the asset when the past N-day return is positive, and exits when momentum turns non-positive.",
+    strategyCombinedCard:
+      "Combined Signal uses both MA crossover and momentum. Conservative mode requires both signals to be positive. Aggressive mode requires either signal to be positive.",
+    backtestCombinedExplain:
+      "Combined Signal merges MA crossover and momentum. Conservative mode holds only when both agree; aggressive mode holds when either is positive.",
     startDate: "Start Date",
     endDate: "End Date",
     backtestStartDate: "Backtest Start Date",
@@ -146,6 +196,29 @@ export const translations = {
       "Backtesting checks how a trading rule would have performed historically. This demo uses a momentum rule: when the past N-day return is positive, the strategy holds the stock; otherwise it stays in cash.",
     backtestBiasNote:
       "Position is shifted by one period to avoid look-ahead bias. Transaction cost is applied whenever the position changes.",
+    backtestWarmupNote:
+      "Because indicators need a warm-up window, the first backtest bar may be later than the requested start date.",
+    strategyComparison: "Strategy Comparison",
+    strategyComparisonDesc:
+      "Compare MA crossover, momentum, combined signal, and buy-and-hold under the same ticker, date range, and transaction cost.",
+    strategyComparisonReuses: "Reuses Strategy Lab inputs",
+    compareStrategies: "Compare Strategies",
+    bestTotalReturn: "Best Total Return",
+    bestSharpe: "Best Sharpe",
+    lowestDrawdown: "Lowest Drawdown",
+    fewestTrades: "Fewest Trades",
+    buyAndHold: "Buy & Hold",
+    strategyComparisonExplain:
+      "This comparison does not tell which strategy will work in the future. It only shows how different rules performed historically under the same assumptions.",
+    strategyComparisonDisclaimer1:
+      "This comparison shows historical performance under the same assumptions.",
+    strategyComparisonDisclaimer2: "It does not predict future performance.",
+    strategyComparisonDisclaimer3: "It is not financial advice.",
+    strategyComparisonFailed: "Failed to compare strategies.",
+    comparisonColStrategy: "Strategy",
+    comparisonColBenchmark: "Benchmark Return",
+    comparisonColMaxDrawdown: "Max Drawdown",
+    comparisonColTrades: "Trades",
     totalReturn: "Total Return",
     benchmarkReturn: "Benchmark Return",
     cagr: "CAGR",
@@ -161,10 +234,10 @@ export const translations = {
     transactionCostTotal: "Transaction Cost Total",
     backtestInterpretation: "Backtest Interpretation",
     backtestInterpretationNote:
-      "Rule-based educational interpretation. Not financial advice.",
+      "Rule-based research interpretation. Not financial advice.",
     backtestFailed: "Failed to run backtest.",
 
-    sensitivityAnalysis: "Parameter Sensitivity Analysis",
+    sensitivityAnalysis: "MA Parameter Sensitivity",
     sensitivityDesc:
       "Robustness read: similar results across parameter pairs are more credible than one isolated winner.",
     sensitivityExplain:
@@ -176,7 +249,7 @@ export const translations = {
     longMa: "Long MA",
     sensitivityInterpretation: "Sensitivity Interpretation",
     sensitivityInterpretationNote:
-      "This sensitivity analysis is for educational research only. It is not parameter optimization and not financial advice.",
+      "This sensitivity analysis is for research demonstration only. It is not parameter optimization and not financial advice.",
     parameterSetErrors: "Parameter Set Errors",
     sensitivityFailed: "Failed to run sensitivity analysis.",
 
@@ -195,11 +268,76 @@ export const translations = {
     metric: "Metric",
     oosInterpretation: "OOS Interpretation",
     oosInterpretationNote:
-      "Out-of-sample validation is for educational research only. It is not parameter optimization and not financial advice.",
+      "Out-of-sample validation is for research demonstration only. It is not parameter optimization and not financial advice.",
     split: "Split",
     oosFailed: "Failed to run OOS validation.",
 
-    footerLine1: "For educational and portfolio demonstration purposes only.",
+    overviewTitle: "Workspace Overview",
+    overviewDesc:
+      "A modular quant research environment. Each module owns one responsibility: data, signals, strategies, experiments, notes, and AI explanation — not trading.",
+    categoryCoreResearch: "Core Research",
+    categoryDataStorage: "Data & Storage",
+    categoryModelAi: "Model & AI",
+    categorySystemNotes: "System Notes",
+    statusActive: "Active",
+    statusPlanned: "Planned",
+    statusComingLater: "Coming Later",
+    openModule: "Open Module",
+    openLegacyDemo: "Open full demo",
+    legacyDemoHint:
+      "Full functionality is temporarily on the legacy dashboard while this module is being migrated.",
+    modulePlannedStatus: "Planned module",
+    moduleMigratingStatus:
+      "This module will be separated from the original dashboard.",
+
+    dataCenter: "Data Center",
+    dataCenterDesc:
+      "Future home for data source selection, provider status, symbol metadata, market type, adjustment mode, freshness, cache status, and data quality checks.",
+    robustnessChecks: "Robustness Checks",
+    robustnessChecksDesc:
+      "Parameter sensitivity, out-of-sample validation, and future walk-forward and model robustness checks.",
+    robustnessPageDesc:
+      "Test whether strategy behavior is sensitive to parameters or unstable out of sample.",
+    robustnessEducationalNote:
+      "Robustness checks help reduce overclaiming. A strategy that works only for one parameter set or only in-sample may not be reliable.",
+    modelLab: "Model Lab",
+    modelLabDesc:
+      "ML dataset builder, feature engineering, logistic regression, gradient boosting models, and future deep learning signal research.",
+    experiments: "Experiments",
+    experimentsDesc:
+      "Saved backtest runs, trade logs, strategy comparisons, model runs, and experiment history backed by the database.",
+    researchNotes: "Research Notes",
+    researchNotesDesc:
+      "Watchlist, ticker, and strategy notes linked to backtests and model runs — human-written and AI-generated.",
+    aiResearchAgent: "AI Research Agent",
+    aiResearchAgentDesc:
+      "LLM explanations of backtest results, trade logs, and strategy comparisons. Research note drafting — no trading or financial advice.",
+
+    moduleDataCenterOverviewDesc:
+      "Manage data sources, provider status, symbol metadata, and cache freshness.",
+    moduleMarketWatchOverviewDesc:
+      "Rank tickers, inspect signal components, and view indicator charts.",
+    moduleStrategyLabOverviewDesc:
+      "Run rule-based backtests: MA crossover, momentum, and combined signals.",
+    moduleComparisonOverviewDesc:
+      "Compare MA, momentum, combined, and buy-and-hold on the same inputs.",
+    moduleRobustnessOverviewDesc:
+      "Parameter sensitivity and out-of-sample validation checks.",
+    moduleModelLabOverviewDesc:
+      "ML dataset building, feature engineering, and signal model experiments.",
+    moduleExperimentsOverviewDesc:
+      "Review saved backtests, trade logs, comparisons, and model runs.",
+    moduleResearchNotesOverviewDesc:
+      "Human and AI research notes linked to tickers, strategies, and runs.",
+    moduleAiAgentOverviewDesc:
+      "LLM explanations of results and research note drafting — no trading.",
+
+    systemCurrentDataSource: "Current data source: Yahoo Finance via yfinance",
+    systemFutureDatabase: "Future database: Supabase / Postgres",
+    systemFutureCache: "Future cache: Redis / Upstash or equivalent",
+    systemNotAdvice: "For research demonstration only — not financial advice.",
+
+    footerLine1: "For portfolio and research demonstration only.",
     footerLine2: "Not financial advice.",
     footerLine3: "Not for live trading.",
 
@@ -266,25 +404,50 @@ export const translations = {
     demoSignalScoring: "Signal Scoring",
     demoSignalScoringDesc:
       "Rank tickers using trend, momentum, RSI, and volatility conditions.",
-    demoBacktestingCard: "Backtesting",
+    demoBacktestingCard: "Strategy Lab",
     demoBacktestingDesc:
-      "Evaluate strategy return, benchmark return, drawdown, Sharpe ratio, and transaction costs.",
+      "Backtest MA crossover, momentum, or MA + momentum combined (conservative / aggressive). Includes trade log and benchmark charts.",
     demoRobustness: "Robustness Checks",
     demoRobustnessDesc:
       "Use parameter sensitivity and out-of-sample validation to reduce overclaiming.",
-    aboutThisDemo: "About This Demo",
+    aboutThisDemo: "About This Project",
     aboutThisDemoText:
-      "This is a learning-stage quant research dashboard for educational and portfolio demonstration purposes. It uses daily historical market data and simplified backtesting assumptions. It is not financial advice and is not intended for live trading.",
+      "A quant research dashboard built for portfolio showcase and research demonstration. It uses daily historical market data and simplified backtesting assumptions. It is not financial advice and is not intended for live trading.",
+
+    tradeLog: "Trade Log",
+    tradeLogDesc:
+      "Shows simulated buy and sell events generated by the selected strategy. These are backtest events only, not real orders.",
+    tradeLogDateNote:
+      "The trade date is the trading day when the position changes (daily bars; no intraday time). Buy and sell rows each include this date.",
+    tradeLogAction: "Action",
+    tradeLogReason: "Reason",
+    tradeDate: "Trade Date",
+    positionAfter: "Position After",
+    tradeBuy: "BUY",
+    tradeSell: "SELL",
+    tradeLogEmpty: "No trades were triggered for this period and strategy.",
+    tradeLogScrollHint: "More than 15 trades — scroll down to see all rows.",
   },
   zh: {
-    appTitle: "AI 量化信号平台",
-    appSubtitle: "用于信号评分、回测和稳健性验证的学习型量化研究看板。",
-    educationalDemo: "学习演示",
+    appTitle: "AI 量化研究工作区",
+    appSubtitle:
+      "模块化量化研究工作区，覆盖信号、规则策略、实验存档与 AI 辅助解读。",
+    educationalDemo: "作品展示",
     dailyMarketData: "日线市场数据",
     notFinancialAdvice: "非投资建议",
     navBacktesting: "回测",
     navSensitivity: "参数敏感性",
     navOos: "样本外验证",
+    navOverview: "总览",
+    navDataCenter: "数据中心",
+    navMarketWatch: "市场观察",
+    navStrategyLab: "策略实验室",
+    navComparison: "策略对比",
+    navRobustness: "稳健性",
+    navModelLab: "模型实验室",
+    navExperiments: "实验存档",
+    navResearchNotes: "研究笔记",
+    navAiAgent: "AI 研究助手",
     langEnglish: "English",
     langChinese: "中文",
 
@@ -299,6 +462,9 @@ export const translations = {
     marketWatch: "市场观察",
     marketWatchDesc:
       "第一步：用相同规则对比多个标的，查看分数、趋势、风险与规则组成，再进入图表分析。",
+    marketWatchPageDesc:
+      "根据规则型信号评分对股票进行排序，并查看底层指标、触发原因和图表。",
+    marketWatchSignalNote: "信号评分是规则型研究指标，不是买入或卖出建议。",
     tickers: "标的代码",
     tickersPlaceholder: "AAPL, MSFT, NVDA",
     tickersHelper: "Ticker 即股票代码，多个标的可用逗号或空格分隔。",
@@ -315,7 +481,7 @@ export const translations = {
     dataFreshness: "数据新鲜度",
     dataFreshnessDesc: "量化流程从这里开始：陈旧或不完整的数据会让后续信号产生误导。",
     dataSource: "数据来源",
-    downloadStartDate: "下载起始日期",
+    downloadStartDate: "数据下载起始（日历日）",
     latestAvailableDate: "最新可用日期",
     dataNote: "数据说明",
     dataNoteDefault:
@@ -375,7 +541,7 @@ export const translations = {
     chartZoomHint: "使用底部范围选择器可缩放至特定日期区间。",
     chartManyTickers: "标的过多可能使图表难以阅读。",
     chartLoadFailed: "图表数据加载失败。",
-    chartRange: "图表区间",
+    actualDataRange: "实际数据",
     rows: "行数",
     closeMaTitle: "{ticker} — 收盘价、MA20、MA60",
     closeMaCaption:
@@ -384,13 +550,47 @@ export const translations = {
     compareChartCaption:
       "归一化表示每个标的从 100 起步，便于在价格不同的情况下比较相对表现。",
 
-    strategyResearch: "策略研究",
-    strategyResearchDesc:
-      "完成信号检查后，核心问题是：该规则能否跑赢简单基准，并通过稳健性检验。",
-
-    backtesting: "回测",
-    backtestingDesc:
-      "核心阅读顺序：先对比策略与基准收益，再看 Sharpe、回撤、波动率与交易次数。",
+    strategyLab: "策略实验室",
+    strategyLabDesc:
+      "选择不同决策方法，比较各规则在回测中如何触发模拟买卖事件。",
+    strategyLabSimulatedNote: "这些仅为模拟回测结果，系统不会执行真实交易。",
+    combinedSignal: "均线 + 动量组合",
+    momentumStrategy: "动量策略",
+    combinedMode: "组合模式",
+    conservative: "保守模式",
+    aggressive: "进取模式",
+    strategySelectHint: "在「策略」下拉框中切换方法，下方参数区会随策略自动变化。",
+    strategyGuideWhat: "是什么",
+    strategyGuideParams: "需要设置什么",
+    strategyGuideRead: "结果怎么看",
+    strategyMaWhat:
+      "趋势跟踪规则：短期均线高于长期均线时持有资产，否则保持空仓。",
+    strategyMaParams:
+      "短期窗口（默认 20）、长期窗口（默认 60），长期须大于短期；另选标的、日期区间与交易成本。",
+    strategyMaRead:
+      "运行回测后：看策略 vs 买入持有曲线、Sharpe 与回撤；展开交易记录查看买卖日期与均线触发原因。",
+    strategyMomentumWhat:
+      "趋势跟踪规则：过去 N 日收益为正时持有，动量为零或负时退出。",
+    strategyMomentumParams:
+      "动量窗口（默认 60，范围 5–252）：用于计算过去收益正负的交易日数。",
+    strategyMomentumRead:
+      "运行回测后：看动量择时是否跑赢买入持有；交易记录原因会说明过去收益为正或非正。",
+    strategyCombinedWhat:
+      "同时使用均线交叉与动量。保守模式两者都为正才持有；进取模式任一为正即持有。",
+    strategyCombinedParams:
+      "短/长均线窗口、动量窗口，以及组合模式下拉：保守（两者都为正）或进取（任一为正）。",
+    strategyCombinedRead:
+      "运行回测后：对比交易次数与单策略差异；保守通常换仓更少，进取可能更频繁。",
+    combinedModeHelper:
+      "保守：均线与动量都为正才持有。进取：均线或动量任一为正即持有。",
+    strategyMaCard:
+      "均线交叉策略在短期均线高于长期均线时持有资产，是一种简单的趋势跟踪规则。",
+    strategyMomentumCard:
+      "动量策略在过去 N 日收益为正时持有资产，在动量转弱时退出。",
+    strategyCombinedCard:
+      "组合信号同时使用均线和动量。保守模式要求两个信号都为正，进取模式只要求任一信号为正。",
+    backtestCombinedExplain:
+      "组合信号合并均线交叉与动量。保守模式需两者同时为正才持有；进取模式任一为正即持有。",
     startDate: "起始日期",
     endDate: "结束日期",
     backtestStartDate: "回测起始日期",
@@ -410,6 +610,27 @@ export const translations = {
       "回测用于检查一个交易规则在历史上会如何表现。本策略使用动量规则：当过去 N 天收益为正时持有股票，否则保持空仓。",
     backtestBiasNote:
       "持仓信号会向后移动一个周期，以避免使用未来信息。每次仓位变化时都会计入交易成本。",
+    backtestWarmupNote: "因指标预热，首条回测日晚于起始日。",
+    strategyComparison: "策略对比",
+    strategyComparisonDesc:
+      "在同一股票、时间区间和交易成本下，对比均线交叉、动量、组合信号和买入持有。",
+    strategyComparisonReuses: "复用策略实验室输入",
+    compareStrategies: "对比策略",
+    bestTotalReturn: "最高总收益",
+    bestSharpe: "最高 Sharpe",
+    lowestDrawdown: "最低回撤",
+    fewestTrades: "最少交易",
+    buyAndHold: "买入并持有",
+    strategyComparisonExplain:
+      "该对比不能说明哪种策略未来一定有效，只展示不同规则在相同假设下的历史表现。",
+    strategyComparisonDisclaimer1: "本对比展示在相同假设下的历史表现。",
+    strategyComparisonDisclaimer2: "不能预测未来表现。",
+    strategyComparisonDisclaimer3: "不构成投资建议。",
+    strategyComparisonFailed: "策略对比运行失败。",
+    comparisonColStrategy: "策略",
+    comparisonColBenchmark: "基准收益",
+    comparisonColMaxDrawdown: "最大回撤",
+    comparisonColTrades: "交易次数",
     totalReturn: "总收益",
     benchmarkReturn: "基准收益",
     cagr: "年化复合收益",
@@ -424,10 +645,10 @@ export const translations = {
     trades: "交易次数",
     transactionCostTotal: "交易成本合计",
     backtestInterpretation: "回测解读",
-    backtestInterpretationNote: "基于规则的教育性解读，非投资建议。",
+    backtestInterpretationNote: "基于规则的研究解读，非投资建议。",
     backtestFailed: "回测运行失败。",
 
-    sensitivityAnalysis: "参数敏感性分析",
+    sensitivityAnalysis: "均线参数敏感性分析",
     sensitivityDesc:
       "稳健性视角：多组参数结果相近，比单一参数表现更好更值得信任。",
     sensitivityExplain:
@@ -439,7 +660,7 @@ export const translations = {
     longMa: "长期均线",
     sensitivityInterpretation: "敏感性解读",
     sensitivityInterpretationNote:
-      "本敏感性分析仅供学习研究，不是参数优化，也不是投资建议。",
+      "本敏感性分析仅供研究演示，不是参数优化，也不是投资建议。",
     parameterSetErrors: "参数组合错误",
     sensitivityFailed: "敏感性分析运行失败。",
 
@@ -458,11 +679,73 @@ export const translations = {
     metric: "指标",
     oosInterpretation: "样本外解读",
     oosInterpretationNote:
-      "样本外验证仅供学习研究，不是参数优化，也不是投资建议。",
+      "样本外验证仅供研究演示，不是参数优化，也不是投资建议。",
     split: "切分",
     oosFailed: "样本外验证运行失败。",
 
-    footerLine1: "仅供学习与作品集演示。",
+    overviewTitle: "工作区总览",
+    overviewDesc:
+      "模块化量化研究环境。各模块各司其职：数据、信号、策略、实验、笔记与 AI 解读——不涉及交易执行。",
+    categoryCoreResearch: "核心研究",
+    categoryDataStorage: "数据与存储",
+    categoryModelAi: "模型与 AI",
+    categorySystemNotes: "系统说明",
+    statusActive: "已启用",
+    statusPlanned: "规划中",
+    statusComingLater: "后续上线",
+    openModule: "进入模块",
+    openLegacyDemo: "打开完整演示",
+    legacyDemoHint: "本模块迁移完成前，完整功能请暂时使用旧版演示页。",
+    modulePlannedStatus: "规划中的模块",
+    moduleMigratingStatus: "本模块将从原仪表盘拆分独立。",
+
+    dataCenter: "数据中心",
+    dataCenterDesc:
+      "未来将管理数据源选择、提供商状态、标的信息、市场类型、复权方式、数据新鲜度、缓存状态与数据质量检查。",
+    robustnessChecks: "稳健性检查",
+    robustnessChecksDesc:
+      "参数敏感性、样本外验证，以及后续的滚动窗口与模型稳健性检查。",
+    robustnessPageDesc: "检查策略是否对参数过度敏感，或在样本外表现不稳定。",
+    robustnessEducationalNote:
+      "稳健性检查用于减少过度解读。如果一个策略只在某一组参数或样本内有效，可靠性可能不足。",
+    modelLab: "模型实验室",
+    modelLabDesc:
+      "机器学习数据集构建、特征工程、逻辑回归、梯度提升模型，以及后续深度学习信号研究。",
+    experiments: "实验存档",
+    experimentsDesc:
+      "保存的回测、交易日志、策略对比、模型运行记录与实验历史，由数据库持久化。",
+    researchNotes: "研究笔记",
+    researchNotesDesc:
+      "与自选、标的、策略及回测/模型运行关联的研究笔记，支持人工撰写与 AI 生成。",
+    aiResearchAgent: "AI 研究助手",
+    aiResearchAgentDesc:
+      "用大模型解读回测结果、交易日志与策略对比，辅助撰写研究笔记——不执行交易，不构成投资建议。",
+
+    moduleDataCenterOverviewDesc:
+      "管理数据源、提供商状态、标的信息与缓存新鲜度。",
+    moduleMarketWatchOverviewDesc:
+      "对标的进行信号排名，查看规则组成与指标图表。",
+    moduleStrategyLabOverviewDesc:
+      "运行规则策略回测：均线交叉、动量与组合信号。",
+    moduleComparisonOverviewDesc:
+      "在相同输入下对比均线、动量、组合与买入并持有。",
+    moduleRobustnessOverviewDesc:
+      "参数敏感性与样本外验证检查。",
+    moduleModelLabOverviewDesc:
+      "机器学习数据集构建、特征工程与信号模型实验。",
+    moduleExperimentsOverviewDesc:
+      "查看已保存的回测、交易日志、对比结果与模型运行。",
+    moduleResearchNotesOverviewDesc:
+      "与标的、策略及运行关联的人工与 AI 研究笔记。",
+    moduleAiAgentOverviewDesc:
+      "用大模型解读结果并辅助撰写研究笔记——不涉及交易。",
+
+    systemCurrentDataSource: "当前数据源：Yahoo Finance（yfinance）",
+    systemFutureDatabase: "未来数据库：Supabase / Postgres",
+    systemFutureCache: "未来缓存：Redis / Upstash 或同类方案",
+    systemNotAdvice: "仅供研究演示——不构成投资建议。",
+
+    footerLine1: "仅供作品集与研究演示。",
     footerLine2: "非投资建议。",
     footerLine3: "不用于实盘交易。",
 
@@ -526,13 +809,28 @@ export const translations = {
     demoDataPipelineDesc: "获取日线市场数据，并计算技术指标。",
     demoSignalScoring: "信号评分",
     demoSignalScoringDesc: "结合趋势、动量、RSI 和波动率条件，对标的进行信号评分。",
-    demoBacktestingCard: "回测",
-    demoBacktestingDesc: "评估策略收益、基准收益、回撤、Sharpe 比率和交易成本。",
+    demoBacktestingCard: "策略实验室",
+    demoBacktestingDesc:
+      "回测均线交叉、动量策略，或均线+动量组合（保守 / 进取），含交易记录与基准对比图。",
     demoRobustness: "稳健性检验",
     demoRobustnessDesc: "通过参数敏感性和样本外验证，避免只看单一历史最优结果。",
-    aboutThisDemo: "关于本演示",
+    aboutThisDemo: "关于本项目",
     aboutThisDemoText:
-      "这是一个学习阶段的量化研究看板，用于教育、作品集和研究演示。项目使用历史日线数据和简化回测假设，不构成投资建议，也不用于实盘交易。",
+      "这是一个面向作品集与研究演示的量化研究看板。项目使用历史日线数据和简化回测假设，不构成投资建议，也不用于实盘交易。",
+
+    tradeLog: "交易记录",
+    tradeLogDesc:
+      "显示由所选策略生成的模拟买卖事件。这些仅为回测事件，不是真实订单。",
+    tradeLogDateNote:
+      "交易日期为仓位发生变更的交易日（日线回测，不含盘中时点）；买入与卖出行均记录该日期。",
+    tradeLogAction: "动作",
+    tradeLogReason: "触发原因",
+    tradeDate: "交易日期",
+    positionAfter: "交易后仓位",
+    tradeBuy: "买入",
+    tradeSell: "卖出",
+    tradeLogEmpty: "该区间与策略下未触发任何交易。",
+    tradeLogScrollHint: "超过 15 条记录时可向下滚动查看全部。",
   },
 } as const;
 
@@ -654,6 +952,23 @@ const BACKEND_TEXT_ZH: Record<string, string> = {
     "20 日年化波动率偏高，风险上升。",
   "Latest date is based on the most recent available daily bar from Yahoo Finance via yfinance. Data may be delayed depending on exchange and provider.":
     "最新日期基于 Yahoo Finance（yfinance）最近可用的日线数据，实际数据可能因交易所与数据源而延迟。",
+  "Short moving average is above long moving average; strategy enters position.":
+    "短期均线高于长期均线，策略建仓。",
+  "Short moving average is below or equal to long moving average; strategy exits position.":
+    "短期均线低于或等于长期均线，策略平仓。",
+  "Past momentum return is positive; strategy enters position.":
+    "过去动量收益为正，策略建仓。",
+  "Past momentum return is non-positive; strategy exits position.":
+    "过去动量收益非正，策略平仓。",
+  "Both MA crossover and momentum signals are positive; strategy enters position.":
+    "均线交叉与动量信号均为正，策略建仓。",
+  "At least one of MA crossover or momentum signals is no longer positive; strategy exits position.":
+    "均线交叉或动量信号至少有一个不再为正，策略平仓。",
+  "At least one of MA crossover or momentum signals is positive; strategy enters position.":
+    "均线交叉或动量信号至少有一个为正，策略建仓。",
+  "Both MA crossover and momentum signals are non-positive; strategy exits position.":
+    "均线交叉与动量信号均为非正，策略平仓。",
+  "Yahoo Finance via yfinance": "雅虎财经（yfinance）",
 };
 
 export function translateBackendText(lang: Language, text: string): string {
@@ -661,6 +976,62 @@ export function translateBackendText(lang: Language, text: string): string {
     return text;
   }
   return BACKEND_TEXT_ZH[text] ?? text;
+}
+
+export function translateStrategyName(lang: Language, strategy: string): string {
+  if (strategy === "ma_crossover") {
+    return t(lang, "maCrossover");
+  }
+  if (strategy === "momentum") {
+    return t(lang, "momentumStrategy");
+  }
+  if (strategy === "combined_signal") {
+    return t(lang, "combinedSignal");
+  }
+  return strategy;
+}
+
+export function translateDataSource(lang: Language, dataSource: string): string {
+  return translateBackendText(lang, dataSource);
+}
+
+const COMPARISON_LABEL_ZH: Record<string, string> = {
+  "Buy & Hold": "买入并持有",
+  "Combined Conservative": "组合信号（保守）",
+  "Combined Aggressive": "组合信号（进取）",
+};
+
+export function translateComparisonLabel(lang: Language, label: string): string {
+  if (lang === "en") {
+    return label;
+  }
+  if (COMPARISON_LABEL_ZH[label]) {
+    return COMPARISON_LABEL_ZH[label];
+  }
+  if (label.startsWith("MA Crossover ")) {
+    return `均线交叉 ${label.replace("MA Crossover ", "")}`;
+  }
+  if (label.startsWith("Momentum ")) {
+    return `动量策略 ${label.replace("Momentum ", "")}`;
+  }
+  return label;
+}
+
+const COMPARISON_INTERPRETATION_ZH: Record<string, string> = {
+  "Strategy comparison helps evaluate whether a rule improves return, reduces drawdown, or simply trades more often.":
+    "策略对比用于评估某条规则是否提升收益、降低回撤，或只是更频繁交易。",
+  "Higher return is not always better if drawdown and turnover increase significantly.":
+    "若回撤与换手显著上升，更高收益未必更好。",
+};
+
+export function translateComparisonInterpretation(
+  lang: Language,
+  sentences: string[]
+): string[] {
+  if (lang === "en") {
+    return sentences;
+  }
+  return sentences.map((sentence) => COMPARISON_INTERPRETATION_ZH[sentence] ?? sentence);
 }
 
 const OOS_INTERPRETATION_ZH: Record<string, string> = {

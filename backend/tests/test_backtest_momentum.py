@@ -29,6 +29,7 @@ def test_momentum_backtest_success() -> None:
 
     first_row = payload["data"][0]
     assert "momentum_return" in first_row
+    assert "momentum_signal" in first_row
     assert "cumulative_strategy" in first_row
     assert "cumulative_benchmark" in first_row
     assert "strategy_drawdown" in first_row

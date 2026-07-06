@@ -1,9 +1,9 @@
-import type { Metadata } from "next";
 import "./globals.css";
+import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "AI Quant Signal Platform",
-  description: "Learning-stage quant research dashboard.",
+  description: "Quant research showcase for portfolio and research demonstration.",
 };
 
 // 根布局：应用全局样式与页面结构

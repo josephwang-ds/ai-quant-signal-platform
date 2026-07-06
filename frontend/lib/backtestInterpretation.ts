@@ -1,5 +1,5 @@
 import type { Language } from "@/lib/i18n";
-import type { BacktestResponse } from "@/types/market";
+import type { BacktestResponse, CombinedMode } from "@/types/market";
 
 function formatPercentValue(value: number): string {
   return `${(value * 100).toFixed(2)}%`;
@@ -8,6 +8,43 @@ function formatPercentValue(value: number): string {
 function formatPercentagePoints(diff: number): string {
   return `${(diff * 100).toFixed(2)}`;
 }
+
+const STRATEGY_INTRO = {
+  en: {
+    ma_crossover: [
+      "This backtest uses a trend-following MA crossover rule based on short versus long moving averages.",
+    ],
+    momentum: [
+      "This backtest uses a trend-following momentum rule based on past N-day return.",
+      "Momentum strategies may underperform in sideways or mean-reverting markets.",
+    ],
+    combined_conservative: [
+      "Conservative combined signal requires both MA crossover and momentum to agree before holding.",
+      "This may reduce false positives but can enter later and miss some upside.",
+    ],
+    combined_aggressive: [
+      "Aggressive combined signal holds when either MA crossover or momentum is positive.",
+      "This may capture more upside but may also create more false positives.",
+    ],
+  },
+  zh: {
+    ma_crossover: [
+      "本回测使用基于短期与长期均线比较的趋势跟踪均线交叉规则。",
+    ],
+    momentum: [
+      "本回测使用基于过去 N 日收益的趋势跟踪动量规则。",
+      "动量策略在震荡或均值回归市场中可能表现偏弱。",
+    ],
+    combined_conservative: [
+      "保守组合信号要求均线交叉与动量同时为正才持有。",
+      "这可能减少误判，但也可能入场更晚并错过部分涨幅。",
+    ],
+    combined_aggressive: [
+      "进取组合信号在均线交叉或动量任一为正时即持有。",
+      "这可能捕捉更多涨幅，但也可能带来更多误判。",
+    ],
+  },
+} as const;
 
 const INTERP = {
   en: {
@@ -87,12 +124,29 @@ const INTERP = {
   },
 } as const;
 
+function getStrategyIntroSentences(result: BacktestResponse, lang: Language): string[] {
+  if (result.strategy === "combined_signal") {
+    const mode: CombinedMode =
+      result.strategy_config?.combined_mode ??
+      result.parameters.combined_mode ??
+      "conservative";
+    const key = mode === "aggressive" ? "combined_aggressive" : "combined_conservative";
+    return [...STRATEGY_INTRO[lang][key]];
+  }
+
+  if (result.strategy === "momentum") {
+    return [...STRATEGY_INTRO[lang].momentum];
+  }
+
+  return [...STRATEGY_INTRO[lang].ma_crossover];
+}
+
 // 根据回测指标生成初学者可读的解读句子
 export function generateBacktestInterpretation(
   result: BacktestResponse,
   lang: Language = "en"
 ): string[] {
-  const sentences: string[] = [];
+  const sentences: string[] = [...getStrategyIntroSentences(result, lang)];
   const metrics = result.metrics;
   const text = INTERP[lang];
 

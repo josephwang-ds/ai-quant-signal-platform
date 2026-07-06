@@ -78,3 +78,46 @@ def calculate_backtest_metrics(df: pd.DataFrame) -> dict[str, Any]:
         "number_of_trades": round(number_of_trades, 4),
         "transaction_cost_total": round(transaction_cost_total, 6),
     }
+
+
+def calculate_buy_and_hold_metrics(df: pd.DataFrame) -> dict[str, Any]:
+    """从含基准序列的回测 DataFrame 计算买入持有指标。"""
+    if df.empty:
+        raise ValueError("Not enough data to calculate buy-and-hold metrics.")
+
+    total_return = float(df["cumulative_benchmark"].iloc[-1]) - 1
+    years = len(df) / TRADING_DAYS_PER_YEAR
+    cagr: Optional[float]
+    if years <= 0:
+        cagr = None
+    else:
+        cagr = (1 + total_return) ** (1 / years) - 1
+
+    daily_return = df["daily_return"]
+    std = float(daily_return.std())
+    volatility = std * math.sqrt(TRADING_DAYS_PER_YEAR)
+
+    sharpe_ratio: Optional[float]
+    if std == 0 or math.isnan(std):
+        sharpe_ratio = None
+    else:
+        sharpe_ratio = (
+            float(daily_return.mean()) / std * math.sqrt(TRADING_DAYS_PER_YEAR)
+        )
+
+    benchmark_drawdown = _benchmark_drawdown_series(df)
+    max_drawdown = float(benchmark_drawdown.min())
+
+    return {
+        "total_return": round(total_return, 6),
+        "benchmark_return": round(total_return, 6),
+        "cagr": round(cagr, 6) if cagr is not None else None,
+        "volatility": round(volatility, 6),
+        "sharpe_ratio": round(sharpe_ratio, 6) if sharpe_ratio is not None else None,
+        "max_drawdown": round(max_drawdown, 6),
+        "strategy_max_drawdown": round(max_drawdown, 6),
+        "benchmark_max_drawdown": round(max_drawdown, 6),
+        "win_rate": round(float((daily_return > 0).mean()), 6),
+        "number_of_trades": 0,
+        "transaction_cost_total": 0,
+    }

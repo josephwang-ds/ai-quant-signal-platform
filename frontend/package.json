@@ -3,8 +3,11 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "clean": "rm -rf .next",
     "dev": "next dev",
+    "dev:clean": "lsof -ti :3000 | xargs kill -9 2>/dev/null; rm -rf .next && next dev",
     "build": "next build",
+    "build:clean": "rm -rf .next && next build",
     "start": "next start",
     "lint": "next lint"
   },

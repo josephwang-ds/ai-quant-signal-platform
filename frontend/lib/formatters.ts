@@ -1,5 +1,21 @@
 /** 仪表盘数值格式化工具 */
 
+/** 从时序数据首末条记录拼出日期区间 */
+export function formatDateSeriesRange(
+  data: ReadonlyArray<{ date: string } | Record<string, string | number | null>>,
+  emptyLabel = "N/A"
+): string {
+  if (data.length === 0) {
+    return emptyLabel;
+  }
+  const firstDate = data[0]?.date;
+  const lastDate = data[data.length - 1]?.date;
+  if (typeof firstDate !== "string" || typeof lastDate !== "string") {
+    return emptyLabel;
+  }
+  return `${firstDate} → ${lastDate}`;
+}
+
 export function formatPrice(value: number): string {
   return value.toFixed(2);
 }

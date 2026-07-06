@@ -5,7 +5,9 @@ type StatusBadgeVariant =
   | "warning"
   | "danger"
   | "bullish"
-  | "bearish";
+  | "bearish"
+  | "buy"
+  | "sell";
 
 type StatusBadgeProps = {
   label: string;

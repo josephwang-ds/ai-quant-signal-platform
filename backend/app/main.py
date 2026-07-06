@@ -6,7 +6,12 @@ from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import get_allowed_origins
-from app.backtest.engine import run_ma_crossover_backtest, run_momentum_backtest
+from app.backtest.engine import (
+    run_combined_signal_backtest,
+    run_ma_crossover_backtest,
+    run_momentum_backtest,
+)
+from app.backtest.compare import run_strategy_comparison
 from app.backtest.metrics import calculate_backtest_metrics
 from app.backtest.oos import generate_oos_interpretation, run_oos_validation
 from app.data_providers.yahoo_provider import load_price_data
@@ -18,6 +23,7 @@ from app.schemas import (
     MarketWatchRequest,
     OOSRequest,
     SensitivityRequest,
+    StrategyComparisonRequest,
 )
 
 # 创建 FastAPI 应用实例
@@ -113,6 +119,13 @@ def _indicator_row_dict(row) -> dict:
     }
 
 
+def _optional_int(value) -> Optional[int]:
+    """将可选信号列转为 int，缺失或 NaN 时返回 None。"""
+    if value is None or (isinstance(value, float) and math.isnan(value)):
+        return None
+    return int(value)
+
+
 def _backtest_row_dict(row) -> dict:
     """将单行回测数据转为 API 响应中的 data 数组元素。"""
     return {
@@ -120,6 +133,7 @@ def _backtest_row_dict(row) -> dict:
         "close": round(float(row["close"]), 4),
         "ma_short": _optional_number(row.get("ma_short"), 4),
         "ma_long": _optional_number(row.get("ma_long"), 4),
+        "ma_signal": _optional_int(row.get("ma_signal")),
         "signal": int(row["signal"]),
         "position": int(row["position"]),
         "daily_return": _optional_number(row.get("daily_return"), 6),
@@ -138,19 +152,73 @@ def _backtest_row_dict(row) -> dict:
         ),
         "benchmark_drawdown": _optional_number(row.get("benchmark_drawdown"), 6),
         "momentum_return": _optional_number(row.get("momentum_return"), 6),
+        "momentum_signal": _optional_int(row.get("momentum_signal")),
+        "combined_signal": _optional_int(row.get("combined_signal")),
+        "combined_mode": row.get("combined_mode"),
+        "trade": _optional_number(row.get("trade"), 6),
+        "trade_action": row["trade_action"]
+        if row.get("trade_action") is not None
+        and not (isinstance(row.get("trade_action"), float) and math.isnan(row.get("trade_action")))
+        else None,
+        "trade_reason": row["trade_reason"]
+        if row.get("trade_reason") is not None
+        and not (isinstance(row.get("trade_reason"), float) and math.isnan(row.get("trade_reason")))
+        else None,
+    }
+
+
+def _build_trade_log(backtest_df, ticker: str, strategy: str) -> list[dict]:
+    """从回测结果中提取紧凑交易记录（仅含买卖行）。"""
+    trade_log: list[dict] = []
+    for _, row in backtest_df.iterrows():
+        action = row.get("trade_action")
+        if action is None or (isinstance(action, float) and math.isnan(action)):
+            continue
+        trade_log.append(
+            {
+                "date": row["date"].strftime("%Y-%m-%d"),
+                "ticker": ticker.upper(),
+                "action": action,
+                "price": round(float(row["close"]), 2),
+                "signal": int(row["signal"]),
+                "position_after": int(row["position"]),
+                "reason": row["trade_reason"],
+                "strategy": strategy,
+            }
+        )
+    return trade_log
+
+
+def _backtest_strategy_config(request: BacktestRequest) -> dict[str, Any]:
+    """构建回测策略配置元数据。"""
+    return {
+        "strategy": request.strategy,
+        "short_window": request.short_window,
+        "long_window": request.long_window,
+        "momentum_window": request.momentum_window,
+        "combined_mode": request.combined_mode,
+        "transaction_cost": request.transaction_cost,
     }
 
 
 def _backtest_parameters_dict(request: BacktestRequest) -> dict[str, Any]:
-    """按策略类型构建回测参数字典。"""
-    params: dict[str, Any] = {
-        "transaction_cost": request.transaction_cost,
-    }
+    """按策略类型构建回测参数字典（向后兼容）。"""
+    config = _backtest_strategy_config(request)
+    params: dict[str, Any] = {"transaction_cost": config["transaction_cost"]}
     if request.strategy == "ma_crossover":
-        params["short_window"] = request.short_window
-        params["long_window"] = request.long_window
+        params["short_window"] = config["short_window"]
+        params["long_window"] = config["long_window"]
     elif request.strategy == "momentum":
-        params["momentum_window"] = request.momentum_window
+        params["momentum_window"] = config["momentum_window"]
+    elif request.strategy == "combined_signal":
+        params.update(
+            {
+                "short_window": config["short_window"],
+                "long_window": config["long_window"],
+                "momentum_window": config["momentum_window"],
+                "combined_mode": config["combined_mode"],
+            }
+        )
     return params
 
 
@@ -441,7 +509,7 @@ def chart_compare(request: ChartCompareRequest) -> dict:
 @app.post("/api/backtest")
 def run_backtest(request: BacktestRequest) -> dict:
     """
-    单 ticker 策略回测（支持 ma_crossover 与 momentum）。
+    单 ticker 策略回测（支持 ma_crossover、momentum、combined_signal）。
     """
     normalized_end_date = request.end_date.strip() if request.end_date else None
 
@@ -463,6 +531,15 @@ def run_backtest(request: BacktestRequest) -> dict:
             backtest_df = run_momentum_backtest(
                 price_df,
                 momentum_window=request.momentum_window,
+                transaction_cost=request.transaction_cost,
+            )
+        elif request.strategy == "combined_signal":
+            backtest_df = run_combined_signal_backtest(
+                price_df,
+                short_window=request.short_window,
+                long_window=request.long_window,
+                momentum_window=request.momentum_window,
+                combined_mode=request.combined_mode,
                 transaction_cost=request.transaction_cost,
             )
         else:
@@ -493,8 +570,54 @@ def run_backtest(request: BacktestRequest) -> dict:
         "end_date": normalized_end_date,
         "data_source": "Yahoo Finance via yfinance",
         "parameters": _backtest_parameters_dict(request),
+        "strategy_config": _backtest_strategy_config(request),
         "metrics": metrics,
         "data": [_backtest_row_dict(row) for _, row in backtest_df.iterrows()],
+        "trade_log": _build_trade_log(backtest_df, request.ticker, request.strategy),
+    }
+
+
+@app.post("/api/backtest/compare-strategies")
+def compare_backtest_strategies(request: StrategyComparisonRequest) -> dict:
+    """在同一标的与区间下对比固定策略集合的紧凑指标。"""
+    normalized_end_date = request.end_date.strip() if request.end_date else None
+
+    try:
+        price_df = load_price_data(
+            request.ticker,
+            request.start_date,
+            normalized_end_date,
+        )
+        comparison = run_strategy_comparison(
+            price_df,
+            ticker=request.ticker,
+            transaction_cost=request.transaction_cost,
+            short_window=request.short_window,
+            long_window=request.long_window,
+            momentum_window=request.momentum_window,
+        )
+    except HTTPException:
+        raise
+    except ValueError as exc:
+        msg = str(exc)
+        if msg.startswith("No price data found"):
+            raise HTTPException(status_code=404, detail=msg) from exc
+        raise HTTPException(status_code=400, detail=msg) from exc
+    except Exception as exc:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to compare strategies for '{request.ticker}': {exc}",
+        ) from exc
+
+    return {
+        "ticker": request.ticker,
+        "start_date": request.start_date,
+        "end_date": normalized_end_date,
+        "transaction_cost": request.transaction_cost,
+        "data_source": "Yahoo Finance via yfinance",
+        "results": comparison["results"],
+        "summary": comparison["summary"],
+        "interpretation": comparison["interpretation"],
     }
 
 

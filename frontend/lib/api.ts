@@ -1,11 +1,13 @@
 import type {
   BacktestResponse,
   BacktestStrategy,
+  CombinedMode,
   CompareChartResponse,
   IndicatorsResponse,
   MarketWatchResponse,
   OOSResponse,
   SensitivityResponse,
+  StrategyComparisonResponse,
 } from "@/types/market";
 
 function resolveApiBaseUrl(): string {
@@ -224,6 +226,7 @@ export type RunBacktestParams = {
   short_window?: number;
   long_window?: number;
   momentum_window?: number;
+  combined_mode?: CombinedMode;
   transaction_cost: number;
 };
 
@@ -243,6 +246,11 @@ export async function runBacktest(params: RunBacktestParams): Promise<BacktestRe
     body.long_window = params.long_window;
   } else if (params.strategy === "momentum") {
     body.momentum_window = params.momentum_window;
+  } else if (params.strategy === "combined_signal") {
+    body.short_window = params.short_window;
+    body.long_window = params.long_window;
+    body.momentum_window = params.momentum_window;
+    body.combined_mode = params.combined_mode;
   }
 
   const trimmedEndDate = params.end_date?.trim();
@@ -266,6 +274,54 @@ export async function runBacktest(params: RunBacktestParams): Promise<BacktestRe
   }
 
   return response.json() as Promise<BacktestResponse>;
+}
+
+export type RunStrategyComparisonParams = {
+  ticker: string;
+  start_date: string;
+  end_date?: string | null;
+  transaction_cost: number;
+  short_window: number;
+  long_window: number;
+  momentum_window: number;
+};
+
+/**
+ * 调用后端 POST /api/backtest/compare-strategies，横向对比固定策略集合。
+ */
+export async function runStrategyComparison(
+  params: RunStrategyComparisonParams
+): Promise<StrategyComparisonResponse> {
+  const body: RunStrategyComparisonParams = {
+    ticker: params.ticker,
+    start_date: params.start_date,
+    transaction_cost: params.transaction_cost,
+    short_window: params.short_window,
+    long_window: params.long_window,
+    momentum_window: params.momentum_window,
+  };
+
+  const trimmedEndDate = params.end_date?.trim();
+  if (trimmedEndDate) {
+    body.end_date = trimmedEndDate;
+  }
+
+  const response = await fetch(buildApiUrl("/api/backtest/compare-strategies"), {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    cache: "no-store",
+    body: JSON.stringify(body),
+  });
+
+  if (!response.ok) {
+    const message = await parseApiError(
+      response,
+      `Strategy comparison request failed with status ${response.status}`
+    );
+    throw new Error(message);
+  }
+
+  return response.json() as Promise<StrategyComparisonResponse>;
 }
 
 export type RunBacktestSensitivityParams = {

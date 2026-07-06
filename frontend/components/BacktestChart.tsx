@@ -6,6 +6,7 @@ import {
   Legend,
   Line,
   LineChart,
+  ReferenceDot,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -15,8 +16,10 @@ import {
 import EmptyState from "@/components/ui/EmptyState";
 import {
   CHART_BRUSH_STROKE,
+  CHART_COLORS,
   CHART_GRID_STROKE,
   CHART_TICK_FILL,
+  CHART_TICK_FONT_SIZE,
   CHART_TOOLTIP_STYLE,
 } from "@/lib/chartTheme";
 import type { ChartLabels } from "@/lib/i18n";
@@ -45,6 +48,10 @@ export default function BacktestChart({ data, labels }: BacktestChartProps) {
     strategy_drawdown: row.strategy_drawdown ?? row.drawdown,
   }));
 
+  const tradeMarkers = chartData.filter(
+    (row) => row.trade_action === "BUY" || row.trade_action === "SELL"
+  );
+
   return (
     <div className="chart-stack">
       <div className="chart-panel">
@@ -57,15 +64,27 @@ export default function BacktestChart({ data, labels }: BacktestChartProps) {
               margin={{ top: 8, right: 16, left: 0, bottom: 8 }}
             >
               <CartesianGrid stroke={CHART_GRID_STROKE} strokeDasharray="3 3" />
-              <XAxis dataKey="date" tick={{ fill: CHART_TICK_FILL, fontSize: 11 }} minTickGap={32} />
-              <YAxis tick={{ fill: CHART_TICK_FILL, fontSize: 11 }} domain={["auto", "auto"]} width={56} />
+              <XAxis dataKey="date" tick={{ fill: CHART_TICK_FILL, fontSize: CHART_TICK_FONT_SIZE }} minTickGap={32} />
+              <YAxis tick={{ fill: CHART_TICK_FILL, fontSize: CHART_TICK_FONT_SIZE }} domain={["auto", "auto"]} width={56} />
               <Tooltip
                 {...CHART_TOOLTIP_STYLE}
                 formatter={(value) => formatTooltipValue(value, 4)}
               />
-              <Legend wrapperStyle={{ fontSize: "0.8125rem", color: CHART_TICK_FILL }} />
-              <Line type="monotone" dataKey="cumulative_strategy" name={labels.strategy} stroke="#38bdf8" dot={false} strokeWidth={2} />
-              <Line type="monotone" dataKey="cumulative_benchmark" name={labels.buyHold} stroke="#94a3b8" dot={false} strokeWidth={1.5} />
+              <Legend wrapperStyle={{ fontSize: "0.9375rem", color: CHART_TICK_FILL }} />
+              <Line type="monotone" dataKey="cumulative_strategy" name={labels.strategy} stroke={CHART_COLORS.strategy} dot={false} strokeWidth={2.5} />
+              <Line type="monotone" dataKey="cumulative_benchmark" name={labels.buyHold} stroke={CHART_COLORS.benchmark} dot={false} strokeWidth={2} />
+              {tradeMarkers.map((row) => (
+                <ReferenceDot
+                  key={`${row.date}-${row.trade_action}`}
+                  x={row.date}
+                  y={row.cumulative_strategy}
+                  r={6}
+                  fill={row.trade_action === "BUY" ? "#16a34a" : "#dc2626"}
+                  stroke="#ffffff"
+                  strokeWidth={2}
+                  ifOverflow="extendDomain"
+                />
+              ))}
               <Brush dataKey="date" height={28} stroke={CHART_BRUSH_STROKE} />
             </LineChart>
           </ResponsiveContainer>
@@ -82,9 +101,9 @@ export default function BacktestChart({ data, labels }: BacktestChartProps) {
               margin={{ top: 8, right: 16, left: 0, bottom: 8 }}
             >
               <CartesianGrid stroke={CHART_GRID_STROKE} strokeDasharray="3 3" />
-              <XAxis dataKey="date" tick={{ fill: CHART_TICK_FILL, fontSize: 11 }} minTickGap={32} />
+              <XAxis dataKey="date" tick={{ fill: CHART_TICK_FILL, fontSize: CHART_TICK_FONT_SIZE }} minTickGap={32} />
               <YAxis
-                tick={{ fill: CHART_TICK_FILL, fontSize: 11 }}
+                tick={{ fill: CHART_TICK_FILL, fontSize: CHART_TICK_FONT_SIZE }}
                 domain={["auto", "auto"]}
                 width={56}
                 tickFormatter={(value: number) => `${(value * 100).toFixed(0)}%`}
@@ -96,9 +115,9 @@ export default function BacktestChart({ data, labels }: BacktestChartProps) {
                   return Number.isFinite(num) ? `${(num * 100).toFixed(2)}%` : "N/A";
                 }}
               />
-              <Legend wrapperStyle={{ fontSize: "0.8125rem", color: CHART_TICK_FILL }} />
-              <Line type="monotone" dataKey="strategy_drawdown" name={labels.strategyDrawdown} stroke="#f87171" dot={false} strokeWidth={1.5} />
-              <Line type="monotone" dataKey="benchmark_drawdown" name={labels.benchmarkDrawdown} stroke="#94a3b8" dot={false} strokeWidth={1.5} />
+              <Legend wrapperStyle={{ fontSize: "0.9375rem", color: CHART_TICK_FILL }} />
+              <Line type="monotone" dataKey="strategy_drawdown" name={labels.strategyDrawdown} stroke={CHART_COLORS.drawdownStrategy} dot={false} strokeWidth={2} strokeDasharray="6 3" />
+              <Line type="monotone" dataKey="benchmark_drawdown" name={labels.benchmarkDrawdown} stroke={CHART_COLORS.drawdownBenchmark} dot={false} strokeWidth={2} />
               <Brush dataKey="date" height={28} stroke={CHART_BRUSH_STROKE} />
             </LineChart>
           </ResponsiveContainer>
