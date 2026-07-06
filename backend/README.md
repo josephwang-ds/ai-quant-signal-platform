@@ -1,0 +1,58 @@
+# AI Quant Signal Backend
+
+FastAPI service for the AI Quant Signal Platform demo.
+
+## Setup
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+pip install -r requirements-dev.txt
+```
+
+Copy environment template:
+
+```bash
+cp .env.example .env
+```
+
+## Run (local development)
+
+```bash
+uvicorn app.main:app --reload --reload-dir app --port 8000
+```
+
+## Run (production-style, no reload)
+
+```bash
+uvicorn app.main:app --host 0.0.0.0 --port 8000
+```
+
+On Render, use:
+
+```bash
+uvicorn app.main:app --host 0.0.0.0 --port $PORT
+```
+
+## Environment Variables
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `ALLOWED_ORIGINS` | Production | Comma-separated frontend URLs for CORS |
+| `PORT` | Render | Injected by Render; optional locally |
+
+## Health Check
+
+`GET /health`
+
+```json
+{"status": "ok", "service": "ai-quant-signal-backend"}
+```
+
+## Tests
+
+```bash
+source .venv/bin/activate
+python -m pytest tests -v
+```
