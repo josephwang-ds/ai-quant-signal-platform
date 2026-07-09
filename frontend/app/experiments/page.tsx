@@ -1,5 +1,5 @@
-import ModuleSkeletonPage from "@/components/workspace/ModuleSkeletonPage";
+import ExperimentsPage from "@/components/features/experiments/ExperimentsPage";
 
-export default function ExperimentsPage() {
-  return <ModuleSkeletonPage moduleId="experiments" />;
+export default function Page() {
+  return <ExperimentsPage />;
 }

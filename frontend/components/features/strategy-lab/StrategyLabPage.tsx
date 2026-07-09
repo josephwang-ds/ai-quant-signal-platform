@@ -1,6 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
+import Link from "next/link";
 import { useState } from "react";
 import AppShell from "@/components/layout/AppShell";
 import Button from "@/components/ui/Button";
@@ -12,7 +13,7 @@ import MetricCard from "@/components/ui/MetricCard";
 import SectionCard from "@/components/ui/SectionCard";
 import SectionHeader from "@/components/ui/SectionHeader";
 import StatusBadge from "@/components/ui/StatusBadge";
-import { runBacktest } from "@/lib/api";
+import { runBacktest, saveBacktestRun } from "@/lib/api";
 import { generateBacktestInterpretation } from "@/lib/backtestInterpretation";
 import {
   formatDateSeriesRange,
@@ -97,6 +98,10 @@ export default function StrategyLabPage() {
   const [backtestResult, setBacktestResult] = useState<BacktestResponse | null>(null);
   const [backtestLoading, setBacktestLoading] = useState(false);
   const [backtestError, setBacktestError] = useState<string | null>(null);
+  const [experimentNotes, setExperimentNotes] = useState("");
+  const [saveLoading, setSaveLoading] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [saveSuccess, setSaveSuccess] = useState<string | null>(null);
 
   const chartLabels = getChartLabels(language);
   const backtestMetricHelp = getBacktestMetricHelp(language);
@@ -144,6 +149,8 @@ export default function StrategyLabPage() {
     setBacktestLoading(true);
     setBacktestError(null);
     setBacktestResult(null);
+    setSaveError(null);
+    setSaveSuccess(null);
 
     try {
       const response = await runBacktest({
@@ -172,6 +179,52 @@ export default function StrategyLabPage() {
       setBacktestError(error instanceof Error ? error.message : tr("backtestFailed"));
     } finally {
       setBacktestLoading(false);
+    }
+  }
+
+  async function handleSaveBacktestRun() {
+    if (!backtestResult) {
+      setSaveError(tr("saveRequiresResult"));
+      return;
+    }
+
+    setSaveLoading(true);
+    setSaveError(null);
+    setSaveSuccess(null);
+
+    try {
+      const strategyConfig =
+        backtestResult.strategy_config ??
+        ({
+          strategy: backtestResult.strategy,
+          ...backtestResult.parameters,
+        } as Record<string, unknown>);
+
+      const response = await saveBacktestRun({
+        ticker: backtestResult.ticker,
+        data_source: backtestResult.data_source,
+        strategy: backtestResult.strategy,
+        strategy_config: strategyConfig,
+        start_date: backtestResult.start_date,
+        end_date: backtestResult.end_date,
+        transaction_cost: backtestResult.parameters.transaction_cost,
+        metrics: backtestResult.metrics as unknown as Record<string, unknown>,
+        notes: experimentNotes.trim() || null,
+        trade_log: (backtestResult.trade_log ?? []).map((trade) => ({
+          date: trade.date,
+          action: trade.action,
+          price: trade.price,
+          signal: trade.signal,
+          position_after: trade.position_after,
+          reason: trade.reason,
+        })),
+      });
+
+      setSaveSuccess(`${tr("saveBacktestSuccess")} (${response.id.slice(0, 8)})`);
+    } catch (error) {
+      setSaveError(error instanceof Error ? error.message : tr("saveBacktestFailed"));
+    } finally {
+      setSaveLoading(false);
     }
   }
 
@@ -323,6 +376,32 @@ export default function StrategyLabPage() {
         <Button onClick={handleRunBacktest} disabled={backtestLoading}>
           {backtestLoading ? tr("running") : tr("runBacktest")}
         </Button>
+
+        <label className="form-field" style={{ marginTop: "1rem", display: "block" }}>
+          <span className="form-label">{tr("experimentNotes")}</span>
+          <textarea
+            className="form-input"
+            rows={3}
+            value={experimentNotes}
+            placeholder={tr("experimentNotesPlaceholder")}
+            onChange={(e) => setExperimentNotes(e.target.value)}
+          />
+        </label>
+
+        <div style={{ display: "flex", gap: "0.75rem", flexWrap: "wrap", marginTop: "0.75rem" }}>
+          <Button
+            onClick={handleSaveBacktestRun}
+            disabled={saveLoading || !backtestResult}
+          >
+            {saveLoading ? tr("savingBacktestRun") : tr("saveBacktestRun")}
+          </Button>
+          <Link href="/experiments" className="section-meta">
+            {tr("openExperiments")}
+          </Link>
+        </div>
+
+        {saveError && <ErrorAlert title={tr("saveBacktestFailed")} message={saveError} />}
+        {saveSuccess && <p className="section-meta">{saveSuccess}</p>}
 
         <p className="section-meta">{tr("backtestBiasNote")}</p>
         <p className="section-meta">{tr("backtestWarmupNote")}</p>

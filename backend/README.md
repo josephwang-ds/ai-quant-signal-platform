@@ -35,6 +35,13 @@ On Render, use:
 uvicorn app.main:app --host 0.0.0.0 --port $PORT
 ```
 
+**Production URL:** `https://ai-quant-signal-platform.onrender.com`
+
+```bash
+curl https://ai-quant-signal-platform.onrender.com/health
+curl https://ai-quant-signal-platform.onrender.com/api/database/status
+```
+
 ## Environment Variables
 
 | Variable | Required | Description |

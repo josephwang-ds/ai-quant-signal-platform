@@ -274,3 +274,69 @@ export type DataSourceStatusResponse = {
   active_provider: string;
   providers: DataSourceProviderStatus[];
 };
+
+export type SaveBacktestTradeItem = {
+  date: string;
+  action: "BUY" | "SELL" | string;
+  price?: number | null;
+  signal?: number | null;
+  position_after?: number | null;
+  reason?: string | null;
+};
+
+export type SaveBacktestRunRequest = {
+  ticker: string;
+  market?: string | null;
+  data_source?: string;
+  strategy: string;
+  strategy_config: Record<string, unknown>;
+  start_date: string;
+  end_date?: string | null;
+  transaction_cost?: number | null;
+  metrics: Record<string, unknown>;
+  notes?: string | null;
+  trade_log: SaveBacktestTradeItem[];
+};
+
+export type SaveBacktestRunResponse = {
+  id: string;
+  message: string;
+};
+
+export type BacktestRunSummary = {
+  id: string;
+  ticker: string;
+  market?: string | null;
+  data_source: string;
+  strategy: string;
+  strategy_config: Record<string, unknown>;
+  start_date: string;
+  end_date?: string | null;
+  transaction_cost?: number | null;
+  metrics: BacktestMetrics;
+  notes?: string | null;
+  created_at: string;
+  trade_count?: number;
+};
+
+export type BacktestRunTrade = {
+  id: string;
+  trade_date: string;
+  action: string;
+  price?: number | null;
+  signal?: number | null;
+  position_after?: number | null;
+  reason?: string | null;
+  created_at?: string;
+};
+
+export type BacktestRunDetail = BacktestRunSummary & {
+  trades: BacktestRunTrade[];
+};
+
+export type BacktestRunListResponse = {
+  items: BacktestRunSummary[];
+  count: number;
+  limit: number;
+  offset: number;
+};

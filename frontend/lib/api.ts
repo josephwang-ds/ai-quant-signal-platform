@@ -1,5 +1,7 @@
 import type {
   BacktestResponse,
+  BacktestRunDetail,
+  BacktestRunListResponse,
   BacktestStrategy,
   CombinedMode,
   CompareChartResponse,
@@ -7,9 +9,14 @@ import type {
   IndicatorsResponse,
   MarketWatchResponse,
   OOSResponse,
+  SaveBacktestRunRequest,
+  SaveBacktestRunResponse,
   SensitivityResponse,
   StrategyComparisonResponse,
 } from "@/types/market";
+
+const DEFAULT_PRODUCTION_API_BASE_URL =
+  "https://ai-quant-signal-platform.onrender.com";
 
 function resolveApiBaseUrl(): string {
   const configured = process.env.NEXT_PUBLIC_API_BASE_URL?.trim();
@@ -19,7 +26,7 @@ function resolveApiBaseUrl(): string {
   if (process.env.NODE_ENV === "development") {
     return "http://localhost:8000";
   }
-  return "";
+  return DEFAULT_PRODUCTION_API_BASE_URL;
 }
 
 const API_BASE_URL = resolveApiBaseUrl();
@@ -434,4 +441,101 @@ export async function runOOSValidation(
   }
 
   return response.json() as Promise<OOSResponse>;
+}
+
+/**
+ * 调用后端 POST /api/experiments/backtest-runs，保存回测实验。
+ */
+export async function saveBacktestRun(
+  payload: SaveBacktestRunRequest
+): Promise<SaveBacktestRunResponse> {
+  const response = await fetch(buildApiUrl("/api/experiments/backtest-runs"), {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    cache: "no-store",
+    body: JSON.stringify(payload),
+  });
+
+  if (!response.ok) {
+    const message = await parseApiError(
+      response,
+      `Save backtest run failed with status ${response.status}`
+    );
+    throw new Error(message);
+  }
+
+  return response.json() as Promise<SaveBacktestRunResponse>;
+}
+
+/**
+ * 调用后端 GET /api/experiments/backtest-runs，列出已保存实验。
+ */
+export async function listBacktestRuns(
+  limit = 50,
+  offset = 0
+): Promise<BacktestRunListResponse> {
+  const params = new URLSearchParams({
+    limit: String(limit),
+    offset: String(offset),
+  });
+
+  const response = await fetch(
+    `${buildApiUrl("/api/experiments/backtest-runs")}?${params.toString()}`,
+    { cache: "no-store" }
+  );
+
+  if (!response.ok) {
+    const message = await parseApiError(
+      response,
+      `List backtest runs failed with status ${response.status}`
+    );
+    throw new Error(message);
+  }
+
+  return response.json() as Promise<BacktestRunListResponse>;
+}
+
+/**
+ * 调用后端 GET /api/experiments/backtest-runs/{id}，获取实验详情。
+ */
+export async function getBacktestRun(runId: string): Promise<BacktestRunDetail> {
+  const response = await fetch(
+    buildApiUrl(`/api/experiments/backtest-runs/${encodeURIComponent(runId)}`),
+    { cache: "no-store" }
+  );
+
+  if (!response.ok) {
+    const message = await parseApiError(
+      response,
+      `Get backtest run failed with status ${response.status}`
+    );
+    throw new Error(message);
+  }
+
+  return response.json() as Promise<BacktestRunDetail>;
+}
+
+/**
+ * 调用后端 DELETE /api/experiments/backtest-runs/{id}，删除实验。
+ */
+export async function deleteBacktestRun(
+  runId: string
+): Promise<{ id: string; message: string }> {
+  const response = await fetch(
+    buildApiUrl(`/api/experiments/backtest-runs/${encodeURIComponent(runId)}`),
+    {
+      method: "DELETE",
+      cache: "no-store",
+    }
+  );
+
+  if (!response.ok) {
+    const message = await parseApiError(
+      response,
+      `Delete backtest run failed with status ${response.status}`
+    );
+    throw new Error(message);
+  }
+
+  return response.json() as Promise<{ id: string; message: string }>;
 }

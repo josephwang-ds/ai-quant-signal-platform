@@ -170,6 +170,8 @@ The app starts normally without `SUPABASE_DB_URL`; the status endpoint reports `
 | Frontend | Vercel |
 | Backend | Render (`render.yaml` included) |
 
+**Active Render backend:** `https://ai-quant-signal-platform.onrender.com`
+
 ### Backend (Render)
 
 | Setting | Value |
@@ -181,7 +183,7 @@ The app starts normally without `SUPABASE_DB_URL`; the status endpoint reports `
 
 Set `ALLOWED_ORIGINS` to your frontend URL(s), e.g. `https://your-app.vercel.app`.
 
-Optionally set `SUPABASE_DB_URL` (Transaction Pooler URI) for database connectivity checks and future Experiments persistence.
+Optionally set `SUPABASE_DB_URL` (Transaction Pooler URI) for database connectivity and Experiments persistence.
 
 ### Frontend (Vercel)
 
@@ -190,13 +192,27 @@ Optionally set `SUPABASE_DB_URL` (Transaction Pooler URI) for database connectiv
 | Root Directory | `frontend` |
 | Framework | Next.js |
 
-Set `NEXT_PUBLIC_API_BASE_URL` to your Render backend URL (no trailing slash).
+Recommended `NEXT_PUBLIC_API_BASE_URL` (no trailing slash):
+
+```
+https://ai-quant-signal-platform.onrender.com
+```
+
+Local development uses `http://localhost:8000` via `frontend/.env.local` (see `frontend/.env.example`). Production builds fall back to the Render URL above if the env var is unset.
+
+### Canonical production endpoints
+
+```bash
+curl https://ai-quant-signal-platform.onrender.com/health
+curl https://ai-quant-signal-platform.onrender.com/api/data-sources/status
+curl https://ai-quant-signal-platform.onrender.com/api/database/status
+```
 
 ### Checklist
 
-- [ ] `GET /health` returns `{"status":"ok",...}`
-- [ ] `GET /api/data-sources/status` returns `active_provider: yahoo`
-- [ ] `GET /api/database/status` returns expected `configured` / `connected` state
+- [ ] `GET https://ai-quant-signal-platform.onrender.com/health` returns `{"status":"ok",...}`
+- [ ] `GET https://ai-quant-signal-platform.onrender.com/api/data-sources/status` returns `active_provider: yahoo`
+- [ ] `GET https://ai-quant-signal-platform.onrender.com/api/database/status` returns expected `configured` / `connected` state
 - [ ] `ALLOWED_ORIGINS` includes the Vercel URL
 - [ ] Market Watch and Strategy Lab work from the deployed UI
 
@@ -217,6 +233,10 @@ Set `NEXT_PUBLIC_API_BASE_URL` to your Render backend URL (no trailing slash).
 | `POST` | `/api/backtest` | Backtest (`ma_crossover`, `momentum`, `combined_signal`) |
 | `POST` | `/api/backtest/sensitivity` | MA parameter sensitivity |
 | `POST` | `/api/backtest/oos` | Out-of-sample validation |
+| `POST` | `/api/experiments/backtest-runs` | Save backtest run + trade log |
+| `GET` | `/api/experiments/backtest-runs` | List saved experiments |
+| `GET` | `/api/experiments/backtest-runs/{id}` | Experiment detail + trades |
+| `DELETE` | `/api/experiments/backtest-runs/{id}` | Delete saved experiment |
 
 ### Backtest request (example)
 
@@ -280,7 +300,7 @@ ai-quant-signal-platform/
 - `yfinance` data may be delayed or incomplete for some symbols
 - Simplified backtest assumptions (no slippage model beyond flat transaction cost)
 - No broker, live trading, or authentication
-- Database persistence is **prepared** (schema + status endpoint); save-backtest Experiments not yet implemented
+- Database persistence stores saved backtest runs and trade logs (Experiments v1); raw OHLCV is not stored
 - No machine learning in the current version
 
 ---
@@ -293,12 +313,13 @@ ai-quant-signal-platform/
 - Strategy Lab (MA, momentum, combined signal)
 - Trade log, benchmark comparison, drawdown charts
 - Parameter sensitivity, out-of-sample validation
+- Experiments Persistence v1 (save / list / detail / delete)
 
 **Planned**
 
 - Additional rule-based strategies (RSI, MACD, breakout)
 - Portfolio-level backtest (top-N, rebalance)
-- Optional persistence (saved watchlists / runs)
+- Compare across saved experiments; watchlist persistence
 - ML ranking layer (with proper time-series validation)
 
 ---

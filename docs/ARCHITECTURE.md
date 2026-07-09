@@ -19,6 +19,39 @@ This document describes the intended architecture. Database, cache, ML, and LLM 
 
 ---
 
+## Production Deployment
+
+| Component | Platform | URL / config |
+|-----------|----------|--------------|
+| Frontend | Vercel | Sets `NEXT_PUBLIC_API_BASE_URL` (optional; code falls back to Render URL in production builds) |
+| Backend | Render | `https://ai-quant-signal-platform.onrender.com` |
+| Database | Supabase Postgres | Transaction Pooler via backend `SUPABASE_DB_URL` only |
+
+Rules:
+
+- **Active backend URL:** `https://ai-quant-signal-platform.onrender.com`
+- **Backend env:** `SUPABASE_DB_URL` (Render Environment; never commit real credentials)
+- **Frontend must not** connect directly to Supabase; all DB access goes through FastAPI
+- Local dev: frontend → `http://localhost:8000` when `NODE_ENV=development` and env unset
+- `NEXT_PUBLIC_API_BASE_URL` always takes precedence when set
+- Do **not** use `https://ai-quant-backend.onrender.com` (deprecated / inactive)
+
+### Canonical production endpoints
+
+```bash
+curl https://ai-quant-signal-platform.onrender.com/health
+curl https://ai-quant-signal-platform.onrender.com/api/data-sources/status
+curl https://ai-quant-signal-platform.onrender.com/api/database/status
+```
+
+| Endpoint | Purpose |
+|----------|---------|
+| `GET /health` | Service health |
+| `GET /api/data-sources/status` | Active/planned market data providers |
+| `GET /api/database/status` | Supabase Postgres connectivity |
+
+---
+
 ## Module map
 
 | Frontend route | Module | Purpose |
@@ -69,7 +102,7 @@ Data Center v1 is a **frontend-only** module. It documents current and planned d
 | CSV upload | Custom local research datasets, Model Lab experiments | Planned |
 | Tushare / BaoStock | Alternative China market data | Coming later |
 
-Cache and database layers: **cache remains postponed**; **database preparation v1** adds config, health check, and schema only (no save-backtest yet).
+Cache remains postponed. Database preparation v1 plus Experiments Persistence v1 store saved backtest runs and trade logs (not raw OHLCV).
 
 #### Market data normalization target schema
 
@@ -106,7 +139,7 @@ Status endpoint: `GET /api/data-sources/status`
 
 ### Database Preparation v1 (backend)
 
-Database Preparation v1 wires Supabase Postgres for future durable research assets without implementing full Experiments save/list yet.
+Database Preparation v1 wires Supabase Postgres. Experiments Persistence v1 adds save / list / detail / delete for backtest runs.
 
 | Component | Path | Role |
 |-----------|------|------|
@@ -125,7 +158,33 @@ Rules:
 - `schema.sql` defines `backtest_runs` and `backtest_trades` (UUID PKs, RLS enabled, no policies yet).
 - Raw OHLCV market data is **not** stored in database v1.
 - Cache remains **postponed** (can introduce stale data and debugging complexity).
-- Full Experiments save/list API and Strategy Lab “Save Backtest Run” are **next step**.
+
+### Experiments Persistence v1 (backend + frontend)
+
+Experiments v1 completes the research loop: run backtest → save → review later.
+
+| Component | Path | Role |
+|-----------|------|------|
+| Repository | `backend/app/db/repositories/backtest_runs.py` | Insert / list / get / delete |
+| API routes | `backend/app/api/routes/experiments.py` | REST endpoints |
+| Strategy Lab save | `frontend/components/features/strategy-lab/StrategyLabPage.tsx` | Notes + Save button |
+| Experiments UI | `frontend/components/features/experiments/ExperimentsPage.tsx` | List + detail |
+
+Endpoints:
+
+| Method | Path | Purpose |
+|--------|------|---------|
+| `POST` | `/api/experiments/backtest-runs` | Save run metadata + trade log |
+| `GET` | `/api/experiments/backtest-runs` | List saved runs (newest first) |
+| `GET` | `/api/experiments/backtest-runs/{id}` | Detail + trades |
+| `DELETE` | `/api/experiments/backtest-runs/{id}` | Delete saved run |
+
+Rules:
+
+- Stores metrics, strategy config, notes, and trade logs only — **not** full equity curves or OHLCV.
+- All writes go through FastAPI; frontend never connects to Supabase directly.
+- Missing / failed DB returns HTTP 503 with a clear message.
+- Requires `backend/db/schema.sql` applied in Supabase (`backtest_runs`, `backtest_trades`).
 
 ---
 
@@ -269,7 +328,7 @@ The Experiments module is the review surface for saved research outputs:
 - Saved model runs
 - Experiment history timeline
 
-API routes (planned): `backend/app/api/routes/experiments.py`
+API routes (v1): `backend/app/api/routes/experiments.py`
 
 ---
 

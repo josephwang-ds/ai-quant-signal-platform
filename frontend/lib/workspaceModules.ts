@@ -75,7 +75,7 @@ export const WORKSPACE_MODULES: WorkspaceModule[] = [
     titleKey: "experiments",
     overviewDescKey: "moduleExperimentsOverviewDesc",
     pageDescKey: "experimentsDesc",
-    status: "planned",
+    status: "active",
     skeletonKind: "planned",
     category: "data",
   },

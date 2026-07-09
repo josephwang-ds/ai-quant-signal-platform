@@ -353,3 +353,97 @@ class OOSRequest(BaseModel):
         if self.end_date:
             self.end_date = self.end_date.strip()
         return self
+
+
+class SaveBacktestTradeItem(BaseModel):
+    """保存回测时的单笔交易记录。"""
+
+    date: str
+    action: str
+    price: Optional[float] = None
+    signal: Optional[float] = None
+    position_after: Optional[float] = None
+    reason: Optional[str] = None
+
+    @field_validator("action")
+    @classmethod
+    def validate_action(cls, value: str) -> str:
+        action = value.upper().strip()
+        if action not in ("BUY", "SELL"):
+            raise ValueError('action must be "BUY" or "SELL"')
+        return action
+
+    @field_validator("date")
+    @classmethod
+    def validate_date(cls, value: str) -> str:
+        trade_date = value.strip()
+        if not trade_date:
+            raise ValueError("date must not be empty")
+        return trade_date
+
+
+class SaveBacktestRunRequest(BaseModel):
+    """保存 Strategy Lab 回测结果到 Experiments。"""
+
+    ticker: str
+    market: Optional[str] = None
+    data_source: str = "yahoo"
+    strategy: str
+    strategy_config: dict
+    start_date: str
+    end_date: Optional[str] = None
+    transaction_cost: Optional[float] = None
+    metrics: dict
+    notes: Optional[str] = None
+    trade_log: list[SaveBacktestTradeItem] = []
+
+    @field_validator("ticker")
+    @classmethod
+    def normalize_ticker(cls, value: str) -> str:
+        ticker = value.upper().strip()
+        if not ticker:
+            raise ValueError("ticker must not be empty")
+        return ticker
+
+    @field_validator("strategy")
+    @classmethod
+    def validate_strategy(cls, value: str) -> str:
+        allowed = ("ma_crossover", "momentum", "combined_signal")
+        if value not in allowed:
+            raise ValueError(
+                'strategy must be "ma_crossover", "momentum", or "combined_signal"'
+            )
+        return value
+
+    @field_validator("data_source")
+    @classmethod
+    def normalize_data_source(cls, value: str) -> str:
+        source = value.strip().lower()
+        if not source:
+            return "yahoo"
+        # 兼容回测响应中的长描述
+        if "yahoo" in source:
+            return "yahoo"
+        return source
+
+    @field_validator("start_date")
+    @classmethod
+    def validate_start_date(cls, value: str) -> str:
+        start = value.strip()
+        if not start:
+            raise ValueError("start_date must not be empty")
+        return start
+
+    @model_validator(mode="after")
+    def normalize_optional_fields(self) -> "SaveBacktestRunRequest":
+        if self.end_date:
+            self.end_date = self.end_date.strip() or None
+        if self.notes is not None:
+            self.notes = self.notes.strip() or None
+        if self.market is not None:
+            self.market = self.market.strip() or None
+        if not isinstance(self.strategy_config, dict) or not self.strategy_config:
+            raise ValueError("strategy_config must be a non-empty object")
+        if not isinstance(self.metrics, dict) or not self.metrics:
+            raise ValueError("metrics must be a non-empty object")
+        return self
