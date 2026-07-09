@@ -71,6 +71,145 @@ function notesSnippet(notes?: string | null): string {
   return notes.length > 48 ? `${notes.slice(0, 48)}…` : notes;
 }
 
+type ExperimentDetailPanelProps = {
+  language: Language;
+  tr: (key: import("@/lib/i18n").TranslationKey) => string;
+  selectedId: string | null;
+  detail: BacktestRunDetail | null;
+  detailLoading: boolean;
+  detailError: string | null;
+  actionMessage: string | null;
+  deleteLoading: boolean;
+  onClose: () => void;
+  onDelete: () => void;
+};
+
+function ExperimentDetailPanel({
+  language,
+  tr,
+  selectedId,
+  detail,
+  detailLoading,
+  detailError,
+  actionMessage,
+  deleteLoading,
+  onClose,
+  onDelete,
+}: ExperimentDetailPanelProps) {
+  if (!selectedId) {
+    return (
+      <div className="experiments-detail-panel experiments-detail-panel--empty">
+        {tr("experimentsDetailEmpty")}
+      </div>
+    );
+  }
+
+  return (
+    <div className="experiments-detail-panel">
+      <h3 className="module-card__title">{tr("experimentsDetail")}</h3>
+      <div style={{ display: "flex", gap: "0.75rem", flexWrap: "wrap", marginBottom: "0.75rem" }}>
+        <Button onClick={onClose}>{tr("experimentsBackToList")}</Button>
+        <Button onClick={onDelete} disabled={deleteLoading}>
+          {deleteLoading ? tr("running") : tr("experimentsDelete")}
+        </Button>
+      </div>
+
+      {actionMessage ? <p className="section-meta">{actionMessage}</p> : null}
+      {detailLoading ? <LoadingState message={tr("experimentsLoading")} /> : null}
+      {detailError ? (
+        <ErrorAlert title={tr("experimentsLoadFailed")} message={detailError} />
+      ) : null}
+
+      {detail && !detailLoading ? (
+        <>
+          <p className="section-meta">
+            {detail.ticker} · {translateStrategyName(language, detail.strategy)} ·{" "}
+            {tr("experimentsCreatedAt")}: {formatCreatedAt(detail.created_at, language)}
+          </p>
+
+          <div className="metric-grid">
+            <MetricCard
+              label={tr("totalReturn")}
+              value={formatMetricPercent(detail.metrics?.total_return ?? null)}
+              featured
+              tone={getReturnTone(detail.metrics?.total_return ?? null)}
+            />
+            <MetricCard
+              label={tr("sharpeRatio")}
+              value={formatMetricSharpe(detail.metrics?.sharpe_ratio ?? null)}
+              featured
+              tone={getSharpeTone(detail.metrics?.sharpe_ratio ?? null)}
+            />
+            <MetricCard
+              label={tr("strategyMaxDrawdown")}
+              value={formatMetricPercent(getDrawdownMetric(detail))}
+              featured
+              tone={getDrawdownTone(getDrawdownMetric(detail))}
+            />
+            <MetricCard
+              label={tr("benchmarkReturn")}
+              value={formatMetricPercent(detail.metrics?.benchmark_return ?? null)}
+              tone={getReturnTone(detail.metrics?.benchmark_return ?? null)}
+            />
+          </div>
+
+          {detail.notes ? (
+            <>
+              <h3 className="module-card__title">{tr("experimentsNotes")}</h3>
+              <p className="section-meta">{detail.notes}</p>
+            </>
+          ) : null}
+
+          <h3 className="module-card__title">{tr("experimentsConfig")}</h3>
+          <pre
+            className="section-meta font-mono"
+            style={{ whiteSpace: "pre-wrap", wordBreak: "break-word", fontSize: "0.8125rem" }}
+          >
+            {JSON.stringify(detail.strategy_config, null, 2)}
+          </pre>
+
+          <h3 className="module-card__title">{tr("tradeLog")}</h3>
+          {(detail.trades ?? []).length === 0 ? (
+            <p className="section-meta">{tr("experimentsNoTrades")}</p>
+          ) : (
+            <DataTable className="table-scroll--trade-log">
+              <thead>
+                <tr>
+                  <th>{tr("tradeDate")}</th>
+                  <th>{tr("tradeLogAction")}</th>
+                  <th className="num">{tr("price")}</th>
+                  <th>{tr("tradeLogReason")}</th>
+                  <th className="num">{tr("positionAfter")}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {detail.trades.map((trade) => (
+                  <tr key={`${trade.id}-${trade.trade_date}-${trade.action}`}>
+                    <td>{trade.trade_date}</td>
+                    <td>
+                      <StatusBadge
+                        label={trade.action === "BUY" ? tr("tradeBuy") : tr("tradeSell")}
+                        variant={trade.action === "BUY" ? "buy" : "sell"}
+                      />
+                    </td>
+                    <td className="num">
+                      {trade.price == null ? "—" : Number(trade.price).toFixed(2)}
+                    </td>
+                    <td>
+                      {trade.reason ? translateBackendText(language, trade.reason) : "—"}
+                    </td>
+                    <td className="num">{trade.position_after ?? "—"}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </DataTable>
+          )}
+        </>
+      ) : null}
+    </div>
+  );
+}
+
 export default function ExperimentsPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -241,13 +380,7 @@ export default function ExperimentsPage() {
           title={tr("experimentsPageTitle")}
           description={tr("experimentsPageDesc")}
         />
-      </SectionCard>
 
-      <SectionCard>
-        <SectionHeader
-          title={tr("experimentsListTitle")}
-          description={tr("experimentsListDesc")}
-        />
         {listLoading ? <LoadingState message={tr("experimentsLoading")} /> : null}
         {listError ? (
           <ErrorAlert title={tr("experimentsLoadFailed")} message={listError} />
@@ -257,14 +390,9 @@ export default function ExperimentsPage() {
         ) : null}
 
         {!listLoading && items.length > 0 ? (
-          <>
-            <div
-              style={{
-                display: "grid",
-                gap: "0.75rem",
-                gridTemplateColumns: "repeat(auto-fit, minmax(12rem, 1fr))",
-              }}
-            >
+          <div className="experiments-layout">
+            <div className="experiments-list-panel">
+              <div className="experiments-filter-toolbar">
               <label className="form-field">
                 <span className="form-label">{tr("experimentsFilterTicker")}</span>
                 <select
@@ -350,31 +478,31 @@ export default function ExperimentsPage() {
                   {tr("experimentsFilterReset")}
                 </Button>
               </label>
-            </div>
+              </div>
 
-            <p className="section-meta">
+              <p className="section-meta">
               {formatMessage(tr("experimentsShowingCount"), {
                 shown: displayedItems.length,
                 total: items.length,
               })}
             </p>
 
-            <div style={{ display: "flex", gap: "0.75rem", flexWrap: "wrap" }}>
+              <div style={{ display: "flex", gap: "0.75rem", flexWrap: "wrap" }}>
               <Button onClick={handleShowCompare} disabled={compareIds.length < 2}>
                 {tr("experimentsCompareSelect")} ({compareIds.length})
               </Button>
               <Button onClick={handleClearCompare} disabled={compareIds.length === 0}>
                 {tr("experimentsCompareClear")}
               </Button>
-            </div>
-            {compareError ? (
-              <ErrorAlert title={tr("experimentsCompareTitle")} message={compareError} />
-            ) : null}
+              </div>
+              {compareError ? (
+                <ErrorAlert title={tr("experimentsCompareTitle")} message={compareError} />
+              ) : null}
 
-            {displayedItems.length === 0 ? (
-              <p className="section-meta">{tr("experimentsFilterEmpty")}</p>
-            ) : (
-            <DataTable className="table-scroll">
+              {displayedItems.length === 0 ? (
+                <p className="section-meta">{tr("experimentsFilterEmpty")}</p>
+              ) : (
+                <DataTable className="table-scroll">
               <thead>
                 <tr>
                   <th aria-label="compare" />
@@ -394,15 +522,13 @@ export default function ExperimentsPage() {
                   <tr
                     key={item.id}
                     onClick={() => void handleSelectRun(item.id)}
-                    style={{
-                      cursor: "pointer",
-                      background:
-                        selectedId === item.id
-                          ? "rgba(59, 130, 246, 0.08)"
-                          : compareIds.includes(item.id)
-                            ? "rgba(16, 185, 129, 0.08)"
-                            : undefined,
-                    }}
+                    className={[
+                      selectedId === item.id ? "experiments-row--selected" : "",
+                      compareIds.includes(item.id) ? "experiments-row--compare" : "",
+                    ]
+                      .filter(Boolean)
+                      .join(" ")}
+                    style={{ cursor: "pointer" }}
                   >
                     <td onClick={(event) => event.stopPropagation()}>
                       <input
@@ -429,13 +555,28 @@ export default function ExperimentsPage() {
                     <td>{notesSnippet(item.notes)}</td>
                   </tr>
                 ))}
-              </tbody>
-            </DataTable>
-            )}
-          </>
-        ) : null}
-        {!selectedId && !listLoading && items.length > 0 && !showCompare ? (
-          <p className="section-meta">{tr("experimentsSelectHint")}</p>
+                </tbody>
+                </DataTable>
+              )}
+            </div>
+
+            <ExperimentDetailPanel
+              language={language}
+              tr={tr}
+              selectedId={selectedId}
+              detail={detail}
+              detailLoading={detailLoading}
+              detailError={detailError}
+              actionMessage={actionMessage}
+              deleteLoading={deleteLoading}
+              onClose={() => {
+                setSelectedId(null);
+                setDetail(null);
+                setDetailError(null);
+              }}
+              onDelete={() => void handleDelete()}
+            />
+          </div>
         ) : null}
       </SectionCard>
 
@@ -483,11 +624,7 @@ export default function ExperimentsPage() {
                 return (
                   <tr
                     key={run.id}
-                    style={
-                      highlighted
-                        ? { background: "rgba(59, 130, 246, 0.08)" }
-                        : undefined
-                    }
+                    className={highlighted ? "experiments-row--selected" : undefined}
                   >
                     <td>{buildExperimentCompareLabel(run)}</td>
                     <td>{run.ticker}</td>
@@ -519,123 +656,6 @@ export default function ExperimentsPage() {
               })}
             </tbody>
           </DataTable>
-        </SectionCard>
-      ) : null}
-
-      {selectedId ? (
-        <SectionCard>
-          <SectionHeader title={tr("experimentsDetail")} />
-          <div style={{ display: "flex", gap: "0.75rem", flexWrap: "wrap" }}>
-            <Button
-              onClick={() => {
-                setSelectedId(null);
-                setDetail(null);
-                setDetailError(null);
-              }}
-            >
-              {tr("experimentsBackToList")}
-            </Button>
-            <Button onClick={() => void handleDelete()} disabled={deleteLoading}>
-              {deleteLoading ? tr("running") : tr("experimentsDelete")}
-            </Button>
-          </div>
-
-          {actionMessage ? <p className="section-meta">{actionMessage}</p> : null}
-          {detailLoading ? <LoadingState message={tr("experimentsLoading")} /> : null}
-          {detailError ? (
-            <ErrorAlert title={tr("experimentsLoadFailed")} message={detailError} />
-          ) : null}
-
-          {detail && !detailLoading ? (
-            <>
-              <p className="section-meta">
-                {detail.ticker} · {translateStrategyName(language, detail.strategy)} ·{" "}
-                {tr("experimentsCreatedAt")}: {formatCreatedAt(detail.created_at, language)}
-              </p>
-
-              <div className="metric-grid">
-                <MetricCard
-                  label={tr("totalReturn")}
-                  value={formatMetricPercent(detail.metrics?.total_return ?? null)}
-                  featured
-                  tone={getReturnTone(detail.metrics?.total_return ?? null)}
-                />
-                <MetricCard
-                  label={tr("sharpeRatio")}
-                  value={formatMetricSharpe(detail.metrics?.sharpe_ratio ?? null)}
-                  featured
-                  tone={getSharpeTone(detail.metrics?.sharpe_ratio ?? null)}
-                />
-                <MetricCard
-                  label={tr("strategyMaxDrawdown")}
-                  value={formatMetricPercent(getDrawdownMetric(detail))}
-                  featured
-                  tone={getDrawdownTone(getDrawdownMetric(detail))}
-                />
-                <MetricCard
-                  label={tr("benchmarkReturn")}
-                  value={formatMetricPercent(detail.metrics?.benchmark_return ?? null)}
-                  tone={getReturnTone(detail.metrics?.benchmark_return ?? null)}
-                />
-              </div>
-
-              {detail.notes ? (
-                <>
-                  <h3 className="module-card__title">{tr("experimentsNotes")}</h3>
-                  <p className="section-meta">{detail.notes}</p>
-                </>
-              ) : null}
-
-              <h3 className="module-card__title">{tr("experimentsConfig")}</h3>
-              <pre
-                className="section-meta"
-                style={{ whiteSpace: "pre-wrap", wordBreak: "break-word" }}
-              >
-                {JSON.stringify(detail.strategy_config, null, 2)}
-              </pre>
-
-              <h3 className="module-card__title">{tr("tradeLog")}</h3>
-              {(detail.trades ?? []).length === 0 ? (
-                <p className="section-meta">{tr("experimentsNoTrades")}</p>
-              ) : (
-                <DataTable className="table-scroll--trade-log">
-                  <thead>
-                    <tr>
-                      <th>{tr("tradeDate")}</th>
-                      <th>{tr("tradeLogAction")}</th>
-                      <th className="num">{tr("price")}</th>
-                      <th>{tr("tradeLogReason")}</th>
-                      <th className="num">{tr("positionAfter")}</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {detail.trades.map((trade) => (
-                      <tr key={`${trade.id}-${trade.trade_date}-${trade.action}`}>
-                        <td>{trade.trade_date}</td>
-                        <td>
-                          <StatusBadge
-                            label={
-                              trade.action === "BUY" ? tr("tradeBuy") : tr("tradeSell")
-                            }
-                            variant={trade.action === "BUY" ? "buy" : "sell"}
-                          />
-                        </td>
-                        <td className="num">
-                          {trade.price == null ? "—" : Number(trade.price).toFixed(2)}
-                        </td>
-                        <td>
-                          {trade.reason
-                            ? translateBackendText(language, trade.reason)
-                            : "—"}
-                        </td>
-                        <td className="num">{trade.position_after ?? "—"}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </DataTable>
-              )}
-            </>
-          ) : null}
         </SectionCard>
       ) : null}
     </AppShell>

@@ -333,6 +333,33 @@ export const translations = {
     experimentsRunId: "Run ID",
     experimentsDeleteConfirm: "Delete this saved experiment? This cannot be undone.",
     experimentsSavedRedirect: "Backtest run saved. Showing experiment detail.",
+    experimentsDetailEmpty: "Select a saved run to view metrics, config, and trades.",
+
+    quantTipLabel: "Research tip",
+    quantTipFixSampleTitle: "Lock the sample period first",
+    quantTipFixSampleBody:
+      "Pick start and end dates before tuning parameters. Changing the window while optimizing invites overfitting.",
+    quantTipSaveNotesTitle: "Save runs with notes",
+    quantTipSaveNotesBody:
+      "Add a short note when saving a backtest so you can tell similar runs apart later.",
+    quantTipDrawdownTitle: "Read drawdown, not just return",
+    quantTipDrawdownBody:
+      "A high return with a deep drawdown may be unusable in practice. Always check max drawdown alongside Sharpe.",
+    quantTipBenchmarkTitle: "Compare to the benchmark",
+    quantTipBenchmarkBody:
+      "Beating buy-and-hold on the same ticker and period is a basic sanity check for any rule strategy.",
+    quantTipOosTitle: "Validate out of sample",
+    quantTipOosBody:
+      "Sensitivity grids look good in-sample. Use OOS validation before trusting a parameter region.",
+    quantTipFilterTitle: "Compare apples to apples",
+    quantTipFilterBody:
+      "Filter by ticker and strategy before comparing saved runs so you are not mixing different setups.",
+    quantTipSignalsTitle: "Signals are rules, not forecasts",
+    quantTipSignalsBody:
+      "Market Watch ranks rule-based signal strength. Treat it as a screening view, not a price prediction.",
+    quantTipGeneralTitle: "Research, not trading",
+    quantTipGeneralBody:
+      "This workspace helps you test ideas and keep records. It does not place orders or give investment advice.",
 
     overviewTitle: "Workspace Overview",
     overviewDesc:
@@ -885,6 +912,25 @@ export const translations = {
     experimentsRunId: "运行 ID",
     experimentsDeleteConfirm: "确定删除这条已保存实验吗？此操作无法撤销。",
     experimentsSavedRedirect: "回测已保存，正在显示实验详情。",
+    experimentsDetailEmpty: "选择一条已保存记录，查看指标、配置与交易日志。",
+
+    quantTipLabel: "研究小妙招",
+    quantTipFixSampleTitle: "先固定样本区间",
+    quantTipFixSampleBody: "先确定起止日期，再调参数。边看边改区间，容易过拟合。",
+    quantTipSaveNotesTitle: "保存时写备注",
+    quantTipSaveNotesBody: "保存回测时加一句备注，方便以后区分参数相近的多条记录。",
+    quantTipDrawdownTitle: "不只看收益",
+    quantTipDrawdownBody: "高收益如果伴随深回撤，实盘往往难执行。请同时看最大回撤和 Sharpe。",
+    quantTipBenchmarkTitle: "和基准比一比",
+    quantTipBenchmarkBody: "同一标的、同一区间下，能否跑赢买入并持有，是规则策略的基本自检。",
+    quantTipOosTitle: "做样本外验证",
+    quantTipOosBody: "参数敏感性在样本内往往很好看。下结论前先做 OOS 验证。",
+    quantTipFilterTitle: "对比同类实验",
+    quantTipFilterBody: "对比前先按标的和策略筛选，避免把不同设定混在一起比。",
+    quantTipSignalsTitle: "信号是规则，不是预测",
+    quantTipSignalsBody: "行情页展示的是规则信号强弱排名，用于筛选观察，不是价格预测。",
+    quantTipGeneralTitle: "研究工具，不是交易",
+    quantTipGeneralBody: "这里用于验证想法、留存记录，不下单，也不构成投资建议。",
 
     overviewTitle: "工作区总览",
     overviewDesc:
