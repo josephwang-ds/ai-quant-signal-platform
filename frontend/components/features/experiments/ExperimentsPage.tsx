@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { ExperimentRunCard } from "@/components/features/experiments/ExperimentRunCard";
 import AppShell from "@/components/layout/AppShell";
 import Button from "@/components/ui/Button";
 import DataTable from "@/components/ui/DataTable";
@@ -56,10 +57,6 @@ function formatCreatedAt(value: string, language: Language): string {
   return date.toLocaleString(language === "zh" ? "zh-CN" : "en-US");
 }
 
-function formatRunId(runId: string): string {
-  return runId.slice(0, 8);
-}
-
 function getExperimentTradeCount(run: BacktestRunSummary): number {
   return run.trade_count ?? run.metrics?.number_of_trades ?? 0;
 }
@@ -87,7 +84,6 @@ type ExperimentDetailPanelProps = {
 function ExperimentDetailPanel({
   language,
   tr,
-  selectedId,
   detail,
   detailLoading,
   detailError,
@@ -95,15 +91,7 @@ function ExperimentDetailPanel({
   deleteLoading,
   onClose,
   onDelete,
-}: ExperimentDetailPanelProps) {
-  if (!selectedId) {
-    return (
-      <div className="experiments-detail-panel experiments-detail-panel--empty">
-        {tr("experimentsDetailEmpty")}
-      </div>
-    );
-  }
-
+}: Omit<ExperimentDetailPanelProps, "selectedId">) {
   return (
     <div className="experiments-detail-panel">
       <h3 className="module-card__title">{tr("experimentsDetail")}</h3>
@@ -390,9 +378,8 @@ export default function ExperimentsPage() {
         ) : null}
 
         {!listLoading && items.length > 0 ? (
-          <div className="experiments-layout">
-            <div className="experiments-list-panel">
-              <div className="experiments-filter-toolbar">
+          <>
+            <div className="experiments-filter-bar">
               <label className="form-field">
                 <span className="form-label">{tr("experimentsFilterTicker")}</span>
                 <select
@@ -472,113 +459,71 @@ export default function ExperimentsPage() {
                 </select>
               </label>
 
-              <label className="form-field" style={{ alignSelf: "end" }}>
-                <span className="form-label">&nbsp;</span>
-                <Button onClick={handleResetFilters}>
-                  {tr("experimentsFilterReset")}
-                </Button>
-              </label>
-              </div>
-
-              <p className="section-meta">
-              {formatMessage(tr("experimentsShowingCount"), {
-                shown: displayedItems.length,
-                total: items.length,
-              })}
-            </p>
-
-              <div style={{ display: "flex", gap: "0.75rem", flexWrap: "wrap" }}>
-              <Button onClick={handleShowCompare} disabled={compareIds.length < 2}>
-                {tr("experimentsCompareSelect")} ({compareIds.length})
-              </Button>
-              <Button onClick={handleClearCompare} disabled={compareIds.length === 0}>
-                {tr("experimentsCompareClear")}
-              </Button>
-              </div>
-              {compareError ? (
-                <ErrorAlert title={tr("experimentsCompareTitle")} message={compareError} />
-              ) : null}
-
-              {displayedItems.length === 0 ? (
-                <p className="section-meta">{tr("experimentsFilterEmpty")}</p>
-              ) : (
-                <DataTable className="table-scroll">
-              <thead>
-                <tr>
-                  <th aria-label="compare" />
-                  <th>{tr("experimentsRunId")}</th>
-                  <th>{tr("experimentsCreatedAt")}</th>
-                  <th>{tr("ticker")}</th>
-                  <th>{tr("strategy")}</th>
-                  <th className="num">{tr("totalReturn")}</th>
-                  <th className="num">{tr("sharpeRatio")}</th>
-                  <th className="num">{tr("strategyMaxDrawdown")}</th>
-                  <th className="num">{tr("experimentsTradeCount")}</th>
-                  <th>{tr("experimentsNotes")}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {displayedItems.map((item) => (
-                  <tr
-                    key={item.id}
-                    onClick={() => void handleSelectRun(item.id)}
-                    className={[
-                      selectedId === item.id ? "experiments-row--selected" : "",
-                      compareIds.includes(item.id) ? "experiments-row--compare" : "",
-                    ]
-                      .filter(Boolean)
-                      .join(" ")}
-                    style={{ cursor: "pointer" }}
-                  >
-                    <td onClick={(event) => event.stopPropagation()}>
-                      <input
-                        type="checkbox"
-                        checked={compareIds.includes(item.id)}
-                        onChange={() => toggleCompareSelection(item.id)}
-                        aria-label={`compare-${item.id}`}
-                      />
-                    </td>
-                    <td>{formatRunId(item.id)}</td>
-                    <td>{formatCreatedAt(item.created_at, language)}</td>
-                    <td>{item.ticker}</td>
-                    <td>{translateStrategyName(language, item.strategy)}</td>
-                    <td className="num">
-                      {formatMetricPercent(item.metrics?.total_return ?? null)}
-                    </td>
-                    <td className="num">
-                      {formatMetricSharpe(item.metrics?.sharpe_ratio ?? null)}
-                    </td>
-                    <td className="num">
-                      {formatMetricPercent(getDrawdownMetric(item))}
-                    </td>
-                    <td className="num">{getExperimentTradeCount(item)}</td>
-                    <td>{notesSnippet(item.notes)}</td>
-                  </tr>
-                ))}
-                </tbody>
-                </DataTable>
-              )}
+              <Button onClick={handleResetFilters}>{tr("experimentsFilterReset")}</Button>
             </div>
 
-            <ExperimentDetailPanel
-              language={language}
-              tr={tr}
-              selectedId={selectedId}
-              detail={detail}
-              detailLoading={detailLoading}
-              detailError={detailError}
-              actionMessage={actionMessage}
-              deleteLoading={deleteLoading}
-              onClose={() => {
-                setSelectedId(null);
-                setDetail(null);
-                setDetailError(null);
-              }}
-              onDelete={() => void handleDelete()}
-            />
-          </div>
+            <div className="experiments-toolbar-row">
+              <p className="section-meta" style={{ margin: 0 }}>
+                {formatMessage(tr("experimentsShowingCount"), {
+                  shown: displayedItems.length,
+                  total: items.length,
+                })}
+              </p>
+              <div style={{ display: "flex", gap: "0.75rem", flexWrap: "wrap" }}>
+                <Button onClick={handleShowCompare} disabled={compareIds.length < 2}>
+                  {tr("experimentsCompareSelect")} ({compareIds.length})
+                </Button>
+                <Button onClick={handleClearCompare} disabled={compareIds.length === 0}>
+                  {tr("experimentsCompareClear")}
+                </Button>
+              </div>
+            </div>
+
+            {compareError ? (
+              <ErrorAlert title={tr("experimentsCompareTitle")} message={compareError} />
+            ) : null}
+
+            {displayedItems.length === 0 ? (
+              <p className="section-meta">{tr("experimentsFilterEmpty")}</p>
+            ) : (
+              <div className="experiment-run-list">
+                {displayedItems.map((item) => (
+                  <ExperimentRunCard
+                    key={item.id}
+                    run={item}
+                    language={language}
+                    selected={selectedId === item.id}
+                    compareSelected={compareIds.includes(item.id)}
+                    tr={tr}
+                    onSelect={() => void handleSelectRun(item.id)}
+                    onToggleCompare={() => toggleCompareSelection(item.id)}
+                  />
+                ))}
+              </div>
+            )}
+          </>
         ) : null}
       </SectionCard>
+
+      {selectedId ? (
+        <SectionCard>
+          <ExperimentDetailPanel
+            language={language}
+            tr={tr}
+            detail={detail}
+            detailLoading={detailLoading}
+            detailError={detailError}
+            actionMessage={actionMessage}
+            deleteLoading={deleteLoading}
+            onClose={() => {
+              setSelectedId(null);
+              setDetail(null);
+              setDetailError(null);
+            }}
+            onDelete={() => void handleDelete()}
+          />
+        </SectionCard>
+      ) : null}
 
       {showCompare && compareRuns.length >= 2 ? (
         <SectionCard>
