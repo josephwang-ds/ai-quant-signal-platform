@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import AppShell from "@/components/layout/AppShell";
 import Button from "@/components/ui/Button";
 import DataTable from "@/components/ui/DataTable";
@@ -16,8 +16,16 @@ import {
   listBacktestRuns,
 } from "@/lib/api";
 import {
+  buildExperimentCompareLabel,
+  buildExperimentCompareSummary,
+  getDrawdownMetric,
+  isExperimentCompareHighlighted,
+  MAX_COMPARE_RUNS,
+} from "@/lib/experimentCompare";
+import {
   formatMetricPercent,
   formatMetricSharpe,
+  formatMetricTrades,
   getDrawdownTone,
   getReturnTone,
   getSharpeTone,
@@ -55,6 +63,18 @@ export default function ExperimentsPage() {
   const [detailError, setDetailError] = useState<string | null>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [actionMessage, setActionMessage] = useState<string | null>(null);
+  const [compareIds, setCompareIds] = useState<string[]>([]);
+  const [showCompare, setShowCompare] = useState(false);
+  const [compareError, setCompareError] = useState<string | null>(null);
+
+  const compareRuns = useMemo(
+    () => items.filter((item) => compareIds.includes(item.id)),
+    [items, compareIds]
+  );
+  const compareSummary = useMemo(
+    () => buildExperimentCompareSummary(compareRuns),
+    [compareRuns]
+  );
 
   async function loadList() {
     setListLoading(true);
@@ -62,6 +82,9 @@ export default function ExperimentsPage() {
     try {
       const response = await listBacktestRuns(50, 0);
       setItems(response.items);
+      setCompareIds((current) =>
+        current.filter((id) => response.items.some((item) => item.id === id))
+      );
     } catch (error) {
       setListError(
         error instanceof Error ? error.message : tr("experimentsLoadFailed")
@@ -76,6 +99,36 @@ export default function ExperimentsPage() {
     // 仅挂载时加载一次
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  function toggleCompareSelection(runId: string) {
+    setCompareError(null);
+    setCompareIds((current) => {
+      if (current.includes(runId)) {
+        return current.filter((id) => id !== runId);
+      }
+      if (current.length >= MAX_COMPARE_RUNS) {
+        setCompareError(tr("experimentsCompareMax"));
+        return current;
+      }
+      return [...current, runId];
+    });
+  }
+
+  function handleShowCompare() {
+    if (compareIds.length < 2) {
+      setCompareError(tr("experimentsCompareNeedTwo"));
+      setShowCompare(false);
+      return;
+    }
+    setCompareError(null);
+    setShowCompare(true);
+  }
+
+  function handleClearCompare() {
+    setCompareIds([]);
+    setShowCompare(false);
+    setCompareError(null);
+  }
 
   async function handleSelectRun(runId: string) {
     setSelectedId(runId);
@@ -127,7 +180,10 @@ export default function ExperimentsPage() {
       </SectionCard>
 
       <SectionCard>
-        <SectionHeader title={tr("experimentsPageTitle")} />
+        <SectionHeader
+          title={tr("experimentsPageTitle")}
+          description={tr("experimentsCompareDesc")}
+        />
         {listLoading ? <LoadingState message={tr("experimentsLoading")} /> : null}
         {listError ? (
           <ErrorAlert title={tr("experimentsLoadFailed")} message={listError} />
@@ -135,58 +191,162 @@ export default function ExperimentsPage() {
         {!listLoading && !listError && items.length === 0 ? (
           <p className="section-meta">{tr("experimentsEmpty")}</p>
         ) : null}
+
         {!listLoading && items.length > 0 ? (
-          <DataTable className="table-scroll">
-            <thead>
-              <tr>
-                <th>{tr("experimentsCreatedAt")}</th>
-                <th>{tr("ticker")}</th>
-                <th>{tr("strategy")}</th>
-                <th className="num">{tr("totalReturn")}</th>
-                <th className="num">{tr("sharpeRatio")}</th>
-                <th className="num">{tr("strategyMaxDrawdown")}</th>
-                <th className="num">{tr("experimentsTradeCount")}</th>
-                <th>{tr("experimentsNotes")}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {items.map((item) => (
-                <tr
-                  key={item.id}
-                  onClick={() => void handleSelectRun(item.id)}
-                  style={{
-                    cursor: "pointer",
-                    background:
-                      selectedId === item.id ? "rgba(59, 130, 246, 0.08)" : undefined,
-                  }}
-                >
-                  <td>{formatCreatedAt(item.created_at)}</td>
-                  <td>{item.ticker}</td>
-                  <td>{translateStrategyName(language, item.strategy)}</td>
-                  <td className="num">
-                    {formatMetricPercent(item.metrics?.total_return ?? null)}
-                  </td>
-                  <td className="num">
-                    {formatMetricSharpe(item.metrics?.sharpe_ratio ?? null)}
-                  </td>
-                  <td className="num">
-                    {formatMetricPercent(
-                      item.metrics?.strategy_max_drawdown ??
-                        item.metrics?.max_drawdown ??
-                        null
-                    )}
-                  </td>
-                  <td className="num">{item.trade_count ?? 0}</td>
-                  <td>{notesSnippet(item.notes)}</td>
+          <>
+            <div style={{ display: "flex", gap: "0.75rem", flexWrap: "wrap" }}>
+              <Button onClick={handleShowCompare} disabled={compareIds.length < 2}>
+                {tr("experimentsCompareSelect")} ({compareIds.length})
+              </Button>
+              <Button onClick={handleClearCompare} disabled={compareIds.length === 0}>
+                {tr("experimentsCompareClear")}
+              </Button>
+            </div>
+            {compareError ? (
+              <ErrorAlert title={tr("experimentsCompareTitle")} message={compareError} />
+            ) : null}
+
+            <DataTable className="table-scroll">
+              <thead>
+                <tr>
+                  <th aria-label="compare" />
+                  <th>{tr("experimentsCreatedAt")}</th>
+                  <th>{tr("ticker")}</th>
+                  <th>{tr("strategy")}</th>
+                  <th className="num">{tr("totalReturn")}</th>
+                  <th className="num">{tr("sharpeRatio")}</th>
+                  <th className="num">{tr("strategyMaxDrawdown")}</th>
+                  <th className="num">{tr("experimentsTradeCount")}</th>
+                  <th>{tr("experimentsNotes")}</th>
                 </tr>
-              ))}
-            </tbody>
-          </DataTable>
+              </thead>
+              <tbody>
+                {items.map((item) => (
+                  <tr
+                    key={item.id}
+                    onClick={() => void handleSelectRun(item.id)}
+                    style={{
+                      cursor: "pointer",
+                      background:
+                        selectedId === item.id
+                          ? "rgba(59, 130, 246, 0.08)"
+                          : compareIds.includes(item.id)
+                            ? "rgba(16, 185, 129, 0.08)"
+                            : undefined,
+                    }}
+                  >
+                    <td onClick={(event) => event.stopPropagation()}>
+                      <input
+                        type="checkbox"
+                        checked={compareIds.includes(item.id)}
+                        onChange={() => toggleCompareSelection(item.id)}
+                        aria-label={`compare-${item.id}`}
+                      />
+                    </td>
+                    <td>{formatCreatedAt(item.created_at)}</td>
+                    <td>{item.ticker}</td>
+                    <td>{translateStrategyName(language, item.strategy)}</td>
+                    <td className="num">
+                      {formatMetricPercent(item.metrics?.total_return ?? null)}
+                    </td>
+                    <td className="num">
+                      {formatMetricSharpe(item.metrics?.sharpe_ratio ?? null)}
+                    </td>
+                    <td className="num">
+                      {formatMetricPercent(getDrawdownMetric(item))}
+                    </td>
+                    <td className="num">{item.trade_count ?? 0}</td>
+                    <td>{notesSnippet(item.notes)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </DataTable>
+          </>
         ) : null}
         {!selectedId && !listLoading && items.length > 0 ? (
           <p className="section-meta">{tr("experimentsSelectHint")}</p>
         ) : null}
       </SectionCard>
+
+      {showCompare && compareRuns.length >= 2 ? (
+        <SectionCard>
+          <SectionHeader title={tr("experimentsCompareTitle")} />
+          <p className="section-meta">{tr("experimentsCompareSummary")}</p>
+          <div className="metric-grid">
+            <MetricCard
+              label={tr("experimentsCompareBestReturn")}
+              value={compareSummary.bestTotalReturn ?? tr("na")}
+            />
+            <MetricCard
+              label={tr("experimentsCompareBestSharpe")}
+              value={compareSummary.bestSharpe ?? tr("na")}
+            />
+            <MetricCard
+              label={tr("experimentsCompareLowestDrawdown")}
+              value={compareSummary.lowestDrawdown ?? tr("na")}
+            />
+          </div>
+
+          <DataTable className="table-scroll">
+            <thead>
+              <tr>
+                <th>{tr("experimentsCompareRunLabel")}</th>
+                <th>{tr("ticker")}</th>
+                <th>{tr("strategy")}</th>
+                <th className="num">{tr("totalReturn")}</th>
+                <th className="num">{tr("benchmarkReturn")}</th>
+                <th className="num">{tr("cagr")}</th>
+                <th className="num">{tr("sharpeRatio")}</th>
+                <th className="num">{tr("strategyMaxDrawdown")}</th>
+                <th className="num">{tr("winRate")}</th>
+                <th className="num">{tr("numberOfTrades")}</th>
+                <th>{tr("experimentsNotes")}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {compareRuns.map((run) => {
+                const highlighted = isExperimentCompareHighlighted(run, compareSummary);
+                return (
+                  <tr
+                    key={run.id}
+                    style={
+                      highlighted
+                        ? { background: "rgba(59, 130, 246, 0.08)" }
+                        : undefined
+                    }
+                  >
+                    <td>{buildExperimentCompareLabel(run)}</td>
+                    <td>{run.ticker}</td>
+                    <td>{translateStrategyName(language, run.strategy)}</td>
+                    <td className="num">
+                      {formatMetricPercent(run.metrics?.total_return ?? null)}
+                    </td>
+                    <td className="num">
+                      {formatMetricPercent(run.metrics?.benchmark_return ?? null)}
+                    </td>
+                    <td className="num">
+                      {formatMetricPercent(run.metrics?.cagr ?? null)}
+                    </td>
+                    <td className="num">
+                      {formatMetricSharpe(run.metrics?.sharpe_ratio ?? null)}
+                    </td>
+                    <td className="num">
+                      {formatMetricPercent(getDrawdownMetric(run))}
+                    </td>
+                    <td className="num">
+                      {formatMetricPercent(run.metrics?.win_rate ?? null)}
+                    </td>
+                    <td className="num">
+                      {formatMetricTrades(run.metrics?.number_of_trades ?? null)}
+                    </td>
+                    <td>{notesSnippet(run.notes)}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </DataTable>
+        </SectionCard>
+      ) : null}
 
       {selectedId ? (
         <SectionCard>
@@ -234,17 +394,9 @@ export default function ExperimentsPage() {
                 />
                 <MetricCard
                   label={tr("strategyMaxDrawdown")}
-                  value={formatMetricPercent(
-                    detail.metrics?.strategy_max_drawdown ??
-                      detail.metrics?.max_drawdown ??
-                      null
-                  )}
+                  value={formatMetricPercent(getDrawdownMetric(detail))}
                   featured
-                  tone={getDrawdownTone(
-                    detail.metrics?.strategy_max_drawdown ??
-                      detail.metrics?.max_drawdown ??
-                      null
-                  )}
+                  tone={getDrawdownTone(getDrawdownMetric(detail))}
                 />
                 <MetricCard
                   label={tr("benchmarkReturn")}

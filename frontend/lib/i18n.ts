@@ -299,6 +299,19 @@ export const translations = {
     experimentsConfig: "Strategy Config",
     experimentsNoTrades: "No trades saved for this run.",
 
+    experimentsCompareTitle: "Compare Saved Runs",
+    experimentsCompareDesc:
+      "Select 2–4 saved runs to compare stored metrics side by side.",
+    experimentsCompareSelect: "Compare",
+    experimentsCompareClear: "Clear selection",
+    experimentsCompareNeedTwo: "Select at least 2 runs to compare.",
+    experimentsCompareMax: "You can compare up to 4 runs at once.",
+    experimentsCompareSummary: "Comparison Highlights",
+    experimentsCompareBestReturn: "Best total return",
+    experimentsCompareBestSharpe: "Best Sharpe",
+    experimentsCompareLowestDrawdown: "Lowest drawdown",
+    experimentsCompareRunLabel: "Run",
+
     overviewTitle: "Workspace Overview",
     overviewDesc:
       "A modular quant research environment. Each module owns one responsibility: data, signals, strategies, experiments, notes, and AI explanation — not trading.",
@@ -815,6 +828,18 @@ export const translations = {
     experimentsNotes: "备注",
     experimentsConfig: "策略配置",
     experimentsNoTrades: "本次运行没有保存交易记录。",
+
+    experimentsCompareTitle: "已保存实验对比",
+    experimentsCompareDesc: "选择 2–4 条已保存记录，横向对比已存储的指标。",
+    experimentsCompareSelect: "对比",
+    experimentsCompareClear: "清除选择",
+    experimentsCompareNeedTwo: "请至少选择 2 条记录进行对比。",
+    experimentsCompareMax: "一次最多对比 4 条记录。",
+    experimentsCompareSummary: "对比摘要",
+    experimentsCompareBestReturn: "最高总收益",
+    experimentsCompareBestSharpe: "最高 Sharpe",
+    experimentsCompareLowestDrawdown: "最低回撤",
+    experimentsCompareRunLabel: "实验",
 
     overviewTitle: "工作区总览",
     overviewDesc:

@@ -186,6 +186,8 @@ Rules:
 - Missing / failed DB returns HTTP 503 with a clear message.
 - Requires `backend/db/schema.sql` applied in Supabase (`backtest_runs`, `backtest_trades`).
 
+**Saved Experiments Comparison (frontend v1):** On `/experiments`, select 2–4 saved runs via checkboxes and compare stored metrics side by side (no re-backtest, no new API).
+
 ---
 
 ## Cache layer
