@@ -11,6 +11,7 @@ import {
   WORKSPACE_MODULES,
   moduleStatusBadgeVariant,
   moduleStatusLabelKey,
+  shouldShowModuleStatusBadge,
 } from "@/lib/workspaceModules";
 
 export default function OverviewPage() {
@@ -36,7 +37,9 @@ export default function OverviewPage() {
   return (
     <AppShell language={language} onLanguageChange={setLanguage}>
       <SectionCard>
-        <SectionHeader title={tr("overviewTitle")} description={tr("overviewDesc")} />
+        <SectionHeader title={tr("overviewTitle")} />
+        <p className="overview-intro">{tr("overviewDesc")}</p>
+        <p className="overview-legend">{tr("overviewStatusLegend")}</p>
       </SectionCard>
 
       {MODULE_CATEGORIES.map((category) => (
@@ -49,14 +52,17 @@ export default function OverviewPage() {
                 return null;
               }
               const statusKey = moduleStatusLabelKey(module.status);
+              const showStatus = shouldShowModuleStatusBadge(module.status);
               return (
                 <article key={module.id} className="module-card">
                   <div className="module-card__header">
                     <h3 className="module-card__title">{tr(module.titleKey)}</h3>
-                    <StatusBadge
-                      label={tr(statusKey)}
-                      variant={moduleStatusBadgeVariant(module.status)}
-                    />
+                    {showStatus ? (
+                      <StatusBadge
+                        label={tr(statusKey)}
+                        variant={moduleStatusBadgeVariant(module.status)}
+                      />
+                    ) : null}
                   </div>
                   <p className="module-card__desc">{tr(module.overviewDescKey)}</p>
                   <Link href={module.href} className="module-card__link">

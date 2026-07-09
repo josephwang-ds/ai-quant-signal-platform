@@ -133,6 +133,10 @@ export const MODULE_CATEGORIES: Array<{
   },
 ];
 
+export function shouldShowModuleStatusBadge(status: ModuleStatus): boolean {
+  return status !== "active";
+}
+
 export function moduleStatusLabelKey(status: ModuleStatus): TranslationKey {
   switch (status) {
     case "active":

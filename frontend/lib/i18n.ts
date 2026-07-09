@@ -5,24 +5,27 @@ export const LANGUAGE_STORAGE_KEY = "ai-quant-language";
 export const translations = {
   en: {
     appTitle: "AI Quant Research Workspace",
+    appTitleShort: "Quant Research",
     appSubtitle:
-      "Modular quant research workspace for signals, rule-based strategies, experiments, and AI-assisted explanation.",
-    educationalDemo: "Portfolio Showcase",
+      "Run backtests, compare strategies, and save experiments — research demo only.",
+    educationalDemo: "Research Demo",
     dailyMarketData: "Daily Market Data",
     notFinancialAdvice: "Not Financial Advice",
-    navBacktesting: "Backtesting",
-    navSensitivity: "Parameter Sensitivity",
-    navOos: "OOS Validation",
     navOverview: "Overview",
-    navDataCenter: "Data Center",
-    navMarketWatch: "Market Watch",
-    navStrategyLab: "Strategy Lab",
-    navComparison: "Comparison",
+    navGroupResearch: "Research",
+    navGroupArchive: "Archive",
+    navDataCenter: "Data",
+    navMarketWatch: "Markets",
+    navStrategyLab: "Backtest",
+    navComparison: "Compare",
     navRobustness: "Robustness",
     navModelLab: "Model Lab",
-    navExperiments: "Experiments",
-    navResearchNotes: "Research Notes",
-    navAiAgent: "AI Agent",
+    navExperiments: "Runs",
+    navResearchNotes: "Notes",
+    navAiAgent: "AI Assistant",
+    navBacktesting: "Backtesting",
+    navSensitivity: "Sensitivity",
+    navOos: "OOS Check",
     langEnglish: "English",
     langChinese: "中文",
 
@@ -35,7 +38,7 @@ export const translations = {
     backendUnreachable:
       "Backend is not reachable. Make sure FastAPI is running on port 8000.",
 
-    marketWatch: "Market Watch",
+    marketWatch: "Markets",
     marketWatchDesc:
       "First pass: compare tickers with the same rules, then inspect the score, trend, risk, and rule components before looking at charts.",
     marketWatchPageDesc:
@@ -134,7 +137,7 @@ export const translations = {
     compareChartCaption:
       "Normalized means every ticker starts at 100, making relative performance easier to compare even when prices are different.",
 
-    strategyLab: "Strategy Lab",
+    strategyLab: "Backtest",
     strategyLabDesc:
       "Select a decision method and compare how each rule triggers simulated buy/sell events in backtest.",
     strategyLabSimulatedNote:
@@ -198,7 +201,7 @@ export const translations = {
       "Position is shifted by one period to avoid look-ahead bias. Transaction cost is applied whenever the position changes.",
     backtestWarmupNote:
       "Because indicators need a warm-up window, the first backtest bar may be later than the requested start date.",
-    strategyComparison: "Strategy Comparison",
+    strategyComparison: "Compare",
     strategyComparisonDesc:
       "Compare MA crossover, momentum, combined signal, and buy-and-hold under the same ticker, date range, and transaction cost.",
     strategyComparisonReuses: "Reuses Strategy Lab inputs",
@@ -272,26 +275,28 @@ export const translations = {
     split: "Split",
     oosFailed: "Failed to run OOS validation.",
 
-    saveBacktestRun: "Save Backtest Run",
+    saveBacktestRun: "Save Run",
     savingBacktestRun: "Saving...",
     experimentNotes: "Notes",
     experimentNotesPlaceholder: "Optional research notes for this run",
     saveBacktestSuccess: "Backtest run saved to Experiments.",
     saveBacktestFailed: "Could not save backtest run.",
     saveRequiresResult: "Run a backtest before saving.",
-    openExperiments: "Open Experiments",
+    openExperiments: "View saved runs",
 
-    experimentsPageTitle: "Experiments",
+    experimentsPageTitle: "Saved Runs",
     experimentsPageDesc:
-      "Review saved backtest runs, metrics, strategy config, and trade logs.",
+      "Browse saved backtests, open details, and compare results side by side.",
+    experimentsListTitle: "Run List",
+    experimentsListDesc: "Filter and sort saved runs. Click a row for details, or select rows to compare.",
     experimentsLoading: "Loading saved experiments...",
     experimentsEmpty: "No saved experiments yet. Save a run from Strategy Lab.",
     experimentsLoadFailed: "Could not load experiments.",
-    experimentsDetail: "Experiment Detail",
+    experimentsDetail: "Run Detail",
     experimentsBackToList: "Back to list",
-    experimentsCreatedAt: "Created",
+    experimentsCreatedAt: "Saved at",
     experimentsTradeCount: "Trades",
-    experimentsSelectHint: "Select a run to view details.",
+    experimentsSelectHint: "Click a row to view full details.",
     experimentsDelete: "Delete",
     experimentsDeleted: "Experiment deleted.",
     experimentsDeleteFailed: "Could not delete experiment.",
@@ -299,9 +304,8 @@ export const translations = {
     experimentsConfig: "Strategy Config",
     experimentsNoTrades: "No trades saved for this run.",
 
-    experimentsCompareTitle: "Compare Saved Runs",
-    experimentsCompareDesc:
-      "Select 2–4 saved runs to compare stored metrics side by side.",
+    experimentsCompareTitle: "Compare Runs",
+    experimentsCompareDesc: "Select 2–4 saved runs to compare key metrics.",
     experimentsCompareSelect: "Compare",
     experimentsCompareClear: "Clear selection",
     experimentsCompareNeedTwo: "Select at least 2 runs to compare.",
@@ -325,27 +329,32 @@ export const translations = {
     experimentsSortDesc: "Descending",
     experimentsShowingCount: "Showing {shown} of {total} saved runs",
     experimentsFilterEmpty: "No saved runs match the current filters.",
+    experimentsFilterReset: "Reset filters",
+    experimentsRunId: "Run ID",
+    experimentsDeleteConfirm: "Delete this saved experiment? This cannot be undone.",
+    experimentsSavedRedirect: "Backtest run saved. Showing experiment detail.",
 
     overviewTitle: "Workspace Overview",
     overviewDesc:
-      "A modular quant research environment. Each module owns one responsibility: data, signals, strategies, experiments, notes, and AI explanation — not trading.",
+      "Pick a module below to run backtests, compare strategies, or review saved experiments. This is a research demo — not a trading app.",
+    overviewStatusLegend:
+      "Module tags: Available = ready to use now · In progress = placeholder page · Not started = on the roadmap.",
     categoryCoreResearch: "Core Research",
     categoryDataStorage: "Data & Storage",
     categoryModelAi: "Model & AI",
     categorySystemNotes: "System Notes",
-    statusActive: "Active",
-    statusBasicSupport: "Basic Support",
-    statusPlanned: "Planned",
-    statusComingLater: "Coming Later",
-    openModule: "Open Module",
+    statusActive: "Available",
+    statusBasicSupport: "Partial",
+    statusPlanned: "In progress",
+    statusComingLater: "Not started",
+    openModule: "Open",
     openLegacyDemo: "Open full demo",
     legacyDemoHint:
       "Full functionality is temporarily on the legacy dashboard while this module is being migrated.",
-    modulePlannedStatus: "Planned module",
-    moduleMigratingStatus:
-      "This module will be separated from the original dashboard.",
+    modulePlannedStatus: "This module is not ready yet. The page is only a placeholder.",
+    moduleMigratingStatus: "This module is ready to use.",
 
-    dataCenter: "Data Center",
+    dataCenter: "Data",
     dataCenterPageDesc:
       "Manage data source coverage, symbol formats, asset classes, and future provider integration.",
     dataCenterDesc:
@@ -379,7 +388,7 @@ export const translations = {
     dcYahooUseCryptoBasic: "Basic crypto tickers",
     dcYahooUseIndicesFxFutures: "Indices / FX / futures examples",
     dcSourceYahoo: "Yahoo / yfinance",
-    dcSourcePlanned: "Planned",
+    dcSourcePlanned: "Not connected",
     dcMarketUs: "US",
     dcMarketHk: "HK",
     dcMarketCn: "CN",
@@ -427,7 +436,7 @@ export const translations = {
       "Target normalized fields: date, open, high, low, close, volume, symbol, market, data_source, adjustment, currency.",
     dcCachePlanned: "Cache layer: planned, not implemented.",
     dcDatabasePlanned: "Database persistence: planned for research assets, not raw OHLCV in v1.",
-    robustnessChecks: "Robustness Checks",
+    robustnessChecks: "Robustness",
     robustnessChecksDesc:
       "Parameter sensitivity, out-of-sample validation, and future walk-forward and model robustness checks.",
     robustnessPageDesc:
@@ -437,7 +446,7 @@ export const translations = {
     modelLab: "Model Lab",
     modelLabDesc:
       "ML dataset builder, feature engineering, logistic regression, gradient boosting models, and future deep learning signal research.",
-    experiments: "Experiments",
+    experiments: "Saved Runs",
     experimentsDesc:
       "Saved backtest runs, trade logs, strategy comparisons, model runs, and experiment history backed by the database.",
     researchNotes: "Research Notes",
@@ -563,25 +572,27 @@ export const translations = {
     tradeLogScrollHint: "More than 15 trades — scroll down to see all rows.",
   },
   zh: {
-    appTitle: "AI 量化研究工作区",
-    appSubtitle:
-      "模块化量化研究工作区，覆盖信号、规则策略、实验存档与 AI 辅助解读。",
-    educationalDemo: "作品展示",
+    appTitle: "AI 量化研究",
+    appTitleShort: "量化研究",
+    appSubtitle: "跑回测、对比策略、保存实验——仅供研究演示。",
+    educationalDemo: "研究演示",
     dailyMarketData: "日线市场数据",
     notFinancialAdvice: "非投资建议",
+    navOverview: "总览",
+    navGroupResearch: "研究",
+    navGroupArchive: "存档",
+    navDataCenter: "数据",
+    navMarketWatch: "行情",
+    navStrategyLab: "回测",
+    navComparison: "对比",
+    navRobustness: "稳健性",
+    navModelLab: "模型实验",
+    navExperiments: "实验",
+    navResearchNotes: "笔记",
+    navAiAgent: "AI 助手",
     navBacktesting: "回测",
     navSensitivity: "参数敏感性",
     navOos: "样本外验证",
-    navOverview: "总览",
-    navDataCenter: "数据中心",
-    navMarketWatch: "市场观察",
-    navStrategyLab: "策略实验室",
-    navComparison: "策略对比",
-    navRobustness: "稳健性",
-    navModelLab: "模型实验室",
-    navExperiments: "实验存档",
-    navResearchNotes: "研究笔记",
-    navAiAgent: "AI 研究助手",
     langEnglish: "English",
     langChinese: "中文",
 
@@ -593,7 +604,7 @@ export const translations = {
     checking: "检查中...",
     backendUnreachable: "无法连接后端，请确认 FastAPI 已在 8000 端口运行。",
 
-    marketWatch: "市场观察",
+    marketWatch: "行情",
     marketWatchDesc:
       "第一步：用相同规则对比多个标的，查看分数、趋势、风险与规则组成，再进入图表分析。",
     marketWatchPageDesc:
@@ -684,7 +695,7 @@ export const translations = {
     compareChartCaption:
       "归一化表示每个标的从 100 起步，便于在价格不同的情况下比较相对表现。",
 
-    strategyLab: "策略实验室",
+    strategyLab: "回测",
     strategyLabDesc:
       "选择不同决策方法，比较各规则在回测中如何触发模拟买卖事件。",
     strategyLabSimulatedNote: "这些仅为模拟回测结果，系统不会执行真实交易。",
@@ -817,25 +828,27 @@ export const translations = {
     split: "切分",
     oosFailed: "样本外验证运行失败。",
 
-    saveBacktestRun: "保存回测实验",
+    saveBacktestRun: "保存实验",
     savingBacktestRun: "保存中...",
     experimentNotes: "备注",
     experimentNotesPlaceholder: "可选：为本次回测填写研究备注",
     saveBacktestSuccess: "回测已保存到实验中心。",
     saveBacktestFailed: "无法保存回测实验。",
     saveRequiresResult: "请先运行回测再保存。",
-    openExperiments: "打开实验中心",
+    openExperiments: "查看已保存实验",
 
-    experimentsPageTitle: "实验中心",
-    experimentsPageDesc: "查看已保存的回测运行、指标、策略配置与交易日志。",
+    experimentsPageTitle: "实验存档",
+    experimentsPageDesc: "查看已保存的回测记录，打开详情或横向对比结果。",
+    experimentsListTitle: "记录列表",
+    experimentsListDesc: "筛选、排序已保存记录。点击行看详情，勾选多行可对比。",
     experimentsLoading: "正在加载已保存实验...",
     experimentsEmpty: "暂无已保存实验。请先在策略实验室保存一次回测。",
     experimentsLoadFailed: "无法加载实验列表。",
-    experimentsDetail: "实验详情",
+    experimentsDetail: "记录详情",
     experimentsBackToList: "返回列表",
-    experimentsCreatedAt: "创建时间",
+    experimentsCreatedAt: "保存时间",
     experimentsTradeCount: "交易笔数",
-    experimentsSelectHint: "选择一条记录查看详情。",
+    experimentsSelectHint: "点击一行查看完整详情。",
     experimentsDelete: "删除",
     experimentsDeleted: "实验已删除。",
     experimentsDeleteFailed: "无法删除实验。",
@@ -843,8 +856,8 @@ export const translations = {
     experimentsConfig: "策略配置",
     experimentsNoTrades: "本次运行没有保存交易记录。",
 
-    experimentsCompareTitle: "已保存实验对比",
-    experimentsCompareDesc: "选择 2–4 条已保存记录，横向对比已存储的指标。",
+    experimentsCompareTitle: "结果对比",
+    experimentsCompareDesc: "选择 2–4 条记录，对比关键指标。",
     experimentsCompareSelect: "对比",
     experimentsCompareClear: "清除选择",
     experimentsCompareNeedTwo: "请至少选择 2 条记录进行对比。",
@@ -868,25 +881,31 @@ export const translations = {
     experimentsSortDesc: "降序",
     experimentsShowingCount: "显示 {shown} / {total} 条已保存记录",
     experimentsFilterEmpty: "当前筛选条件下没有匹配的记录。",
+    experimentsFilterReset: "重置筛选",
+    experimentsRunId: "运行 ID",
+    experimentsDeleteConfirm: "确定删除这条已保存实验吗？此操作无法撤销。",
+    experimentsSavedRedirect: "回测已保存，正在显示实验详情。",
 
     overviewTitle: "工作区总览",
     overviewDesc:
-      "模块化量化研究环境。各模块各司其职：数据、信号、策略、实验、笔记与 AI 解读——不涉及交易执行。",
+      "从下方选择一个模块：跑回测、对比策略、查看已保存实验。这是研究演示项目，不能用于实盘交易。",
+    overviewStatusLegend:
+      "模块标签说明：可使用 = 现在就能用 · 开发中 = 仅占位，功能未完成 · 未开始 = 还在路线图里。",
     categoryCoreResearch: "核心研究",
     categoryDataStorage: "数据与存储",
     categoryModelAi: "模型与 AI",
     categorySystemNotes: "系统说明",
-    statusActive: "已启用",
-    statusBasicSupport: "基础支持",
-    statusPlanned: "规划中",
-    statusComingLater: "后续上线",
-    openModule: "进入模块",
+    statusActive: "可使用",
+    statusBasicSupport: "部分可用",
+    statusPlanned: "开发中",
+    statusComingLater: "未开始",
+    openModule: "进入",
     openLegacyDemo: "打开完整演示",
     legacyDemoHint: "本模块迁移完成前，完整功能请暂时使用旧版演示页。",
-    modulePlannedStatus: "规划中的模块",
-    moduleMigratingStatus: "本模块将从原仪表盘拆分独立。",
+    modulePlannedStatus: "功能尚未完成，当前页面只是占位。",
+    moduleMigratingStatus: "本模块已可使用。",
 
-    dataCenter: "数据中心",
+    dataCenter: "数据",
     dataCenterPageDesc:
       "管理数据源覆盖范围、代码格式、资产类别和未来数据提供方集成。",
     dataCenterDesc:
@@ -920,7 +939,7 @@ export const translations = {
     dcYahooUseCryptoBasic: "基础加密货币代码",
     dcYahooUseIndicesFxFutures: "指数 / 外汇 / 期货示例",
     dcSourceYahoo: "Yahoo / yfinance",
-    dcSourcePlanned: "规划中",
+    dcSourcePlanned: "尚未接入",
     dcMarketUs: "美国",
     dcMarketHk: "香港",
     dcMarketCn: "中国",
@@ -967,7 +986,7 @@ export const translations = {
       "目标标准化字段：date, open, high, low, close, volume, symbol, market, data_source, adjustment, currency。",
     dcCachePlanned: "缓存层：已规划，尚未实现。",
     dcDatabasePlanned: "数据库持久化：已规划用于研究资产，v1 不存储全量 OHLCV。",
-    robustnessChecks: "稳健性检查",
+    robustnessChecks: "稳健性",
     robustnessChecksDesc:
       "参数敏感性、样本外验证，以及后续的滚动窗口与模型稳健性检查。",
     robustnessPageDesc: "检查策略是否对参数过度敏感，或在样本外表现不稳定。",
@@ -976,7 +995,7 @@ export const translations = {
     modelLab: "模型实验室",
     modelLabDesc:
       "机器学习数据集构建、特征工程、逻辑回归、梯度提升模型，以及后续深度学习信号研究。",
-    experiments: "实验存档",
+    experiments: "实验",
     experimentsDesc:
       "保存的回测、交易日志、策略对比、模型运行记录与实验历史，由数据库持久化。",
     researchNotes: "研究笔记",

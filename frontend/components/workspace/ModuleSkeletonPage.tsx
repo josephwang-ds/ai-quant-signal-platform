@@ -32,6 +32,10 @@ export default function ModuleSkeletonPage({ moduleId }: ModuleSkeletonPageProps
 
   const statusKey = moduleStatusLabelKey(module.status);
   const statusMessageKey = moduleSkeletonStatusKey(module.skeletonKind);
+  const showMigratingNote =
+    module.skeletonKind === "migrating" &&
+    module.status !== "active" &&
+    module.legacyAnchor;
 
   return (
     <AppShell language={language} onLanguageChange={setLanguage}>
@@ -43,7 +47,7 @@ export default function ModuleSkeletonPage({ moduleId }: ModuleSkeletonPageProps
             variant={moduleStatusBadgeVariant(module.status)}
           />
           <p className="section-meta">{tr(statusMessageKey)}</p>
-          {module.skeletonKind === "migrating" && module.legacyAnchor ? (
+          {showMigratingNote ? (
             <p className="section-meta">
               {tr("legacyDemoHint")}{" "}
               <Link href={`/legacy#${module.legacyAnchor}`} className="module-card__link">

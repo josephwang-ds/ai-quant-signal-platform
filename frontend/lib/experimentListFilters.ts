@@ -67,6 +67,25 @@ export function getUniqueExperimentStrategies(
   return [...new Set(runs.map((run) => run.strategy))].sort();
 }
 
+export function sanitizeExperimentListFilters(
+  filters: ExperimentListFilters,
+  runs: BacktestRunSummary[]
+): ExperimentListFilters {
+  const tickers = getUniqueExperimentTickers(runs);
+  const strategies = getUniqueExperimentStrategies(runs);
+  return {
+    ...filters,
+    ticker:
+      filters.ticker !== "all" && !tickers.includes(filters.ticker)
+        ? "all"
+        : filters.ticker,
+    strategy:
+      filters.strategy !== "all" && !strategies.includes(filters.strategy)
+        ? "all"
+        : filters.strategy,
+  };
+}
+
 export function filterAndSortExperimentRuns(
   runs: BacktestRunSummary[],
   filters: ExperimentListFilters

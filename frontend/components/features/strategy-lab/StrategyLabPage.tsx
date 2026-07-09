@@ -2,6 +2,7 @@
 
 import dynamic from "next/dynamic";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import AppShell from "@/components/layout/AppShell";
 import Button from "@/components/ui/Button";
@@ -85,6 +86,7 @@ function getBacktestMetricHelp(lang: Language) {
 }
 
 export default function StrategyLabPage() {
+  const router = useRouter();
   const { language, setLanguage, tr } = useWorkspaceLanguage();
   const [backtestTicker, setBacktestTicker] = useState(DEFAULT_BACKTEST_TICKER);
   const [backtestStartDate, setBacktestStartDate] = useState(DEFAULT_CHART_START_DATE);
@@ -220,7 +222,7 @@ export default function StrategyLabPage() {
         })),
       });
 
-      setSaveSuccess(`${tr("saveBacktestSuccess")} (${response.id.slice(0, 8)})`);
+      router.push(`/experiments?saved=${encodeURIComponent(response.id)}`);
     } catch (error) {
       setSaveError(error instanceof Error ? error.message : tr("saveBacktestFailed"));
     } finally {

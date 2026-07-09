@@ -2,21 +2,13 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import type { Language, TranslationKey } from "@/lib/i18n";
+import type { Language } from "@/lib/i18n";
 import { t } from "@/lib/i18n";
-
-const NAV_ITEMS: Array<{ href: string; labelKey: TranslationKey }> = [
-  { href: "/", labelKey: "navOverview" },
-  { href: "/data-center", labelKey: "navDataCenter" },
-  { href: "/market-watch", labelKey: "navMarketWatch" },
-  { href: "/strategy-lab", labelKey: "navStrategyLab" },
-  { href: "/comparison", labelKey: "navComparison" },
-  { href: "/robustness", labelKey: "navRobustness" },
-  { href: "/model-lab", labelKey: "navModelLab" },
-  { href: "/experiments", labelKey: "navExperiments" },
-  { href: "/research-notes", labelKey: "navResearchNotes" },
-  { href: "/ai-agent", labelKey: "navAiAgent" },
-];
+import {
+  WORKSPACE_NAV_GROUPS,
+  isWorkspaceNavGroupActive,
+  isWorkspaceNavItemActive,
+} from "@/lib/workspaceNav";
 
 type TopNavProps = {
   language: Language;
@@ -27,17 +19,34 @@ export default function TopNav({ language }: TopNavProps) {
 
   return (
     <nav className="dashboard-nav" aria-label="Workspace modules">
-      {NAV_ITEMS.map((item) => {
-        const isActive =
-          item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
+      <Link href="/" className={pathname === "/" ? "is-active" : undefined}>
+        {t(language, "navOverview")}
+      </Link>
+
+      {WORKSPACE_NAV_GROUPS.map((group) => {
+        const groupActive = isWorkspaceNavGroupActive(pathname, group);
         return (
-          <Link
-            key={item.href}
-            href={item.href}
-            className={isActive ? "is-active" : undefined}
+          <details
+            key={group.id}
+            className={`dashboard-nav-group${groupActive ? " is-group-active" : ""}`}
+            open={groupActive || undefined}
           >
-            {t(language, item.labelKey)}
-          </Link>
+            <summary>{t(language, group.labelKey)}</summary>
+            <div className="dashboard-nav-group__menu" role="menu">
+              {group.items.map((item) => (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  role="menuitem"
+                  className={
+                    isWorkspaceNavItemActive(pathname, item.href) ? "is-active" : undefined
+                  }
+                >
+                  {t(language, item.labelKey)}
+                </Link>
+              ))}
+            </div>
+          </details>
         );
       })}
     </nav>

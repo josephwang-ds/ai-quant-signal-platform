@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import AppShell from "@/components/layout/AppShell";
 import Button from "@/components/ui/Button";
 import DataTable from "@/components/ui/DataTable";
@@ -27,6 +28,7 @@ import {
   filterAndSortExperimentRuns,
   getUniqueExperimentStrategies,
   getUniqueExperimentTickers,
+  sanitizeExperimentListFilters,
   type ExperimentListFilters,
 } from "@/lib/experimentListFilters";
 import {
@@ -44,13 +46,22 @@ import {
 } from "@/lib/i18n";
 import { useWorkspaceLanguage } from "@/lib/useWorkspaceLanguage";
 import type { BacktestRunDetail, BacktestRunSummary } from "@/types/market";
+import type { Language } from "@/lib/i18n";
 
-function formatCreatedAt(value: string): string {
+function formatCreatedAt(value: string, language: Language): string {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) {
     return value;
   }
-  return date.toLocaleString();
+  return date.toLocaleString(language === "zh" ? "zh-CN" : "en-US");
+}
+
+function formatRunId(runId: string): string {
+  return runId.slice(0, 8);
+}
+
+function getExperimentTradeCount(run: BacktestRunSummary): number {
+  return run.trade_count ?? run.metrics?.number_of_trades ?? 0;
 }
 
 function notesSnippet(notes?: string | null): string {
@@ -61,6 +72,8 @@ function notesSnippet(notes?: string | null): string {
 }
 
 export default function ExperimentsPage() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const { language, setLanguage, tr } = useWorkspaceLanguage();
   const [items, setItems] = useState<BacktestRunSummary[]>([]);
   const [listLoading, setListLoading] = useState(true);
@@ -77,6 +90,7 @@ export default function ExperimentsPage() {
   const [listFilters, setListFilters] = useState<ExperimentListFilters>(
     DEFAULT_EXPERIMENT_LIST_FILTERS
   );
+  const handledSavedId = useRef<string | null>(null);
 
   const displayedItems = useMemo(
     () => filterAndSortExperimentRuns(items, listFilters),
@@ -89,7 +103,10 @@ export default function ExperimentsPage() {
   );
 
   const compareRuns = useMemo(
-    () => items.filter((item) => compareIds.includes(item.id)),
+    () =>
+      compareIds
+        .map((id) => items.find((item) => item.id === id))
+        .filter((item): item is BacktestRunSummary => item != null),
     [items, compareIds]
   );
   const compareSummary = useMemo(
@@ -120,6 +137,29 @@ export default function ExperimentsPage() {
     // 仅挂载时加载一次
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    setListFilters((current) => sanitizeExperimentListFilters(current, items));
+  }, [items, tickerOptions, strategyOptions]);
+
+  useEffect(() => {
+    const savedId = searchParams.get("saved");
+    if (!savedId || listLoading || handledSavedId.current === savedId) {
+      return;
+    }
+    const savedRun = items.find((item) => item.id === savedId);
+    if (!savedRun) {
+      return;
+    }
+    handledSavedId.current = savedId;
+    setActionMessage(tr("experimentsSavedRedirect"));
+    void handleSelectRun(savedId);
+    router.replace("/experiments");
+  }, [items, listLoading, router, searchParams, tr]);
+
+  function handleResetFilters() {
+    setListFilters(DEFAULT_EXPERIMENT_LIST_FILTERS);
+  }
 
   function toggleCompareSelection(runId: string) {
     setCompareError(null);
@@ -173,6 +213,9 @@ export default function ExperimentsPage() {
     if (!selectedId) {
       return;
     }
+    if (!window.confirm(tr("experimentsDeleteConfirm"))) {
+      return;
+    }
     setDeleteLoading(true);
     setDetailError(null);
     setActionMessage(null);
@@ -202,8 +245,8 @@ export default function ExperimentsPage() {
 
       <SectionCard>
         <SectionHeader
-          title={tr("experimentsPageTitle")}
-          description={tr("experimentsCompareDesc")}
+          title={tr("experimentsListTitle")}
+          description={tr("experimentsListDesc")}
         />
         {listLoading ? <LoadingState message={tr("experimentsLoading")} /> : null}
         {listError ? (
@@ -300,6 +343,13 @@ export default function ExperimentsPage() {
                   <option value="asc">{tr("experimentsSortAsc")}</option>
                 </select>
               </label>
+
+              <label className="form-field" style={{ alignSelf: "end" }}>
+                <span className="form-label">&nbsp;</span>
+                <Button onClick={handleResetFilters}>
+                  {tr("experimentsFilterReset")}
+                </Button>
+              </label>
             </div>
 
             <p className="section-meta">
@@ -328,6 +378,7 @@ export default function ExperimentsPage() {
               <thead>
                 <tr>
                   <th aria-label="compare" />
+                  <th>{tr("experimentsRunId")}</th>
                   <th>{tr("experimentsCreatedAt")}</th>
                   <th>{tr("ticker")}</th>
                   <th>{tr("strategy")}</th>
@@ -361,7 +412,8 @@ export default function ExperimentsPage() {
                         aria-label={`compare-${item.id}`}
                       />
                     </td>
-                    <td>{formatCreatedAt(item.created_at)}</td>
+                    <td>{formatRunId(item.id)}</td>
+                    <td>{formatCreatedAt(item.created_at, language)}</td>
                     <td>{item.ticker}</td>
                     <td>{translateStrategyName(language, item.strategy)}</td>
                     <td className="num">
@@ -373,7 +425,7 @@ export default function ExperimentsPage() {
                     <td className="num">
                       {formatMetricPercent(getDrawdownMetric(item))}
                     </td>
-                    <td className="num">{item.trade_count ?? 0}</td>
+                    <td className="num">{getExperimentTradeCount(item)}</td>
                     <td>{notesSnippet(item.notes)}</td>
                   </tr>
                 ))}
@@ -382,14 +434,17 @@ export default function ExperimentsPage() {
             )}
           </>
         ) : null}
-        {!selectedId && !listLoading && items.length > 0 ? (
+        {!selectedId && !listLoading && items.length > 0 && !showCompare ? (
           <p className="section-meta">{tr("experimentsSelectHint")}</p>
         ) : null}
       </SectionCard>
 
       {showCompare && compareRuns.length >= 2 ? (
         <SectionCard>
-          <SectionHeader title={tr("experimentsCompareTitle")} />
+          <SectionHeader
+            title={tr("experimentsCompareTitle")}
+            description={tr("experimentsCompareDesc")}
+          />
           <p className="section-meta">{tr("experimentsCompareSummary")}</p>
           <div className="metric-grid">
             <MetricCard
@@ -424,7 +479,7 @@ export default function ExperimentsPage() {
             </thead>
             <tbody>
               {compareRuns.map((run) => {
-                const highlighted = isExperimentCompareHighlighted(run, compareSummary);
+                const highlighted = isExperimentCompareHighlighted(run, compareRuns);
                 return (
                   <tr
                     key={run.id}
@@ -456,7 +511,7 @@ export default function ExperimentsPage() {
                       {formatMetricPercent(run.metrics?.win_rate ?? null)}
                     </td>
                     <td className="num">
-                      {formatMetricTrades(run.metrics?.number_of_trades ?? null)}
+                      {formatMetricTrades(getExperimentTradeCount(run))}
                     </td>
                     <td>{notesSnippet(run.notes)}</td>
                   </tr>
@@ -495,7 +550,7 @@ export default function ExperimentsPage() {
             <>
               <p className="section-meta">
                 {detail.ticker} · {translateStrategyName(language, detail.strategy)} ·{" "}
-                {tr("experimentsCreatedAt")}: {formatCreatedAt(detail.created_at)}
+                {tr("experimentsCreatedAt")}: {formatCreatedAt(detail.created_at, language)}
               </p>
 
               <div className="metric-grid">

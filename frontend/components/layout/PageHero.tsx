@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 import StatusBadge from "@/components/ui/StatusBadge";
 import type { Language } from "@/lib/i18n";
 import { t } from "@/lib/i18n";
@@ -12,17 +14,29 @@ type PageHeroProps = {
 };
 
 export default function PageHero({ language, onLanguageChange }: PageHeroProps) {
+  const pathname = usePathname();
+  const isHome = pathname === "/";
+
   return (
-    <header className="dashboard-header">
+    <header className={`dashboard-header${isHome ? "" : " dashboard-header--compact"}`}>
       <div className="dashboard-header__inner">
         <LanguageToggle language={language} onLanguageChange={onLanguageChange} />
-        <h1 className="dashboard-title">{t(language, "appTitle")}</h1>
-        <p className="dashboard-subtitle">{t(language, "appSubtitle")}</p>
-        <div className="dashboard-badges">
-          <StatusBadge label={t(language, "educationalDemo")} variant="info" />
-          <StatusBadge label={t(language, "dailyMarketData")} variant="neutral" />
-          <StatusBadge label={t(language, "notFinancialAdvice")} variant="warning" />
-        </div>
+        {isHome ? (
+          <h1 className="dashboard-title">{t(language, "appTitle")}</h1>
+        ) : (
+          <Link href="/" className="dashboard-title dashboard-title--link">
+            {t(language, "appTitleShort")}
+          </Link>
+        )}
+        {isHome ? (
+          <>
+            <p className="dashboard-subtitle">{t(language, "appSubtitle")}</p>
+            <div className="dashboard-badges">
+              <StatusBadge label={t(language, "educationalDemo")} variant="info" />
+              <StatusBadge label={t(language, "notFinancialAdvice")} variant="warning" />
+            </div>
+          </>
+        ) : null}
         <TopNav language={language} />
       </div>
     </header>

@@ -14,7 +14,13 @@ function runLabel(run: BacktestRunSummary): string {
 }
 
 export function buildExperimentCompareLabel(run: BacktestRunSummary): string {
-  return runLabel(run);
+  const shortId = run.id.slice(0, 8);
+  const note = run.notes?.trim();
+  if (note) {
+    const clipped = note.length > 28 ? `${note.slice(0, 28)}…` : note;
+    return `${clipped} (${shortId})`;
+  }
+  return `${run.ticker} · ${shortId}`;
 }
 
 export function getDrawdownMetric(run: BacktestRunSummary): number | null {
@@ -64,12 +70,45 @@ export function buildExperimentCompareSummary(
 
 export function isExperimentCompareHighlighted(
   run: BacktestRunSummary,
-  summary: ExperimentCompareSummary
+  runs: BacktestRunSummary[]
 ): boolean {
-  const label = runLabel(run);
-  return (
-    label === summary.bestTotalReturn ||
-    label === summary.bestSharpe ||
-    label === summary.lowestDrawdown
+  if (runs.length < 2) {
+    return false;
+  }
+
+  const bestReturn = runsWithBestMetric(
+    runs,
+    (item) => item.metrics?.total_return ?? null,
+    "max"
   );
+  const bestSharpe = runsWithBestMetric(
+    runs,
+    (item) => item.metrics?.sharpe_ratio ?? null,
+    "max"
+  );
+  const bestDrawdown = runsWithBestMetric(runs, getDrawdownMetric, "max");
+
+  return (
+    bestReturn.some((item) => item.id === run.id) ||
+    bestSharpe.some((item) => item.id === run.id) ||
+    bestDrawdown.some((item) => item.id === run.id)
+  );
+}
+
+function runsWithBestMetric(
+  runs: BacktestRunSummary[],
+  pick: (run: BacktestRunSummary) => number | null,
+  mode: "max" | "min"
+): BacktestRunSummary[] {
+  const scored = runs
+    .map((run) => [run, pick(run)] as const)
+    .filter((item): item is [BacktestRunSummary, number] => item[1] != null);
+  if (scored.length === 0) {
+    return [];
+  }
+  const target =
+    mode === "max"
+      ? Math.max(...scored.map((item) => item[1]))
+      : Math.min(...scored.map((item) => item[1]));
+  return scored.filter((item) => item[1] === target).map((item) => item[0]);
 }
