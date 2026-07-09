@@ -21,6 +21,7 @@ export const translations = {
     navRobustness: "Robustness",
     navModelLab: "Model Lab",
     navExperiments: "Runs",
+    navPaperTrading: "Paper",
     navResearchNotes: "Notes",
     navAiAgent: "AI Assistant",
     navBacktesting: "Backtesting",
@@ -597,6 +598,51 @@ export const translations = {
     tradeSell: "SELL",
     tradeLogEmpty: "No trades were triggered for this period and strategy.",
     tradeLogScrollHint: "More than 15 trades — scroll down to see all rows.",
+
+    paperTrading: "Paper Trading",
+    paperTradingDesc:
+      "Evaluate today's strategy signal against a simulated account. Five-level risk rules gate buy/sell actions. No live orders.",
+    paperTradingNote: "Paper trading only. Signals use prior-day position semantics (no look-ahead).",
+    paperEvaluate: "Evaluate Signal",
+    paperExecute: "Execute Paper Trade",
+    paperReset: "Reset Account",
+    paperTodaySignal: "Today's Signal",
+    paperAction: "Paper Action",
+    paperAccount: "Paper Account",
+    paperRisk: "Risk Monitor",
+    paperRiskLevel: "Risk Level",
+    paperAllowedAction: "Allowed Action",
+    paperPortfolioValue: "Portfolio Value",
+    paperUnrealizedPnl: "Unrealized P&L",
+    paperRealizedPnl: "Realized P&L",
+    paperCurrentDrawdown: "Current Drawdown",
+    paperPosition: "Position",
+    paperCooldown: "Cooldown Until",
+    paperNotes: "Research Notes",
+    paperNotesPlaceholder: "Optional notes for this paper session...",
+    paperTradeJournal: "Trade Journal",
+    paperFlat: "Flat",
+    paperLong: "Long",
+    paperConfidence: "Confidence",
+    paperTargetPosition: "Target Position",
+    paperCash: "Cash",
+    paperShares: "Shares",
+    paperEntryPrice: "Entry Price",
+    paperCurrentPrice: "Current Price",
+    paperRiskReasons: "Risk Reasons",
+    paperComponentLevels: "Risk Components",
+    paperExecuteResult: "Execution",
+    paperNoTrade: "No paper trade executed.",
+    paperResetConfirm: "Reset paper account to initial capital?",
+    paperEvaluateFailed: "Paper trading evaluation failed.",
+    paperExecuteFailed: "Paper trade execution failed.",
+    paperResetFailed: "Failed to reset paper account.",
+    modulePaperTradingOverviewDesc:
+      "Simulated forward trading with a five-level risk engine and trade journal.",
+    overviewPaperAccount: "Paper Account",
+    overviewPaperAccountDesc: "Current simulated account snapshot from the latest evaluation.",
+    overviewOpenPaperTrading: "Open Paper Trading",
+    overviewPaperNotEvaluated: "No paper session yet. Open Paper Trading to evaluate a signal.",
   },
   zh: {
     appTitle: "AI 量化研究",
@@ -615,6 +661,7 @@ export const translations = {
     navRobustness: "稳健性",
     navModelLab: "模型实验",
     navExperiments: "实验",
+    navPaperTrading: "模拟试盘",
     navResearchNotes: "笔记",
     navAiAgent: "AI 助手",
     navBacktesting: "回测",
@@ -1161,6 +1208,51 @@ export const translations = {
     tradeSell: "卖出",
     tradeLogEmpty: "该区间与策略下未触发任何交易。",
     tradeLogScrollHint: "超过 15 条记录时可向下滚动查看全部。",
+
+    paperTrading: "模拟试盘",
+    paperTradingDesc:
+      "用模拟账户评估今日策略信号，五档风控规则约束买卖动作。不会下真实单。",
+    paperTradingNote: "仅供模拟试盘。信号采用前一日持仓语义，避免未来函数。",
+    paperEvaluate: "评估信号",
+    paperExecute: "执行模拟交易",
+    paperReset: "重置账户",
+    paperTodaySignal: "今日信号",
+    paperAction: "模拟动作",
+    paperAccount: "模拟账户",
+    paperRisk: "风控监控",
+    paperRiskLevel: "风控等级",
+    paperAllowedAction: "允许操作",
+    paperPortfolioValue: "账户净值",
+    paperUnrealizedPnl: "浮动盈亏",
+    paperRealizedPnl: "已实现盈亏",
+    paperCurrentDrawdown: "当前回撤",
+    paperPosition: "持仓状态",
+    paperCooldown: "冷却截止",
+    paperNotes: "研究备注",
+    paperNotesPlaceholder: "可选：记录本次模拟试盘的研究备注…",
+    paperTradeJournal: "交易日志",
+    paperFlat: "空仓",
+    paperLong: "多头",
+    paperConfidence: "置信度",
+    paperTargetPosition: "目标仓位",
+    paperCash: "现金",
+    paperShares: "持股数",
+    paperEntryPrice: "入场价",
+    paperCurrentPrice: "现价",
+    paperRiskReasons: "风控原因",
+    paperComponentLevels: "分项等级",
+    paperExecuteResult: "执行结果",
+    paperNoTrade: "未执行模拟交易。",
+    paperResetConfirm: "确认将模拟账户重置为初始资金？",
+    paperEvaluateFailed: "模拟试盘评估失败。",
+    paperExecuteFailed: "模拟交易执行失败。",
+    paperResetFailed: "重置模拟账户失败。",
+    modulePaperTradingOverviewDesc:
+      "带五档风控引擎的模拟向前试盘与交易日志。",
+    overviewPaperAccount: "模拟账户",
+    overviewPaperAccountDesc: "最近一次评估后的模拟账户快照。",
+    overviewOpenPaperTrading: "进入模拟试盘",
+    overviewPaperNotEvaluated: "尚未开始模拟试盘，请进入模拟试盘页评估信号。",
   },
 } as const;
 
@@ -1299,6 +1391,19 @@ const BACKEND_TEXT_ZH: Record<string, string> = {
   "Both MA crossover and momentum signals are non-positive; strategy exits position.":
     "均线交叉与动量信号均为非正，策略平仓。",
   "Yahoo Finance via yfinance": "雅虎财经（yfinance）",
+  "Risk indicators are within normal range": "风险指标处于正常范围",
+  "Recent Sharpe ratio declined": "近期夏普比率下降",
+  "MA and momentum signals conflict": "均线与动量信号冲突",
+  "Short MA above long MA; next-day paper position is long.":
+    "短期均线上穿长期均线；下一交易日模拟持仓为多头。",
+  "Short MA not above long MA; next-day paper position is flat.":
+    "短期均线未高于长期均线；下一交易日模拟持仓为空仓。",
+  "Strategy signal is positive; paper account would hold.":
+    "策略信号为正；模拟账户将持有仓位。",
+  "Strategy signal is flat; paper account would stay in cash.":
+    "策略信号为空；模拟账户保持现金。",
+  "Paper trading simulation only. Not financial advice. No live orders.":
+    "仅供模拟试盘，非投资建议，不会下真实单。",
 };
 
 export function translateBackendText(lang: Language, text: string): string {
@@ -1319,6 +1424,81 @@ export function translateStrategyName(lang: Language, strategy: string): string 
     return t(lang, "combinedSignal");
   }
   return strategy;
+}
+
+const RISK_LABEL_ZH: Record<string, string> = {
+  Green: "正常",
+  "Light Yellow": "轻度预警",
+  Yellow: "谨慎",
+  Orange: "高风险",
+  Red: "停止跟随",
+};
+
+const ALLOWED_ACTION_ZH: Record<string, string> = {
+  "Normal paper trading": "正常模拟",
+  "Cautious paper trading": "小心模拟",
+  "Hold or reduce only": "仅持有或减仓",
+  "No new positions": "暂停新增仓位",
+  "Stop following / cooldown": "停止模拟跟随",
+};
+
+const PAPER_ACTION_ZH: Record<string, string> = {
+  BUY: "买入",
+  SELL: "卖出",
+  HOLD: "持有",
+  WAIT: "观望",
+};
+
+const CONFIDENCE_ZH: Record<string, string> = {
+  High: "高",
+  Medium: "中",
+  Low: "低",
+};
+
+export function translateRiskLabel(lang: Language, label: string): string {
+  if (lang === "en") {
+    return label;
+  }
+  return RISK_LABEL_ZH[label] ?? label;
+}
+
+export function translateAllowedAction(lang: Language, action: string): string {
+  if (lang === "en") {
+    return action;
+  }
+  return ALLOWED_ACTION_ZH[action] ?? action;
+}
+
+export function translatePaperAction(lang: Language, action: string): string {
+  if (lang === "en") {
+    return action;
+  }
+  return PAPER_ACTION_ZH[action] ?? action;
+}
+
+export function translateConfidence(lang: Language, confidence: string): string {
+  if (lang === "en") {
+    return confidence;
+  }
+  return CONFIDENCE_ZH[confidence] ?? confidence;
+}
+
+export function paperRiskVariant(level: number):
+  | "success"
+  | "info"
+  | "warning"
+  | "danger"
+  | "neutral" {
+  if (level <= 1) {
+    return "success";
+  }
+  if (level === 2) {
+    return "info";
+  }
+  if (level <= 4) {
+    return "warning";
+  }
+  return "danger";
 }
 
 export function translateDataSource(lang: Language, dataSource: string): string {

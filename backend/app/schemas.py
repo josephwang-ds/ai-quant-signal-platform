@@ -447,3 +447,22 @@ class SaveBacktestRunRequest(BaseModel):
         if not isinstance(self.metrics, dict) or not self.metrics:
             raise ValueError("metrics must be a non-empty object")
         return self
+
+
+class PaperTradingRequest(BacktestRequest):
+    """模拟试盘请求体（复用回测参数）。"""
+
+    account_id: str = "default"
+    notes: Optional[str] = None
+
+    @field_validator("account_id")
+    @classmethod
+    def normalize_account_id(cls, value: str) -> str:
+        account_id = value.strip() or "default"
+        return account_id
+
+    @model_validator(mode="after")
+    def normalize_notes(self) -> "PaperTradingRequest":
+        if self.notes is not None:
+            self.notes = self.notes.strip() or None
+        return self

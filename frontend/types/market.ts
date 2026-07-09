@@ -340,3 +340,78 @@ export type BacktestRunListResponse = {
   limit: number;
   offset: number;
 };
+
+export type PaperRiskAssessment = {
+  risk_level: number;
+  risk_label: string;
+  allowed_action: string;
+  risk_reasons: string[];
+  component_levels: Record<string, number>;
+};
+
+export type PaperTodaySignal = {
+  date: string;
+  symbol: string;
+  strategy: string;
+  signal: string;
+  confidence: string;
+  risk_level: number;
+  reason: string;
+  paper_action: string;
+  target_position: number;
+};
+
+export type PaperAccount = {
+  account_id: string;
+  cash: number;
+  initial_capital: number;
+  ticker: string | null;
+  strategy: string | null;
+  shares: number;
+  entry_price: number | null;
+  position: number;
+  current_price: number | null;
+  portfolio_value: number;
+  unrealized_pnl: number;
+  realized_pnl: number;
+  drawdown: number;
+  consecutive_losses: number;
+  cooldown_until: string | null;
+  last_risk_level: number | null;
+  last_risk_label: string | null;
+  notes: string | null;
+  updated_at: string;
+  trade_count: number;
+};
+
+export type PaperTradeJournalEntry = {
+  trade_date: string;
+  symbol: string;
+  action: string;
+  price: number;
+  shares: number;
+  cash_after: number;
+  reason: string;
+  risk_level: number;
+};
+
+export type PaperTradingResponse = {
+  ticker: string;
+  strategy: string;
+  data_source: string;
+  start_date: string;
+  end_date: string | null;
+  strategy_config: BacktestStrategyConfig;
+  today_signal: PaperTodaySignal;
+  risk: PaperRiskAssessment;
+  account: PaperAccount;
+  research_metrics: BacktestMetrics;
+  trade_journal: PaperTradeJournalEntry[];
+  disclaimer: string;
+  execution_message?: string;
+};
+
+export type PaperAccountSnapshotResponse = {
+  account: PaperAccount;
+  trade_journal: PaperTradeJournalEntry[];
+};

@@ -40,6 +40,16 @@ export const WORKSPACE_MODULES: WorkspaceModule[] = [
     category: "core",
   },
   {
+    id: "paper-trading",
+    href: "/paper-trading",
+    titleKey: "paperTrading",
+    overviewDescKey: "modulePaperTradingOverviewDesc",
+    pageDescKey: "paperTradingDesc",
+    status: "active",
+    skeletonKind: "migrating",
+    category: "core",
+  },
+  {
     id: "comparison",
     href: "/comparison",
     titleKey: "strategyComparison",
@@ -119,7 +129,7 @@ export const MODULE_CATEGORIES: Array<{
   {
     id: "core",
     titleKey: "categoryCoreResearch",
-    moduleIds: ["market-watch", "strategy-lab", "comparison", "robustness"],
+    moduleIds: ["market-watch", "strategy-lab", "paper-trading", "comparison", "robustness"],
   },
   {
     id: "data",

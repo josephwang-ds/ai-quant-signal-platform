@@ -1,10 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import AppShell from "@/components/layout/AppShell";
 import { Button, ErrorAlert, SectionCard, SectionHeader, StatusBadge, healthVariant } from "@/components/ui";
-import { getBackendHealth, type HealthResponse } from "@/lib/api";
+import { getBackendHealth, getPaperAccount, type HealthResponse } from "@/lib/api";
+import { paperRiskVariant, translateRiskLabel } from "@/lib/i18n";
 import { useWorkspaceLanguage } from "@/lib/useWorkspaceLanguage";
 import {
   MODULE_CATEGORIES,
@@ -13,12 +14,20 @@ import {
   moduleStatusLabelKey,
   shouldShowModuleStatusBadge,
 } from "@/lib/workspaceModules";
+import type { PaperAccount } from "@/types/market";
 
 export default function OverviewPage() {
   const { language, setLanguage, tr } = useWorkspaceLanguage();
   const [health, setHealth] = useState<HealthResponse | null>(null);
   const [healthError, setHealthError] = useState<string | null>(null);
   const [healthLoading, setHealthLoading] = useState(false);
+  const [paperAccount, setPaperAccount] = useState<PaperAccount | null>(null);
+
+  useEffect(() => {
+    getPaperAccount()
+      .then((response) => setPaperAccount(response.account))
+      .catch(() => setPaperAccount(null));
+  }, []);
 
   async function handleCheckBackend() {
     setHealthLoading(true);
@@ -40,6 +49,37 @@ export default function OverviewPage() {
         <SectionHeader title={tr("overviewTitle")} />
         <p className="overview-intro">{tr("overviewDesc")}</p>
         <p className="overview-legend">{tr("overviewStatusLegend")}</p>
+      </SectionCard>
+
+      <SectionCard>
+        <SectionHeader
+          title={tr("overviewPaperAccount")}
+          description={tr("overviewPaperAccountDesc")}
+        />
+        {paperAccount?.ticker ? (
+          <div className="overview-paper">
+            <div className="overview-paper__row">
+              <span>
+                {paperAccount.ticker} · {paperAccount.strategy}
+              </span>
+              {paperAccount.last_risk_level && paperAccount.last_risk_label ? (
+                <StatusBadge
+                  label={`L${paperAccount.last_risk_level} ${translateRiskLabel(language, paperAccount.last_risk_label)}`}
+                  variant={paperRiskVariant(paperAccount.last_risk_level)}
+                />
+              ) : null}
+            </div>
+            <p className="section-meta">
+              {tr("paperPortfolioValue")}: ${paperAccount.portfolio_value.toLocaleString()} ·{" "}
+              {tr("paperPosition")}: {paperAccount.position > 0 ? tr("paperLong") : tr("paperFlat")}
+            </p>
+          </div>
+        ) : (
+          <p className="section-meta">{tr("overviewPaperNotEvaluated")}</p>
+        )}
+        <Link href="/paper-trading" className="module-card__link">
+          {tr("overviewOpenPaperTrading")} →
+        </Link>
       </SectionCard>
 
       {MODULE_CATEGORIES.map((category) => (

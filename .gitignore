@@ -36,3 +36,25 @@ next-env.d.ts
 .coverage
 htmlcov/
 frontend/tsconfig.tsbuildinfo
+
+# 求职 / 演示 / Review 准备文档（本地备忘，不提交）
+docs/PROJECT_TRACKER.md
+docs/prep/
+docs/private/
+docs/review/
+docs/demo-prep/
+docs/*_prep.md
+docs/*prep*.md
+docs/*interview*
+docs/*展示规划*
+docs/*问题*
+docs/*设计稿*
+*CEO*CFO*.md
+AI_Quant_Research_Workspace_*.md
+国企*.md
+interview_prep.md
+interview_guide.md
+interview_script.md
+interview_story.md
+*_questions.md
+*_question_bank.md

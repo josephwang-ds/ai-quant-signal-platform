@@ -13,6 +13,8 @@ import type {
   SaveBacktestRunResponse,
   SensitivityResponse,
   StrategyComparisonResponse,
+  PaperAccountSnapshotResponse,
+  PaperTradingResponse,
 } from "@/types/market";
 
 const DEFAULT_PRODUCTION_API_BASE_URL =
@@ -538,4 +540,140 @@ export async function deleteBacktestRun(
   }
 
   return response.json() as Promise<{ id: string; message: string }>;
+}
+
+export type PaperTradingParams = RunBacktestParams & {
+  account_id?: string;
+  notes?: string | null;
+};
+
+function buildPaperTradingBody(params: PaperTradingParams): Record<string, unknown> {
+  const body: Record<string, unknown> = {
+    ticker: params.ticker,
+    start_date: params.start_date,
+    strategy: params.strategy,
+    transaction_cost: params.transaction_cost,
+    account_id: params.account_id ?? "default",
+  };
+
+  if (params.strategy === "ma_crossover") {
+    body.short_window = params.short_window;
+    body.long_window = params.long_window;
+  } else if (params.strategy === "momentum") {
+    body.momentum_window = params.momentum_window;
+  } else if (params.strategy === "combined_signal") {
+    body.short_window = params.short_window;
+    body.long_window = params.long_window;
+    body.momentum_window = params.momentum_window;
+    body.combined_mode = params.combined_mode;
+  }
+
+  const trimmedEndDate = params.end_date?.trim();
+  if (trimmedEndDate) {
+    body.end_date = trimmedEndDate;
+  }
+
+  if (params.notes?.trim()) {
+    body.notes = params.notes.trim();
+  }
+
+  return body;
+}
+
+/**
+ * 调用后端 GET /api/paper/account，获取模拟账户快照。
+ */
+export async function getPaperAccount(
+  accountId = "default"
+): Promise<PaperAccountSnapshotResponse> {
+  const response = await fetch(
+    buildApiUrl(`/api/paper/account?account_id=${encodeURIComponent(accountId)}`),
+    { cache: "no-store" }
+  );
+
+  if (!response.ok) {
+    const message = await parseApiError(
+      response,
+      `Paper account request failed with status ${response.status}`
+    );
+    throw new Error(message);
+  }
+
+  return response.json() as Promise<PaperAccountSnapshotResponse>;
+}
+
+/**
+ * 调用后端 POST /api/paper/dashboard，评估今日信号与风控（不执行交易）。
+ */
+export async function evaluatePaperTrading(
+  params: PaperTradingParams
+): Promise<PaperTradingResponse> {
+  const response = await fetch(buildApiUrl("/api/paper/dashboard"), {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    cache: "no-store",
+    body: JSON.stringify(buildPaperTradingBody(params)),
+  });
+
+  if (!response.ok) {
+    const message = await parseApiError(
+      response,
+      `Paper dashboard request failed with status ${response.status}`
+    );
+    throw new Error(message);
+  }
+
+  return response.json() as Promise<PaperTradingResponse>;
+}
+
+/**
+ * 调用后端 POST /api/paper/execute，在风控允许时执行模拟交易。
+ */
+export async function executePaperTrading(
+  params: PaperTradingParams
+): Promise<PaperTradingResponse> {
+  const response = await fetch(buildApiUrl("/api/paper/execute"), {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    cache: "no-store",
+    body: JSON.stringify(buildPaperTradingBody(params)),
+  });
+
+  if (!response.ok) {
+    const message = await parseApiError(
+      response,
+      `Paper execute request failed with status ${response.status}`
+    );
+    throw new Error(message);
+  }
+
+  return response.json() as Promise<PaperTradingResponse>;
+}
+
+/**
+ * 调用后端 POST /api/paper/reset，重置模拟账户。
+ */
+export async function resetPaperAccount(
+  accountId = "default"
+): Promise<{ account: PaperAccountSnapshotResponse["account"]; message: string }> {
+  const response = await fetch(
+    buildApiUrl(`/api/paper/reset?account_id=${encodeURIComponent(accountId)}`),
+    {
+      method: "POST",
+      cache: "no-store",
+    }
+  );
+
+  if (!response.ok) {
+    const message = await parseApiError(
+      response,
+      `Paper reset request failed with status ${response.status}`
+    );
+    throw new Error(message);
+  }
+
+  return response.json() as Promise<{
+    account: PaperAccountSnapshotResponse["account"];
+    message: string;
+  }>;
 }
