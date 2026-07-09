@@ -23,6 +23,13 @@ import {
   MAX_COMPARE_RUNS,
 } from "@/lib/experimentCompare";
 import {
+  DEFAULT_EXPERIMENT_LIST_FILTERS,
+  filterAndSortExperimentRuns,
+  getUniqueExperimentStrategies,
+  getUniqueExperimentTickers,
+  type ExperimentListFilters,
+} from "@/lib/experimentListFilters";
+import {
   formatMetricPercent,
   formatMetricSharpe,
   formatMetricTrades,
@@ -31,6 +38,7 @@ import {
   getSharpeTone,
 } from "@/lib/formatters";
 import {
+  formatMessage,
   translateBackendText,
   translateStrategyName,
 } from "@/lib/i18n";
@@ -66,6 +74,19 @@ export default function ExperimentsPage() {
   const [compareIds, setCompareIds] = useState<string[]>([]);
   const [showCompare, setShowCompare] = useState(false);
   const [compareError, setCompareError] = useState<string | null>(null);
+  const [listFilters, setListFilters] = useState<ExperimentListFilters>(
+    DEFAULT_EXPERIMENT_LIST_FILTERS
+  );
+
+  const displayedItems = useMemo(
+    () => filterAndSortExperimentRuns(items, listFilters),
+    [items, listFilters]
+  );
+  const tickerOptions = useMemo(() => getUniqueExperimentTickers(items), [items]);
+  const strategyOptions = useMemo(
+    () => getUniqueExperimentStrategies(items),
+    [items]
+  );
 
   const compareRuns = useMemo(
     () => items.filter((item) => compareIds.includes(item.id)),
@@ -194,6 +215,100 @@ export default function ExperimentsPage() {
 
         {!listLoading && items.length > 0 ? (
           <>
+            <div
+              style={{
+                display: "grid",
+                gap: "0.75rem",
+                gridTemplateColumns: "repeat(auto-fit, minmax(12rem, 1fr))",
+              }}
+            >
+              <label className="form-field">
+                <span className="form-label">{tr("experimentsFilterTicker")}</span>
+                <select
+                  className="form-select"
+                  value={listFilters.ticker}
+                  onChange={(event) =>
+                    setListFilters((current) => ({
+                      ...current,
+                      ticker: event.target.value,
+                    }))
+                  }
+                >
+                  <option value="all">{tr("experimentsFilterAll")}</option>
+                  {tickerOptions.map((ticker) => (
+                    <option key={ticker} value={ticker}>
+                      {ticker}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <label className="form-field">
+                <span className="form-label">{tr("experimentsFilterStrategy")}</span>
+                <select
+                  className="form-select"
+                  value={listFilters.strategy}
+                  onChange={(event) =>
+                    setListFilters((current) => ({
+                      ...current,
+                      strategy: event.target.value,
+                    }))
+                  }
+                >
+                  <option value="all">{tr("experimentsFilterAll")}</option>
+                  {strategyOptions.map((strategy) => (
+                    <option key={strategy} value={strategy}>
+                      {translateStrategyName(language, strategy)}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <label className="form-field">
+                <span className="form-label">{tr("experimentsSortBy")}</span>
+                <select
+                  className="form-select"
+                  value={listFilters.sortKey}
+                  onChange={(event) =>
+                    setListFilters((current) => ({
+                      ...current,
+                      sortKey: event.target.value as ExperimentListFilters["sortKey"],
+                    }))
+                  }
+                >
+                  <option value="created_at">{tr("experimentsSortCreatedAt")}</option>
+                  <option value="total_return">{tr("experimentsSortTotalReturn")}</option>
+                  <option value="sharpe_ratio">{tr("experimentsSortSharpe")}</option>
+                  <option value="drawdown">{tr("experimentsSortDrawdown")}</option>
+                </select>
+              </label>
+
+              <label className="form-field">
+                <span className="form-label">{tr("experimentsSortDirection")}</span>
+                <select
+                  className="form-select"
+                  value={listFilters.sortDirection}
+                  onChange={(event) =>
+                    setListFilters((current) => ({
+                      ...current,
+                      sortDirection: event.target
+                        .value as ExperimentListFilters["sortDirection"],
+                    }))
+                  }
+                >
+                  <option value="desc">{tr("experimentsSortDesc")}</option>
+                  <option value="asc">{tr("experimentsSortAsc")}</option>
+                </select>
+              </label>
+            </div>
+
+            <p className="section-meta">
+              {formatMessage(tr("experimentsShowingCount"), {
+                shown: displayedItems.length,
+                total: items.length,
+              })}
+            </p>
+
             <div style={{ display: "flex", gap: "0.75rem", flexWrap: "wrap" }}>
               <Button onClick={handleShowCompare} disabled={compareIds.length < 2}>
                 {tr("experimentsCompareSelect")} ({compareIds.length})
@@ -206,6 +321,9 @@ export default function ExperimentsPage() {
               <ErrorAlert title={tr("experimentsCompareTitle")} message={compareError} />
             ) : null}
 
+            {displayedItems.length === 0 ? (
+              <p className="section-meta">{tr("experimentsFilterEmpty")}</p>
+            ) : (
             <DataTable className="table-scroll">
               <thead>
                 <tr>
@@ -221,7 +339,7 @@ export default function ExperimentsPage() {
                 </tr>
               </thead>
               <tbody>
-                {items.map((item) => (
+                {displayedItems.map((item) => (
                   <tr
                     key={item.id}
                     onClick={() => void handleSelectRun(item.id)}
@@ -261,6 +379,7 @@ export default function ExperimentsPage() {
                 ))}
               </tbody>
             </DataTable>
+            )}
           </>
         ) : null}
         {!selectedId && !listLoading && items.length > 0 ? (

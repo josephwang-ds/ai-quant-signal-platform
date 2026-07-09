@@ -312,6 +312,20 @@ export const translations = {
     experimentsCompareLowestDrawdown: "Lowest drawdown",
     experimentsCompareRunLabel: "Run",
 
+    experimentsFilterTicker: "Ticker filter",
+    experimentsFilterStrategy: "Strategy filter",
+    experimentsFilterAll: "All",
+    experimentsSortBy: "Sort by",
+    experimentsSortDirection: "Direction",
+    experimentsSortCreatedAt: "Created time",
+    experimentsSortTotalReturn: "Total return",
+    experimentsSortSharpe: "Sharpe ratio",
+    experimentsSortDrawdown: "Max drawdown",
+    experimentsSortAsc: "Ascending",
+    experimentsSortDesc: "Descending",
+    experimentsShowingCount: "Showing {shown} of {total} saved runs",
+    experimentsFilterEmpty: "No saved runs match the current filters.",
+
     overviewTitle: "Workspace Overview",
     overviewDesc:
       "A modular quant research environment. Each module owns one responsibility: data, signals, strategies, experiments, notes, and AI explanation — not trading.",
@@ -840,6 +854,20 @@ export const translations = {
     experimentsCompareBestSharpe: "最高 Sharpe",
     experimentsCompareLowestDrawdown: "最低回撤",
     experimentsCompareRunLabel: "实验",
+
+    experimentsFilterTicker: "标的筛选",
+    experimentsFilterStrategy: "策略筛选",
+    experimentsFilterAll: "全部",
+    experimentsSortBy: "排序字段",
+    experimentsSortDirection: "排序方向",
+    experimentsSortCreatedAt: "创建时间",
+    experimentsSortTotalReturn: "总收益",
+    experimentsSortSharpe: "Sharpe 比率",
+    experimentsSortDrawdown: "最大回撤",
+    experimentsSortAsc: "升序",
+    experimentsSortDesc: "降序",
+    experimentsShowingCount: "显示 {shown} / {total} 条已保存记录",
+    experimentsFilterEmpty: "当前筛选条件下没有匹配的记录。",
 
     overviewTitle: "工作区总览",
     overviewDesc:
