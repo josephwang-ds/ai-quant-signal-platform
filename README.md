@@ -4,7 +4,7 @@ A full-stack quant research dashboard for signal scoring, strategy backtesting, 
 
 > **Disclaimer**
 >
-> For **portfolio and research demonstration** only. **Not financial advice.** **Not for live trading.** No broker integration. Uses **daily historical market data** from Yahoo Finance via `yfinance`.
+> For **portfolio and research demonstration** only. **Not financial advice.** **Not for live trading.** No broker integration. Uses **daily historical OHLCV** with **auto failover** across free providers (AKShare → Yahoo/`yfinance` → Stooq).
 
 ---
 
@@ -78,9 +78,9 @@ Next.js Frontend
        ↓
 FastAPI Backend
        ↓
-MarketDataService (provider abstraction)
+MarketDataService (data_source=auto|akshare|yahoo|stooq)
        ↓
-YahooProvider → yfinance (Yahoo Finance daily OHLCV)
+auto failover: AkshareProvider → YahooProvider → StooqProvider
        ↓
 pandas (indicators, signals, backtests)
        ↓
@@ -100,13 +100,16 @@ JSON API → Recharts visualization
 
 | Item | Detail |
 |------|--------|
-| Active provider | Yahoo Finance via `yfinance` |
+| Default mode | `auto` failover: **AKShare → Yahoo → Stooq** |
+| Manual lock | `data_source=akshare\|yahoo\|stooq` (API + Data Center preference) |
 | Abstraction | `MarketDataService` routes all price history requests |
 | Status API | `GET /api/data-sources/status` |
 | Database status | `GET /api/database/status` |
 | Frequency | Daily OHLCV |
 | Use case | Research and portfolio demonstration |
 | Not suitable for | Live execution or institutional-grade market data |
+
+Local note: install backend deps with `pip install -r requirements.txt` (includes `akshare`). If `akshare` is missing in the active Python env, auto mode skips it and continues to Yahoo/Stooq.
 
 ---
 
@@ -297,7 +300,7 @@ ai-quant-signal-platform/
 ## Limitations
 
 - Daily historical data only; no intraday timestamps in trade log
-- `yfinance` data may be delayed or incomplete for some symbols
+- Free providers may be delayed, rate-limited, or blocked on some networks (Yahoo unstable in China; Stooq may hit bot checks)
 - Simplified backtest assumptions (no slippage model beyond flat transaction cost)
 - No broker, live trading, or authentication
 - Database persistence stores saved backtest runs and trade logs (Experiments v1); raw OHLCV is not stored
@@ -310,13 +313,27 @@ ai-quant-signal-platform/
 **Done**
 
 - Market data, indicators, signal scoring, bilingual UI
+- Multi-source market data with `auto` failover (AKShare / Yahoo / Stooq) and manual lock
 - Strategy Lab (MA, momentum, combined signal)
 - Trade log, benchmark comparison, drawdown charts
 - Parameter sensitivity, out-of-sample validation
 - Experiments Persistence v1 (save / list / detail / delete)
+- Paper trading + five-level risk engine (in-memory account)
 
-**Planned**
+**Next (decision-platform direction — not more indicator widgets)**
 
+1. **Data trust layer** — show hit source, failover trail, freshness, missing bars, adjustment mode
+2. **Rigorous research** — walk-forward, parameter stability, regime tests (beyond current OOS/sensitivity)
+3. **Decision explanation** — why signal fired, supporting/opposing evidence, invalidation conditions
+4. **Portfolio & risk** — position sizing, correlation, risk budget, drawdown limits
+5. **Simulated execution** — slippage, fees, order state, strategy drift monitoring
+6. **AI research assistant** — explain/compare/summarize experiments; do not invent trade signals
+
+**Later**
+
+- CoinGecko / CSV upload / Tushare providers
+- Durable paper-account persistence
+- Model Lab (ML)
 - Additional rule-based strategies (RSI, MACD, breakout)
 - Portfolio-level backtest (top-N, rebalance)
 - Compare across saved experiments; watchlist persistence

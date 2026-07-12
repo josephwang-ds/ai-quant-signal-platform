@@ -71,12 +71,13 @@ curl https://ai-quant-signal-platform.onrender.com/api/database/status
 
 ## Data source layer
 
-Planned providers under `backend/app/data_providers/`:
+Providers under `backend/app/data_providers/`:
 
 | Provider | Market | Status |
 |----------|--------|--------|
-| `yahoo_provider.py` | US / global via Yahoo | **Current** |
-| `akshare_provider.py` | China A-share | Planned |
+| `akshare_provider.py` | A-shares + US equities (China-friendly free) | **Active** (primary in `auto`) |
+| `yahoo_provider.py` | US / global via Yahoo | **Active** (failover) |
+| `stooq_provider.py` | US / HK / EU via free CSV | **Active** (last failover) |
 | `coingecko_provider.py` | Crypto | Planned |
 | `tushare_provider.py` | China markets | Planned |
 | `csv_provider.py` | User upload | Planned |
@@ -88,16 +89,18 @@ All providers implement a common interface in `base.py`:
 - Historical OHLCV fetch with adjustment mode
 - Provider health / freshness reporting
 
-The **Data Center** frontend module surfaces provider selection, market type (US / HK / CN), adjustment mode, and data quality checks.
+Default request mode is `data_source=auto` with failover order **AKShare → Yahoo → Stooq**. Callers may lock a single provider. Manual lock does **not** fall back on failure.
 
-### Data Center v1 (frontend documentation module)
+The **Data Center** frontend module surfaces live provider status, preferred-source selection (localStorage), and a probe action.
 
-Data Center v1 is a **frontend-only** module. It documents current and planned data coverage without changing backend fetch logic.
+### Data Center (live status + preference)
 
 | Provider | Asset focus | Status |
 |----------|-------------|--------|
+| auto | Routes via failover chain | **Active (default)** |
+| AKShare | A-shares, US equities | **Active** when package installed |
 | Yahoo / yfinance | US stocks, ETFs, HK, basic CN A-share, basic crypto, indices, FX, futures | **Active** |
-| AKShare | China A-share historical prices, adjustment mode, CN metadata | Planned |
+| Stooq | US / HK / EU free CSV | **Active** (may hit bot checks on some networks) |
 | CoinGecko | Crypto market cap, volume, historical crypto data | Planned |
 | CSV upload | Custom local research datasets, Model Lab experiments | Planned |
 | Tushare / BaoStock | Alternative China market data | Coming later |
@@ -112,20 +115,23 @@ Future providers should normalize into a common OHLCV schema before Strategy Lab
 
 ### Provider Abstraction v1 (backend)
 
-Provider Abstraction v1 introduces a unified backend entry point for market data without changing API contracts.
+Provider Abstraction v1 introduces a unified backend entry point for market data.
 
 | Component | Path | Role |
 |-----------|------|------|
 | `MarketDataRequest` | `backend/app/data_providers/base.py` | Request dataclass |
 | `MarketDataProvider` | `backend/app/data_providers/base.py` | Provider protocol |
-| `YahooProvider` | `backend/app/data_providers/yahoo_provider.py` | Active Yahoo/yfinance provider |
-| `MarketDataService` | `backend/app/services/market_data_service.py` | Routes `data_source` to provider |
+| `AkshareProvider` | `backend/app/data_providers/akshare_provider.py` | Primary free / China-friendly provider |
+| `YahooProvider` | `backend/app/data_providers/yahoo_provider.py` | Yahoo/yfinance provider |
+| `StooqProvider` | `backend/app/data_providers/stooq_provider.py` | Free CSV last resort |
+| `MarketDataService` | `backend/app/services/market_data_service.py` | Routes `data_source` / `auto` failover |
 | `load_price_data()` | `yahoo_provider.py` | Backward-compatible helper → `MarketDataService` |
 
 Status:
 
-- **Active:** `yahoo`
-- **Planned:** `akshare`, `coingecko`, `csv`
+- **Default:** `auto` (`akshare` → `yahoo` → `stooq`)
+- **Active locks:** `akshare`, `yahoo`, `stooq`
+- **Planned:** `coingecko`, `csv`
 
 Rules:
 
@@ -134,6 +140,7 @@ Rules:
 - Optional metadata: `symbol`, `market`, `data_source`, `adjustment`
 - Cache will later wrap `MarketDataService` (not implemented in v1).
 - Database stores durable research assets, not raw market data in v1.
+- CORS allows `GET`, `POST`, and `DELETE` (Experiments delete).
 
 Status endpoint: `GET /api/data-sources/status`
 
