@@ -109,13 +109,6 @@ export type BacktestMetrics = {
   transaction_cost_total: number | null;
 };
 
-/** 回测复盘 explanationPayload（预留 LLM/RAG）— 见 backtestReview.ts */
-export type {
-  BacktestExplanationPayload,
-  BacktestRiskLevel,
-  PaperTradingEligibility,
-} from "@/lib/backtestReview";
-
 export type BacktestRow = {
   date: string;
   close: number;
