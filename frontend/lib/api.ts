@@ -9,6 +9,7 @@ import type {
   IndicatorsResponse,
   MarketWatchResponse,
   OOSResponse,
+  PriceProbeResponse,
   SaveBacktestRunRequest,
   SaveBacktestRunResponse,
   SensitivityResponse,
@@ -16,6 +17,8 @@ import type {
   PaperAccountSnapshotResponse,
   PaperTradingResponse,
 } from "@/types/market";
+import { getDataSourcePreference } from "@/lib/dataSourcePreference";
+import type { MarketDataSource } from "@/lib/dataSourcePreference";
 
 const DEFAULT_PRODUCTION_API_BASE_URL =
   "https://ai-quant-signal-platform.onrender.com";
@@ -40,6 +43,15 @@ function buildApiUrl(path: string): string {
     );
   }
   return `${API_BASE_URL}${path}`;
+}
+
+function withPreferredDataSource(
+  body: Record<string, unknown>
+): Record<string, unknown> {
+  return {
+    ...body,
+    data_source: getDataSourcePreference(),
+  };
 }
 
 // 健康检查接口返回的数据结构
@@ -83,6 +95,36 @@ export async function getDataSourceStatus(): Promise<DataSourceStatusResponse> {
   }
 
   return response.json() as Promise<DataSourceStatusResponse>;
+}
+
+/**
+ * 调用后端 GET /api/price/{ticker}，用于 Data Center 探测实际命中源。
+ */
+export async function probePriceData(
+  ticker = "AAPL",
+  startDate = "2024-01-01",
+  dataSource?: MarketDataSource
+): Promise<PriceProbeResponse> {
+  const source = dataSource ?? getDataSourcePreference();
+  const params = new URLSearchParams({
+    start_date: startDate,
+    data_source: source,
+  });
+
+  const response = await fetch(
+    `${buildApiUrl(`/api/price/${encodeURIComponent(ticker)}`)}?${params.toString()}`,
+    { cache: "no-store" }
+  );
+
+  if (!response.ok) {
+    const message = await parseApiError(
+      response,
+      `Price probe failed for ${ticker} (status ${response.status})`
+    );
+    throw new Error(message);
+  }
+
+  return response.json() as Promise<PriceProbeResponse>;
 }
 
 /**
@@ -160,10 +202,12 @@ export async function runMarketWatch(
     method: "POST",
     headers: { "Content-Type": "application/json" },
     cache: "no-store",
-    body: JSON.stringify({
-      tickers,
-      lookback_days: lookbackDays,
-    }),
+    body: JSON.stringify(
+      withPreferredDataSource({
+        tickers,
+        lookback_days: lookbackDays,
+      })
+    ),
   });
 
   if (!response.ok) {
@@ -185,7 +229,10 @@ export async function getIndicators(
   startDate: string,
   endDate?: string
 ): Promise<IndicatorsResponse> {
-  const params = new URLSearchParams({ start_date: startDate });
+  const params = new URLSearchParams({
+    start_date: startDate,
+    data_source: getDataSourcePreference(),
+  });
   const trimmedEndDate = endDate?.trim();
   if (trimmedEndDate) {
     params.set("end_date", trimmedEndDate);
@@ -215,14 +262,10 @@ export async function runCompareChart(
   startDate: string,
   endDate?: string | null
 ): Promise<CompareChartResponse> {
-  const body: {
-    tickers: string[];
-    start_date: string;
-    end_date?: string;
-  } = {
+  const body: Record<string, unknown> = withPreferredDataSource({
     tickers,
     start_date: startDate,
-  };
+  });
 
   const trimmedEndDate = endDate?.trim();
   if (trimmedEndDate) {
@@ -263,12 +306,12 @@ export type RunBacktestParams = {
  * 调用后端 POST /api/backtest，运行策略回测。
  */
 export async function runBacktest(params: RunBacktestParams): Promise<BacktestResponse> {
-  const body: Record<string, unknown> = {
+  const body: Record<string, unknown> = withPreferredDataSource({
     ticker: params.ticker,
     start_date: params.start_date,
     strategy: params.strategy,
     transaction_cost: params.transaction_cost,
-  };
+  });
 
   if (params.strategy === "ma_crossover") {
     body.short_window = params.short_window;
@@ -321,14 +364,14 @@ export type RunStrategyComparisonParams = {
 export async function runStrategyComparison(
   params: RunStrategyComparisonParams
 ): Promise<StrategyComparisonResponse> {
-  const body: RunStrategyComparisonParams = {
+  const body: Record<string, unknown> = withPreferredDataSource({
     ticker: params.ticker,
     start_date: params.start_date,
     transaction_cost: params.transaction_cost,
     short_window: params.short_window,
     long_window: params.long_window,
     momentum_window: params.momentum_window,
-  };
+  });
 
   const trimmedEndDate = params.end_date?.trim();
   if (trimmedEndDate) {
@@ -366,12 +409,12 @@ export type RunBacktestSensitivityParams = {
 export async function runBacktestSensitivity(
   params: RunBacktestSensitivityParams
 ): Promise<SensitivityResponse> {
-  const body: RunBacktestSensitivityParams & { strategy: "ma_crossover" } = {
+  const body: Record<string, unknown> = withPreferredDataSource({
     ticker: params.ticker,
     start_date: params.start_date,
     strategy: "ma_crossover",
     transaction_cost: params.transaction_cost,
-  };
+  });
 
   const trimmedEndDate = params.end_date?.trim();
   if (trimmedEndDate) {
@@ -412,7 +455,7 @@ export type RunOOSValidationParams = {
 export async function runOOSValidation(
   params: RunOOSValidationParams
 ): Promise<OOSResponse> {
-  const body: RunOOSValidationParams & { strategy: "ma_crossover" } = {
+  const body: Record<string, unknown> = withPreferredDataSource({
     ticker: params.ticker,
     start_date: params.start_date,
     split_date: params.split_date,
@@ -420,7 +463,7 @@ export async function runOOSValidation(
     short_window: params.short_window,
     long_window: params.long_window,
     transaction_cost: params.transaction_cost,
-  };
+  });
 
   const trimmedEndDate = params.end_date?.trim();
   if (trimmedEndDate) {
@@ -548,13 +591,13 @@ export type PaperTradingParams = RunBacktestParams & {
 };
 
 function buildPaperTradingBody(params: PaperTradingParams): Record<string, unknown> {
-  const body: Record<string, unknown> = {
+  const body: Record<string, unknown> = withPreferredDataSource({
     ticker: params.ticker,
     start_date: params.start_date,
     strategy: params.strategy,
     transaction_cost: params.transaction_cost,
     account_id: params.account_id ?? "default",
-  };
+  });
 
   if (params.strategy === "ma_crossover") {
     body.short_window = params.short_window;

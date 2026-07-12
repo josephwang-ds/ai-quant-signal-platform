@@ -11,7 +11,14 @@ export const translations = {
     educationalDemo: "Research Demo",
     dailyMarketData: "Daily Market Data",
     notFinancialAdvice: "Not Financial Advice",
-    navOverview: "Overview",
+    navOverview: "Executive Cockpit",
+    navGroupCockpit: "Decision Cockpit",
+    navStrategyHealthScore: "Health Score",
+    navReturnQualityLens: "Return Lens",
+    navRiskGateReview: "Risk Gate",
+    navScenarioShockTest: "Shock Test",
+    navDecisionLedger: "Decision Ledger",
+    navDecisionRoom: "Decision Room",
     navGroupResearch: "Research",
     navGroupArchive: "Archive",
     navDataCenter: "Data",
@@ -140,7 +147,7 @@ export const translations = {
 
     strategyLab: "Backtest",
     strategyLabDesc:
-      "Select a decision method and compare how each rule triggers simulated buy/sell events in backtest.",
+      "Select a decision method and compare how each rule triggers simulated position changes in backtest.",
     strategyLabSimulatedNote:
       "These are simulated backtest results only. The system does not place real trades.",
     combinedSignal: "MA + Momentum Combined",
@@ -238,7 +245,19 @@ export const translations = {
     transactionCostTotal: "Transaction Cost Total",
     backtestInterpretation: "Backtest Interpretation",
     backtestInterpretationNote:
-      "Rule-based research interpretation. Not financial advice.",
+      "Rule-based research commentary. Not investment advice.",
+    backtestReviewTitle: "Backtest Review",
+    backtestReviewDesc:
+      "Governance-oriented summary of simulated backtest quality, risk level, and paper trading readiness.",
+    backtestReviewNote:
+      "Rule-based review only. Simulated backtest context — not a trading recommendation.",
+    backtestReviewKeyFindings: "Key Findings",
+    backtestReviewRiskLevel: "Backtest Risk Level",
+    backtestReviewPaperEligibility: "Paper Trading Eligibility",
+    backtestReviewManagement: "Management Interpretation",
+    backtestReviewEligible: "Eligible for Paper Trading",
+    backtestReviewWatch: "Watch Before Paper Trading",
+    backtestReviewNotEligible: "Not Eligible Yet",
     backtestFailed: "Failed to run backtest.",
 
     sensitivityAnalysis: "MA Parameter Sensitivity",
@@ -362,9 +381,104 @@ export const translations = {
     quantTipGeneralBody:
       "This workspace helps you test ideas and keep records. It does not place orders or give investment advice.",
 
-    overviewTitle: "Workspace Overview",
+    overviewTitle: "Executive Cockpit",
     overviewDesc:
-      "Pick a module below to run backtests, compare strategies, or review saved experiments. This is a research demo — not a trading app.",
+      "Simulated decision-support views for leadership review: risk governance, return quality, and audit trail — not live trading.",
+    executiveCockpit: "Executive Cockpit",
+    executiveCockpitDesc:
+      "Leadership view of simulated portfolio posture, risk gates, and decision traceability. For governance review only.",
+    executiveCockpitTileDesc:
+      "Six-panel entry to simulated decision support: health, return quality, risk gates, shocks, and audit trail.",
+    cockpitGridTitle: "Decision Cockpit Modules",
+    cockpitGridDesc:
+      "Each panel supports simulated review workflows. No live orders or investment advice.",
+    cockpitDisclaimer:
+      "Simulated decision support only. Not financial advice. No live trading.",
+    cockpitNav: "Simulated NAV",
+    cockpitYtdReturn: "YTD Return (Simulated)",
+    cockpitMaxDrawdown: "Max Drawdown",
+    cockpitSharpe: "Sharpe Ratio",
+    cockpitRiskLevel: "Risk Level",
+    categoryDecisionCockpit: "Decision Cockpit",
+    strategyHealthScore: "Strategy Health Score",
+    strategyHealthScoreDesc:
+      "Composite simulated health score from drawdown, Sharpe drift, cost drag, and risk-governance signals.",
+    returnQualityLens: "Return Quality Lens",
+    returnQualityLensDesc:
+      "Simulated return attribution and quality lens for leadership review — not a performance guarantee.",
+    returnQualityLensModuleNote:
+      "Return Quality Lens is designed to evaluate whether simulated returns are supported by acceptable drawdown, cost efficiency, and risk-adjusted performance.",
+    returnQualityLensSimulatedNote:
+      "Simulated return and risk-adjusted metrics for governance review only. Not financial advice.",
+    returnQualityExcessReturn: "Excess Return",
+    returnQualityMaxDrawdown: "Max Drawdown",
+    returnQualityCostDrag: "Cost Drag",
+    returnQualityHitRate: "Hit Rate",
+    returnQualityProfitFactor: "Profit Factor",
+    returnQualityCapitalAtRisk: "Capital at Risk",
+    returnQualityDrawdownBuffer: "Drawdown Buffer to Red Level",
+    riskGateReview: "Risk Gate Review",
+    riskGateReviewDesc:
+      "Five-level risk governance panel: signal intake, gate checks, and allowed simulated actions.",
+    riskGateReviewModuleNote:
+      "Strategy signals do not flow directly into simulated actions. The risk gate reviews drawdown, volatility, consecutive losses, and signal conflicts before allowing paper trading, limiting adds, or placing the session on watch.",
+    riskGateSimulatedNote:
+      "Simulated paper-trading governance flow only. No real orders or live execution.",
+    riskGateStepStrategySignal: "Strategy Signal",
+    riskGateStepGateReview: "Risk Gate Review",
+    riskGateStepFinalAction: "Final Paper Action",
+    riskGateRawSignal: "Raw Signal",
+    riskGateRiskLevel: "Risk Level",
+    riskGateDecision: "Gate Decision",
+    riskGateReasons: "Reasons",
+    scenarioShockTest: "Scenario Shock Test",
+    scenarioShockTestDesc:
+      "This module simulates how strategy NAV, drawdown, and risk level may react under predefined market shock scenarios. It is not a market prediction.",
+    scenarioShockTestNote:
+      "Simulated shock scenarios for risk contingency planning only. Not financial advice and not a forecast.",
+    scenarioShockNavImpact: "NAV Impact",
+    scenarioShockRiskAfter: "Risk Level After Shock",
+    scenarioShockTriggeredRules: "Triggered Rules",
+    scenarioShockSystemAction: "System Action",
+    scenarioShockInterpretation: "Management Interpretation",
+    decisionLedger: "Decision Ledger",
+    decisionLedgerDesc:
+      "A traceable ledger of strategy signals, risk gate decisions, paper actions, human notes, and follow-up outcomes.",
+    decisionLedgerNote:
+      "Governance audit trail with human-in-the-loop review. Not a trade blotter — every row documents accountability and follow-up.",
+    ledgerDate: "Date",
+    ledgerSymbol: "Symbol",
+    ledgerStrategy: "Strategy",
+    ledgerRawSignal: "Raw Signal",
+    ledgerRiskLevel: "Risk Level",
+    ledgerGateDecision: "Gate Decision",
+    ledgerFinalPaperAction: "Final Paper Action",
+    ledgerExplanation: "Explanation",
+    ledgerHumanNote: "Human Note",
+    ledgerOutcome: "Outcome",
+    decisionRoom: "Decision Room",
+    decisionRoomDesc:
+      "This module explains how a raw strategy signal is reviewed by the risk gate and translated into a simulated paper action. It does not provide investment advice.",
+    decisionRoomNote:
+      "Mock AI decision explanations for governance demo only. No live LLM. No real trading.",
+    decisionRoomSignalSnapshot: "Signal Snapshot",
+    decisionRoomRolesTitle: "Decision Room — Three Perspectives",
+    decisionRoomRetrievedContext: "Retrieved Risk Context",
+    decisionRoomRagNote:
+      "Simulated RAG snippets from risk_knowledge docs. Not live retrieval in this demo.",
+    decisionRoomReviewQuestions: "Review Questions",
+    moduleDecisionRoomOverviewDesc:
+      "AI-style explanations of signal → gate → paper action with mock retrieved policy context.",
+    moduleStrategyHealthScoreOverviewDesc:
+      "Weighted simulated health score for strategy governance checkpoints.",
+    moduleReturnQualityLensOverviewDesc:
+      "Return quality and attribution lens for simulated leadership review.",
+    moduleRiskGateReviewOverviewDesc:
+      "Risk gate workflow: signal → gate review → allowed simulated action.",
+    moduleScenarioShockTestOverviewDesc:
+      "Predefined shock library for simulated NAV, drawdown, and risk-level contingency review.",
+    moduleDecisionLedgerOverviewDesc:
+      "Traceable audit ledger for signals, gate decisions, human notes, and review outcomes.",
     overviewStatusLegend:
       "Module tags: Available = ready to use now · In progress = placeholder page · Not started = on the roadmap.",
     categoryCoreResearch: "Core Research",
@@ -390,6 +504,17 @@ export const translations = {
     dcCurrentActiveProvider: "Current Active Provider",
     dcLiveProviderStatus: "Live Provider Status",
     dcActiveProvider: "Active Provider",
+    dcPreferredSource: "Preferred Data Source",
+    dcPreferredSourceDesc:
+      "Default is auto (AKShare → Yahoo → Stooq). Lock a source to force it; failed locked sources do not fall back.",
+    dcPreferredSourceOptionAuto: "auto (failover)",
+    dcPreferredSourceOptionAkshare: "akshare",
+    dcPreferredSourceOptionYahoo: "yahoo",
+    dcPreferredSourceOptionStooq: "stooq",
+    dcProbeSource: "Probe AAPL",
+    dcProbeLoading: "Probing...",
+    dcProbeSuccess: "Hit source",
+    dcProbeError: "Probe failed",
     dcProvidersList: "Providers",
     dcLoadingProviderStatus: "Loading provider status...",
     dcProviderStatusError: "Could not load provider status.",
@@ -439,7 +564,10 @@ export const translations = {
     dcNoteCsvUpload: "For custom research datasets and model lab experiments.",
     dcAkShareTitle: "AKShare",
     dcAkShareDesc:
-      "Planned for China A-share. Future use: historical prices, adjustment mode, and Chinese market metadata.",
+      "Active China-friendly free provider for A-shares and US equities. Primary source in auto failover.",
+    dcStooqTitle: "Stooq",
+    dcStooqDesc:
+      "Free CSV provider for US/HK/EU equities. Used as last fallback if bot checks block access.",
     dcCoinGeckoTitle: "CoinGecko",
     dcCoinGeckoDesc:
       "Planned for crypto. Future use: market cap, volume, and historical crypto market data.",
@@ -503,7 +631,7 @@ export const translations = {
     moduleAiAgentOverviewDesc:
       "LLM explanations of results and research note drafting — no trading.",
 
-    systemCurrentDataSource: "Current data source: Yahoo Finance via yfinance",
+    systemCurrentDataSource: "Current data source: auto (AKShare → Yahoo → Stooq)",
     systemFutureDatabase: "Future database: Supabase / Postgres",
     systemFutureCache: "Future cache: Redis / Upstash or equivalent",
     systemNotAdvice: "For research demonstration only — not financial advice.",
@@ -601,7 +729,7 @@ export const translations = {
 
     paperTrading: "Paper Trading",
     paperTradingDesc:
-      "Evaluate today's strategy signal against a simulated account. Five-level risk rules gate buy/sell actions. No live orders.",
+      "Evaluate today's strategy signal against a simulated account. Five-level risk rules gate simulated position changes. No live orders.",
     paperTradingNote: "Paper trading only. Signals use prior-day position semantics (no look-ahead).",
     paperEvaluate: "Evaluate Signal",
     paperExecute: "Execute Paper Trade",
@@ -651,7 +779,14 @@ export const translations = {
     educationalDemo: "研究演示",
     dailyMarketData: "日线市场数据",
     notFinancialAdvice: "非投资建议",
-    navOverview: "总览",
+    navOverview: "管理层驾驶舱",
+    navGroupCockpit: "决策驾驶舱",
+    navStrategyHealthScore: "策略健康度",
+    navReturnQualityLens: "收益质量",
+    navRiskGateReview: "风控闸口",
+    navScenarioShockTest: "情景冲击",
+    navDecisionLedger: "决策台账",
+    navDecisionRoom: "策略决策室",
     navGroupResearch: "研究",
     navGroupArchive: "存档",
     navDataCenter: "数据",
@@ -865,6 +1000,18 @@ export const translations = {
     transactionCostTotal: "交易成本合计",
     backtestInterpretation: "回测解读",
     backtestInterpretationNote: "基于规则的研究解读，非投资建议。",
+    backtestReviewTitle: "回测复盘",
+    backtestReviewDesc:
+      "从治理视角总结模拟回测质量、风险档位与是否适合进入模拟试盘。",
+    backtestReviewNote:
+      "以下为规则复盘，基于模拟回测语境，不构成交易建议。",
+    backtestReviewKeyFindings: "关键发现",
+    backtestReviewRiskLevel: "回测风险等级",
+    backtestReviewPaperEligibility: "模拟试盘准入",
+    backtestReviewManagement: "管理层解读",
+    backtestReviewEligible: "可进入模拟试盘",
+    backtestReviewWatch: "观察后再模拟试盘",
+    backtestReviewNotEligible: "暂不适合模拟试盘",
     backtestFailed: "回测运行失败。",
 
     sensitivityAnalysis: "均线参数敏感性分析",
@@ -979,9 +1126,103 @@ export const translations = {
     quantTipGeneralTitle: "研究工具，不是交易",
     quantTipGeneralBody: "这里用于验证想法、留存记录，不下单，也不构成投资建议。",
 
-    overviewTitle: "工作区总览",
+    overviewTitle: "管理层驾驶舱",
     overviewDesc:
-      "从下方选择一个模块：跑回测、对比策略、查看已保存实验。这是研究演示项目，不能用于实盘交易。",
+      "面向管理层的模拟决策支持视图：风险治理、收益质量与决策留痕，不用于实盘交易。",
+    executiveCockpit: "管理层驾驶舱",
+    executiveCockpitDesc:
+      "汇总模拟组合态势、风控闸口与决策可追溯信息，供管理层审阅与治理。",
+    executiveCockpitTileDesc:
+      "六宫格入口：策略健康度、收益质量、风控闸口、情景冲击与决策留痕。",
+    cockpitGridTitle: "决策驾驶舱模块",
+    cockpitGridDesc:
+      "各模块支撑模拟审阅流程，不构成投资建议，也不执行真实交易。",
+    cockpitDisclaimer: "仅供模拟决策支持，非投资建议，不用于实盘交易。",
+    cockpitNav: "模拟净值",
+    cockpitYtdReturn: "年初至今收益（模拟）",
+    cockpitMaxDrawdown: "最大回撤",
+    cockpitSharpe: "夏普比率",
+    cockpitRiskLevel: "风险等级",
+    categoryDecisionCockpit: "决策驾驶舱",
+    strategyHealthScore: "策略健康度评分",
+    strategyHealthScoreDesc:
+      "基于回撤、夏普漂移、成本拖累与风控信号的模拟健康度综合评分。",
+    returnQualityLens: "收益质量透视",
+    returnQualityLensDesc:
+      "模拟收益归因与质量透视，供管理层审阅，不代表收益承诺。",
+    returnQualityLensModuleNote:
+      "收益质量透视用于判断模拟收益是否来自可接受的回撤、成本效率和风险调整后表现，而不是只看收益率本身。",
+    returnQualityLensSimulatedNote:
+      "以下为模拟收益与风险调整指标，仅供治理审阅，不构成投资建议。",
+    returnQualityExcessReturn: "超额收益",
+    returnQualityMaxDrawdown: "最大回撤",
+    returnQualityCostDrag: "成本拖累",
+    returnQualityHitRate: "胜率",
+    returnQualityProfitFactor: "盈亏比",
+    returnQualityCapitalAtRisk: "风险敞口",
+    returnQualityDrawdownBuffer: "距红色档位回撤缓冲",
+    riskGateReview: "风控闸口审查",
+    riskGateReviewDesc:
+      "五档风险治理面板：信号输入、闸口校验与允许的模拟动作。",
+    riskGateReviewModuleNote:
+      "策略信号不会直接进入模拟动作，必须先经过风控闸口，根据回撤、波动率、连续亏损和信号冲突决定是否允许继续试盘、限制加仓或进入观察。",
+    riskGateSimulatedNote:
+      "以下为模拟试盘治理流程示意，不涉及真实下单或实盘执行。",
+    riskGateStepStrategySignal: "策略信号",
+    riskGateStepGateReview: "风控闸口审查",
+    riskGateStepFinalAction: "最终模拟动作",
+    riskGateRawSignal: "原始信号",
+    riskGateRiskLevel: "风险等级",
+    riskGateDecision: "闸口结论",
+    riskGateReasons: "审查原因",
+    scenarioShockTest: "情景冲击测试",
+    scenarioShockTestDesc:
+      "本模块用于模拟预设市场冲击下，策略净值、回撤和风控等级可能如何变化。它不是市场预测，而是风险预案工具。",
+    scenarioShockTestNote:
+      "以下为模拟冲击情景，仅供风险预案审阅，不构成投资建议，也不代表市场预测。",
+    scenarioShockNavImpact: "净值影响",
+    scenarioShockRiskAfter: "冲击后风控等级",
+    scenarioShockTriggeredRules: "触发规则",
+    scenarioShockSystemAction: "系统动作",
+    scenarioShockInterpretation: "管理层解读",
+    decisionLedger: "决策留痕台账",
+    decisionLedgerDesc:
+      "记录每一次策略信号、风控闸口判断、模拟动作、人工备注和后续结果，形成可追溯、可复盘的决策台账。",
+    decisionLedgerNote:
+      "治理审计留痕，强调人工复核与问责追溯。不是交易流水账——每一行都记录审阅判断与后续跟进。",
+    ledgerDate: "日期",
+    ledgerSymbol: "标的",
+    ledgerStrategy: "策略",
+    ledgerRawSignal: "原始信号",
+    ledgerRiskLevel: "风险等级",
+    ledgerGateDecision: "闸口结论",
+    ledgerFinalPaperAction: "最终模拟动作",
+    ledgerExplanation: "系统说明",
+    ledgerHumanNote: "人工备注",
+    ledgerOutcome: "后续结果",
+    decisionRoom: "策略决策室",
+    decisionRoomDesc:
+      "本模块用于解释策略信号如何经过风控闸口审查，并转化为最终模拟动作。它不提供投资建议，也不执行真实交易。",
+    decisionRoomNote:
+      "以下为治理演示用的模拟 AI 解释，非真实 LLM 调用，不涉及实盘交易。",
+    decisionRoomSignalSnapshot: "信号快照",
+    decisionRoomRolesTitle: "策略决策室 — 三视角解读",
+    decisionRoomRetrievedContext: "检索到的风控上下文",
+    decisionRoomRagNote:
+      "模拟自 risk_knowledge 文档的 RAG 片段。本演示页未接入实时检索。",
+    decisionRoomReviewQuestions: "复盘问题",
+    moduleDecisionRoomOverviewDesc:
+      "以三角色视角解释「信号 → 闸口 → 模拟动作」，并展示模拟政策检索上下文。",
+    moduleStrategyHealthScoreOverviewDesc:
+      "策略治理检查点的模拟健康度加权评分。",
+    moduleReturnQualityLensOverviewDesc:
+      "面向管理层审阅的模拟收益质量与归因透视。",
+    moduleRiskGateReviewOverviewDesc:
+      "风控闸口流程：信号 → 闸口校验 → 允许的模拟动作。",
+    moduleScenarioShockTestOverviewDesc:
+      "预设冲击情景库，模拟净值、回撤与风控等级的预案审阅。",
+    moduleDecisionLedgerOverviewDesc:
+      "信号、闸口结论、人工备注与审阅结果的可追溯审计台账。",
     overviewStatusLegend:
       "模块标签说明：可使用 = 现在就能用 · 开发中 = 仅占位，功能未完成 · 未开始 = 还在路线图里。",
     categoryCoreResearch: "核心研究",
@@ -1006,6 +1247,17 @@ export const translations = {
     dcCurrentActiveProvider: "当前启用数据源",
     dcLiveProviderStatus: "实时数据源状态",
     dcActiveProvider: "当前启用数据源",
+    dcPreferredSource: "首选数据源",
+    dcPreferredSourceDesc:
+      "默认 auto（AKShare → Yahoo → Stooq）。锁定某一源则强制使用；锁定失败不会回退。",
+    dcPreferredSourceOptionAuto: "auto（自动回退）",
+    dcPreferredSourceOptionAkshare: "akshare",
+    dcPreferredSourceOptionYahoo: "yahoo",
+    dcPreferredSourceOptionStooq: "stooq",
+    dcProbeSource: "探测 AAPL",
+    dcProbeLoading: "探测中...",
+    dcProbeSuccess: "实际命中",
+    dcProbeError: "探测失败",
     dcProvidersList: "数据源列表",
     dcLoadingProviderStatus: "正在加载数据源状态...",
     dcProviderStatusError: "无法加载数据源状态。",
@@ -1055,7 +1307,10 @@ export const translations = {
     dcNoteCsvUpload: "用于自定义研究数据集与模型实验室实验。",
     dcAkShareTitle: "AKShare",
     dcAkShareDesc:
-      "规划用于中国 A 股。未来用途：历史价格、复权方式与中国市场元数据。",
+      "已接入：国内更稳的免费源，覆盖 A 股与美股；auto 回退链中的首选。",
+    dcStooqTitle: "Stooq",
+    dcStooqDesc:
+      "免费 CSV 源，覆盖美股/港股/欧股；若触发浏览器校验则自动跳过。",
     dcCoinGeckoTitle: "CoinGecko",
     dcCoinGeckoDesc:
       "规划用于加密货币。未来用途：市值、成交量与历史加密市场数据。",
@@ -1117,7 +1372,7 @@ export const translations = {
     moduleAiAgentOverviewDesc:
       "用大模型解读结果并辅助撰写研究笔记——不涉及交易。",
 
-    systemCurrentDataSource: "当前数据源：Yahoo Finance（yfinance）",
+    systemCurrentDataSource: "当前数据源：自动（AKShare → Yahoo → Stooq）",
     systemFutureDatabase: "未来数据库：Supabase / Postgres",
     systemFutureCache: "未来缓存：Redis / Upstash 或同类方案",
     systemNotAdvice: "仅供研究演示——不构成投资建议。",
@@ -1391,6 +1646,9 @@ const BACKEND_TEXT_ZH: Record<string, string> = {
   "Both MA crossover and momentum signals are non-positive; strategy exits position.":
     "均线交叉与动量信号均为非正，策略平仓。",
   "Yahoo Finance via yfinance": "雅虎财经（yfinance）",
+  AKShare: "AKShare",
+  Stooq: "Stooq",
+  "auto (AKShare / Yahoo / Stooq)": "自动（AKShare / Yahoo / Stooq）",
   "Risk indicators are within normal range": "风险指标处于正常范围",
   "Recent Sharpe ratio declined": "近期夏普比率下降",
   "MA and momentum signals conflict": "均线与动量信号冲突",
@@ -1404,6 +1662,111 @@ const BACKEND_TEXT_ZH: Record<string, string> = {
     "策略信号为空；模拟账户保持现金。",
   "Paper trading simulation only. Not financial advice. No live orders.":
     "仅供模拟试盘，非投资建议，不会下真实单。",
+  "Downgraded to WATCH": "降级为观察",
+  "Current drawdown reached -6.4%": "当前回撤已达 -6.4%",
+  "Volatility above normal range": "波动率高于正常区间",
+  "Recent simulated trades underperformed": "近期模拟交易表现偏弱",
+  "Signal conflicts with short-term market regime": "信号与短期市场状态存在冲突",
+  "HOLD ONLY": "仅持有",
+  "No new simulated position": "不新增模拟仓位",
+  "Single-day market drop -5%": "单日市场下跌 5%",
+  "5-day market selloff": "五日市场抛售",
+  "Volatility doubles": "波动率翻倍",
+  "Transaction cost triples": "交易成本升至三倍",
+  "3 consecutive losing trades": "连续三笔模拟亏损",
+  "Drawdown threshold crossed at -6.4%": "回撤阈值触发，当前 -6.4%",
+  "Intraday volatility spike detected": "检测到日内波动率骤升",
+  "Restrict new simulated positions; maintain existing paper exposure only":
+    "限制新增模拟仓位，仅维持现有模拟敞口",
+  "A one-day shock is contained but moves the session into cautious governance. Review whether simulated adds should resume after stabilization.":
+    "单日冲击尚可承受，但会话进入谨慎治理状态。待市场企稳后再评估是否恢复模拟加仓。",
+  "Multi-day drawdown acceleration": "多日回撤加速",
+  "Rolling Sharpe deterioration": "滚动夏普比率走弱",
+  "Risk gate downgrade triggered": "风控闸口降级触发",
+  "Suspend simulated adds; flag portfolio for leadership review":
+    "暂停模拟加仓，并标记组合供管理层审阅",
+  "Persistent selloff stress tests capital buffer and governance patience. Treat as a risk预案 checkpoint, not a forecast of further losses.":
+    "持续抛售考验资本缓冲与治理耐心。应视为风险预案检查点，而非对未来损失的预测。",
+  "Volatility regime shift above baseline": "波动率状态高于基线",
+  "Position sizing guardrail activated": "仓位规模护栏已激活",
+  "Reduce simulated position change frequency; widen watch thresholds":
+    "降低模拟调仓频率，放宽观察阈值",
+  "Higher volatility raises execution drag in paper mode. Emphasize risk-adjusted quality over headline return during the shock window.":
+    "波动率上升会放大模拟执行拖累。冲击窗口内应优先关注风险调整后质量，而非名义收益。",
+  "Cost drag ratio exceeds governance limit": "成本拖累比率超出治理上限",
+  "Turnover efficiency warning": "换手效率预警",
+  "Throttle simulated rebalance frequency; require cost-aware review":
+    "限制模拟再平衡频率，并要求成本敏感性审阅",
+  "Cost shocks erode simulated edge faster than price moves alone. Useful for testing whether the strategy remains viable under frictions.":
+    "成本冲击比仅靠价格变动更快侵蚀模拟优势。可用于检验策略在摩擦环境下的可持续性。",
+  "Consecutive loss counter reached 3": "连续亏损计数达到 3 次",
+  "Cooldown window recommended": "建议进入冷却窗口",
+  "Signal confidence downgraded": "信号置信度下调",
+  "Enter simulated cooldown; block new entries until review":
+    "进入模拟冷却期，审阅完成前禁止新开仓",
+  "Loss streaks test discipline more than single-day marks. The ledger should capture why the gate paused paper follow-through.":
+    "连续亏损更考验纪律而非单日波动。台账应记录闸口暂停模拟跟随的原因。",
+  "Approved with caution": "谨慎批准",
+  "REDUCE": "减仓",
+  "Blocked — cooldown active": "已拦截 — 冷却期生效",
+  "NO ACTION": "无动作",
+  "Approved — size capped": "已批准 — 规模受限",
+  "ADD (capped)": "加仓（受限）",
+  "No gate intervention": "无需闸口干预",
+  "MAINTAIN": "维持",
+  "Drawdown reached -6.4% while volatility expanded. Gate blocked a new simulated entry despite a positive momentum signal.":
+    "回撤达 -6.4% 且波动扩大。尽管动量信号偏多，闸口仍拦截新增模拟仓位。",
+  "Reviewer: pause adds until weekly risk review. Document rationale for audit.":
+    "审阅人：暂停加仓至周度风险复核。记录理由以备审计。",
+  "No simulated position change. Session flagged for accountability follow-up in next governance meeting.":
+    "未变更模拟仓位。本次会议标记为待下次治理会议问责跟进。",
+  "Signal and risk gate aligned. Simulated reduction allowed to align paper exposure with rule exit.":
+    "信号与风控闸口一致。允许模拟减仓以使敞口与规则退出对齐。",
+  "Reviewer: acceptable de-risk; confirm cost impact in ledger.":
+    "审阅人：可接受的去风险动作；在台账中确认成本影响。",
+  "Simulated exposure reduced. Outcome logged for post-review comparison against benchmark.":
+    "模拟敞口已降低。结果已记录，供审阅后与基准对比。",
+  "Three consecutive simulated losses triggered cooldown. Human override was not requested.":
+    "连续三笔模拟亏损触发冷却。未申请人工覆写。",
+  "Reviewer: uphold gate decision. Do not treat raw signal as an execution instruction.":
+    "审阅人：维持闸口结论。勿将原始信号视为执行指令。",
+  "Gate decision upheld. Accountability record shows human-in-the-loop confirmation.":
+    "闸口结论已维持。问责记录显示人工复核确认。",
+  "Risk-adjusted approval with position cap after cost-drag review. Not a full-conviction simulated add.":
+    "经成本拖累审阅后的风险调整批准，并设仓位上限。非全仓位模拟加仓。",
+  "Reviewer: cap reflects governance limit, not strategy conviction score.":
+    "审阅人：上限反映治理约束，而非策略信念评分。",
+  "Capped simulated add executed. Follow-up: monitor drawdown buffer vs red level for 5 sessions.":
+    "已执行受限模拟加仓。后续：连续 5 个会话监控距红色档位的回撤缓冲。",
+  "No actionable signal change. Ledger entry created for traceability even when no simulated action occurs.":
+    "无可执行信号变化。即使无模拟动作，也创建台账条目以保证可追溯。",
+  "Reviewer: routine watch — document that inaction is also a governed decision.":
+    "审阅人：常规观察 — 记录「不动作」同样是受治理约束的决策。",
+  "Maintained simulated posture. Audit trail complete for quarterly review sample.":
+    "维持模拟姿态。审计留痕完整，可供季度审阅抽样。",
+  "Strategy Analyst": "策略分析师",
+  "Risk Officer": "风控官",
+  "CFO View": "管理层视角",
+  "Momentum on SPY is positive over the lookback window, producing a raw BUY. Confidence is medium because trend strength is intact but not accelerating. This is a rule output only — not an execution instruction.":
+    "SPY 动量在回看窗口内为正，产生原始 BUY 信号。置信度为中等——趋势仍在但未加速。这仅是规则输出，不是执行指令。",
+  "Composite risk is Yellow (L3): drawdown near -6.4% and volatility above baseline. Policy restricts new simulated positions. Gate downgrades the session to WATCH and maps final paper action to HOLD ONLY.":
+    "综合风险为 Yellow（L3）：回撤约 -6.4%，波动高于基线。政策限制新增模拟仓位。闸口将会话降级为 WATCH，最终模拟动作为 HOLD ONLY。",
+  "From a governance lens, return quality is acceptable but drawdown buffer to Red is narrowing. Strategy Health Score 76/100 supports continued monitoring, not aggressive simulated adds. Human review should confirm before any cooldown release.":
+    "从治理视角看，收益质量尚可，但距红色档位的回撤缓冲收窄。策略健康度 76/100 支持继续观察，不宜激进模拟加仓。解除冷却前须人工复核确认。",
+  "Risk Policy": "风控政策",
+  "Decision Policy": "决策政策",
+  "Metric Glossary": "指标术语",
+  "Level 3 Yellow restricts new simulated positions.":
+    "L3 黄色档位限制新增模拟仓位。",
+  "Raw signal must pass Risk Gate Review before any paper action.":
+    "原始信号必须先通过风控闸口审查，方可产生模拟动作。",
+  "Max Drawdown measures the largest peak-to-trough decline.":
+    "最大回撤衡量净值从峰值到谷底的最大跌幅。",
+  "Did the next 3-day return confirm the signal?":
+    "随后 3 日收益是否验证了信号？",
+  "Did volatility normalize?": "波动率是否回归正常？",
+  "Did risk level return to Green or Light Yellow?":
+    "风控等级是否回到 Green 或 Light Yellow？",
 };
 
 export function translateBackendText(lang: Language, text: string): string {

@@ -11,6 +11,8 @@ pip install -r requirements.txt
 pip install -r requirements-dev.txt
 ```
 
+`requirements.txt` includes `akshare` for the default auto failover chain. If it is missing from the active env, `/api/data-sources/status` reports akshare as degraded and auto skips it.
+
 Copy environment template:
 
 ```bash

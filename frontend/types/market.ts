@@ -272,7 +272,26 @@ export type DataSourceProviderStatus = {
 
 export type DataSourceStatusResponse = {
   active_provider: string;
+  fallback_chain?: {
+    default: string[];
+    a_share: string[];
+  };
   providers: DataSourceProviderStatus[];
+};
+
+export type PriceProbeResponse = {
+  ticker: string;
+  start_date: string;
+  data_source: string;
+  rows: number;
+  latest: {
+    date: string;
+    open: number;
+    high: number;
+    low: number;
+    close: number;
+    volume?: number;
+  };
 };
 
 export type SaveBacktestTradeItem = {

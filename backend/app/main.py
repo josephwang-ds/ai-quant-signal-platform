@@ -28,6 +28,7 @@ from app.schemas import (
     OOSRequest,
     SensitivityRequest,
     StrategyComparisonRequest,
+    normalize_request_data_source,
 )
 
 # 创建 FastAPI 应用实例
@@ -37,10 +38,11 @@ app = FastAPI(
 )
 
 # 允许前端跨域访问；生产环境通过 ALLOWED_ORIGINS 配置
+# DELETE 用于 Experiments 删除已保存回测
 app.add_middleware(
     CORSMiddleware,
     allow_origins=get_allowed_origins(),
-    allow_methods=["GET", "POST"],
+    allow_methods=["GET", "POST", "DELETE"],
     allow_headers=["*"],
 )
 
@@ -54,10 +56,24 @@ MAX_PRICE_ROWS = 300
 
 # Market Watch / 数据新鲜度说明
 DATA_NOTE = (
-    "Latest date is based on the most recent available daily bar from "
-    "Yahoo Finance via yfinance. Data may be delayed depending on exchange "
-    "and provider."
+    "Latest date is based on the most recent available daily bar from the "
+    "active market-data provider (auto failover: AKShare / Yahoo / Stooq). "
+    "Data may be delayed depending on exchange and provider."
 )
+
+
+def _resolve_data_source_label(df) -> str:
+    """从 OHLCV DataFrame 读取实际命中的数据源标签。"""
+    if df is None or getattr(df, "empty", True) or "data_source" not in df.columns:
+        return "auto"
+    raw = str(df["data_source"].iloc[0]).strip().lower()
+    labels = {
+        "stooq": "Stooq",
+        "yahoo": "Yahoo Finance via yfinance",
+        "akshare": "AKShare",
+        "auto": "auto",
+    }
+    return labels.get(raw, raw or "auto")
 
 
 def _download_start_date_for_lookback(lookback_days: int) -> str:
@@ -264,14 +280,19 @@ def health_check() -> dict[str, str]:
 def get_price_data(
     ticker: str,
     start_date: str = Query(default="2022-01-01", description="起始日期 YYYY-MM-DD"),
+    data_source: str = Query(default="auto", description="数据源：auto|akshare|yahoo|stooq"),
 ) -> dict:
     """
-    获取指定股票的历史价格数据（来源：Yahoo Finance）。
+    获取指定股票的历史价格数据（默认 auto：AKShare / Yahoo / Stooq）。
     """
     normalized_ticker = ticker.upper().strip()
+    try:
+        source = normalize_request_data_source(data_source)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
 
     try:
-        df = load_price_data(normalized_ticker, start_date)
+        df = load_price_data(normalized_ticker, start_date, data_source=source)
     except ValueError as exc:
         # 无效 ticker 或无数据
         raise HTTPException(status_code=404, detail=str(exc)) from exc
@@ -290,7 +311,7 @@ def get_price_data(
     return {
         "ticker": normalized_ticker,
         "start_date": start_date,
-        "data_source": "Yahoo Finance via yfinance",
+        "data_source": _resolve_data_source_label(df),
         "rows": len(df),
         "latest": _row_to_dict(latest_row),
         "prices": [_row_to_dict(row) for _, row in recent_df.iterrows()],
@@ -303,17 +324,27 @@ def get_indicators(
     start_date: str = Query(default="2022-01-01", description="起始日期 YYYY-MM-DD"),
     end_date: Optional[str] = Query(default=None, description="可选结束日期 YYYY-MM-DD（含当日）"),
     limit: Optional[int] = Query(default=None, ge=1, description="可选：仅返回最近 N 行"),
+    data_source: str = Query(default="auto", description="数据源：auto|akshare|yahoo|stooq"),
 ) -> dict:
     """
-    获取指定股票的技术指标数据（基于 Yahoo Finance 价格计算）。
+    获取指定股票的技术指标数据（基于所选数据源价格计算）。
 
     图表用途默认返回完整区间数据；早期 MA/RSI 可为 null，不因指标缺失删行。
     """
     normalized_ticker = ticker.upper().strip()
     normalized_end_date = end_date.strip() if end_date else None
+    try:
+        source = normalize_request_data_source(data_source)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
 
     try:
-        df = load_price_data(normalized_ticker, start_date, normalized_end_date)
+        df = load_price_data(
+            normalized_ticker,
+            start_date,
+            normalized_end_date,
+            data_source=source,
+        )
         df = add_technical_indicators(df)
 
         # 图表数据：仅要求 close 有效，保留滚动窗口尚未就绪的行
@@ -350,7 +381,7 @@ def get_indicators(
         "ticker": normalized_ticker,
         "start_date": start_date,
         "end_date": normalized_end_date,
-        "data_source": "Yahoo Finance via yfinance",
+        "data_source": _resolve_data_source_label(df),
         "rows": len(output_df),
         "latest": _latest_indicator_dict(latest_row),
         "data": [_indicator_row_dict(row) for _, row in output_df.iterrows()],
@@ -362,14 +393,19 @@ def get_indicators(
 def get_signal(
     ticker: str,
     start_date: str = Query(default="2022-01-01", description="起始日期 YYYY-MM-DD"),
+    data_source: str = Query(default="auto", description="数据源：auto|akshare|yahoo|stooq"),
 ) -> dict:
     """
     获取指定股票的规则型信号评分（watchlist 标签，非买卖建议）。
     """
     normalized_ticker = ticker.upper().strip()
+    try:
+        source = normalize_request_data_source(data_source)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
 
     try:
-        df = load_price_data(normalized_ticker, start_date)
+        df = load_price_data(normalized_ticker, start_date, data_source=source)
         df = add_technical_indicators(df)
         result = score_latest_signal(df)
     except ValueError as exc:
@@ -386,11 +422,15 @@ def get_signal(
     return result
 
 
-def _score_ticker_signal(ticker: str, start_date: str) -> dict:
-    """对单个 ticker 执行完整信号评分流程。"""
-    df = load_price_data(ticker, start_date)
+def _score_ticker_signal(
+    ticker: str,
+    start_date: str,
+    data_source: str = "auto",
+) -> tuple[dict, str]:
+    """对单个 ticker 执行完整信号评分流程，并返回实际数据源标签。"""
+    df = load_price_data(ticker, start_date, data_source=data_source)
     df = add_technical_indicators(df)
-    return score_latest_signal(df)
+    return score_latest_signal(df), _resolve_data_source_label(df)
 
 
 @app.post("/api/market-watch")
@@ -402,13 +442,19 @@ def market_watch(request: MarketWatchRequest) -> dict:
     """
     results: list[dict] = []
     errors: list[dict] = []
+    hit_sources: list[str] = []
 
     download_start_date = _download_start_date_for_lookback(request.lookback_days)
 
     for ticker in request.tickers:
         try:
-            signal = _score_ticker_signal(ticker, download_start_date)
+            signal, source_label = _score_ticker_signal(
+                ticker,
+                download_start_date,
+                data_source=request.data_source,
+            )
             results.append(signal)
+            hit_sources.append(source_label)
         except ValueError as exc:
             errors.append({"ticker": ticker, "error": str(exc)})
         except Exception as exc:
@@ -434,7 +480,7 @@ def market_watch(request: MarketWatchRequest) -> dict:
     latest_date = max(item["date"] for item in results)
 
     return {
-        "data_source": "Yahoo Finance via yfinance",
+        "data_source": hit_sources[0] if hit_sources else request.data_source,
         "lookback_days": request.lookback_days,
         "download_start_date": download_start_date,
         "latest_date": latest_date,
@@ -455,10 +501,18 @@ def chart_compare(request: ChartCompareRequest) -> dict:
     normalized_by_ticker: dict[str, dict[str, float]] = {}
     successful_tickers: list[str] = []
     errors: list[dict] = []
+    hit_source_label: Optional[str] = None
 
     for ticker in request.tickers:
         try:
-            df = load_price_data(ticker, request.start_date, normalized_end_date)
+            df = load_price_data(
+                ticker,
+                request.start_date,
+                normalized_end_date,
+                data_source=request.data_source,
+            )
+            if hit_source_label is None:
+                hit_source_label = _resolve_data_source_label(df)
             first_close = float(df.iloc[0]["close"])
             if first_close == 0:
                 raise ValueError(f"Invalid first close price for '{ticker}'.")
@@ -502,7 +556,7 @@ def chart_compare(request: ChartCompareRequest) -> dict:
         data.append(row)
 
     response = {
-        "data_source": "Yahoo Finance via yfinance",
+        "data_source": hit_source_label or request.data_source,
         "start_date": request.start_date,
         "tickers": successful_tickers,
         "data": data,
@@ -527,6 +581,7 @@ def run_backtest(request: BacktestRequest) -> dict:
             request.ticker,
             request.start_date,
             normalized_end_date,
+            data_source=request.data_source,
         )
 
         if request.strategy == "ma_crossover":
@@ -577,7 +632,7 @@ def run_backtest(request: BacktestRequest) -> dict:
         "strategy": request.strategy,
         "start_date": request.start_date,
         "end_date": normalized_end_date,
-        "data_source": "Yahoo Finance via yfinance",
+        "data_source": _resolve_data_source_label(price_df),
         "parameters": _backtest_parameters_dict(request),
         "strategy_config": _backtest_strategy_config(request),
         "metrics": metrics,
@@ -596,6 +651,7 @@ def compare_backtest_strategies(request: StrategyComparisonRequest) -> dict:
             request.ticker,
             request.start_date,
             normalized_end_date,
+            data_source=request.data_source,
         )
         comparison = run_strategy_comparison(
             price_df,
@@ -623,7 +679,7 @@ def compare_backtest_strategies(request: StrategyComparisonRequest) -> dict:
         "start_date": request.start_date,
         "end_date": normalized_end_date,
         "transaction_cost": request.transaction_cost,
-        "data_source": "Yahoo Finance via yfinance",
+        "data_source": _resolve_data_source_label(price_df),
         "results": comparison["results"],
         "summary": comparison["summary"],
         "interpretation": comparison["interpretation"],
@@ -642,6 +698,7 @@ def run_backtest_sensitivity(request: SensitivityRequest) -> dict:
             request.ticker,
             request.start_date,
             normalized_end_date,
+            data_source=request.data_source,
         )
     except ValueError as exc:
         msg = str(exc)
@@ -708,7 +765,7 @@ def run_backtest_sensitivity(request: SensitivityRequest) -> dict:
         "start_date": request.start_date,
         "end_date": normalized_end_date,
         "transaction_cost": request.transaction_cost,
-        "data_source": "Yahoo Finance via yfinance",
+        "data_source": _resolve_data_source_label(price_df),
         "results": results,
         "errors": errors,
     }
@@ -726,6 +783,7 @@ def run_backtest_oos(request: OOSRequest) -> dict:
             request.ticker,
             request.start_date,
             normalized_end_date,
+            data_source=request.data_source,
         )
 
         if request.strategy != "ma_crossover":
@@ -762,7 +820,7 @@ def run_backtest_oos(request: OOSRequest) -> dict:
         "start_date": request.start_date,
         "split_date": request.split_date,
         "end_date": normalized_end_date,
-        "data_source": "Yahoo Finance via yfinance",
+        "data_source": _resolve_data_source_label(price_df),
         "parameters": {
             "short_window": request.short_window,
             "long_window": request.long_window,

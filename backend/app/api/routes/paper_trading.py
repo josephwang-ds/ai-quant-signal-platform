@@ -26,6 +26,7 @@ def _request_kwargs(request: PaperTradingRequest) -> dict:
         "transaction_cost": request.transaction_cost,
         "account_id": request.account_id,
         "notes": request.notes,
+        "data_source": request.data_source,
     }
 
 

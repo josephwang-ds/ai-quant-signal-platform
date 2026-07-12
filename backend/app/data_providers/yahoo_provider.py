@@ -89,11 +89,12 @@ def load_price_data(
     ticker: str,
     start_date: str = "2022-01-01",
     end_date: Optional[str] = None,
+    data_source: str = "auto",
 ) -> pd.DataFrame:
     """
-    从 Yahoo Finance 下载指定股票的历史价格数据。
+    下载指定股票的历史价格数据。
 
-    保留向后兼容的模块级 helper；内部委托 MarketDataService。
+    默认 data_source=auto：AKShare → Yahoo → Stooq 自动回退。
     """
     from app.services.market_data_service import get_market_data_service
 
@@ -101,5 +102,5 @@ def load_price_data(
         symbol=ticker,
         start_date=start_date,
         end_date=end_date,
-        data_source="yahoo",
+        data_source=data_source,
     )

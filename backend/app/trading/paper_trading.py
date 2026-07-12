@@ -182,8 +182,9 @@ def build_paper_dashboard(
     transaction_cost: float = AGGRESSIVE_PROFILE.transaction_cost_rate,
     account_id: str = "default",
     notes: str | None = None,
+    data_source: str = "auto",
 ) -> dict[str, Any]:
-    price_df = load_price_data(ticker, start_date, end_date)
+    price_df = load_price_data(ticker, start_date, end_date, data_source=data_source)
     backtest_df = _run_backtest_frame(
         price_df,
         strategy,
@@ -251,7 +252,11 @@ def build_paper_dashboard(
     return {
         "ticker": ticker,
         "strategy": strategy,
-        "data_source": "yahoo",
+        "data_source": (
+            str(price_df["data_source"].iloc[0]).strip().lower()
+            if "data_source" in price_df.columns and not price_df.empty
+            else "auto"
+        ),
         "start_date": start_date,
         "end_date": end_date,
         "strategy_config": {
@@ -294,6 +299,7 @@ def execute_paper_action(
     transaction_cost: float = AGGRESSIVE_PROFILE.transaction_cost_rate,
     account_id: str = "default",
     notes: str | None = None,
+    data_source: str = "auto",
 ) -> dict[str, Any]:
     dashboard = build_paper_dashboard(
         ticker=ticker,
@@ -307,6 +313,7 @@ def execute_paper_action(
         transaction_cost=transaction_cost,
         account_id=account_id,
         notes=notes,
+        data_source=data_source,
     )
 
     account = get_paper_account(account_id)
