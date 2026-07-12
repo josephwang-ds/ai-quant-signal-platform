@@ -109,6 +109,13 @@ export type BacktestMetrics = {
   transaction_cost_total: number | null;
 };
 
+/** 回测复盘 explanationPayload（预留 LLM/RAG）— 见 backtestReview.ts */
+export type {
+  BacktestExplanationPayload,
+  BacktestRiskLevel,
+  PaperTradingEligibility,
+} from "@/lib/backtestReview";
+
 export type BacktestRow = {
   date: string;
   close: number;
@@ -272,7 +279,26 @@ export type DataSourceProviderStatus = {
 
 export type DataSourceStatusResponse = {
   active_provider: string;
+  fallback_chain?: {
+    default: string[];
+    a_share: string[];
+  };
   providers: DataSourceProviderStatus[];
+};
+
+export type PriceProbeResponse = {
+  ticker: string;
+  start_date: string;
+  data_source: string;
+  rows: number;
+  latest: {
+    date: string;
+    open: number;
+    high: number;
+    low: number;
+    close: number;
+    volume?: number;
+  };
 };
 
 export type SaveBacktestTradeItem = {

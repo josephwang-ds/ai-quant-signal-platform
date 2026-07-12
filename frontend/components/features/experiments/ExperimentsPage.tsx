@@ -105,7 +105,10 @@ function ExperimentDetailPanel({
       {actionMessage ? <p className="section-meta">{actionMessage}</p> : null}
       {detailLoading ? <LoadingState message={tr("experimentsLoading")} /> : null}
       {detailError ? (
-        <ErrorAlert title={tr("experimentsLoadFailed")} message={detailError} />
+        <ErrorAlert
+          title={tr(detail ? "experimentsDeleteFailed" : "experimentsLoadFailed")}
+          message={detailError}
+        />
       ) : null}
 
       {detail && !detailLoading ? (

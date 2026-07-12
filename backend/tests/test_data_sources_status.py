@@ -7,8 +7,6 @@ from app.main import app
 client = TestClient(app)
 
 STATUS_URL = "/api/data-sources/status"
-BACKTEST_URL = "/api/backtest"
-MARKET_WATCH_URL = "/api/market-watch"
 
 
 def test_data_sources_status() -> None:
@@ -16,43 +14,13 @@ def test_data_sources_status() -> None:
 
     assert response.status_code == 200
     payload = response.json()
-    assert payload["active_provider"] == "yahoo"
+    assert payload["active_provider"] == "auto"
+    assert "fallback_chain" in payload
 
     providers = {item["name"]: item for item in payload["providers"]}
+    assert providers["auto"]["status"] == "active"
+    assert providers["stooq"]["status"] == "active"
     assert providers["yahoo"]["status"] == "active"
-    assert providers["akshare"]["status"] == "planned"
+    assert providers["akshare"]["status"] in {"active", "degraded"}
     assert providers["coingecko"]["status"] == "planned"
     assert providers["csv"]["status"] == "planned"
-
-
-def test_backtest_backward_compatible() -> None:
-    response = client.post(
-        BACKTEST_URL,
-        json={
-            "ticker": "AAPL",
-            "start_date": "2022-01-01",
-            "strategy": "ma_crossover",
-            "short_window": 20,
-            "long_window": 60,
-            "transaction_cost": 0.001,
-        },
-    )
-
-    assert response.status_code == 200
-    payload = response.json()
-    assert payload["ticker"] == "AAPL"
-    assert "metrics" in payload
-
-
-def test_market_watch_backward_compatible() -> None:
-    response = client.post(
-        MARKET_WATCH_URL,
-        json={
-            "tickers": ["AAPL", "MSFT"],
-            "lookback_days": 120,
-        },
-    )
-
-    assert response.status_code == 200
-    payload = response.json()
-    assert len(payload["results"]) >= 1

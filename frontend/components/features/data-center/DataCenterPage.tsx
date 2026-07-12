@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import AppShell from "@/components/layout/AppShell";
+import Button from "@/components/ui/Button";
 import DataTable from "@/components/ui/DataTable";
 import ErrorAlert from "@/components/ui/ErrorAlert";
 import LoadingState from "@/components/ui/LoadingState";
@@ -16,8 +17,16 @@ import {
   SYMBOL_FORMAT_ROWS,
   YAHOO_USE_CASE_KEYS,
 } from "@/lib/dataCenterConfig";
-import { getDataSourceStatus } from "@/lib/api";
+import { getDataSourceStatus, probePriceData } from "@/lib/api";
+import {
+  getDataSourcePreference,
+  isMarketDataSource,
+  MARKET_DATA_SOURCES,
+  setDataSourcePreference,
+  type MarketDataSource,
+} from "@/lib/dataSourcePreference";
 import { useWorkspaceLanguage } from "@/lib/useWorkspaceLanguage";
+import type { TranslationKey } from "@/lib/i18n";
 import type { DataSourceStatusResponse } from "@/types/market";
 
 function providerApiStatusLabel(
@@ -45,6 +54,13 @@ function providerApiStatusVariant(
   return "neutral";
 }
 
+const PREFERRED_SOURCE_LABEL_KEYS: Record<MarketDataSource, TranslationKey> = {
+  auto: "dcPreferredSourceOptionAuto",
+  akshare: "dcPreferredSourceOptionAkshare",
+  yahoo: "dcPreferredSourceOptionYahoo",
+  stooq: "dcPreferredSourceOptionStooq",
+};
+
 export default function DataCenterPage() {
   const { language, setLanguage, tr } = useWorkspaceLanguage();
   const [providerStatus, setProviderStatus] = useState<DataSourceStatusResponse | null>(
@@ -52,6 +68,14 @@ export default function DataCenterPage() {
   );
   const [providerStatusLoading, setProviderStatusLoading] = useState(true);
   const [providerStatusError, setProviderStatusError] = useState<string | null>(null);
+  const [preferredSource, setPreferredSource] = useState<MarketDataSource>("auto");
+  const [probeLoading, setProbeLoading] = useState(false);
+  const [probeResult, setProbeResult] = useState<string | null>(null);
+  const [probeError, setProbeError] = useState<string | null>(null);
+
+  useEffect(() => {
+    setPreferredSource(getDataSourcePreference());
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -85,10 +109,70 @@ export default function DataCenterPage() {
     };
   }, []);
 
+  function handlePreferredSourceChange(value: string) {
+    if (!isMarketDataSource(value)) {
+      return;
+    }
+    setPreferredSource(value);
+    setDataSourcePreference(value);
+    setProbeResult(null);
+    setProbeError(null);
+  }
+
+  async function handleProbe() {
+    setProbeLoading(true);
+    setProbeResult(null);
+    setProbeError(null);
+    try {
+      const data = await probePriceData("AAPL", "2024-01-01", preferredSource);
+      setProbeResult(
+        `${tr("dcProbeSuccess")}: ${data.data_source} · rows=${data.rows} · latest=${data.latest.date}`
+      );
+    } catch (error) {
+      setProbeError(error instanceof Error ? error.message : tr("dcProbeError"));
+    } finally {
+      setProbeLoading(false);
+    }
+  }
+
   return (
     <AppShell language={language} onLanguageChange={setLanguage}>
       <SectionCard>
         <SectionHeader title={tr("dataCenter")} description={tr("dataCenterPageDesc")} />
+      </SectionCard>
+
+      <SectionCard>
+        <SectionHeader title={tr("dcPreferredSource")} description={tr("dcPreferredSourceDesc")} />
+        <div className="form-field" style={{ maxWidth: 360 }}>
+          <label className="form-label" htmlFor="preferred-data-source">
+            {tr("dcPreferredSource")}
+          </label>
+          <select
+            id="preferred-data-source"
+            className="form-select"
+            value={preferredSource}
+            onChange={(event) => handlePreferredSourceChange(event.target.value)}
+          >
+            {MARKET_DATA_SOURCES.map((source) => (
+              <option key={source} value={source}>
+                {tr(PREFERRED_SOURCE_LABEL_KEYS[source])}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className="button-row" style={{ marginTop: 12 }}>
+          <Button
+            className="btn--ghost"
+            onClick={() => void handleProbe()}
+            disabled={probeLoading}
+          >
+            {probeLoading ? tr("dcProbeLoading") : tr("dcProbeSource")}
+          </Button>
+          {probeResult ? <p className="section-meta">{probeResult}</p> : null}
+        </div>
+        {probeError ? (
+          <ErrorAlert title={tr("dcProbeError")} message={probeError} />
+        ) : null}
       </SectionCard>
 
       <SectionCard>
@@ -111,6 +195,11 @@ export default function DataCenterPage() {
               <strong>{tr("dcActiveProvider")}:</strong>{" "}
               <code>{providerStatus.active_provider}</code>
             </p>
+            {providerStatus.fallback_chain?.default?.length ? (
+              <p className="section-meta">
+                fallback: <code>{providerStatus.fallback_chain.default.join(" → ")}</code>
+              </p>
+            ) : null}
             <p className="section-meta">{tr("dcProvidersList")}</p>
             <div className="workspace-modules">
               {providerStatus.providers.map((provider) => (

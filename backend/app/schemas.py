@@ -8,12 +8,44 @@ MAX_TICKERS = 20
 MIN_LOOKBACK_DAYS = 80
 MAX_LOOKBACK_DAYS = 1000
 
+# 行情拉取允许的数据源（请求参数）
+ALLOWED_MARKET_DATA_SOURCES = frozenset({"auto", "akshare", "yahoo", "stooq"})
+
+
+def normalize_request_data_source(value: str) -> str:
+    """校验并标准化行情请求的 data_source。"""
+    source = (value or "auto").strip().lower()
+    if not source or source in {"auto", "fallback"}:
+        return "auto"
+    if source in ALLOWED_MARKET_DATA_SOURCES:
+        return source
+    raise ValueError(
+        'data_source must be "auto", "akshare", "yahoo", or "stooq"'
+    )
+
+
+def normalize_stored_data_source(value: str) -> str:
+    """标准化实验保存中的 data_source（兼容响应长描述）。"""
+    source = (value or "auto").strip().lower()
+    if not source:
+        return "auto"
+    if "stooq" in source:
+        return "stooq"
+    if "akshare" in source:
+        return "akshare"
+    if "yahoo" in source or "yfinance" in source:
+        return "yahoo"
+    if source in {"auto", "fallback"}:
+        return "auto"
+    return source
+
 
 class MarketWatchRequest(BaseModel):
     """多 ticker 市场观察排名请求体。"""
 
     tickers: list[str]
     lookback_days: int = 120
+    data_source: str = "auto"
 
     @field_validator("lookback_days")
     @classmethod
@@ -24,6 +56,11 @@ class MarketWatchRequest(BaseModel):
                 f"lookback_days must be between {MIN_LOOKBACK_DAYS} and {MAX_LOOKBACK_DAYS}"
             )
         return value
+
+    @field_validator("data_source")
+    @classmethod
+    def validate_data_source(cls, value: str) -> str:
+        return normalize_request_data_source(value)
 
     @model_validator(mode="after")
     def normalize_tickers(self) -> "MarketWatchRequest":
@@ -56,6 +93,12 @@ class ChartCompareRequest(BaseModel):
     tickers: list[str]
     start_date: str = "2022-01-01"
     end_date: Optional[str] = None
+    data_source: str = "auto"
+
+    @field_validator("data_source")
+    @classmethod
+    def validate_data_source(cls, value: str) -> str:
+        return normalize_request_data_source(value)
 
     @model_validator(mode="after")
     def normalize_tickers(self) -> "ChartCompareRequest":
@@ -94,6 +137,7 @@ class BacktestRequest(BaseModel):
     momentum_window: int = 60
     combined_mode: str = "conservative"
     transaction_cost: float = 0.001
+    data_source: str = "auto"
 
     @field_validator("ticker")
     @classmethod
@@ -121,6 +165,11 @@ class BacktestRequest(BaseModel):
         if value not in ("conservative", "aggressive"):
             raise ValueError('combined_mode must be "conservative" or "aggressive"')
         return value
+
+    @field_validator("data_source")
+    @classmethod
+    def validate_data_source(cls, value: str) -> str:
+        return normalize_request_data_source(value)
 
     @field_validator("short_window")
     @classmethod
@@ -168,6 +217,7 @@ class StrategyComparisonRequest(BaseModel):
     short_window: int = 20
     long_window: int = 60
     momentum_window: int = 60
+    data_source: str = "auto"
 
     @field_validator("ticker")
     @classmethod
@@ -176,6 +226,11 @@ class StrategyComparisonRequest(BaseModel):
         if not ticker:
             raise ValueError("ticker must not be empty")
         return ticker
+
+    @field_validator("data_source")
+    @classmethod
+    def validate_data_source(cls, value: str) -> str:
+        return normalize_request_data_source(value)
 
     @field_validator("short_window")
     @classmethod
@@ -252,6 +307,7 @@ class SensitivityRequest(BaseModel):
     strategy: str = "ma_crossover"
     transaction_cost: float = 0.001
     parameter_sets: Optional[list[ParameterSet]] = None
+    data_source: str = "auto"
 
     @field_validator("ticker")
     @classmethod
@@ -269,6 +325,11 @@ class SensitivityRequest(BaseModel):
         if value != "ma_crossover":
             raise ValueError('strategy currently only allows "ma_crossover"')
         return value
+
+    @field_validator("data_source")
+    @classmethod
+    def validate_data_source(cls, value: str) -> str:
+        return normalize_request_data_source(value)
 
     @field_validator("transaction_cost")
     @classmethod
@@ -301,6 +362,7 @@ class OOSRequest(BaseModel):
     short_window: int = 20
     long_window: int = 60
     transaction_cost: float = 0.001
+    data_source: str = "auto"
 
     @field_validator("ticker")
     @classmethod
@@ -318,6 +380,11 @@ class OOSRequest(BaseModel):
         if value != "ma_crossover":
             raise ValueError('strategy currently only allows "ma_crossover"')
         return value
+
+    @field_validator("data_source")
+    @classmethod
+    def validate_data_source(cls, value: str) -> str:
+        return normalize_request_data_source(value)
 
     @field_validator("short_window")
     @classmethod
@@ -387,7 +454,7 @@ class SaveBacktestRunRequest(BaseModel):
 
     ticker: str
     market: Optional[str] = None
-    data_source: str = "yahoo"
+    data_source: str = "auto"
     strategy: str
     strategy_config: dict
     start_date: str
@@ -418,13 +485,7 @@ class SaveBacktestRunRequest(BaseModel):
     @field_validator("data_source")
     @classmethod
     def normalize_data_source(cls, value: str) -> str:
-        source = value.strip().lower()
-        if not source:
-            return "yahoo"
-        # 兼容回测响应中的长描述
-        if "yahoo" in source:
-            return "yahoo"
-        return source
+        return normalize_stored_data_source(value)
 
     @field_validator("start_date")
     @classmethod

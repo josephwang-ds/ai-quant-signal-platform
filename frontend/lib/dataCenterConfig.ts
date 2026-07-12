@@ -114,10 +114,10 @@ export const ASSET_CLASS_ROWS: AssetClassRow[] = [
 
 export const PLANNED_PROVIDER_CARDS: PlannedProviderCard[] = [
   {
-    id: "akshare",
-    titleKey: "dcAkShareTitle",
-    descKey: "dcAkShareDesc",
-    status: "planned",
+    id: "stooq",
+    titleKey: "dcStooqTitle",
+    descKey: "dcStooqDesc",
+    status: "active",
   },
   {
     id: "coingecko",
