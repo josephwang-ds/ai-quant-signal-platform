@@ -4,7 +4,7 @@ import {
   getMockResearchProjects,
   MOCK_RESEARCH_DETAILS,
 } from "@/lib/mockResearchCatalog";
-import { getLifecycleStepState } from "@/lib/researchWorkspace";
+import { getLifecycleStepState, resolveWorkspaceSection } from "@/lib/researchWorkspace";
 import {
   mapLifecycleStatusToProgressStage,
   RESEARCH_WORKSPACE_SECTIONS,
@@ -66,5 +66,12 @@ describe("workspace navigation model", () => {
       "files",
       "settings",
     ]);
+  });
+
+  it("resolves ?tab= with ?section= fallback", () => {
+    expect(resolveWorkspaceSection("notebook", null)).toBe("notebook");
+    expect(resolveWorkspaceSection(null, "notebook")).toBe("notebook");
+    expect(resolveWorkspaceSection("timeline", "notebook")).toBe("timeline");
+    expect(resolveWorkspaceSection(null, null)).toBe("overview");
   });
 });

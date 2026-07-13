@@ -6,7 +6,9 @@ import { useSearchParams } from "next/navigation";
 import AppShell from "@/components/layout/AppShell";
 import EvidenceSummary from "@/components/features/research/EvidenceSummary";
 import OverviewSection from "@/components/features/research/OverviewSection";
+import ResearchNotebook from "@/components/features/research/notebook/ResearchNotebook";
 import ResearchActionPanel from "@/components/features/research/ResearchActionPanel";
+import ResearchTimeline from "@/components/features/research/ResearchTimeline";
 import ResearchWorkspaceHeader from "@/components/features/research/ResearchWorkspaceHeader";
 import ResearchWorkspaceNavigation from "@/components/features/research/ResearchWorkspaceNavigation";
 import ResearchWorkspaceSkeleton from "@/components/features/research/ResearchWorkspaceSkeleton";
@@ -17,12 +19,18 @@ import ErrorAlert from "@/components/ui/ErrorAlert";
 import LoadingState from "@/components/ui/LoadingState";
 import SectionCard from "@/components/ui/SectionCard";
 import type { TranslationKey } from "@/lib/i18n";
+import { getMockTimelineEvents } from "@/lib/mockNotebookCatalog";
 import {
   loadMockResearchById,
   MockResearchError,
 } from "@/lib/mockResearchCatalog";
-import { isResearchWorkspaceSection } from "@/lib/researchWorkspace";
+import { mergeTimelineEvents } from "@/lib/researchNotebook";
+import {
+  isResearchWorkspaceSection,
+  resolveWorkspaceSection,
+} from "@/lib/researchWorkspace";
 import { useWorkspaceLanguage } from "@/lib/useWorkspaceLanguage";
+import type { NotebookEntry, ResearchTimelineEvent } from "@/types/notebook";
 import type {
   ResearchDetail,
   ResearchWorkspaceSection,
@@ -37,18 +45,9 @@ type PlaceholderCopy = {
 };
 
 const PLACEHOLDER_COPY: Record<
-  Exclude<ResearchWorkspaceSection, "overview">,
+  Exclude<ResearchWorkspaceSection, "overview" | "notebook" | "timeline">,
   PlaceholderCopy
 > = {
-  notebook: {
-    titleKey: "researchWsNotebookTitle",
-    summaryKey: "researchWsNotebookSummary",
-    capabilityKeys: [
-      "researchWsNotebookCap1",
-      "researchWsNotebookCap2",
-      "researchWsNotebookCap3",
-    ],
-  },
   experiments: {
     titleKey: "researchWsExperimentsTitle",
     summaryKey: "researchWsExperimentsSummary",
@@ -76,15 +75,6 @@ const PLACEHOLDER_COPY: Record<
       "researchWsEvaluationCap3",
     ],
   },
-  timeline: {
-    titleKey: "researchWsTimelineTitle",
-    summaryKey: "researchWsTimelineSummary",
-    capabilityKeys: [
-      "researchWsTimelineCap1",
-      "researchWsTimelineCap2",
-      "researchWsTimelineCap3",
-    ],
-  },
   files: {
     titleKey: "researchWsFilesTitle",
     summaryKey: "researchWsFilesSummary",
@@ -110,7 +100,7 @@ export type ResearchWorkspacePageProps = {
 };
 
 /**
- * Research Workspace Detail（PR-003）。
+ * Research Workspace Detail（PR-003 + PR-004 Notebook）。
  * TODO(backend): 用 getResearch(id) 替换 loadMockResearchById。
  */
 export default function ResearchWorkspacePage({
@@ -118,17 +108,21 @@ export default function ResearchWorkspacePage({
 }: ResearchWorkspacePageProps) {
   const { language, setLanguage, tr } = useWorkspaceLanguage();
   const searchParams = useSearchParams();
-  const sectionParam = searchParams.get("section");
-  const activeSection: ResearchWorkspaceSection = isResearchWorkspaceSection(
-    sectionParam
-  )
-    ? sectionParam
-    : "overview";
+  const activeSection = resolveWorkspaceSection(
+    searchParams.get("tab"),
+    searchParams.get("section")
+  );
 
   const [research, setResearch] = useState<ResearchDetail | null>(null);
   const [loadStatus, setLoadStatus] = useState<LoadStatus>("loading");
   const [loadError, setLoadError] = useState<string | null>(null);
   const [reloadToken, setReloadToken] = useState(0);
+  const [sessionNotebookEntries, setSessionNotebookEntries] = useState<
+    NotebookEntry[]
+  >([]);
+  const [sessionTimelineEvents, setSessionTimelineEvents] = useState<
+    ResearchTimelineEvent[]
+  >([]);
 
   const loadDetail = useCallback(async () => {
     setLoadStatus("loading");
@@ -157,6 +151,11 @@ export default function ResearchWorkspacePage({
     void loadDetail();
   }, [loadDetail, reloadToken]);
 
+  useEffect(() => {
+    setSessionNotebookEntries([]);
+    setSessionTimelineEvents([]);
+  }, [researchId]);
+
   const navLabels = useMemo(
     () => ({
       overview: tr("researchWsNavOverview"),
@@ -170,6 +169,145 @@ export default function ResearchWorkspacePage({
     }),
     [tr]
   );
+
+  const timelineEvents = useMemo(() => {
+    if (!research) {
+      return [];
+    }
+    return mergeTimelineEvents(
+      getMockTimelineEvents(research.id),
+      sessionTimelineEvents
+    );
+  }, [research, sessionTimelineEvents]);
+
+  function handleSessionEntrySaved(
+    entry: NotebookEntry,
+    timelineEvent: ResearchTimelineEvent
+  ) {
+    setSessionNotebookEntries((prev) => [entry, ...prev]);
+    setSessionTimelineEvents((prev) => [timelineEvent, ...prev]);
+  }
+
+  function renderMainSection() {
+    if (!research) {
+      return null;
+    }
+
+    if (activeSection === "overview") {
+      return (
+        <OverviewSection
+          research={research}
+          labels={{
+            researchQuestion: tr("researchWsQuestion"),
+            hypothesis: tr("researchWsHypothesis"),
+            researchObjective: tr("researchWsObjective"),
+            currentStage: tr("researchWsCurrentStage"),
+            researchConfidence: tr("researchWsConfidence"),
+            currentRecommendation: tr("researchListRecommendation"),
+            researchSummary: tr("researchWsSummary"),
+            evidenceNarrative: tr("researchWsEvidenceNarrative"),
+            validationSummary: tr("researchWsValidationSummary"),
+            keyStrengths: tr("researchWsKeyStrengths"),
+            knownWeaknesses: tr("researchWsKnownWeaknesses"),
+            openQuestions: tr("researchWsOpenQuestions"),
+            nextActions: tr("researchWsNextActions"),
+            lifecycleTitle: tr("researchWsLifecycleTitle"),
+            lifecycleDescription: tr("researchWsLifecycleDescription"),
+            evidenceTitle: tr("researchWsEvidenceTitle"),
+            evidenceDescription: tr("researchWsEvidenceDescription"),
+            confidence: tr("researchListConfidence"),
+          }}
+        />
+      );
+    }
+
+    if (activeSection === "notebook") {
+      return (
+        <ResearchNotebook
+          research={research}
+          language={language}
+          sessionEntries={sessionNotebookEntries}
+          onSessionEntrySaved={handleSessionEntrySaved}
+          labels={{
+            title: tr("researchNbTitle"),
+            entryCount: tr("researchNbEntryCount"),
+            lastUpdated: tr("researchNbLastUpdated"),
+            newEntry: tr("researchNbNewEntry"),
+            loading: tr("researchNbLoading"),
+            errorTitle: tr("researchNbErrorTitle"),
+            retry: tr("researchNbRetry"),
+            emptyTitle: tr("researchNbEmptyTitle"),
+            emptyDescription: tr("researchNbEmptyDescription"),
+            filterEmptyTitle: tr("researchNbFilterEmptyTitle"),
+            filterEmptyDescription: tr("researchNbFilterEmptyDescription"),
+            filters: {
+              filterType: tr("researchNbFilterType"),
+              filterAll: tr("researchNbFilterAll"),
+              sort: tr("researchNbSort"),
+              sortNewest: tr("researchNbSortNewest"),
+              sortOldest: tr("researchNbSortOldest"),
+            },
+            card: {
+              author: tr("researchNbCardAuthor"),
+              created: tr("researchNbCardCreated"),
+              edited: tr("researchNbCardEdited"),
+              related: tr("researchNbCardRelated"),
+              tags: tr("researchWsTags"),
+            },
+            composer: {
+              title: tr("researchNbComposerTitle"),
+              entryType: tr("researchNbComposerType"),
+              entryTitle: tr("researchNbComposerEntryTitle"),
+              content: tr("researchNbComposerContent"),
+              tags: tr("researchNbComposerTags"),
+              tagsHint: tr("researchNbComposerTagsHint"),
+              relatedArtifact: tr("researchNbComposerArtifact"),
+              relatedNone: tr("researchNbComposerArtifactNone"),
+              save: tr("researchNbComposerSave"),
+              cancel: tr("researchNbComposerCancel"),
+              entryTypeRequired: tr("researchNbValidationType"),
+              titleRequired: tr("researchNbValidationTitle"),
+              bodyRequired: tr("researchNbValidationBody"),
+            },
+          }}
+        />
+      );
+    }
+
+    if (activeSection === "timeline") {
+      return (
+        <ResearchTimeline
+          events={timelineEvents}
+          language={language}
+          labels={{
+            title: tr("researchTlTitle"),
+            description: tr("researchTlDescription"),
+            sessionNote: tr("researchTlSessionNote"),
+            empty: tr("researchTlEmpty"),
+          }}
+        />
+      );
+    }
+
+    if (isResearchWorkspaceSection(activeSection) && activeSection in PLACEHOLDER_COPY) {
+      const copy = PLACEHOLDER_COPY[activeSection as keyof typeof PLACEHOLDER_COPY];
+      return (
+        <WorkspacePlaceholder
+          title={tr(copy.titleKey)}
+          summary={tr(copy.summaryKey)}
+          plannedCapabilities={copy.capabilityKeys.map((key) => tr(key))}
+          deferredNote={tr("researchWsDeferredNote")}
+        />
+      );
+    }
+
+    return null;
+  }
+
+  const showEvidencePreview =
+    activeSection !== "overview" &&
+    activeSection !== "notebook" &&
+    activeSection !== "timeline";
 
   return (
     <AppShell language={language} onLanguageChange={setLanguage}>
@@ -228,42 +366,9 @@ export default function ResearchWorkspacePage({
 
             <div className="research-workspace__layout">
               <div className="research-workspace__main">
-                {activeSection === "overview" ? (
-                  <OverviewSection
-                    research={research}
-                    labels={{
-                      researchQuestion: tr("researchWsQuestion"),
-                      hypothesis: tr("researchWsHypothesis"),
-                      researchObjective: tr("researchWsObjective"),
-                      currentStage: tr("researchWsCurrentStage"),
-                      researchConfidence: tr("researchWsConfidence"),
-                      currentRecommendation: tr("researchListRecommendation"),
-                      researchSummary: tr("researchWsSummary"),
-                      evidenceNarrative: tr("researchWsEvidenceNarrative"),
-                      validationSummary: tr("researchWsValidationSummary"),
-                      keyStrengths: tr("researchWsKeyStrengths"),
-                      knownWeaknesses: tr("researchWsKnownWeaknesses"),
-                      openQuestions: tr("researchWsOpenQuestions"),
-                      nextActions: tr("researchWsNextActions"),
-                      lifecycleTitle: tr("researchWsLifecycleTitle"),
-                      lifecycleDescription: tr("researchWsLifecycleDescription"),
-                      evidenceTitle: tr("researchWsEvidenceTitle"),
-                      evidenceDescription: tr("researchWsEvidenceDescription"),
-                      confidence: tr("researchListConfidence"),
-                    }}
-                  />
-                ) : (
-                  <WorkspacePlaceholder
-                    title={tr(PLACEHOLDER_COPY[activeSection].titleKey)}
-                    summary={tr(PLACEHOLDER_COPY[activeSection].summaryKey)}
-                    plannedCapabilities={PLACEHOLDER_COPY[
-                      activeSection
-                    ].capabilityKeys.map((key) => tr(key))}
-                    deferredNote={tr("researchWsDeferredNote")}
-                  />
-                )}
+                {renderMainSection()}
 
-                {activeSection !== "overview" ? (
+                {showEvidencePreview ? (
                   <div className="research-workspace__placeholder-evidence">
                     <EvidenceSummary
                       items={research.evidenceItems.slice(0, 3)}

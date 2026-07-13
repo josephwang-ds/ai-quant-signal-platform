@@ -42,3 +42,12 @@ export function isResearchWorkspaceSection(
     value === "settings"
   );
 }
+
+/** 解析 ?tab= 或 ?section=（向后兼容 PR-003）。 */
+export function resolveWorkspaceSection(
+  tabParam: string | null,
+  sectionParam: string | null
+): import("@/types/research").ResearchWorkspaceSection {
+  const candidate = tabParam ?? sectionParam;
+  return isResearchWorkspaceSection(candidate) ? candidate : "overview";
+}

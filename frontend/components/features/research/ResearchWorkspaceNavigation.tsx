@@ -28,7 +28,7 @@ export default function ResearchWorkspaceNavigation({
           const href =
             section === "overview"
               ? `/research/${encodeURIComponent(researchId)}`
-              : `/research/${encodeURIComponent(researchId)}?section=${section}`;
+              : `/research/${encodeURIComponent(researchId)}?tab=${section}`;
           const isActive = section === activeSection;
           return (
             <li key={section}>

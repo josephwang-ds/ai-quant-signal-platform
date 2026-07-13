@@ -44,7 +44,7 @@ describe("ResearchWorkspaceNavigation", () => {
     );
     expect(screen.getByRole("link", { name: "Notebook" })).toHaveAttribute(
       "href",
-      "/research/rs-momentum-001?section=notebook"
+      "/research/rs-momentum-001?tab=notebook"
     );
   });
 });
