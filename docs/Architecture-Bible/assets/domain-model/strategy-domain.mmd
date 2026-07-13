@@ -1,0 +1,36 @@
+%%{init: {"theme":"base","themeVariables":{"fontFamily":"Inter, ui-sans-serif, system-ui, sans-serif","primaryTextColor":"#0F172A","lineColor":"#64748B"},"flowchart":{"curve":"basis","nodeSpacing":34,"rankSpacing":54}}}%%
+flowchart TB
+    S["Strategy<br/>Aggregate Center"]
+    SR["Strategy Registry<br/>Identity · Version · Lifecycle"]
+    RC["Research<br/>Hypothesis · Experiment · Backtest · Benchmark · Simulation"]
+    EC["Evidence & Validation<br/>Evidence · Data Confidence · Validation"]
+    GC["Review & Governance<br/>AI Review · Risk Review · Review · Guardrails · Decision"]
+    OC["Observation & Health<br/>Market · Monitoring · Health Score"]
+    KC["Portfolio & Knowledge<br/>Portfolio · Notebook"]
+    S <==> SR
+    S <==> RC
+    S <==> EC
+    S <==> GC
+    S <==> OC
+    S <==> KC
+    RC -->|"produces"| EC
+    EC -->|"supports"| GC
+    GC -->|"governs"| SR
+    SR -->|"sets obligations"| OC
+    OC -->|"reopens"| RC
+    GC -->|"authorizes use"| KC
+    KC -->|"context & learning"| RC
+    classDef core fill:#0F172A,color:#FFFFFF,stroke:#0F172A,stroke-width:3px;
+    classDef registry fill:#F1F5F9,color:#334155,stroke:#64748B,stroke-width:1.5px;
+    classDef research fill:#EFF6FF,color:#1E3A8A,stroke:#2563EB,stroke-width:1.5px;
+    classDef evidence fill:#ECFDF5,color:#065F46,stroke:#10B981,stroke-width:1.5px;
+    classDef govern fill:#FEF3C7,color:#78350F,stroke:#F59E0B,stroke-width:1.5px;
+    classDef observe fill:#F5F3FF,color:#4C1D95,stroke:#8B5CF6,stroke-width:1.5px;
+    classDef knowledge fill:#ECFEFF,color:#155E75,stroke:#06B6D4,stroke-width:1.5px;
+    class S core;
+    class SR registry;
+    class RC research;
+    class EC evidence;
+    class GC govern;
+    class OC observe;
+    class KC knowledge;

@@ -1,0 +1,23 @@
+%%{init: {"theme":"base","themeVariables":{"fontFamily":"Inter, ui-sans-serif, system-ui, sans-serif","primaryColor":"#EFF6FF","primaryTextColor":"#0F172A","primaryBorderColor":"#2563EB","lineColor":"#64748B"}}}%%
+stateDiagram-v2
+    state "Strategy" as Strategy {
+        [*] --> Idea
+        Idea --> Research: scope approved
+        Research --> Validated: validation pass + decision
+        Research --> Deprecated: thesis rejected
+        Validated --> PaperTrading: risk approval + decision
+        Validated --> Research: evidence gap
+        PaperTrading --> Monitoring: observation mandate met
+        PaperTrading --> NeedsReview: breach or drift
+        Monitoring --> NeedsReview: alert, drift, or scheduled review
+        NeedsReview --> Research: rework decision
+        NeedsReview --> Monitoring: reaffirm decision
+        NeedsReview --> Deprecated: retirement decision
+        Deprecated --> Archived: retention conditions met
+        Deprecated --> Research: exceptional reopen decision
+        Archived --> [*]
+    }
+    Validation --> Strategy: gates advancement
+    RiskReview --> Strategy: gates exposure
+    MonitoringEvidence --> Strategy: triggers review
+    Decision --> Strategy: authorizes transition

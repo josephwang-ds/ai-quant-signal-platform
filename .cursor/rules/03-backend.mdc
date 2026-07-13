@@ -1,0 +1,15 @@
+---
+description: Apply backend domain and dependency rules to Python services
+globs: "{apps/api,backend}/**/*.py"
+alwaysApply: false
+---
+
+# Backend rules
+
+- Keep domain code free of FastAPI, persistence, provider, scheduler, and LLM imports.
+- Model lifecycle transitions explicitly and enforce invariants inside aggregates or domain policies.
+- Application handlers coordinate ports and aggregates; they do not contain domain rules.
+- Infrastructure adapters implement inward-owned protocols and are wired only at the composition root.
+- Validate input at the boundary and return stable, intentional errors without leaking internals.
+- Use type hints, deterministic behavior, UTC timestamps, and tests at the narrowest useful layer.
+- Treat `backend/` as the legacy runtime until an approved migration slice moves capability to `apps/api/`.

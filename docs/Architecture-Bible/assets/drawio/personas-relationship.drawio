@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile host="app.diagrams.net" modified="2026-07-13T00:00:00.000Z" agent="ArchitectureBible" version="22.1.0" type="device">
+  <diagram id="personas-relationship" name="personas-relationship">
+    <mxGraphModel dx="1200" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1100" pageHeight="700" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="s" value="Strategy\nCore object" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#0F172A;fontColor=#FFFFFF;strokeColor=#0F172A;fontFamily=Inter;fontSize=14;fontStyle=1" vertex="1" parent="1"><mxGeometry x="400" y="300" width="260" height="90" as="geometry"/></mxCell>
+        <mxCell id="qr" value="Quant Researcher\nPrimary" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EFF6FF;strokeColor=#2563EB;fontFamily=Inter" vertex="1" parent="1"><mxGeometry x="80" y="80" width="220" height="80" as="geometry"/></mxCell>
+        <mxCell id="ds" value="Data Scientist" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F5F3FF;strokeColor=#8B5CF6;fontFamily=Inter" vertex="1" parent="1"><mxGeometry x="760" y="80" width="220" height="80" as="geometry"/></mxCell>
+        <mxCell id="ra" value="Risk Analyst" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FEF3C7;strokeColor=#F59E0B;fontFamily=Inter" vertex="1" parent="1"><mxGeometry x="80" y="520" width="220" height="80" as="geometry"/></mxCell>
+        <mxCell id="pm" value="Portfolio Manager" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ECFDF5;strokeColor=#10B981;fontFamily=Inter" vertex="1" parent="1"><mxGeometry x="760" y="520" width="220" height="80" as="geometry"/></mxCell>
+        <mxCell id="e1" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#64748B;endArrow=block;" edge="1" parent="1" source="qr" target="s"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e2" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#64748B;endArrow=block;" edge="1" parent="1" source="ds" target="s"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e3" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#64748B;endArrow=block;" edge="1" parent="1" source="ra" target="s"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e4" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#64748B;endArrow=block;" edge="1" parent="1" source="pm" target="s"><mxGeometry relative="1" as="geometry"/></mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

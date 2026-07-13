@@ -1,0 +1,20 @@
+%%{init: {"theme":"base","themeVariables":{"fontFamily":"Inter, ui-sans-serif, system-ui, sans-serif","primaryTextColor":"#0F172A","lineColor":"#64748B"},"flowchart":{"curve":"basis","nodeSpacing":24,"rankSpacing":40}}}%%
+flowchart LR
+    CLOCK["Clock / Calendar"] --> ENGINE["Scheduler Engine"]
+    EVENTS["Domain Events"] --> ENGINE
+    ENGINE --> JOBS["Job Definitions<br/>Trigger · Frequency · Idempotency"] --> APP["Application Use Cases"] --> DOM["Domain Rules"] --> OUT["Domain Events + Business Results"] --> BUS["Outbox / Event Dispatcher"]
+    BUS --> ENGINE
+    BUS --> NOTIFY["Notification Adapter"]
+    BUS --> AGENT["Agent Runtime"]
+    JOBS -. "never" .-> DIRECT["Direct Repository / Aggregate Mutation"]
+    classDef trigger fill:#F8FAFC,color:#334155,stroke:#64748B,stroke-width:1.5px;
+    classDef infra fill:#F5F3FF,color:#4C1D95,stroke:#8B5CF6,stroke-width:1.5px;
+    classDef app fill:#ECFEFF,color:#155E75,stroke:#06B6D4,stroke-width:1.5px;
+    classDef domain fill:#0F172A,color:#FFFFFF,stroke:#0F172A,stroke-width:2.5px;
+    classDef invalid fill:#FEF2F2,color:#991B1B,stroke:#EF4444,stroke-width:1.5px;
+    class CLOCK,EVENTS trigger;
+    class ENGINE,JOBS,BUS,NOTIFY,AGENT infra;
+    class APP app;
+    class DOM domain;
+    class OUT trigger;
+    class DIRECT invalid;

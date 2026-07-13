@@ -1,0 +1,83 @@
+name: User or engineering story
+description: Define one reviewable outcome within an epic or bounded context.
+title: "[Story]: "
+body:
+  - type: input
+    id: parent
+    attributes:
+      label: Parent epic
+      description: Link the parent epic, or explain why the story is standalone.
+      placeholder: "Example: #123 or Standalone maintenance story"
+    validations:
+      required: true
+
+  - type: textarea
+    id: story
+    attributes:
+      label: Story
+      description: Use “As a …, I need …, so that …” for user work, or state an equivalent engineering outcome.
+      placeholder: As a researcher, I need ..., so that ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Context and evidence
+      description: Explain the current state and why this story is needed now.
+    validations:
+      required: true
+
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      description: Provide testable behavior, including relevant failure and permission cases.
+      placeholder: |
+        - [ ] Given ..., when ..., then ...
+        - [ ] Given ..., when ..., then ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: scope
+    attributes:
+      label: Scope and non-goals
+      description: Identify included work, excluded work, and likely files or modules.
+    validations:
+      required: true
+
+  - type: textarea
+    id: architecture
+    attributes:
+      label: Domain and architecture notes
+      description: Identify the owning context, aggregate, state transition, event, or dependency impact. Write “No architecture change” when applicable.
+    validations:
+      required: true
+
+  - type: textarea
+    id: verification
+    attributes:
+      label: Verification plan
+      description: List automated and manual evidence required before the story is done.
+    validations:
+      required: true
+
+  - type: textarea
+    id: dependencies
+    attributes:
+      label: Dependencies and risks
+      description: Link blocking work and note migration, compatibility, security, or data concerns.
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Story checks
+      options:
+        - label: This story represents one independently reviewable outcome.
+          required: true
+        - label: I searched for overlapping stories and issues.
+          required: true
+        - label: I agree to follow the project Code of Conduct.
+          required: true
+

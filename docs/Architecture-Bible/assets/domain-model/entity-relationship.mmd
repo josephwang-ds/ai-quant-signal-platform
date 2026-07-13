@@ -1,0 +1,27 @@
+%%{init: {"theme":"base","themeVariables":{"fontFamily":"Inter, ui-sans-serif, system-ui, sans-serif","primaryColor":"#EFF6FF","primaryTextColor":"#0F172A","primaryBorderColor":"#2563EB","lineColor":"#64748B"}}}%%
+erDiagram
+    STRATEGY ||--|| LIFECYCLE : governs
+    STRATEGY ||--o{ RESEARCH : organizes
+    STRATEGY ||--o{ VALIDATION : is_assessed_by
+    STRATEGY ||--o{ REVIEW : is_reviewed_by
+    STRATEGY ||--o{ DECISION : is_governed_by
+    STRATEGY ||--o{ MONITORING : is_observed_by
+    STRATEGY ||--o{ SIMULATION : is_exercised_by
+    STRATEGY }o--o{ PORTFOLIO : participates_in
+    STRATEGY }o--o{ MARKET : is_contextualized_by
+    STRATEGY ||--o{ NOTEBOOK : is_documented_by
+    RESEARCH ||--o{ HYPOTHESIS : frames
+    RESEARCH ||--o{ EXPERIMENT : conducts
+    EXPERIMENT ||--o{ BACKTEST : runs
+    EXPERIMENT ||--o{ SIMULATION : may_run
+    BACKTEST }o--|| BENCHMARK : compares_with
+    VALIDATION }o--o{ EVIDENCE : evaluates
+    EVIDENCE ||--o{ DATA_CONFIDENCE : is_qualified_by
+    VALIDATION ||--o{ AI_REVIEW : is_interpreted_by
+    VALIDATION ||--o{ RISK_REVIEW : informs
+    RISK_REVIEW }o--o{ GUARDRAILS : applies
+    REVIEW }o--o{ AI_REVIEW : considers
+    REVIEW }o--o{ RISK_REVIEW : considers
+    DECISION }o--o{ EVIDENCE : is_supported_by
+    DECISION }o--o{ REVIEW : relies_on
+    MONITORING ||--o{ HEALTH_SCORE : synthesizes

@@ -1,0 +1,22 @@
+%%{init: {"theme":"base","themeVariables":{"fontFamily":"Inter, ui-sans-serif, system-ui, sans-serif","primaryTextColor":"#0F172A","lineColor":"#64748B"},"flowchart":{"curve":"basis","nodeSpacing":30,"rankSpacing":44}}}%%
+flowchart LR
+    BUS["Domain / Integration Events"] --> AR["Agent Runtime"]
+    AR --> RA["Research Agent"] & RVA["Review Agent"] & MA["Market Agent"] & PA["Portfolio Agent"]
+    RA & RVA & MA & PA --> Q["Application Query Use Cases"] --> READ["Authorized Repository Read Ports"]
+    RA & RVA & MA & PA --> LPORT["LLM Port"] --> LLM["LLM Providers"]
+    RA & RVA & MA & PA --> REPORT["Report / Artifact Port"] --> OBJ[("Object Storage")]
+    RA & RVA & MA & PA --> CMD["Application Command Use Cases"] --> DOM["Domain Aggregates"]
+    DOM -. "accepts or rejects" .-> CMD
+    AR -. "never writes directly" .-> DOM
+    classDef event fill:#F5F3FF,color:#4C1D95,stroke:#8B5CF6,stroke-width:1.5px;
+    classDef runtime fill:#0F172A,color:#FFFFFF,stroke:#0F172A,stroke-width:3px;
+    classDef agent fill:#EFF6FF,color:#1E3A8A,stroke:#2563EB,stroke-width:1.5px;
+    classDef app fill:#ECFEFF,color:#155E75,stroke:#06B6D4,stroke-width:1.5px;
+    classDef infra fill:#F5F3FF,color:#4C1D95,stroke:#8B5CF6,stroke-width:1.5px;
+    classDef domain fill:#FEF3C7,color:#78350F,stroke:#F59E0B,stroke-width:2px;
+    class BUS event;
+    class AR runtime;
+    class RA,RVA,MA,PA agent;
+    class Q,CMD app;
+    class READ,LPORT,LLM,REPORT,OBJ infra;
+    class DOM domain;

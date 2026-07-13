@@ -1,0 +1,15 @@
+%%{init: {"theme":"base","themeVariables":{"fontFamily":"Inter, ui-sans-serif, system-ui, sans-serif","primaryTextColor":"#0F172A","lineColor":"#64748B"},"flowchart":{"curve":"basis","nodeSpacing":28,"rankSpacing":42}}}%%
+flowchart LR
+    IN["Driving Adapter<br/>API · Scheduler · Agent"] --> UC["Application Use Case"] --> AUTH["Actor & Mandate Check"] --> LOAD["Load through Repository Ports"] --> DOM["Invoke Domain Behavior"] --> UOW["Unit of Work"] --> OUT["Persist Aggregate + Outbox"] --> EVT["Publish after Commit"] --> HANDLER["Application Event Handler"] --> UC2["Next Use Case"]
+    DOM -. "rule violation" .-> REJECT["Business Rejection<br/>No state change"]
+    OUT -. "technical failure" .-> RETRY["Retry / Recovery<br/>No false event"]
+    classDef driving fill:#EFF6FF,color:#1E3A8A,stroke:#2563EB,stroke-width:1.5px;
+    classDef app fill:#ECFEFF,color:#155E75,stroke:#06B6D4,stroke-width:1.5px;
+    classDef domain fill:#0F172A,color:#FFFFFF,stroke:#0F172A,stroke-width:2.5px;
+    classDef infra fill:#F5F3FF,color:#4C1D95,stroke:#8B5CF6,stroke-width:1.5px;
+    classDef failure fill:#FEF2F2,color:#991B1B,stroke:#EF4444,stroke-width:1.5px;
+    class IN driving;
+    class UC,AUTH,LOAD,UOW,HANDLER,UC2 app;
+    class DOM domain;
+    class OUT,EVT infra;
+    class REJECT,RETRY failure;

@@ -1,4 +1,10 @@
-# AI Quant Research Workspace — Architecture
+# AI Quant Research Workspace — Architecture (Legacy Snapshot)
+
+> **Status: Legacy**  
+> **Not the frozen architecture source of truth.**  
+> Use [`docs/PROJECT_BIBLE.md`](PROJECT_BIBLE.md) and the [Architecture Bible](Architecture-Bible/) for authoritative product, domain, state, and runtime design.  
+> Use [`PROJECT_STRUCTURE.md`](../PROJECT_STRUCTURE.md) for current vs target repository layout.  
+> This file is retained as a historical implementation/planning snapshot from the pre–Architecture Bible era. Do not extend it.
 
 ## Product concept
 
@@ -15,7 +21,7 @@ Core design principles:
 - **Research Notes** holds human and AI-generated research notes.
 - **AI Research Agent** provides explanation and workflow support — not trading.
 
-This document describes the intended architecture. Database, cache, ML, and LLM implementations are planned but not yet built in v1.
+This document describes a historical intended architecture. Database, cache, ML, and LLM implementations remain subject to the frozen Architecture Bible and accepted ADRs.
 
 ---
 

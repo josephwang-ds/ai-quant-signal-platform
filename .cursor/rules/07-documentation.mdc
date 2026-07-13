@@ -1,0 +1,15 @@
+---
+description: Apply documentation quality and architecture-record standards
+globs: "**/*.md"
+alwaysApply: false
+---
+
+# Documentation rules
+
+- Write for a reader who has no conversation context; lead with purpose and authoritative status.
+- Use the exact domain vocabulary from the Architecture Bible and link rather than duplicate source material.
+- Separate current behavior, target architecture, and roadmap; never present plans as implemented facts.
+- Prefer short sections, decision tables, and Mermaid only when relationships benefit from a visual.
+- Give commands and paths that are verified against the repository.
+- Date audit snapshots and identify owners or review triggers for durable documents.
+- Do not include secrets, private operational notes, or unsupported performance claims.

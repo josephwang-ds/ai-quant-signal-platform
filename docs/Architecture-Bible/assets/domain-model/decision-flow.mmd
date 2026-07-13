@@ -1,0 +1,26 @@
+%%{init: {"theme":"base","themeVariables":{"fontFamily":"Inter, ui-sans-serif, system-ui, sans-serif","primaryTextColor":"#0F172A","lineColor":"#64748B"},"flowchart":{"curve":"basis","nodeSpacing":28,"rankSpacing":48}}}%%
+flowchart TB
+    S["Strategy"] --> ER["Evidence Readiness"]
+    ER -->|"insufficient"| R["Research"] --> S
+    ER -->|"sufficient"| V["Validation"]
+    V -->|"fail / inconclusive"| R
+    V -->|"pass with limitations"| AI["AI Review"]
+    AI --> RR["Risk Review + Guardrails"]
+    RR -->|"breach / rework"| R
+    RR -->|"eligible"| RV["Accountable Review"]
+    RV --> D["Decision"]
+    D --> L["Lifecycle State"] --> S
+    D --> P["Portfolio Eligibility"] --> S
+    D --> M["Monitoring Obligations"] --> S
+    D --> N["Notebook Record"] --> S
+    D --> A["Research Actions"] --> R
+    classDef core fill:#0F172A,color:#FFFFFF,stroke:#0F172A,stroke-width:3px;
+    classDef research fill:#EFF6FF,color:#1E3A8A,stroke:#2563EB,stroke-width:1.5px;
+    classDef evidence fill:#ECFDF5,color:#065F46,stroke:#10B981,stroke-width:1.5px;
+    classDef govern fill:#FEF3C7,color:#78350F,stroke:#F59E0B,stroke-width:1.5px;
+    classDef outcome fill:#F5F3FF,color:#4C1D95,stroke:#8B5CF6,stroke-width:1.5px;
+    class S core;
+    class R research;
+    class ER,V evidence;
+    class AI,RR,RV,D govern;
+    class L,P,M,N,A outcome;

@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="700" viewBox="0 0 1200 700" role="img" aria-labelledby="title desc">
+  <title id="title">Product positioning</title>
+  <desc id="desc">AI Quant Research Workspace belongs to the Research Workspace category, distinct from trading platforms and AI stock pickers, while backtesting is one capability within research.</desc>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0 0L10 5L0 10z" fill="#94a3b8"/></marker>
+    <marker id="arrowBlue" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0 0L10 5L0 10z" fill="#2563eb"/></marker>
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="130%"><feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#0f172a" flood-opacity="0.10"/></filter>
+    <style>
+      .text{font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;fill:#0f172a}.title{font-size:28px;font-weight:700}.label{font-size:21px;font-weight:700}.detail{font-size:15px;fill:#64748b}.hint{font-size:14px;font-weight:600;fill:#64748b}.dash{fill:none;stroke:#94a3b8;stroke-width:2;stroke-dasharray:7 7;marker-end:url(#arrow)}
+    </style>
+  </defs>
+  <rect width="1200" height="700" rx="24" fill="#f8fafc"/>
+  <text x="600" y="56" text-anchor="middle" class="text title">Product Positioning</text>
+
+  <rect x="70" y="100" width="460" height="112" rx="16" fill="#fff" stroke="#94a3b8" stroke-width="1.5"/>
+  <text x="300" y="146" text-anchor="middle" class="text label">Trading Platform</text>
+  <text x="300" y="178" text-anchor="middle" class="text detail">Execution-centered</text>
+
+  <rect x="670" y="100" width="460" height="112" rx="16" fill="#fff" stroke="#94a3b8" stroke-width="1.5"/>
+  <text x="900" y="146" text-anchor="middle" class="text label">Backtesting Tool</text>
+  <text x="900" y="178" text-anchor="middle" class="text detail">Simulation-centered</text>
+
+  <rect x="70" y="300" width="460" height="112" rx="16" fill="#fff" stroke="#94a3b8" stroke-width="1.5"/>
+  <text x="300" y="346" text-anchor="middle" class="text label">AI Stock Picker</text>
+  <text x="300" y="378" text-anchor="middle" class="text detail">Selection-centered</text>
+
+  <rect x="670" y="300" width="460" height="112" rx="16" fill="#eff6ff" stroke="#2563eb" stroke-width="3" filter="url(#shadow)"/>
+  <text x="900" y="346" text-anchor="middle" class="text label" style="fill:#1e3a8a">Research Workspace</text>
+  <text x="900" y="378" text-anchor="middle" class="text detail">Lifecycle-centered</text>
+
+  <path class="dash" d="M300 212 V476 H505"/>
+  <path class="dash" d="M900 212 V250 H600 V476"/>
+  <path class="dash" d="M300 412 V506 H505"/>
+  <path d="M900 412 V476 H695" fill="none" stroke="#2563eb" stroke-width="4" marker-end="url(#arrowBlue)"/>
+
+  <text x="470" y="246" text-anchor="end" class="text hint">distinct category</text>
+  <text x="730" y="240" class="text hint">capability within research</text>
+  <text x="470" y="464" text-anchor="end" class="text hint">distinct category</text>
+  <text x="935" y="458" class="text hint" style="fill:#2563eb">belongs here</text>
+
+  <rect x="350" y="506" width="500" height="108" rx="18" fill="#0f172a" filter="url(#shadow)"/>
+  <text x="600" y="569" text-anchor="middle" class="text label" style="fill:#fff">AI Quant Research Workspace</text>
+</svg>

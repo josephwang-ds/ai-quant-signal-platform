@@ -1,0 +1,13 @@
+---
+description: Guardrails for AI-assisted research workflows and agent features
+alwaysApply: true
+---
+
+# AI agent rules
+
+- AI agents interpret, summarize, compare, and draft; they do not create quantitative truth.
+- Agents consume approved context and domain events, read through ports, and invoke Application use cases for mutations.
+- Require traceable inputs, model identity, prompt/version metadata, outputs, and linked evidence.
+- Distinguish facts, calculations, assumptions, and model interpretation in every durable artifact.
+- Never allow an agent to bypass validation, guardrails, risk review, authorization, or state transitions.
+- Design for timeout, retry, idempotency, provider failure, human review, and reproducible re-evaluation.

@@ -1,0 +1,16 @@
+%%{init: {"theme":"base","themeVariables":{"fontFamily":"Inter, ui-sans-serif, system-ui, sans-serif","primaryColor":"#EFF6FF","primaryTextColor":"#0F172A","primaryBorderColor":"#2563EB","lineColor":"#64748B"}}}%%
+stateDiagram-v2
+    state "Decision within Evaluation" as Decision {
+        [*] --> Draft
+        Draft --> Pending: DecisionSubmitted
+        Draft --> Withdrawn: DecisionWithdrawn
+        Pending --> Approved: DecisionApproved
+        Pending --> Rejected: DecisionRejected
+        Pending --> Draft: DecisionChangesRequested
+        Approved --> Executed: DecisionExecuted
+        Approved --> Superseded: DecisionSuperseded
+        Executed --> Superseded: DecisionSuperseded
+        Withdrawn --> [*]
+        Rejected --> [*]
+        Superseded --> [*]
+    }

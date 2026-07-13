@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile host="app.diagrams.net" modified="2026-07-13T00:00:00.000Z" agent="ArchitectureBible" version="22.1.0" type="device">
+  <diagram id="strategy-centric-nav" name="strategy-centric-nav">
+    <mxGraphModel dx="1200" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="700" pageHeight="800" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="s" value="Strategy" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#0F172A;fontColor=#FFFFFF;strokeColor=#0F172A;fontStyle=1;fontFamily=Inter" vertex="1" parent="1"><mxGeometry x="260" y="20" width="240" height="50" as="geometry"/></mxCell>
+        <mxCell id="t0" value="Overview" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EFF6FF;strokeColor=#2563EB;fontFamily=Inter" vertex="1" parent="1"><mxGeometry x="260" y="100" width="240" height="50" as="geometry"/></mxCell>
+        <mxCell id="e0" value="" style="endArrow=block;strokeColor=#64748B;" edge="1" parent="1" source="s" target="t0"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="t1" value="Research" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EFF6FF;strokeColor=#2563EB;fontFamily=Inter" vertex="1" parent="1"><mxGeometry x="260" y="170" width="240" height="50" as="geometry"/></mxCell>
+        <mxCell id="e1" value="" style="endArrow=block;strokeColor=#64748B;" edge="1" parent="1" source="t0" target="t1"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="t2" value="Validation" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EFF6FF;strokeColor=#2563EB;fontFamily=Inter" vertex="1" parent="1"><mxGeometry x="260" y="240" width="240" height="50" as="geometry"/></mxCell>
+        <mxCell id="e2" value="" style="endArrow=block;strokeColor=#64748B;" edge="1" parent="1" source="t1" target="t2"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="t3" value="AI Review" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EFF6FF;strokeColor=#2563EB;fontFamily=Inter" vertex="1" parent="1"><mxGeometry x="260" y="310" width="240" height="50" as="geometry"/></mxCell>
+        <mxCell id="e3" value="" style="endArrow=block;strokeColor=#64748B;" edge="1" parent="1" source="t2" target="t3"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="t4" value="Risk" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EFF6FF;strokeColor=#2563EB;fontFamily=Inter" vertex="1" parent="1"><mxGeometry x="260" y="380" width="240" height="50" as="geometry"/></mxCell>
+        <mxCell id="e4" value="" style="endArrow=block;strokeColor=#64748B;" edge="1" parent="1" source="t3" target="t4"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="t5" value="Portfolio" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EFF6FF;strokeColor=#2563EB;fontFamily=Inter" vertex="1" parent="1"><mxGeometry x="260" y="450" width="240" height="50" as="geometry"/></mxCell>
+        <mxCell id="e5" value="" style="endArrow=block;strokeColor=#64748B;" edge="1" parent="1" source="t4" target="t5"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="t6" value="Notebook" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EFF6FF;strokeColor=#2563EB;fontFamily=Inter" vertex="1" parent="1"><mxGeometry x="260" y="520" width="240" height="50" as="geometry"/></mxCell>
+        <mxCell id="e6" value="" style="endArrow=block;strokeColor=#64748B;" edge="1" parent="1" source="t5" target="t6"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="t7" value="History" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EFF6FF;strokeColor=#2563EB;fontFamily=Inter" vertex="1" parent="1"><mxGeometry x="260" y="590" width="240" height="50" as="geometry"/></mxCell>
+        <mxCell id="e7" value="" style="endArrow=block;strokeColor=#64748B;" edge="1" parent="1" source="t6" target="t7"><mxGeometry relative="1" as="geometry"/></mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

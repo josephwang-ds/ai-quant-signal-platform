@@ -1,0 +1,14 @@
+---
+description: Enforce the frozen modular-monolith, DDD, vertical-slice, and clean-architecture boundaries
+alwaysApply: true
+---
+
+# Architecture boundaries
+
+- Build a modular monolith organized by bounded context and use case.
+- Use the frozen contexts: Research, Validation, Governance, Portfolio, and Market Intelligence.
+- Keep dependencies inward: Presentation → Application → Domain; Infrastructure implements ports owned inward.
+- Put invariants and business transitions in Domain; put workflow coordination in Application.
+- Organize delivery work as complete vertical slices without coupling bounded contexts through internals.
+- Communicate across contexts through stable contracts and domain events; avoid shared mutable models.
+- Record changes to an accepted architectural decision in a new ADR before implementation.

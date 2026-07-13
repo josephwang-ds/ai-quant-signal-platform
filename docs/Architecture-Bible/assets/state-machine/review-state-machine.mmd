@@ -1,0 +1,13 @@
+%%{init: {"theme":"base","themeVariables":{"fontFamily":"Inter, ui-sans-serif, system-ui, sans-serif","primaryColor":"#EFF6FF","primaryTextColor":"#0F172A","primaryBorderColor":"#2563EB","lineColor":"#64748B"}}}%%
+stateDiagram-v2
+    state "Review within Evaluation" as Review {
+        [*] --> Requested
+        Requested --> Assigned: ReviewAssigned
+        Assigned --> Reviewing: ReviewStarted
+        Reviewing --> Completed: ReviewCompleted
+        Completed --> Expired: ReviewExpired
+        Requested --> Expired: ReviewRequestTimedOut
+        Assigned --> Requested: ReviewAssignmentRevoked
+        Reviewing --> Assigned: ReviewerRecused
+        Expired --> [*]
+    }

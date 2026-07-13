@@ -1,126 +1,99 @@
-# AI Quant Signal Platform
+# AI Quant Research Workspace
 
-A full-stack quant research dashboard for signal scoring, strategy backtesting, benchmark comparison, and robustness checks. Built as a **portfolio and research demonstration** project — not a trading bot.
+**A research operating system for moving quantitative ideas into evidence and governed decisions.**
 
-> **Disclaimer**
->
-> For **portfolio and research demonstration** only. **Not financial advice.** **Not for live trading.** No broker integration. Uses **daily historical OHLCV** with **auto failover** across free providers (AKShare → Yahoo/`yfinance` → Stooq).
+[Architecture](docs/PROJECT_BIBLE.md) · [Roadmap](ROADMAP.md) · [Contributing](CONTRIBUTING.md) · [Security](SECURITY.md) · [Changelog](CHANGELOG.md)
 
----
+> **Research First. AI Second. Decisions Last.**
 
-## What It Does
+AI Quant Research Workspace is a Strategy-centric environment for quantitative research, validation, review, risk governance, portfolio analysis, simulation, and monitoring. It is not a trading bot, stock prediction model, broker, or live execution platform.
 
-Enter stock or ETF tickers, rank rule-based signals, inspect indicators and charts, then run simulated backtests in the **Strategy Lab**:
+The repository is evolving from a working quant-research demonstration into a production-quality modular platform. Existing runtime behavior remains available while the frozen architecture is adopted through deliberate vertical slices.
 
-**Data → Signals → Backtest → Robustness**
+## Why this exists
 
-| Stage | What you get |
-|-------|----------------|
-| Market Watch | Multi-ticker signal ranking (0–100 score, labels, risk bucket) |
-| Charts | Single-ticker indicators or normalized multi-ticker comparison |
-| Strategy Lab | MA crossover, momentum, or combined signal backtests |
-| Trade Log | Collapsible BUY/SELL event table with reasons |
-| Robustness | MA parameter sensitivity + out-of-sample validation |
+Quant research rarely fails because one more chart is missing. It fails when hypotheses, datasets, assumptions, experiments, validation, reviews, and decisions become disconnected.
 
-The UI supports **English** and **Simplified Chinese**.
+This workspace keeps the full chain visible:
 
----
+```text
+Idea → Research → Validation → Paper Simulation → Monitoring → Review → Retirement
+```
 
-## Strategy Lab
+Every durable conclusion should trace to metrics, evidence, and source provenance. AI can explain and compare that evidence; deterministic quantitative and risk rules retain authority.
 
-Three backtest methods share the same metrics, charts, and trade log format. All positions are **lagged by one day** to avoid look-ahead bias; **transaction costs** apply on position changes.
+## Product overview
 
-### MA Crossover
+The intended workspace connects nine research capabilities:
 
-- Hold when short moving average > long moving average
-- Default windows: 20 / 60
+```mermaid
+flowchart TB
+  MI["Market Intelligence"] --> RL["Research Lab"] --> VC["Validation Center"]
+  VC --> RR["Research Review"] --> RG["Risk Governance"] --> SR["Strategy Registry"]
+  SR --> PR["Portfolio Review"] --> SC["Simulation Center"] --> RN["Research Notebook"]
+  RN -.evidence and iteration.-> RL
+```
 
-### Momentum
+Current implementation includes a Next.js research interface and a FastAPI backend for market data, rule-based backtests, robustness checks, experiment records, risk monitoring, and paper simulation. The newer `apps/api/` tree is an early reference slice for the target architecture, not yet the complete production runtime.
 
-- Hold when past N-day return is positive
-- Default window: 60 days
+## Screenshots
 
-### Combined Signal
+| Workspace view | Publication slot |
+|---|---|
+| Research List | Capture the Strategy-linked research portfolio with lifecycle, owner, and evidence confidence. |
+| Research Workspace | Capture hypothesis, experiments, validation state, and next governed action. |
+| Decision Review | Capture quantitative evidence, AI interpretation, risk gate, and decision provenance. |
 
-Uses both MA crossover and momentum:
-
-| Mode | Rule |
-|------|------|
-| **Conservative** | Hold only when **both** MA and momentum are positive |
-| **Aggressive** | Hold when **either** MA or momentum is positive |
-
-Default combined mode: **conservative**
-
-Parameter sensitivity and out-of-sample validation remain **MA crossover only** in the current version.
-
----
-
-## Key Features
-
-- Multi-ticker market watch and signal ranking
-- Transparent signal components (trend, momentum, RSI, volatility)
-- Normalized price comparison chart with Recharts Brush zoom
-- Strategy Lab: MA crossover, momentum, combined signal (conservative / aggressive)
-- Strategy vs buy-and-hold cumulative return chart with BUY/SELL markers
-- Strategy and benchmark drawdown comparison
-- Collapsible trade log with trade date, action, price, and reason
-- Rule-based backtest interpretation (bilingual)
-- MA parameter sensitivity analysis
-- Out-of-sample (in-sample vs out-of-sample) validation
-- FastAPI + pytest backend tests
-
----
+Screenshots will be added after the workspace information architecture stabilizes; the descriptions above are intentional capture requirements, not missing product specifications.
 
 ## Architecture
 
-```
-Next.js Frontend
-       ↓
-FastAPI Backend
-       ↓
-MarketDataService (data_source=auto|akshare|yahoo|stooq)
-       ↓
-auto failover: AkshareProvider → YahooProvider → StooqProvider
-       ↓
-pandas (indicators, signals, backtests)
-       ↓
-JSON API → Recharts visualization
+The frozen architecture combines a **modular monolith**, **Domain-Driven Design**, **Clean Architecture**, **vertical slices**, and **event-driven workflows**.
+
+```mermaid
+flowchart TB
+  User["Researcher / Reviewer"] --> Web["Next.js workspace"]
+  Web --> API["FastAPI presentation"] --> Application["Application use cases"]
+  Application --> Domain["Domain aggregates and policies"]
+  Infrastructure["Persistence, market data, LLM, scheduler adapters"] --> Application
+  Infrastructure --> Domain
+  Application --> Events["Domain events"] --> Application
 ```
 
-| Layer | Role |
-|-------|------|
-| **Next.js** | Dashboard UI, forms, i18n, charts |
-| **FastAPI** | REST API, Pydantic validation |
-| **pandas** | Feature engineering and backtest engine |
-| **Recharts** | Price, comparison, return, and drawdown charts |
+Strict dependency direction:
 
----
+```text
+Presentation → Application → Domain
+Infrastructure ───────────→ inward-owned ports
+```
 
-## Data Source
+Bounded contexts are Research, Validation, Governance, Portfolio, and Market Intelligence. Strategy is the central lifecycle identity; contexts own their records and integrate through stable contracts and events.
 
-| Item | Detail |
-|------|--------|
-| Default mode | `auto` failover: **AKShare → Yahoo → Stooq** |
-| Manual lock | `data_source=akshare\|yahoo\|stooq` (API + Data Center preference) |
-| Abstraction | `MarketDataService` routes all price history requests |
-| Status API | `GET /api/data-sources/status` |
-| Database status | `GET /api/database/status` |
-| Frequency | Daily OHLCV |
-| Use case | Research and portfolio demonstration |
-| Not suitable for | Live execution or institutional-grade market data |
+Read the [Project Bible](docs/PROJECT_BIBLE.md) for the engineering constitution and the [Architecture Bible](docs/Architecture-Bible/) for the detailed product, domain, state-machine, and runtime design.
 
-Local note: install backend deps with `pip install -r requirements.txt` (includes `akshare`). If `akshare` is missing in the active Python env, auto mode skips it and continues to Yahoo/Stooq.
+## Tech stack
 
----
+| Area | Current technology | Architectural role |
+|---|---|---|
+| Web | Next.js 15, React 19, TypeScript 5 | workspace presentation |
+| Visualization | Recharts | research charts and quantitative views |
+| API | FastAPI, Pydantic | HTTP boundary and composition |
+| Quantitative computation | pandas | indicators, backtests, and metrics |
+| Persistence | PostgreSQL via psycopg; Supabase-compatible configuration | durable research assets |
+| Market data | AKShare, Yahoo/yfinance, Stooq | external provider adapters |
+| Testing | pytest | domain, service, and API verification |
+| Deployment | Vercel-compatible web, Render descriptor for current backend | current operational topology |
 
-## Run Locally
+Technology is an adapter choice. Domain behavior must remain independent of FastAPI, databases, providers, schedulers, and LLM SDKs.
+
+## Getting started
 
 ### Prerequisites
 
-- Python 3.9+
-- Node.js 18+
+- Python 3.9 or newer for the current backend
+- Node.js 18 or newer and npm for the web application
 
-### Backend
+### 1. Start the current backend
 
 ```bash
 cd backend
@@ -132,7 +105,11 @@ cp .env.example .env
 uvicorn app.main:app --reload --port 8000
 ```
 
-### Frontend
+The backend runs without a database connection; persistence-dependent capabilities report their unavailable state. Never commit real credentials.
+
+### 2. Start the web application
+
+In a second terminal:
 
 ```bash
 cd frontend
@@ -141,126 +118,9 @@ cp .env.example .env.local
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000). API docs: [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs)
+Open [http://localhost:3000](http://localhost:3000). The current API documentation is at [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs).
 
-### Database setup (optional — Database Preparation v1)
-
-Supabase Postgres stores **durable research assets** (saved backtest runs and trades in a future step). Raw OHLCV is not stored in v1. Cache is postponed.
-
-1. Create a Supabase project.
-2. In **Connect**, copy the **Transaction Pooler** URI (not the direct connection if using pooler mode).
-3. Set locally in `backend/.env`:
-   ```bash
-   SUPABASE_DB_URL=postgresql://...
-   ```
-4. On Render, add `SUPABASE_DB_URL` under **Environment**.
-5. In Supabase **SQL Editor**, paste and run `backend/db/schema.sql`.
-6. Verify:
-   ```bash
-   curl http://localhost:8000/api/database/status
-   ```
-
-The app starts normally without `SUPABASE_DB_URL`; the status endpoint reports `configured: false`.
-
-**Tip:** If the dev server shows a missing chunk error, stop dev and run `npm run dev:clean` (clears `.next` cache). Do not run `npm run build` while `npm run dev` is active.
-
----
-
-## Deploy
-
-| Component | Platform |
-|-----------|----------|
-| Frontend | Vercel |
-| Backend | Render (`render.yaml` included) |
-
-**Active Render backend:** `https://ai-quant-signal-platform.onrender.com`
-
-### Backend (Render)
-
-| Setting | Value |
-|---------|-------|
-| Root Directory | `backend` |
-| Build | `pip install -r requirements.txt` |
-| Start | `uvicorn app.main:app --host 0.0.0.0 --port $PORT` |
-| Health check | `/health` |
-
-Set `ALLOWED_ORIGINS` to your frontend URL(s), e.g. `https://your-app.vercel.app`.
-
-Optionally set `SUPABASE_DB_URL` (Transaction Pooler URI) for database connectivity and Experiments persistence.
-
-### Frontend (Vercel)
-
-| Setting | Value |
-|---------|-------|
-| Root Directory | `frontend` |
-| Framework | Next.js |
-
-Recommended `NEXT_PUBLIC_API_BASE_URL` (no trailing slash):
-
-```
-https://ai-quant-signal-platform.onrender.com
-```
-
-Local development uses `http://localhost:8000` via `frontend/.env.local` (see `frontend/.env.example`). Production builds fall back to the Render URL above if the env var is unset.
-
-### Canonical production endpoints
-
-```bash
-curl https://ai-quant-signal-platform.onrender.com/health
-curl https://ai-quant-signal-platform.onrender.com/api/data-sources/status
-curl https://ai-quant-signal-platform.onrender.com/api/database/status
-```
-
-### Checklist
-
-- [ ] `GET https://ai-quant-signal-platform.onrender.com/health` returns `{"status":"ok",...}`
-- [ ] `GET https://ai-quant-signal-platform.onrender.com/api/data-sources/status` returns `active_provider: yahoo`
-- [ ] `GET https://ai-quant-signal-platform.onrender.com/api/database/status` returns expected `configured` / `connected` state
-- [ ] `ALLOWED_ORIGINS` includes the Vercel URL
-- [ ] Market Watch and Strategy Lab work from the deployed UI
-
----
-
-## API Endpoints
-
-| Method | Endpoint | Purpose |
-|--------|----------|---------|
-| `GET` | `/health` | Health check |
-| `GET` | `/api/data-sources/status` | Active and planned data provider status |
-| `GET` | `/api/database/status` | Supabase Postgres config and connectivity |
-| `GET` | `/api/price/{ticker}` | Daily price history |
-| `GET` | `/api/indicators/{ticker}` | Price + technical indicators |
-| `GET` | `/api/signal/{ticker}` | Latest signal score and components |
-| `POST` | `/api/market-watch` | Multi-ticker signal ranking |
-| `POST` | `/api/chart/compare` | Normalized multi-ticker series |
-| `POST` | `/api/backtest` | Backtest (`ma_crossover`, `momentum`, `combined_signal`) |
-| `POST` | `/api/backtest/sensitivity` | MA parameter sensitivity |
-| `POST` | `/api/backtest/oos` | Out-of-sample validation |
-| `POST` | `/api/experiments/backtest-runs` | Save backtest run + trade log |
-| `GET` | `/api/experiments/backtest-runs` | List saved experiments |
-| `GET` | `/api/experiments/backtest-runs/{id}` | Experiment detail + trades |
-| `DELETE` | `/api/experiments/backtest-runs/{id}` | Delete saved experiment |
-
-### Backtest request (example)
-
-```json
-{
-  "ticker": "AAPL",
-  "start_date": "2022-01-01",
-  "strategy": "combined_signal",
-  "short_window": 20,
-  "long_window": 60,
-  "momentum_window": 60,
-  "combined_mode": "conservative",
-  "transaction_cost": 0.001
-}
-```
-
-Response includes `metrics`, `data`, `trade_log`, `parameters`, and `strategy_config`.
-
----
-
-## Testing
+### 3. Run checks
 
 ```bash
 cd backend
@@ -268,85 +128,97 @@ source .venv/bin/activate
 python -m pytest tests -v
 ```
 
-Coverage includes MA / momentum / combined backtests, trade log, sensitivity, and out-of-sample endpoints.
-
 ```bash
 cd frontend
-npm run build:clean
+npm run build
 ```
 
----
+The target API reference slice lives under `apps/api/`. See [`apps/api/README.md`](apps/api/README.md) for dependencies, entrypoint, startup, and development commands.
 
-## Project Structure
+## Environment
 
+| Variable | Scope | Purpose |
+|---|---|---|
+| `ALLOWED_ORIGINS` | backend | comma-separated browser origins for CORS |
+| `SUPABASE_DB_URL` | backend | optional PostgreSQL transaction-pooler connection |
+| `NEXT_PUBLIC_API_BASE_URL` | frontend | backend base URL; local template uses port 8000 |
+
+Use the checked-in `.env.example` files as the source for variable names. Keep secrets in local or deployment environment configuration only.
+
+## Repository structure
+
+```text
+.
+├── apps/api/                  # target modular-monolith reference slices
+├── backend/                   # current FastAPI runtime
+├── frontend/                  # current Next.js workspace
+├── docs/
+│   ├── Architecture-Bible/    # frozen architecture
+│   ├── adr/                   # architectural decisions
+│   ├── slices/                # vertical-slice notes
+│   ├── PROJECT_BIBLE.md       # single source of truth
+│   └── STYLE_GUIDE.md
+├── .cursor/rules/             # repository-aware AI engineering rules
+├── CONTRIBUTING.md
+├── ROADMAP.md
+└── PROJECT_STRUCTURE.md
 ```
-ai-quant-signal-platform/
-├── frontend/          # Next.js dashboard
-├── backend/
-│   ├── app/
-│   │   ├── backtest/  # engine, metrics, OOS
-│   │   ├── db/        # Supabase Postgres client (v1)
-│   │   ├── recommendation/
-│   │   └── main.py
-│   ├── db/
-│   │   └── schema.sql # backtest_runs, backtest_trades
-│   └── tests/
-├── render.yaml
-└── README.md
-```
 
----
-
-## Limitations
-
-- Daily historical data only; no intraday timestamps in trade log
-- Free providers may be delayed, rate-limited, or blocked on some networks (Yahoo unstable in China; Stooq may hit bot checks)
-- Simplified backtest assumptions (no slippage model beyond flat transaction cost)
-- No broker, live trading, or authentication
-- Database persistence stores saved backtest runs and trade logs (Experiments v1); raw OHLCV is not stored
-- No machine learning in the current version
-
----
+See [PROJECT_STRUCTURE.md](PROJECT_STRUCTURE.md) for folder ownership, naming, dependency rules, and the staged target layout.
 
 ## Roadmap
 
-**Done**
+The roadmap advances through engineering foundation, domain core, research workspace, validation and governance, portfolio and monitoring, governed AI, and production readiness.
 
-- Market data, indicators, signal scoring, bilingual UI
-- Multi-source market data with `auto` failover (AKShare / Yahoo / Stooq) and manual lock
-- Strategy Lab (MA, momentum, combined signal)
-- Trade log, benchmark comparison, drawdown charts
-- Parameter sensitivity, out-of-sample validation
-- Experiments Persistence v1 (save / list / detail / delete)
-- Paper trading + five-level risk engine (in-memory account)
+Near-term engineering priorities are:
 
-**Next (decision-platform direction — not more indicator widgets)**
+1. establish repeatable quality gates and dependency-boundary checks;
+2. normalize the reference `apps/api/` slice and migration contract;
+3. encode the frozen lifecycle state machines in the Domain layer;
+4. connect research artifacts through Strategy identity and Evidence provenance; and
+5. preserve current runtime behavior during incremental migration.
 
-1. **Data trust layer** — show hit source, failover trail, freshness, missing bars, adjustment mode
-2. **Rigorous research** — walk-forward, parameter stability, regime tests (beyond current OOS/sensitivity)
-3. **Decision explanation** — why signal fired, supporting/opposing evidence, invalidation conditions
-4. **Portfolio & risk** — position sizing, correlation, risk budget, drawdown limits
-5. **Simulated execution** — slippage, fees, order state, strategy drift monitoring
-6. **AI research assistant** — explain/compare/summarize experiments; do not invent trade signals
+See the complete [ROADMAP.md](ROADMAP.md). Planned work is not implemented behavior.
 
-**Later**
+## Engineering principles
 
-- CoinGecko / CSV upload / Tushare providers
-- Durable paper-account persistence
-- Model Lab (ML)
-- Additional rule-based strategies (RSI, MACD, breakout)
-- Portfolio-level backtest (top-N, rebalance)
-- Compare across saved experiments; watchlist persistence
-- ML ranking layer (with proper time-series validation)
+- Strategy-centric, not page-centric
+- Research-first, not execution-first
+- Quantitative evidence before AI interpretation
+- Deterministic validation before probabilistic explanation
+- Domain rules independent of frameworks and providers
+- Explicit lifecycle transitions and immutable history
+- Small, complete vertical slices
+- Secure, observable, reversible change
 
----
+## Contributing
 
-## License & Use
+Start with [CONTRIBUTING.md](CONTRIBUTING.md). All changes should identify their bounded context, preserve inward dependencies, include proportionate tests, and update documentation or ADRs when decisions change.
 
-Open for viewing and learning from the implementation. If you fork or reference this project, keep the disclaimer visible and do not present backtest results as investment advice.
+The AI-assisted handoff is documented in [DEVELOPMENT_WORKFLOW.md](DEVELOPMENT_WORKFLOW.md): ChatGPT frames, Codex implements and verifies, Cursor supports local refinement, reviewers validate, and maintainers merge.
 
----
+Use the repository’s structured GitHub forms for [bug reports](https://github.com/josephwang-ds/ai-quant-signal-platform/issues/new?template=bug_report.yml), [feature requests](https://github.com/josephwang-ds/ai-quant-signal-platform/issues/new?template=feature_request.yml), epics, and stories. Every participant must follow the [Code of Conduct](CODE_OF_CONDUCT.md). Security-sensitive findings belong in the private process described by [SECURITY.md](SECURITY.md), never in a public issue.
 
-## Disclaimer
+## Governance
 
-Portfolio and research demonstration only. Not financial advice. Not for live trading.
+| Document | Purpose |
+|---|---|
+| [Project Bible](docs/PROJECT_BIBLE.md) | product and engineering constitution |
+| [Architecture Decision Records](docs/adr/) | durable decisions and consequences |
+| [Roadmap](ROADMAP.md) | capability sequence and milestone outcomes |
+| [Contributing Guide](CONTRIBUTING.md) | issue, branch, review, and Definition of Done |
+| [Code of Conduct](CODE_OF_CONDUCT.md) | community participation and enforcement |
+| [Security Policy](SECURITY.md) | private vulnerability reporting and disclosure |
+| [Changelog](CHANGELOG.md) | notable repository changes and release history |
+
+## Project status
+
+This repository is under active architectural migration. The `backend/` and `frontend/` paths contain the current demonstrable runtime; `apps/api/` begins the production-shaped modular structure. See [MIGRATION_REPORT.md](MIGRATION_REPORT.md) before moving, renaming, or deleting legacy assets.
+
+## Responsible use
+
+This software supports research and paper simulation. It is not financial advice, does not guarantee results, and is not designed for live order execution. Historical and simulated performance can differ materially from real outcomes.
+
+## License
+
+This repository is licensed under the [MIT License](LICENSE). Copyright (c) 2026 Joseph Wang.

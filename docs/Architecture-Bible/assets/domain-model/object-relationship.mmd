@@ -1,0 +1,42 @@
+%%{init: {"theme":"base","themeVariables":{"fontFamily":"Inter, ui-sans-serif, system-ui, sans-serif","primaryTextColor":"#0F172A","lineColor":"#64748B"},"flowchart":{"curve":"basis","nodeSpacing":26,"rankSpacing":48}}}%%
+flowchart TB
+    S["Strategy"]
+    subgraph R["Research Objects"]
+        RE["Research"] --- H["Hypothesis"] --- EX["Experiment"]
+        EX --- BT["Backtest"]
+        EX --- SI["Simulation"]
+        BT --- BM["Benchmark"]
+    end
+    subgraph E["Evidence Objects"]
+        EV["Evidence"] --- DC["Data Confidence"] --- VA["Validation"]
+    end
+    subgraph G["Governance Objects"]
+        AI["AI Review"] --- RV["Review"] --- RR["Risk Review"]
+        RR --- GU["Guardrails"]
+        RV --- DE["Decision"] --- LC["Lifecycle"]
+    end
+    subgraph O["Observation & Context Objects"]
+        MA["Market"] --- MO["Monitoring"] --- HS["Health Score"]
+        PO["Portfolio"] --- NO["Notebook"]
+    end
+    S === RE
+    S === EV
+    S === DE
+    S === MO
+    S === PO
+    S === NO
+    RE --> EV --> VA --> RV --> DE --> S
+    SI --> MO --> HS --> RV
+    MA --> RE
+    GU --> MO
+    PO --> RR
+    classDef core fill:#0F172A,color:#FFFFFF,stroke:#0F172A,stroke-width:3px;
+    classDef research fill:#EFF6FF,color:#1E3A8A,stroke:#2563EB,stroke-width:1.5px;
+    classDef evidence fill:#ECFDF5,color:#065F46,stroke:#10B981,stroke-width:1.5px;
+    classDef govern fill:#FEF3C7,color:#78350F,stroke:#F59E0B,stroke-width:1.5px;
+    classDef context fill:#F5F3FF,color:#4C1D95,stroke:#8B5CF6,stroke-width:1.5px;
+    class S core;
+    class RE,H,EX,BT,SI,BM research;
+    class EV,DC,VA evidence;
+    class AI,RV,RR,GU,DE,LC govern;
+    class MA,MO,HS,PO,NO context;

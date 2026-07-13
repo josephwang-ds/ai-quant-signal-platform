@@ -1,0 +1,45 @@
+%%{init: {"theme":"base","themeVariables":{"fontFamily":"Inter, ui-sans-serif, system-ui, sans-serif","primaryTextColor":"#0F172A","lineColor":"#64748B"},"sequence":{"mirrorActors":false,"messageAlign":"center"}}}%%
+sequenceDiagram
+    autonumber
+    actor U as User
+    participant W as Next.js Web
+    participant G as FastAPI Gateway
+    participant A as Application
+    participant R as Research
+    participant V as ValidationRun
+    participant E as Evaluation
+    participant P as Portfolio
+    participant O as Outbox / Events
+    participant S as Scheduler
+    U->>W: Start new research
+    W->>G: Submit intent
+    G->>A: CreateResearch
+    A->>R: Create Draft and start planning
+    R-->>A: ResearchCreated / ResearchPlanningStarted
+    A->>O: Commit Research + events
+    O-->>A: Research workflow handlers
+    A->>R: Run Experiments and synthesize
+    R-->>A: ExperimentCompleted / ResearchClosed
+    A->>V: RunValidation with Evidence references
+    V-->>A: ValidationPassed
+    A->>O: Commit ValidationRun + event
+    O-->>A: RequestEvaluation
+    A->>E: Assign Reviews and submit Decision
+    E-->>A: EvaluationApproved / DecisionApproved
+    U->>W: Authorize publication
+    W->>G: Publish approved Strategy
+    G->>A: PublishStrategy
+    A->>E: Execute approved Decision
+    E-->>A: DecisionExecuted / StrategyValidated
+    A->>O: StrategyPublished
+    A->>P: StartPaperTrading
+    P-->>A: Portfolio eligibility confirmed
+    A->>O: PaperTradingStarted
+    O-->>S: Schedule monitoring start
+    S->>A: StartMonitoring
+    A->>P: Confirm mandate and thresholds
+    P-->>A: Monitoring mandate active
+    A->>O: MonitoringStarted
+    A-->>G: Workflow status
+    G-->>W: Governed result
+    W-->>U: Strategy under Monitoring

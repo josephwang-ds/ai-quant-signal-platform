@@ -1,0 +1,14 @@
+---
+description: Delivery workflow for planning, implementation, review, and merge
+alwaysApply: true
+---
+
+# Delivery workflow
+
+- Start from the relevant Architecture Bible chapter, ADRs, and `docs/PROJECT_BIBLE.md`.
+- Define one bounded outcome and its acceptance criteria before editing.
+- Inspect the worktree and preserve unrelated changes.
+- Implement the smallest complete slice, then run proportionate checks.
+- Update documentation and ADRs in the same change when contracts or decisions change.
+- Use focused commits and the branch conventions in `CONTRIBUTING.md`.
+- Hand off with scope, verification, risks, and follow-up work stated clearly.
