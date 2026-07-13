@@ -63,3 +63,25 @@ export function passFailVariant(passed: boolean): StatusBadgeVariant {
 export function healthVariant(status: string): StatusBadgeVariant {
   return status === "ok" ? "success" : "danger";
 }
+
+/** Research 生命周期状态 → 徽标色调（对齐 Ch3 状态机）。 */
+export function researchLifecycleVariant(status: string): StatusBadgeVariant {
+  switch (status) {
+    case "Draft":
+      return "neutral";
+    case "Running":
+      return "info";
+    case "Review":
+      return "warning";
+    case "Validated":
+      return "success";
+    case "Paper Trading":
+      return "buy";
+    case "Monitoring":
+      return "bullish";
+    case "Archived":
+      return "neutral";
+    default:
+      return "neutral";
+  }
+}
