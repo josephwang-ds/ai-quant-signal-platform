@@ -1,0 +1,17 @@
+%%{init: {"theme":"base","themeVariables":{"fontFamily":"Inter, ui-sans-serif, system-ui, sans-serif","primaryColor":"#EFF6FF","primaryTextColor":"#0F172A","primaryBorderColor":"#2563EB","lineColor":"#64748B"}}}%%
+stateDiagram-v2
+    state "Research Aggregate" as Research {
+        [*] --> Draft
+        Draft --> Planning: ResearchPlanningStarted
+        Planning --> Running: ResearchStarted
+        Running --> Synthesizing: ResearchSynthesisStarted
+        Synthesizing --> Reviewed: ResearchReviewed
+        Reviewed --> Closed: ResearchClosed
+        Closed --> Reopened: ResearchReopened
+        Reopened --> Planning: ResearchReplanningStarted
+        Planning --> Draft: ResearchPlanningCancelled
+        Running --> Planning: ResearchPausedForRedesign
+        Synthesizing --> Running: AdditionalExperimentRequired
+        Reviewed --> Synthesizing: ReviewChangesRequested
+        Closed --> [*]
+    }

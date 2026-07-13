@@ -1,0 +1,49 @@
+%%{init: {"theme":"base","themeVariables":{"fontFamily":"Inter, ui-sans-serif, system-ui, sans-serif","primaryTextColor":"#0F172A","lineColor":"#64748B"},"flowchart":{"curve":"basis","nodeSpacing":22,"rankSpacing":36}}}%%
+flowchart TB
+    S["Strategy<br/>cross-context lifecycle"]
+    subgraph R["Research Aggregate"]
+        R1["Draft"] --> R2["Planning"] --> R3["Running"] --> R4["Synthesizing"] --> R5["Reviewed"] --> R6["Closed"]
+        R6 --> R7["Reopened"] --> R2
+    end
+    subgraph V["ValidationRun Aggregate"]
+        V1["Planned"] --> V2["Ready"] --> V3["Running"]
+        V3 --> V4["Passed"]
+        V3 --> V5["Failed"]
+        V3 --> V6["Inconclusive"]
+        V2 --> V7["Invalidated"]
+        V3 --> V7
+        V4 --> V7
+    end
+    subgraph E["Evaluation Aggregate"]
+        E1["Draft"] --> E2["Requested"] --> E3["Reviewing"]
+        E3 --> E4["Approved"]
+        E3 --> E5["Rejected"]
+        E4 --> E6["Expired"]
+        E4 --> E7["Superseded"]
+    end
+    subgraph P["Portfolio Aggregate"]
+        P1["Draft"] --> P2["Under Review"] --> P3["Approved"] --> P4["Active"] --> P5["Suspended"] --> P6["Closed"] --> P7["Archived"]
+        P5 --> P4
+    end
+    subgraph M["MarketDataset Aggregate"]
+        M1["Registered"] --> M2["Profiling"] --> M3["Ready"] --> M4["Degraded"] --> M5["Quarantined"] --> M6["Retired"]
+        M4 --> M3
+        M5 --> M2
+    end
+    S <==> R1
+    S <==> V1
+    S <==> E1
+    S <==> P1
+    S <==> M1
+    classDef core fill:#0F172A,color:#FFFFFF,stroke:#0F172A,stroke-width:3px;
+    classDef research fill:#EFF6FF,color:#1E3A8A,stroke:#2563EB,stroke-width:1.3px;
+    classDef validation fill:#ECFDF5,color:#065F46,stroke:#10B981,stroke-width:1.3px;
+    classDef govern fill:#FEF3C7,color:#78350F,stroke:#F59E0B,stroke-width:1.3px;
+    classDef portfolio fill:#ECFEFF,color:#155E75,stroke:#06B6D4,stroke-width:1.3px;
+    classDef market fill:#F5F3FF,color:#4C1D95,stroke:#8B5CF6,stroke-width:1.3px;
+    class S core;
+    class R1,R2,R3,R4,R5,R6,R7 research;
+    class V1,V2,V3,V4,V5,V6,V7 validation;
+    class E1,E2,E3,E4,E5,E6,E7 govern;
+    class P1,P2,P3,P4,P5,P6,P7 portfolio;
+    class M1,M2,M3,M4,M5,M6 market;

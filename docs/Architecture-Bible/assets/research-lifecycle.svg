@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1900" height="460" viewBox="0 0 1900 460" role="img" aria-labelledby="title desc">
+  <title id="title">Research lifecycle</title>
+  <desc id="desc">Research flows through Hypothesis, Experiment, Backtest, Robustness, AI Review, Risk Review, Decision, Monitoring, and Iteration, which refines the hypothesis.</desc>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0 0L10 5L0 10z" fill="#64748b"/></marker>
+    <style>.text{font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;fill:#0f172a}.title{font-size:30px;font-weight:700}.label{font-size:18px;font-weight:700}.note{font-size:15px;font-weight:600;fill:#64748b}.line{fill:none;stroke:#64748b;stroke-width:2.5;marker-end:url(#arrow)}</style>
+  </defs>
+  <rect width="1900" height="460" rx="24" fill="#f8fafc"/>
+  <text x="950" y="58" text-anchor="middle" class="text title">Research Lifecycle</text>
+
+  <rect x="30" y="142" width="165" height="78" rx="15" fill="#eff6ff" stroke="#2563eb" stroke-width="2"/><text x="112" y="189" text-anchor="middle" class="text label">Hypothesis</text>
+  <path class="line" d="M195 181H238"/>
+  <rect x="238" y="142" width="165" height="78" rx="15" fill="#eff6ff" stroke="#2563eb" stroke-width="2"/><text x="320" y="189" text-anchor="middle" class="text label">Experiment</text>
+  <path class="line" d="M403 181H446"/>
+  <rect x="446" y="142" width="165" height="78" rx="15" fill="#eff6ff" stroke="#2563eb" stroke-width="2"/><text x="528" y="189" text-anchor="middle" class="text label">Backtest</text>
+  <path class="line" d="M611 181H654"/>
+  <rect x="654" y="142" width="165" height="78" rx="15" fill="#eff6ff" stroke="#2563eb" stroke-width="2"/><text x="736" y="189" text-anchor="middle" class="text label">Robustness</text>
+  <path class="line" d="M819 181H862"/>
+  <rect x="862" y="142" width="165" height="78" rx="15" fill="#f5f3ff" stroke="#8b5cf6" stroke-width="2"/><text x="944" y="189" text-anchor="middle" class="text label">AI Review</text>
+  <path class="line" d="M1027 181H1070"/>
+  <rect x="1070" y="142" width="165" height="78" rx="15" fill="#fef3c7" stroke="#f59e0b" stroke-width="2"/><text x="1152" y="189" text-anchor="middle" class="text label">Risk Review</text>
+  <path class="line" d="M1235 181H1278"/>
+  <rect x="1278" y="142" width="165" height="78" rx="15" fill="#fef3c7" stroke="#f59e0b" stroke-width="2"/><text x="1360" y="189" text-anchor="middle" class="text label">Decision</text>
+  <path class="line" d="M1443 181H1486"/>
+  <rect x="1486" y="142" width="165" height="78" rx="15" fill="#ecfdf5" stroke="#10b981" stroke-width="2"/><text x="1568" y="189" text-anchor="middle" class="text label">Monitoring</text>
+  <path class="line" d="M1651 181H1694"/>
+  <rect x="1694" y="142" width="165" height="78" rx="15" fill="#ecfdf5" stroke="#10b981" stroke-width="2"/><text x="1776" y="189" text-anchor="middle" class="text label">Iteration</text>
+
+  <path d="M1776 220V330H112V220" fill="none" stroke="#10b981" stroke-width="2.2" stroke-dasharray="8 7" marker-end="url(#arrow)"/>
+  <text x="944" y="362" text-anchor="middle" class="text note">monitor · learn · refine the hypothesis</text>
+</svg>

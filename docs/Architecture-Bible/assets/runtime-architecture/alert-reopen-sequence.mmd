@@ -1,0 +1,29 @@
+%%{init: {"theme":"base","themeVariables":{"fontFamily":"Inter, ui-sans-serif, system-ui, sans-serif","primaryTextColor":"#0F172A","lineColor":"#64748B"},"sequence":{"mirrorActors":false,"messageAlign":"center"}}}%%
+sequenceDiagram
+    autonumber
+    participant S as Scheduler
+    participant A as Application
+    participant M as Monitoring Policy
+    participant O as Outbox / Events
+    participant E as Evaluation
+    participant R as Research
+    participant N as Notification
+    participant AG as Review Agent
+    S->>A: ScanStrategyMonitoring
+    A->>M: Evaluate observations and Guardrails
+    M-->>A: Mandatory alert condition
+    A->>O: Commit MonitoringAlertRaised
+    O-->>A: RequestEvaluation handler
+    O-->>N: Deliver alert notification
+    O-->>AG: Generate evidence-bounded review report
+    AG->>A: Query authorized context
+    A-->>AG: Evidence and Validation references
+    AG->>A: Submit AI Review report artifact
+    A->>E: Request Evaluation
+    E-->>A: Needs Review conditions established
+    A->>E: Execute approved reopen Decision
+    E-->>A: DecisionExecuted
+    A->>R: ReopenResearch with review findings
+    R-->>A: ResearchReopened
+    A->>O: Commit Research + event
+    O-->>N: Notify Research Owner

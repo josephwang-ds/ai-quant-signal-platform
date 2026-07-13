@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile host="app.diagrams.net" modified="2026-07-13T00:00:00.000Z" agent="ArchitectureBible" version="22.1.0" type="device">
+  <diagram id="site-map" name="site-map">
+    <mxGraphModel dx="1200" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1200" pageHeight="700" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="w" value="Workspace" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#0F172A;fontColor=#FFFFFF;strokeColor=#0F172A;fontStyle=1;fontFamily=Inter" vertex="1" parent="1"><mxGeometry x="450" y="40" width="200" height="50" as="geometry"/></mxCell>
+        <mxCell id="s0" value="Home" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EFF6FF;strokeColor=#2563EB;fontFamily=Inter" vertex="1" parent="1"><mxGeometry x="40" y="140" width="160" height="50" as="geometry"/></mxCell>
+        <mxCell id="es0" value="" style="endArrow=block;strokeColor=#64748B;" edge="1" parent="1" source="w" target="s0"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="s1" value="Discover" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EFF6FF;strokeColor=#2563EB;fontFamily=Inter" vertex="1" parent="1"><mxGeometry x="230" y="140" width="160" height="50" as="geometry"/></mxCell>
+        <mxCell id="es1" value="" style="endArrow=block;strokeColor=#64748B;" edge="1" parent="1" source="w" target="s1"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="s2" value="Research" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EFF6FF;strokeColor=#2563EB;fontFamily=Inter" vertex="1" parent="1"><mxGeometry x="420" y="140" width="160" height="50" as="geometry"/></mxCell>
+        <mxCell id="es2" value="" style="endArrow=block;strokeColor=#64748B;" edge="1" parent="1" source="w" target="s2"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="s3" value="Govern" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EFF6FF;strokeColor=#2563EB;fontFamily=Inter" vertex="1" parent="1"><mxGeometry x="610" y="140" width="160" height="50" as="geometry"/></mxCell>
+        <mxCell id="es3" value="" style="endArrow=block;strokeColor=#64748B;" edge="1" parent="1" source="w" target="s3"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="s4" value="Operate" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EFF6FF;strokeColor=#2563EB;fontFamily=Inter" vertex="1" parent="1"><mxGeometry x="800" y="140" width="160" height="50" as="geometry"/></mxCell>
+        <mxCell id="es4" value="" style="endArrow=block;strokeColor=#64748B;" edge="1" parent="1" source="w" target="s4"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="s5" value="Settings" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EFF6FF;strokeColor=#2563EB;fontFamily=Inter" vertex="1" parent="1"><mxGeometry x="990" y="140" width="160" height="50" as="geometry"/></mxCell>
+        <mxCell id="es5" value="" style="endArrow=block;strokeColor=#64748B;" edge="1" parent="1" source="w" target="s5"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="k1_0" value="Market Intelligence" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F8FAFC;strokeColor=#94A3B8;fontFamily=Inter;fontSize=12" vertex="1" parent="1"><mxGeometry x="230" y="220" width="160" height="45" as="geometry"/></mxCell>
+        <mxCell id="ek1_0" value="" style="endArrow=block;strokeColor=#94A3B8;" edge="1" parent="1" source="s1" target="k1_0"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="k1_1" value="Idea Inbox" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F8FAFC;strokeColor=#94A3B8;fontFamily=Inter;fontSize=12" vertex="1" parent="1"><mxGeometry x="230" y="275" width="160" height="45" as="geometry"/></mxCell>
+        <mxCell id="ek1_1" value="" style="endArrow=block;strokeColor=#94A3B8;" edge="1" parent="1" source="s1" target="k1_1"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="k1_2" value="Research Queue" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F8FAFC;strokeColor=#94A3B8;fontFamily=Inter;fontSize=12" vertex="1" parent="1"><mxGeometry x="230" y="330" width="160" height="45" as="geometry"/></mxCell>
+        <mxCell id="ek1_2" value="" style="endArrow=block;strokeColor=#94A3B8;" edge="1" parent="1" source="s1" target="k1_2"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="k2_0" value="Research Lab" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F8FAFC;strokeColor=#94A3B8;fontFamily=Inter;fontSize=12" vertex="1" parent="1"><mxGeometry x="420" y="220" width="160" height="45" as="geometry"/></mxCell>
+        <mxCell id="ek2_0" value="" style="endArrow=block;strokeColor=#94A3B8;" edge="1" parent="1" source="s2" target="k2_0"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="k2_1" value="Backtesting" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F8FAFC;strokeColor=#94A3B8;fontFamily=Inter;fontSize=12" vertex="1" parent="1"><mxGeometry x="420" y="275" width="160" height="45" as="geometry"/></mxCell>
+        <mxCell id="ek2_1" value="" style="endArrow=block;strokeColor=#94A3B8;" edge="1" parent="1" source="s2" target="k2_1"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="k2_2" value="Validation Center" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F8FAFC;strokeColor=#94A3B8;fontFamily=Inter;fontSize=12" vertex="1" parent="1"><mxGeometry x="420" y="330" width="160" height="45" as="geometry"/></mxCell>
+        <mxCell id="ek2_2" value="" style="endArrow=block;strokeColor=#94A3B8;" edge="1" parent="1" source="s2" target="k2_2"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="k2_3" value="Benchmark Center" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F8FAFC;strokeColor=#94A3B8;fontFamily=Inter;fontSize=12" vertex="1" parent="1"><mxGeometry x="420" y="385" width="160" height="45" as="geometry"/></mxCell>
+        <mxCell id="ek2_3" value="" style="endArrow=block;strokeColor=#94A3B8;" edge="1" parent="1" source="s2" target="k2_3"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="k2_4" value="AI Review" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F8FAFC;strokeColor=#94A3B8;fontFamily=Inter;fontSize=12" vertex="1" parent="1"><mxGeometry x="420" y="440" width="160" height="45" as="geometry"/></mxCell>
+        <mxCell id="ek2_4" value="" style="endArrow=block;strokeColor=#94A3B8;" edge="1" parent="1" source="s2" target="k2_4"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="k3_0" value="Strategy Registry" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F8FAFC;strokeColor=#94A3B8;fontFamily=Inter;fontSize=12" vertex="1" parent="1"><mxGeometry x="610" y="220" width="160" height="45" as="geometry"/></mxCell>
+        <mxCell id="ek3_0" value="" style="endArrow=block;strokeColor=#94A3B8;" edge="1" parent="1" source="s3" target="k3_0"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="k3_1" value="Risk Governance" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F8FAFC;strokeColor=#94A3B8;fontFamily=Inter;fontSize=12" vertex="1" parent="1"><mxGeometry x="610" y="275" width="160" height="45" as="geometry"/></mxCell>
+        <mxCell id="ek3_1" value="" style="endArrow=block;strokeColor=#94A3B8;" edge="1" parent="1" source="s3" target="k3_1"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="k3_2" value="Portfolio Review" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F8FAFC;strokeColor=#94A3B8;fontFamily=Inter;fontSize=12" vertex="1" parent="1"><mxGeometry x="610" y="330" width="160" height="45" as="geometry"/></mxCell>
+        <mxCell id="ek3_2" value="" style="endArrow=block;strokeColor=#94A3B8;" edge="1" parent="1" source="s3" target="k3_2"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="k3_3" value="Research Notebook" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F8FAFC;strokeColor=#94A3B8;fontFamily=Inter;fontSize=12" vertex="1" parent="1"><mxGeometry x="610" y="385" width="160" height="45" as="geometry"/></mxCell>
+        <mxCell id="ek3_3" value="" style="endArrow=block;strokeColor=#94A3B8;" edge="1" parent="1" source="s3" target="k3_3"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="k4_0" value="Paper Trading" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F8FAFC;strokeColor=#94A3B8;fontFamily=Inter;fontSize=12" vertex="1" parent="1"><mxGeometry x="800" y="220" width="160" height="45" as="geometry"/></mxCell>
+        <mxCell id="ek4_0" value="" style="endArrow=block;strokeColor=#94A3B8;" edge="1" parent="1" source="s4" target="k4_0"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="k4_1" value="Monitoring" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F8FAFC;strokeColor=#94A3B8;fontFamily=Inter;fontSize=12" vertex="1" parent="1"><mxGeometry x="800" y="275" width="160" height="45" as="geometry"/></mxCell>
+        <mxCell id="ek4_1" value="" style="endArrow=block;strokeColor=#94A3B8;" edge="1" parent="1" source="s4" target="k4_1"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="k4_2" value="Alerts" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F8FAFC;strokeColor=#94A3B8;fontFamily=Inter;fontSize=12" vertex="1" parent="1"><mxGeometry x="800" y="330" width="160" height="45" as="geometry"/></mxCell>
+        <mxCell id="ek4_2" value="" style="endArrow=block;strokeColor=#94A3B8;" edge="1" parent="1" source="s4" target="k4_2"><mxGeometry relative="1" as="geometry"/></mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile host="app.diagrams.net" modified="2026-07-13T00:00:00.000Z" agent="ArchitectureBible" version="22.1.0" type="device">
+  <diagram id="core-objects" name="core-objects">
+    <mxGraphModel dx="1200" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1100" pageHeight="800" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="s" value="Strategy" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#0F172A;fontColor=#FFFFFF;strokeColor=#0F172A;fontStyle=1;fontFamily=Inter" vertex="1" parent="1"><mxGeometry x="420" y="360" width="220" height="80" as="geometry"/></mxCell>
+        <mxCell id="o0" value="Backtest" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EFF6FF;strokeColor=#2563EB;fontFamily=Inter" vertex="1" parent="1"><mxGeometry x="40" y="80" width="200" height="60" as="geometry"/></mxCell>
+        <mxCell id="e0" value="" style="endArrow=block;strokeColor=#64748B;" edge="1" parent="1" source="s" target="o0"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="o1" value="Validation" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EFF6FF;strokeColor=#2563EB;fontFamily=Inter" vertex="1" parent="1"><mxGeometry x="400" y="40" width="200" height="60" as="geometry"/></mxCell>
+        <mxCell id="e1" value="" style="endArrow=block;strokeColor=#64748B;" edge="1" parent="1" source="s" target="o1"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="o2" value="Risk Review" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FEF3C7;strokeColor=#F59E0B;fontFamily=Inter" vertex="1" parent="1"><mxGeometry x="760" y="80" width="200" height="60" as="geometry"/></mxCell>
+        <mxCell id="e2" value="" style="endArrow=block;strokeColor=#64748B;" edge="1" parent="1" source="s" target="o2"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="o3" value="Research Review" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FEF3C7;strokeColor=#F59E0B;fontFamily=Inter" vertex="1" parent="1"><mxGeometry x="400" y="160" width="200" height="60" as="geometry"/></mxCell>
+        <mxCell id="e3" value="" style="endArrow=block;strokeColor=#64748B;" edge="1" parent="1" source="s" target="o3"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="o4" value="Decision Journal" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FEF3C7;strokeColor=#F59E0B;fontFamily=Inter" vertex="1" parent="1"><mxGeometry x="760" y="560" width="200" height="60" as="geometry"/></mxCell>
+        <mxCell id="e4" value="" style="endArrow=block;strokeColor=#64748B;" edge="1" parent="1" source="s" target="o4"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="o5" value="Portfolio" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ECFDF5;strokeColor=#10B981;fontFamily=Inter" vertex="1" parent="1"><mxGeometry x="760" y="360" width="200" height="60" as="geometry"/></mxCell>
+        <mxCell id="e5" value="" style="endArrow=block;strokeColor=#64748B;" edge="1" parent="1" source="s" target="o5"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="o6" value="Market" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ECFDF5;strokeColor=#10B981;fontFamily=Inter" vertex="1" parent="1"><mxGeometry x="40" y="360" width="200" height="60" as="geometry"/></mxCell>
+        <mxCell id="e6" value="" style="endArrow=block;strokeColor=#64748B;" edge="1" parent="1" source="s" target="o6"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="o7" value="Simulation" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ECFDF5;strokeColor=#10B981;fontFamily=Inter" vertex="1" parent="1"><mxGeometry x="40" y="560" width="200" height="60" as="geometry"/></mxCell>
+        <mxCell id="e7" value="" style="endArrow=block;strokeColor=#64748B;" edge="1" parent="1" source="s" target="o7"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="o8" value="Notebook" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F5F3FF;strokeColor=#8B5CF6;fontFamily=Inter" vertex="1" parent="1"><mxGeometry x="400" y="620" width="200" height="60" as="geometry"/></mxCell>
+        <mxCell id="e8" value="" style="endArrow=block;strokeColor=#64748B;" edge="1" parent="1" source="s" target="o8"><mxGeometry relative="1" as="geometry"/></mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

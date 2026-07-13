@@ -1,0 +1,16 @@
+%%{init: {"theme":"base","themeVariables":{"fontFamily":"Inter, ui-sans-serif, system-ui, sans-serif","primaryColor":"#EFF6FF","primaryTextColor":"#0F172A","primaryBorderColor":"#2563EB","lineColor":"#64748B"}}}%%
+stateDiagram-v2
+    state "Experiment within Research" as Experiment {
+        [*] --> Designed
+        Designed --> Approved: ExperimentApproved
+        Approved --> Running: ExperimentStarted
+        Running --> Completed: ExperimentCompleted
+        Running --> Failed: ExperimentFailed
+        Designed --> Invalidated: ExperimentInvalidated
+        Approved --> Invalidated: ExperimentInvalidated
+        Running --> Invalidated: ExperimentInvalidated
+        Completed --> Invalidated: ExperimentInvalidated
+        Completed --> [*]
+        Failed --> [*]
+        Invalidated --> [*]
+    }

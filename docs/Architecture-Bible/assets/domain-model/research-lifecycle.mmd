@@ -1,0 +1,19 @@
+%%{init: {"theme":"base","themeVariables":{"fontFamily":"Inter, ui-sans-serif, system-ui, sans-serif","primaryTextColor":"#0F172A","lineColor":"#64748B"},"flowchart":{"curve":"basis","nodeSpacing":26,"rankSpacing":44}}}%%
+flowchart LR
+    S["Strategy"] --> H["Hypothesis"] --> R["Research"] --> E["Experiment"]
+    E --> B["Backtest / Simulation"] --> EV["Evidence"] --> V["Validation"]
+    V --> AI["AI Review"] --> RR["Risk Review"] --> D["Decision"] --> S
+    V -->|"fail / inconclusive"| H
+    AI -->|"evidence gaps"| R
+    RR -->|"rework"| E
+    D -->|"monitoring obligation"| M["Monitoring"] -->|"new observation"| S
+    classDef core fill:#0F172A,color:#FFFFFF,stroke:#0F172A,stroke-width:3px;
+    classDef research fill:#EFF6FF,color:#1E3A8A,stroke:#2563EB,stroke-width:1.5px;
+    classDef evidence fill:#ECFDF5,color:#065F46,stroke:#10B981,stroke-width:1.5px;
+    classDef govern fill:#FEF3C7,color:#78350F,stroke:#F59E0B,stroke-width:1.5px;
+    classDef observe fill:#F5F3FF,color:#4C1D95,stroke:#8B5CF6,stroke-width:1.5px;
+    class S core;
+    class H,R,E,B research;
+    class EV,V evidence;
+    class AI,RR,D govern;
+    class M observe;

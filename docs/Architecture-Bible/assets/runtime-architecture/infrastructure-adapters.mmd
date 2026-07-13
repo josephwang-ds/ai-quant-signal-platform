@@ -1,0 +1,25 @@
+%%{init: {"theme":"base","themeVariables":{"fontFamily":"Inter, ui-sans-serif, system-ui, sans-serif","primaryTextColor":"#0F172A","lineColor":"#64748B"},"flowchart":{"curve":"basis","nodeSpacing":26,"rankSpacing":42}}}%%
+flowchart TB
+    CORE["Application + Domain Core"]
+    CORE --> RP["Repository Ports"] & EP["Event Ports"] & DP["Document / Artifact Ports"] & MP["Market Data Port"] & LP["LLM Port"] & XP["Embedding / Search Ports"] & NP["Notification Ports"] & OP["Observability Ports"] & TP["Clock / Scheduling Ports"]
+    RP --> PG[("Postgres")]
+    RP --> REDIS[("Redis")]
+    EP --> OUT["Outbox + Event Transport"]
+    DP --> OBJ[("Object Storage")]
+    MP --> MKT["Market Data Providers"]
+    LP --> LLM["LLM Providers"]
+    XP --> EMB["Embedding Service"]
+    XP --> VDB[("Vector Database")]
+    NP --> EMAIL["Email"]
+    NP --> NOTIFY["Notifications"]
+    OP --> LOG["Logging"]
+    OP --> MON["Runtime Monitoring"]
+    TP --> SCHED["Scheduler Engine"]
+    classDef core fill:#0F172A,color:#FFFFFF,stroke:#0F172A,stroke-width:3px;
+    classDef port fill:#ECFEFF,color:#155E75,stroke:#06B6D4,stroke-width:1.5px;
+    classDef adapter fill:#F5F3FF,color:#4C1D95,stroke:#8B5CF6,stroke-width:1.5px;
+    classDef data fill:#ECFDF5,color:#065F46,stroke:#10B981,stroke-width:1.5px;
+    class CORE core;
+    class RP,EP,DP,MP,LP,XP,NP,OP,TP port;
+    class OUT,MKT,LLM,EMB,EMAIL,NOTIFY,LOG,MON,SCHED adapter;
+    class PG,REDIS,OBJ,VDB data;

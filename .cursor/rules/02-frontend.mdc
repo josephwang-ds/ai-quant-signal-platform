@@ -1,0 +1,19 @@
+---
+description: Frontend UI and TypeScript conventions for the Next.js workspace
+globs: "frontend/**/*.{ts,tsx,css}"
+alwaysApply: false
+---
+
+# Frontend rules
+
+- Design persistent research workspaces, not disconnected trading dashboards.
+- Center interfaces on Strategy, research state, evidence, decisions, ownership, and next action.
+- Keep quantitative evidence visually primary; label AI interpretation as interpretation.
+- Reuse tokens and primitives in `docs/STYLE_GUIDE.md` and existing UI components; do not invent parallel styling systems.
+- Do not rely on color alone for status, risk, or direction; pair cues with text.
+- Keep route files thin; compose from `components/features/` and shared primitives.
+- Use strict TypeScript and explicit domain types; avoid `any` and duplicated API shapes.
+- Keep loading, empty, error, and stale states explicit.
+- Do not place business validation or risk authority in UI components.
+- Preserve keyboard access, semantic HTML, visible focus, responsive layouts, and bilingual resilience.
+- Keep client components narrow and avoid effects for derivable state.

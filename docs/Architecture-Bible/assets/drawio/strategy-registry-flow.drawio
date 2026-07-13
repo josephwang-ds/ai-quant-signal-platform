@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile host="app.diagrams.net" modified="2026-07-13T00:00:00.000Z" agent="ArchitectureBible" version="22.1.0" type="device">
+  <diagram id="strategy-registry-flow" name="strategy-registry-flow">
+    <mxGraphModel dx="1200" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1100" pageHeight="700" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="reg" value="Strategy Registry" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FEF3C7;strokeColor=#F59E0B;fontFamily=Inter;fontStyle=1" vertex="1" parent="1"><mxGeometry x="40" y="300" width="200" height="80" as="geometry"/></mxCell>
+        <mxCell id="sel" value="Selected Strategy" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#0F172A;fontColor=#FFFFFF;strokeColor=#0F172A;fontFamily=Inter;fontStyle=1" vertex="1" parent="1"><mxGeometry x="320" y="300" width="220" height="80" as="geometry"/></mxCell>
+        <mxCell id="e0" value="" style="endArrow=block;strokeColor=#64748B;" edge="1" parent="1" source="reg" target="sel"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="t0" value="Overview" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EFF6FF;strokeColor=#2563EB;fontFamily=Inter" vertex="1" parent="1"><mxGeometry x="620" y="40" width="240" height="50" as="geometry"/></mxCell>
+        <mxCell id="et0" value="" style="endArrow=block;strokeColor=#64748B;" edge="1" parent="1" source="sel" target="t0"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="t1" value="Research" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EFF6FF;strokeColor=#2563EB;fontFamily=Inter" vertex="1" parent="1"><mxGeometry x="620" y="110" width="240" height="50" as="geometry"/></mxCell>
+        <mxCell id="et1" value="" style="endArrow=block;strokeColor=#64748B;" edge="1" parent="1" source="sel" target="t1"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="t2" value="Validation" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EFF6FF;strokeColor=#2563EB;fontFamily=Inter" vertex="1" parent="1"><mxGeometry x="620" y="180" width="240" height="50" as="geometry"/></mxCell>
+        <mxCell id="et2" value="" style="endArrow=block;strokeColor=#64748B;" edge="1" parent="1" source="sel" target="t2"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="t3" value="AI Review" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EFF6FF;strokeColor=#2563EB;fontFamily=Inter" vertex="1" parent="1"><mxGeometry x="620" y="250" width="240" height="50" as="geometry"/></mxCell>
+        <mxCell id="et3" value="" style="endArrow=block;strokeColor=#64748B;" edge="1" parent="1" source="sel" target="t3"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="t4" value="Risk" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EFF6FF;strokeColor=#2563EB;fontFamily=Inter" vertex="1" parent="1"><mxGeometry x="620" y="320" width="240" height="50" as="geometry"/></mxCell>
+        <mxCell id="et4" value="" style="endArrow=block;strokeColor=#64748B;" edge="1" parent="1" source="sel" target="t4"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="t5" value="Notebook" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EFF6FF;strokeColor=#2563EB;fontFamily=Inter" vertex="1" parent="1"><mxGeometry x="620" y="390" width="240" height="50" as="geometry"/></mxCell>
+        <mxCell id="et5" value="" style="endArrow=block;strokeColor=#64748B;" edge="1" parent="1" source="sel" target="t5"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="t6" value="History" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EFF6FF;strokeColor=#2563EB;fontFamily=Inter" vertex="1" parent="1"><mxGeometry x="620" y="460" width="240" height="50" as="geometry"/></mxCell>
+        <mxCell id="et6" value="" style="endArrow=block;strokeColor=#64748B;" edge="1" parent="1" source="sel" target="t6"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="t7" value="Portfolio Impact" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EFF6FF;strokeColor=#2563EB;fontFamily=Inter" vertex="1" parent="1"><mxGeometry x="620" y="530" width="240" height="50" as="geometry"/></mxCell>
+        <mxCell id="et7" value="" style="endArrow=block;strokeColor=#64748B;" edge="1" parent="1" source="sel" target="t7"><mxGeometry relative="1" as="geometry"/></mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

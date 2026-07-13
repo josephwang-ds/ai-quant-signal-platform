@@ -1,0 +1,14 @@
+---
+description: Apply the project test strategy when editing tests or production behavior
+globs: "{apps/api,backend}/tests/**/*.py,frontend/**/*.test.{ts,tsx},frontend/**/*.spec.{ts,tsx}"
+alwaysApply: false
+---
+
+# Testing rules
+
+- Test observable behavior, state transitions, invariants, and failure paths.
+- Prefer domain unit tests, application tests with fakes, adapter contract tests, and a small number of boundary integration tests.
+- Make tests deterministic: freeze time, seed randomness, and isolate network and provider dependencies.
+- Name tests by behavior and condition; use arrange–act–assert structure.
+- Add regression coverage for every defect fix.
+- Never weaken assertions or skip tests merely to obtain a passing run.

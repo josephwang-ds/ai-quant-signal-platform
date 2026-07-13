@@ -1,0 +1,31 @@
+%%{init: {"theme":"base","themeVariables":{"fontFamily":"Inter, ui-sans-serif, system-ui, sans-serif","primaryTextColor":"#0F172A","lineColor":"#64748B"},"flowchart":{"curve":"basis","nodeSpacing":30,"rankSpacing":46}}}%%
+flowchart TB
+    U["User"] --> WEB["Next.js Frontend<br/>Presentation"] --> API["FastAPI Gateway<br/>Transport Adapter"] --> APP["Application Layer<br/>Use Cases · Workflow Coordination"] --> DOM["Domain Layer<br/>Aggregates · Policies · Invariants · Events"]
+    APP --> PORTS["Application / Domain Ports"] --> INF["Infrastructure Layer<br/>Adapters"] --> PG[("Postgres")]
+    SCH["Scheduler"] --> APP
+    AG["Agent Runtime"] --> APP
+    APP --> BUS["Event Dispatcher / Outbox"]
+    BUS --> SCH
+    BUS --> AG
+    INF --> REDIS[("Redis")]
+    INF --> OBJ[("Object Storage")]
+    INF --> VDB[("Vector Database")]
+    INF --> MD["Market Data Providers"]
+    INF --> LLM["LLM Providers"]
+    INF --> EMB["Embedding Service"]
+    INF --> OBS["Logging & Monitoring"]
+    INF --> NOTIFY["Email & Notifications"]
+    classDef actor fill:#FFFFFF,color:#0F172A,stroke:#94A3B8,stroke-width:1.5px;
+    classDef presentation fill:#EFF6FF,color:#1E3A8A,stroke:#2563EB,stroke-width:1.5px;
+    classDef application fill:#ECFEFF,color:#155E75,stroke:#06B6D4,stroke-width:2px;
+    classDef domain fill:#0F172A,color:#FFFFFF,stroke:#0F172A,stroke-width:3px;
+    classDef ports fill:#F8FAFC,color:#334155,stroke:#64748B,stroke-width:1.5px;
+    classDef infra fill:#F5F3FF,color:#4C1D95,stroke:#8B5CF6,stroke-width:1.5px;
+    classDef data fill:#ECFDF5,color:#065F46,stroke:#10B981,stroke-width:1.5px;
+    class U actor;
+    class WEB,API presentation;
+    class APP application;
+    class DOM domain;
+    class PORTS ports;
+    class INF,SCH,AG,BUS,MD,LLM,EMB,OBS,NOTIFY infra;
+    class PG,REDIS,OBJ,VDB data;

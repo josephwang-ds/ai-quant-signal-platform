@@ -1,0 +1,16 @@
+%%{init: {"theme":"base","themeVariables":{"fontFamily":"Inter, ui-sans-serif, system-ui, sans-serif","primaryTextColor":"#0F172A","lineColor":"#64748B"},"flowchart":{"curve":"basis","nodeSpacing":28,"rankSpacing":38}}}%%
+flowchart TB
+    P["Presentation<br/>UI · Transport Mapping"] --> A["Application<br/>Use Cases · Orchestration · Ports"] --> D["Domain<br/>Business Meaning · Invariants · Events"]
+    I["Infrastructure<br/>External Adapters · Technical Capabilities"] -. "implements inward ports" .-> A
+    I -. "supports domain-defined capabilities" .-> D
+    X["Persistence<br/>Repository Adapters · Data Stores"] -. "specialized infrastructure adapters" .-> A
+    classDef presentation fill:#EFF6FF,color:#1E3A8A,stroke:#2563EB,stroke-width:1.5px;
+    classDef application fill:#ECFEFF,color:#155E75,stroke:#06B6D4,stroke-width:2px;
+    classDef domain fill:#0F172A,color:#FFFFFF,stroke:#0F172A,stroke-width:3px;
+    classDef infra fill:#F5F3FF,color:#4C1D95,stroke:#8B5CF6,stroke-width:1.5px;
+    classDef persistence fill:#ECFDF5,color:#065F46,stroke:#10B981,stroke-width:1.5px;
+    class P presentation;
+    class A application;
+    class D domain;
+    class I infra;
+    class X persistence;

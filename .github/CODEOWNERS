@@ -1,0 +1,15 @@
+# Default repository ownership
+* @josephwang-ds
+
+# Architecture and governance
+/docs/Architecture-Bible/ @josephwang-ds
+/docs/PROJECT_BIBLE.md @josephwang-ds
+/docs/adr/ @josephwang-ds
+/.github/ @josephwang-ds
+/SECURITY.md @josephwang-ds
+
+# Runtime and product surfaces
+/apps/api/ @josephwang-ds
+/backend/ @josephwang-ds
+/frontend/ @josephwang-ds
+

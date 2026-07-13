@@ -1,0 +1,107 @@
+name: Epic
+description: Define a multi-story outcome with architecture, sequencing, and measurable completion criteria.
+title: "[Epic]: "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Epics coordinate outcomes that require multiple independently reviewable stories. They do not authorize a big-bang implementation.
+
+  - type: textarea
+    id: objective
+    attributes:
+      label: Objective
+      description: State the durable product or engineering outcome in one paragraph.
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem and evidence
+      description: Explain the current limitation and the evidence that justifies an epic.
+    validations:
+      required: true
+
+  - type: textarea
+    id: outcomes
+    attributes:
+      label: Measurable outcomes
+      description: List observable results and how completion will be verified.
+      placeholder: |
+        - Outcome:
+          Evidence:
+    validations:
+      required: true
+
+  - type: dropdown
+    id: context
+    attributes:
+      label: Primary bounded context or area
+      options:
+        - Research
+        - Validation
+        - Governance
+        - Portfolio
+        - Market Intelligence
+        - Cross-context workflow
+        - Platform engineering
+        - Open-source governance
+    validations:
+      required: true
+
+  - type: textarea
+    id: scope
+    attributes:
+      label: Scope
+      description: Describe included capabilities and affected users or systems.
+    validations:
+      required: true
+
+  - type: textarea
+    id: non_goals
+    attributes:
+      label: Non-goals
+      description: State what the epic will not deliver.
+    validations:
+      required: true
+
+  - type: textarea
+    id: architecture
+    attributes:
+      label: Architecture and decisions
+      description: Link relevant Architecture Bible chapters and ADRs; identify any new decision required.
+    validations:
+      required: true
+
+  - type: textarea
+    id: stories
+    attributes:
+      label: Proposed stories and sequence
+      description: Break the epic into independently valuable, reviewable stories with dependencies.
+      placeholder: |
+        1. [ ] Story — outcome — dependency
+        2. [ ] Story — outcome — dependency
+    validations:
+      required: true
+
+  - type: textarea
+    id: risks
+    attributes:
+      label: Risks, migration, and rollback
+      description: Cover domain, security, data, compatibility, operations, and migration concerns.
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Readiness checks
+      options:
+        - label: The epic preserves the frozen product and runtime architecture or identifies the ADR review required.
+          required: true
+        - label: The work can be delivered through small vertical slices.
+          required: true
+        - label: I agree to follow the project Code of Conduct.
+          required: true
+

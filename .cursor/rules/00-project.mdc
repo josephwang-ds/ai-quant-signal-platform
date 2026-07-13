@@ -1,0 +1,13 @@
+---
+description: Project constitution for all work in AI Quant Research Workspace
+alwaysApply: true
+---
+
+# Project constitution
+
+- Treat this product as a research operating system, not a trading dashboard, stock picker, broker, or autonomous trading bot.
+- Preserve the frozen architecture and business language in `docs/PROJECT_BIBLE.md` and `docs/Architecture-Bible/`.
+- Optimize for evidence, reproducibility, governance, and researcher control.
+- Never let AI-generated interpretation override deterministic validation or risk rules.
+- Keep changes scoped; do not modify runtime behavior unless the task explicitly requires it.
+- Preserve user changes and state assumptions, verification performed, and remaining risks.

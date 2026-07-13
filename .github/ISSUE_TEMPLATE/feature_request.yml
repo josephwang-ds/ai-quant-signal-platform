@@ -1,0 +1,92 @@
+name: Feature request
+description: Propose a focused product or engineering capability aligned with the research workspace.
+title: "[Feature]: "
+labels:
+  - enhancement
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for proposing an improvement. Describe the research or engineering outcome, not only a preferred implementation.
+
+        This project is a research operating system—not a trading bot, stock picker, broker, or execution platform.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What user or engineering problem needs to be solved? Who experiences it?
+      placeholder: Describe the current limitation and its impact.
+    validations:
+      required: true
+
+  - type: textarea
+    id: outcome
+    attributes:
+      label: Desired outcome
+      description: What observable result would make this request successful?
+      placeholder: Describe behavior and value without prescribing unnecessary implementation details.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: context
+    attributes:
+      label: Bounded context or area
+      description: Select the primary owner of the change.
+      options:
+        - Research
+        - Validation
+        - Governance
+        - Portfolio
+        - Market Intelligence
+        - Web workspace
+        - Platform engineering
+        - Documentation
+    validations:
+      required: true
+
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Evidence and examples
+      description: Share workflows, screenshots, references, or measured pain that support the request.
+      placeholder: Links and sanitized examples are welcome. Do not include secrets or private data.
+
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      description: List verifiable conditions of success.
+      placeholder: |
+        - [ ] Given ..., when ..., then ...
+        - [ ] Failure and empty states are defined
+    validations:
+      required: true
+
+  - type: textarea
+    id: non_goals
+    attributes:
+      label: Non-goals
+      description: What should explicitly remain outside this request?
+
+  - type: textarea
+    id: architecture
+    attributes:
+      label: Architecture impact
+      description: Identify affected aggregates, state transitions, contracts, dependencies, or ADRs. Write “None known” if applicable.
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Submission checks
+      options:
+        - label: I searched existing issues and did not find an equivalent request.
+          required: true
+        - label: This request does not add live trading or autonomous execution behavior.
+          required: true
+        - label: I agree to follow the project Code of Conduct.
+          required: true
+

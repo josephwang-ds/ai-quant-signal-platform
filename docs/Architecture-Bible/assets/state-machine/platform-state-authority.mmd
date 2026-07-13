@@ -1,0 +1,32 @@
+%%{init: {"theme":"base","themeVariables":{"fontFamily":"Inter, ui-sans-serif, system-ui, sans-serif","primaryTextColor":"#0F172A","lineColor":"#64748B"},"flowchart":{"curve":"basis","nodeSpacing":34,"rankSpacing":54}}}%%
+flowchart TB
+    S["Strategy<br/>Cross-context business identity"]
+    R["Research<br/>Aggregate Root"]
+    V["ValidationRun<br/>Aggregate Root"]
+    E["Evaluation<br/>Aggregate Root"]
+    P["Portfolio<br/>Aggregate Root"]
+    M["MarketDataset<br/>Aggregate Root"]
+    S <==> R
+    S <==> V
+    S <==> E
+    S <==> P
+    S <==> M
+    R -->|"Experiment & synthesis evidence"| V
+    M -->|"admissible market evidence"| R
+    M -->|"data confidence"| V
+    V -->|"validation outcome"| E
+    E -->|"authorized transition"| S
+    E -->|"eligibility & conditions"| P
+    P -->|"portfolio observations"| E
+    classDef core fill:#0F172A,color:#FFFFFF,stroke:#0F172A,stroke-width:3px;
+    classDef research fill:#EFF6FF,color:#1E3A8A,stroke:#2563EB,stroke-width:1.5px;
+    classDef validation fill:#ECFDF5,color:#065F46,stroke:#10B981,stroke-width:1.5px;
+    classDef govern fill:#FEF3C7,color:#78350F,stroke:#F59E0B,stroke-width:1.5px;
+    classDef portfolio fill:#ECFEFF,color:#155E75,stroke:#06B6D4,stroke-width:1.5px;
+    classDef market fill:#F5F3FF,color:#4C1D95,stroke:#8B5CF6,stroke-width:1.5px;
+    class S core;
+    class R research;
+    class V validation;
+    class E govern;
+    class P portfolio;
+    class M market;
