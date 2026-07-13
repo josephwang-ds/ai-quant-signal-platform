@@ -7,6 +7,7 @@ import AppShell from "@/components/layout/AppShell";
 import EvidenceSummary from "@/components/features/research/EvidenceSummary";
 import OverviewSection from "@/components/features/research/OverviewSection";
 import ResearchNotebook from "@/components/features/research/notebook/ResearchNotebook";
+import ResearchExperiments from "@/components/features/research/experiments/ResearchExperiments";
 import ResearchActionPanel from "@/components/features/research/ResearchActionPanel";
 import ResearchTimeline from "@/components/features/research/ResearchTimeline";
 import ResearchWorkspaceHeader from "@/components/features/research/ResearchWorkspaceHeader";
@@ -30,6 +31,7 @@ import {
   resolveWorkspaceSection,
 } from "@/lib/researchWorkspace";
 import { useWorkspaceLanguage } from "@/lib/useWorkspaceLanguage";
+import type { ResearchExperiment } from "@/types/experiment";
 import type { NotebookEntry, ResearchTimelineEvent } from "@/types/notebook";
 import type {
   ResearchDetail,
@@ -45,18 +47,12 @@ type PlaceholderCopy = {
 };
 
 const PLACEHOLDER_COPY: Record<
-  Exclude<ResearchWorkspaceSection, "overview" | "notebook" | "timeline">,
+  Exclude<
+    ResearchWorkspaceSection,
+    "overview" | "notebook" | "timeline" | "experiments"
+  >,
   PlaceholderCopy
 > = {
-  experiments: {
-    titleKey: "researchWsExperimentsTitle",
-    summaryKey: "researchWsExperimentsSummary",
-    capabilityKeys: [
-      "researchWsExperimentsCap1",
-      "researchWsExperimentsCap2",
-      "researchWsExperimentsCap3",
-    ],
-  },
   validation: {
     titleKey: "researchWsValidationTitle",
     summaryKey: "researchWsValidationSectionSummary",
@@ -123,6 +119,12 @@ export default function ResearchWorkspacePage({
   const [sessionTimelineEvents, setSessionTimelineEvents] = useState<
     ResearchTimelineEvent[]
   >([]);
+  const [sessionExperiments, setSessionExperiments] = useState<
+    ResearchExperiment[]
+  >([]);
+  const [selectedExperimentId, setSelectedExperimentId] = useState<string | null>(
+    null
+  );
 
   const loadDetail = useCallback(async () => {
     setLoadStatus("loading");
@@ -154,6 +156,10 @@ export default function ResearchWorkspacePage({
   useEffect(() => {
     setSessionNotebookEntries([]);
     setSessionTimelineEvents([]);
+    setSessionExperiments([]);
+    setSelectedExperimentId(searchParams.get("experimentId"));
+    // Only reset session state when switching research projects.
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional: seed from URL once per researchId
   }, [researchId]);
 
   const navLabels = useMemo(
@@ -186,6 +192,16 @@ export default function ResearchWorkspacePage({
   ) {
     setSessionNotebookEntries((prev) => [entry, ...prev]);
     setSessionTimelineEvents((prev) => [timelineEvent, ...prev]);
+  }
+
+  function handleExperimentDesigned(payload: {
+    experiment: ResearchExperiment;
+    notebookEntry: NotebookEntry;
+    timelineEvent: ResearchTimelineEvent;
+  }) {
+    setSessionExperiments((prev) => [payload.experiment, ...prev]);
+    setSessionNotebookEntries((prev) => [payload.notebookEntry, ...prev]);
+    setSessionTimelineEvents((prev) => [payload.timelineEvent, ...prev]);
   }
 
   function renderMainSection() {
@@ -274,6 +290,129 @@ export default function ResearchWorkspacePage({
       );
     }
 
+    if (activeSection === "experiments") {
+      return (
+        <ResearchExperiments
+          research={research}
+          language={language}
+          sessionExperiments={sessionExperiments}
+          selectedExperimentId={selectedExperimentId}
+          onSelectExperiment={setSelectedExperimentId}
+          onExperimentDesigned={handleExperimentDesigned}
+          labels={{
+            title: tr("researchExpTitle"),
+            totalCount: tr("researchExpTotalCount"),
+            activeCount: tr("researchExpActiveCount"),
+            newExperiment: tr("researchExpNew"),
+            loading: tr("researchExpLoading"),
+            errorTitle: tr("researchExpErrorTitle"),
+            retry: tr("researchExpRetry"),
+            emptyTitle: tr("researchExpEmptyTitle"),
+            emptyDescription: tr("researchExpEmptyDescription"),
+            filterEmptyTitle: tr("researchExpFilterEmptyTitle"),
+            filterEmptyDescription: tr("researchExpFilterEmptyDescription"),
+            notFoundTitle: tr("researchExpNotFoundTitle"),
+            notFoundDescription: tr("researchExpNotFoundDescription"),
+            backToList: tr("researchExpBackToList"),
+            filters: {
+              search: tr("researchExpSearch"),
+              searchPlaceholder: tr("researchExpSearchPlaceholder"),
+              status: tr("researchExpFilterStatus"),
+              type: tr("researchExpFilterType"),
+              sort: tr("researchExpSort"),
+              all: tr("researchExpFilterAll"),
+              sortUpdated: tr("researchExpSortUpdated"),
+              sortCreated: tr("researchExpSortCreated"),
+              sortResult: tr("researchExpSortResult"),
+            },
+            card: {
+              hypothesis: tr("researchExpCardHypothesis"),
+              dataset: tr("researchExpCardDataset"),
+              window: tr("researchExpCardWindow"),
+              benchmark: tr("researchExpCardBenchmark"),
+              owner: tr("researchListOwner"),
+              updated: tr("researchListUpdated"),
+              result: tr("researchExpCardResult"),
+              readiness: tr("researchExpCardReadiness"),
+              parameters: tr("researchExpCardParameters"),
+              linkedNotes: tr("researchExpCardLinkedNotes"),
+              openDetail: tr("researchExpOpenDetail"),
+              sharpe: tr("researchExpMetricSharpe"),
+              maxDrawdown: tr("researchExpMetricMaxDD"),
+            },
+            composer: {
+              title: tr("researchExpComposerTitle"),
+              name: tr("researchExpComposerName"),
+              hypothesis: tr("researchExpComposerHypothesis"),
+              experimentType: tr("researchExpComposerType"),
+              dataset: tr("researchExpComposerDataset"),
+              startDate: tr("researchExpComposerStart"),
+              endDate: tr("researchExpComposerEnd"),
+              benchmark: tr("researchExpComposerBenchmark"),
+              parameters: tr("researchExpComposerParameters"),
+              parametersHint: tr("researchExpComposerParametersHint"),
+              successCriteria: tr("researchExpComposerSuccess"),
+              falsification: tr("researchExpComposerFalsify"),
+              notes: tr("researchExpComposerNotes"),
+              save: tr("researchExpComposerSave"),
+              cancel: tr("researchExpComposerCancel"),
+              nameRequired: tr("researchExpValidationName"),
+              hypothesisRequired: tr("researchExpValidationHypothesis"),
+              typeRequired: tr("researchExpValidationType"),
+              datasetRequired: tr("researchExpValidationDataset"),
+              startRequired: tr("researchExpValidationStart"),
+              endRequired: tr("researchExpValidationEnd"),
+              dateRangeInvalid: tr("researchExpValidationDateRange"),
+              successRequired: tr("researchExpValidationSuccess"),
+              falsificationRequired: tr("researchExpValidationFalsify"),
+            },
+            detail: {
+              title: tr("researchExpDetailTitle"),
+              close: tr("researchExpDetailClose"),
+              overview: tr("researchExpDetailOverview"),
+              hypothesis: tr("researchExpCardHypothesis"),
+              configuration: tr("researchExpDetailConfig"),
+              parameters: tr("researchExpCardParameters"),
+              results: tr("researchExpCardResult"),
+              notes: tr("researchExpComposerNotes"),
+              relatedEvidence: tr("researchExpDetailEvidence"),
+              linkedNotebook: tr("researchExpDetailNotebook"),
+              validationReadiness: tr("researchExpCardReadiness"),
+              dataset: tr("researchExpCardDataset"),
+              window: tr("researchExpCardWindow"),
+              benchmark: tr("researchExpCardBenchmark"),
+              owner: tr("researchListOwner"),
+              created: tr("researchWsCreated"),
+              updated: tr("researchListUpdated"),
+              success: tr("researchExpComposerSuccess"),
+              falsification: tr("researchExpComposerFalsify"),
+              none: tr("researchExpNone"),
+              lifecycle: {
+                title: tr("researchExpLifecycleTitle"),
+                description: tr("researchExpLifecycleDescription"),
+                completed: tr("researchExpLifecycleCompleted"),
+                current: tr("researchExpLifecycleCurrent"),
+                upcoming: tr("researchExpLifecycleUpcoming"),
+                terminalNote: tr("researchExpLifecycleTerminal"),
+                governedNote: tr("researchExpLifecycleGoverned"),
+              },
+              metrics: {
+                title: tr("researchExpMetricsTitle"),
+                disclaimer: tr("researchExpMetricsDisclaimer"),
+                sharpe: tr("researchExpMetricSharpe"),
+                cagr: tr("researchExpMetricCagr"),
+                maxDrawdown: tr("researchExpMetricMaxDD"),
+                volatility: tr("researchExpMetricVol"),
+                tradeCount: tr("researchExpMetricTrades"),
+                winRate: tr("researchExpMetricWinRate"),
+                totalTransactionCost: tr("researchExpMetricCost"),
+              },
+            },
+          }}
+        />
+      );
+    }
+
     if (activeSection === "timeline") {
       return (
         <ResearchTimeline
@@ -307,7 +446,8 @@ export default function ResearchWorkspacePage({
   const showEvidencePreview =
     activeSection !== "overview" &&
     activeSection !== "notebook" &&
-    activeSection !== "timeline";
+    activeSection !== "timeline" &&
+    activeSection !== "experiments";
 
   return (
     <AppShell language={language} onLanguageChange={setLanguage}>
