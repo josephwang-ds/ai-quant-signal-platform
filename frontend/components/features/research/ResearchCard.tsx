@@ -4,6 +4,7 @@ import Link from "next/link";
 import Button from "@/components/ui/Button";
 import ConfidenceBadge from "@/components/ui/ConfidenceBadge";
 import StatusBadge, { researchLifecycleVariant } from "@/components/ui/StatusBadge";
+import TagList from "@/components/ui/TagList";
 import type { Language } from "@/lib/i18n";
 import type { ResearchListItem } from "@/types/research";
 
@@ -41,8 +42,7 @@ export type ResearchCardProps = {
 
 /**
  * Research 项目卡片（列表主单元）。
- *
- * TODO(backend): Open Workspace 进入 /research/[id]。
+ * Open Workspace → /research/[researchId]
  */
 export default function ResearchCard({
   item,
@@ -82,13 +82,7 @@ export default function ResearchCard({
         </div>
       </dl>
 
-      <ul className="research-card__tags" aria-label="Tags">
-        {item.tags.map((tag) => (
-          <li key={tag} className="research-card__tag">
-            {tag}
-          </li>
-        ))}
-      </ul>
+      <TagList tags={item.tags} className="research-card__tags" />
 
       <div className="research-card__insights">
         <p>
@@ -102,9 +96,8 @@ export default function ResearchCard({
       </div>
 
       <footer className="research-card__actions">
-        {/* TODO(backend): 替换为 Research Workspace 详情路由 */}
         <Link
-          href={`/research-notes?researchId=${encodeURIComponent(item.id)}`}
+          href={`/research/${encodeURIComponent(item.id)}`}
           className="btn btn--primary"
         >
           {labels.openWorkspace}

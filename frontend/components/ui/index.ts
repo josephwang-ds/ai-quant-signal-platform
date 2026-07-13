@@ -17,3 +17,5 @@ export { default as LoadingState } from "./LoadingState";
 export { default as ErrorAlert } from "./ErrorAlert";
 export { default as InterpretationPanel } from "./InterpretationPanel";
 export { default as Button } from "./Button";
+export { default as TagList } from "./TagList";
+export { default as MetricSummaryCard } from "./MetricSummaryCard";
