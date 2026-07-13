@@ -8,6 +8,8 @@ import EvidenceSummary from "@/components/features/research/EvidenceSummary";
 import OverviewSection from "@/components/features/research/OverviewSection";
 import ResearchNotebook from "@/components/features/research/notebook/ResearchNotebook";
 import ResearchExperiments from "@/components/features/research/experiments/ResearchExperiments";
+import ResearchValidation from "@/components/features/research/validation/ResearchValidation";
+import ResearchEvaluation from "@/components/features/research/evaluation/ResearchEvaluation";
 import ResearchActionPanel from "@/components/features/research/ResearchActionPanel";
 import ResearchTimeline from "@/components/features/research/ResearchTimeline";
 import ResearchWorkspaceHeader from "@/components/features/research/ResearchWorkspaceHeader";
@@ -25,6 +27,8 @@ import {
   loadMockResearchById,
   MockResearchError,
 } from "@/lib/mockResearchCatalog";
+import { getMockValidationTimelineEvents } from "@/lib/mockValidationCatalog";
+import { getMockEvaluationTimelineEvents } from "@/lib/mockEvaluationCatalog";
 import { mergeTimelineEvents } from "@/lib/researchNotebook";
 import {
   isResearchWorkspaceSection,
@@ -49,28 +53,15 @@ type PlaceholderCopy = {
 const PLACEHOLDER_COPY: Record<
   Exclude<
     ResearchWorkspaceSection,
-    "overview" | "notebook" | "timeline" | "experiments"
+    | "overview"
+    | "notebook"
+    | "timeline"
+    | "experiments"
+    | "validation"
+    | "evaluation"
   >,
   PlaceholderCopy
 > = {
-  validation: {
-    titleKey: "researchWsValidationTitle",
-    summaryKey: "researchWsValidationSectionSummary",
-    capabilityKeys: [
-      "researchWsValidationCap1",
-      "researchWsValidationCap2",
-      "researchWsValidationCap3",
-    ],
-  },
-  evaluation: {
-    titleKey: "researchWsEvaluationTitle",
-    summaryKey: "researchWsEvaluationSummary",
-    capabilityKeys: [
-      "researchWsEvaluationCap1",
-      "researchWsEvaluationCap2",
-      "researchWsEvaluationCap3",
-    ],
-  },
   files: {
     titleKey: "researchWsFilesTitle",
     summaryKey: "researchWsFilesSummary",
@@ -125,6 +116,9 @@ export default function ResearchWorkspacePage({
   const [selectedExperimentId, setSelectedExperimentId] = useState<string | null>(
     null
   );
+  const [selectedValidationStageId, setSelectedValidationStageId] = useState<
+    string | null
+  >(null);
 
   const loadDetail = useCallback(async () => {
     setLoadStatus("loading");
@@ -158,6 +152,7 @@ export default function ResearchWorkspacePage({
     setSessionTimelineEvents([]);
     setSessionExperiments([]);
     setSelectedExperimentId(searchParams.get("experimentId"));
+    setSelectedValidationStageId(searchParams.get("validationStageId"));
     // Only reset session state when switching research projects.
     // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional: seed from URL once per researchId
   }, [researchId]);
@@ -180,8 +175,13 @@ export default function ResearchWorkspacePage({
     if (!research) {
       return [];
     }
+    // TODO(api): replace with domain event stream; validation events from Validation context.
     return mergeTimelineEvents(
-      getMockTimelineEvents(research.id),
+      [
+        ...getMockTimelineEvents(research.id),
+        ...getMockValidationTimelineEvents(research.id),
+        ...getMockEvaluationTimelineEvents(research.id),
+      ],
       sessionTimelineEvents
     );
   }, [research, sessionTimelineEvents]);
@@ -413,6 +413,248 @@ export default function ResearchWorkspacePage({
       );
     }
 
+    if (activeSection === "validation") {
+      return (
+        <ResearchValidation
+          research={research}
+          language={language}
+          selectedStageId={selectedValidationStageId}
+          onSelectStage={setSelectedValidationStageId}
+          labels={{
+            title: tr("researchValTitle"),
+            stageCount: tr("researchValStageCount"),
+            loading: tr("researchValLoading"),
+            errorTitle: tr("researchValErrorTitle"),
+            retry: tr("researchValRetry"),
+            emptyTitle: tr("researchValEmptyTitle"),
+            emptyDescription: tr("researchValEmptyDescription"),
+            filterEmptyTitle: tr("researchValFilterEmptyTitle"),
+            filterEmptyDescription: tr("researchValFilterEmptyDescription"),
+            notFoundTitle: tr("researchValNotFoundTitle"),
+            notFoundDescription: tr("researchValNotFoundDescription"),
+            backToPipeline: tr("researchValBackToPipeline"),
+            runValidation: tr("researchValRun"),
+            runValidationHint: tr("researchValRunHint"),
+            demoLoading: tr("researchValDemoLoading"),
+            overview: {
+              title: tr("researchValOverviewTitle"),
+              overallStatus: tr("researchValOverallStatus"),
+              completed: tr("researchValCompleted"),
+              passed: tr("researchValPassed"),
+              failed: tr("researchValFailed"),
+              inconclusive: tr("researchValInconclusive"),
+              blocking: tr("researchValBlocking"),
+              lastValidation: tr("researchValLastDate"),
+              readiness: tr("researchValReadiness"),
+              readinessNote: tr("researchValReadinessNote"),
+            },
+            blockers: {
+              title: tr("researchValBlockersTitle"),
+              description: tr("researchValBlockersDescription"),
+              severity: tr("researchValGateSeverity"),
+              reason: tr("researchValBlockerReason"),
+              stage: tr("researchValBlockerStage"),
+              nextAction: tr("researchValBlockerNext"),
+              empty: tr("researchValBlockersEmpty"),
+              inspect: tr("researchValInspect"),
+            },
+            filters: {
+              search: tr("researchValSearch"),
+              searchPlaceholder: tr("researchValSearchPlaceholder"),
+              status: tr("researchValFilterStatus"),
+              all: tr("researchValFilterAll"),
+            },
+            pipeline: {
+              title: tr("researchValPipelineTitle"),
+              card: {
+                purpose: tr("researchValCardPurpose"),
+                lastRun: tr("researchValCardLastRun"),
+                owner: tr("researchValCardOwner"),
+                evidence: tr("researchValCardEvidence"),
+                keyResult: tr("researchValCardKeyResult"),
+                warnings: tr("researchValCardWarnings"),
+                nextAction: tr("researchValCardNext"),
+                openDetail: tr("researchValOpenDetail"),
+              },
+            },
+            detail: {
+              title: tr("researchValDetailTitle"),
+              close: tr("researchValDetailClose"),
+              purpose: tr("researchValPurpose"),
+              method: tr("researchValMethod"),
+              dataset: tr("researchValDataset"),
+              dateRange: tr("researchValDateRange"),
+              benchmark: tr("researchValBenchmark"),
+              successCriteria: tr("researchValSuccess"),
+              falsificationCriteria: tr("researchValFalsify"),
+              result: tr("researchValResult"),
+              dataConfidence: tr("researchValDataConfidence"),
+              limitations: tr("researchValLimitations"),
+              warnings: tr("researchValWarnings"),
+              recommendation: tr("researchValRecommendation"),
+              runHistory: tr("researchValRunHistory"),
+              owner: tr("researchListOwner"),
+              lastRun: tr("researchValCardLastRun"),
+              nextAction: tr("researchValNextAction"),
+              none: tr("researchValNone"),
+              evidenceTitle: tr("researchValEvidenceTitle"),
+              evidenceEmpty: tr("researchValEvidenceEmpty"),
+              gates: {
+                title: tr("researchValGatesTitle"),
+                rule: tr("researchValGateRule"),
+                threshold: tr("researchValGateThreshold"),
+                observed: tr("researchValGateObserved"),
+                result: tr("researchValGateResult"),
+                severity: tr("researchValGateSeverity"),
+                evidence: tr("researchValGateEvidence"),
+                pass: tr("researchValGatePass"),
+                fail: tr("researchValGateFail"),
+                empty: tr("researchValGatesEmpty"),
+                deterministicNote: tr("researchValGatesNote"),
+              },
+              metrics: {
+                title: tr("researchValMetricsTitle"),
+                disclaimer: tr("researchValMetricsDisclaimer"),
+                historical: tr("researchValMetricHistorical"),
+                simulated: tr("researchValMetricSimulated"),
+              },
+            },
+          }}
+        />
+      );
+    }
+
+    if (activeSection === "evaluation") {
+      return (
+        <ResearchEvaluation
+          research={research}
+          language={language}
+          labels={{
+            title: tr("researchEvalTitle"),
+            loading: tr("researchEvalLoading"),
+            errorTitle: tr("researchEvalErrorTitle"),
+            retry: tr("researchEvalRetry"),
+            emptyTitle: tr("researchEvalEmptyTitle"),
+            emptyDescription: tr("researchEvalEmptyDescription"),
+            filterEmptyTitle: tr("researchEvalFilterEmptyTitle"),
+            filterEmptyDescription: tr("researchEvalFilterEmptyDescription"),
+            missingValidationTitle: tr("researchEvalMissingValidationTitle"),
+            missingValidationDescription: tr(
+              "researchEvalMissingValidationDescription"
+            ),
+            requestReview: tr("researchEvalRequestReview"),
+            requestReviewHint: tr("researchEvalRequestReviewHint"),
+            demoLoading: tr("researchEvalDemoLoading"),
+            demoError: tr("researchEvalDemoError"),
+            dimensionsTitle: tr("researchEvalDimensionsTitle"),
+            overview: {
+              title: tr("researchEvalOverviewTitle"),
+              confidence: {
+                title: tr("researchEvalConfidenceTitle"),
+                score: tr("researchEvalConfidenceScore"),
+                level: tr("researchEvalConfidenceLevel"),
+                disclaimer: tr("researchEvalConfidenceDisclaimer"),
+                demoLabel: tr("researchEvalDemoLabel"),
+              },
+              researchHealth: tr("researchEvalResearchHealth"),
+              decisionReadiness: tr("researchEvalDecisionReadiness"),
+              recommendation: tr("researchEvalRecommendation"),
+              evaluationStatus: tr("researchEvalStatus"),
+              lastEvaluated: tr("researchEvalLastEvaluated"),
+              lifecycleStage: tr("researchEvalLifecycle"),
+              dataConfidence: tr("researchEvalDataConfidence"),
+              blockers: tr("researchEvalBlockerCount"),
+              evidenceCoverage: tr("researchEvalEvidenceCoverage"),
+            },
+            breakdown: {
+              title: tr("researchEvalBreakdownTitle"),
+              formula: tr("researchEvalBreakdownFormula"),
+              dimension: tr("researchEvalBreakdownDimension"),
+              score: tr("researchEvalBreakdownScore"),
+              weight: tr("researchEvalBreakdownWeight"),
+              contribution: tr("researchEvalBreakdownContribution"),
+              status: tr("researchEvalBreakdownStatus"),
+              total: tr("researchEvalBreakdownTotal"),
+              weightsTotal: tr("researchEvalBreakdownWeightsTotal"),
+            },
+            readiness: {
+              title: tr("researchEvalReadinessTitle"),
+              description: tr("researchEvalReadinessDescription"),
+              rule: tr("researchEvalReadinessRule"),
+              observed: tr("researchEvalReadinessObserved"),
+              result: tr("researchEvalReadinessResult"),
+              pass: tr("researchEvalPass"),
+              fail: tr("researchEvalFail"),
+            },
+            blockers: {
+              blockersTitle: tr("researchEvalCriticalBlockers"),
+              warningsTitle: tr("researchEvalWarnings"),
+              missingTitle: tr("researchEvalMissingEvidence"),
+              severity: tr("researchEvalSeverity"),
+              source: tr("researchEvalSource"),
+              reason: tr("researchEvalReason"),
+              evidence: tr("researchEvalEvidence"),
+              nextAction: tr("researchEvalNextAction"),
+              owner: tr("researchListOwner"),
+              due: tr("researchEvalDue"),
+              emptyBlockers: tr("researchEvalEmptyBlockers"),
+              emptyWarnings: tr("researchEvalEmptyWarnings"),
+              emptyMissing: tr("researchEvalEmptyMissing"),
+            },
+            strengthsWeaknesses: {
+              title: tr("researchEvalSWTitle"),
+              strengths: tr("researchEvalStrengths"),
+              weaknesses: tr("researchEvalWeaknesses"),
+              empty: tr("researchEvalSWEmpty"),
+            },
+            recommendation: {
+              title: tr("researchEvalRecPanelTitle"),
+              current: tr("researchEvalRecCurrent"),
+              why: tr("researchEvalRecWhy"),
+              blocking: tr("researchEvalRecBlocking"),
+              nextActions: tr("researchEvalRecNext"),
+              transition: tr("researchEvalRecTransition"),
+              owner: tr("researchEvalRecOwner"),
+              reassessment: tr("researchEvalRecReassessment"),
+              none: tr("researchEvalNone"),
+            },
+            history: {
+              title: tr("researchEvalHistoryTitle"),
+              date: tr("researchEvalHistoryDate"),
+              score: tr("researchEvalHistoryScore"),
+              recommendation: tr("researchEvalHistoryRec"),
+              change: tr("researchEvalHistoryChange"),
+              trigger: tr("researchEvalHistoryTrigger"),
+              superseded: tr("researchEvalHistorySuperseded"),
+              active: tr("researchEvalHistoryActive"),
+              empty: tr("researchEvalHistoryEmpty"),
+            },
+            filters: {
+              search: tr("researchEvalSearch"),
+              searchPlaceholder: tr("researchEvalSearchPlaceholder"),
+              status: tr("researchEvalFilterStatus"),
+              all: tr("researchEvalFilterAll"),
+            },
+            dimensionCard: {
+              score: tr("researchEvalBreakdownScore"),
+              weight: tr("researchEvalBreakdownWeight"),
+              contribution: tr("researchEvalBreakdownContribution"),
+              evidence: tr("researchEvalEvidence"),
+              evidenceEmpty: tr("researchEvalEvidenceEmpty"),
+              limitations: tr("researchEvalLimitations"),
+              blocking: tr("researchEvalBlockingFlag"),
+              blockingYes: tr("researchEvalBlockingYes"),
+              blockingNo: tr("researchEvalBlockingNo"),
+              lastUpdated: tr("researchEvalLastUpdated"),
+              expand: tr("researchEvalExpand"),
+              collapse: tr("researchEvalCollapse"),
+              none: tr("researchEvalNone"),
+            },
+          }}
+        />
+      );
+    }
+
     if (activeSection === "timeline") {
       return (
         <ResearchTimeline
@@ -447,7 +689,9 @@ export default function ResearchWorkspacePage({
     activeSection !== "overview" &&
     activeSection !== "notebook" &&
     activeSection !== "timeline" &&
-    activeSection !== "experiments";
+    activeSection !== "experiments" &&
+    activeSection !== "validation" &&
+    activeSection !== "evaluation";
 
   return (
     <AppShell language={language} onLanguageChange={setLanguage}>

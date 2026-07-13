@@ -52,7 +52,8 @@ export type ResearchTimelineEventKind =
   | "notebook_entry"
   | "stage_change"
   | "validation"
-  | "experiment";
+  | "experiment"
+  | "evaluation";
 
 export type ResearchTimelineEvent = {
   id: string;
