@@ -22,6 +22,12 @@ export default function SideNav({ language }: SideNavProps) {
         href="/"
         className={`workspace-sidenav__item${pathname === "/" ? " is-active" : ""}`}
       >
+        {t(language, "navResearchWorkspace")}
+      </Link>
+      <Link
+        href="/overview"
+        className={`workspace-sidenav__item${pathname === "/overview" ? " is-active" : ""}`}
+      >
         {t(language, "navOverview")}
       </Link>
 

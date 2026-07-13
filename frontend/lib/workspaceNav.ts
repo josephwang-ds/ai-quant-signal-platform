@@ -35,7 +35,13 @@ export const WORKSPACE_NAV_GROUPS: WorkspaceNavGroup[] = [
 ];
 
 export function isWorkspaceNavItemActive(pathname: string, href: string): boolean {
-  return href === "/" ? pathname === "/" : pathname.startsWith(href);
+  if (href === "/") {
+    return pathname === "/";
+  }
+  if (href === "/overview") {
+    return pathname === "/overview";
+  }
+  return pathname.startsWith(href);
 }
 
 export function isWorkspaceNavGroupActive(

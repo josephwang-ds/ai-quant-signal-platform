@@ -20,6 +20,12 @@ export default function TopNav({ language }: TopNavProps) {
   return (
     <nav className="dashboard-nav" aria-label="Workspace modules">
       <Link href="/" className={pathname === "/" ? "is-active" : undefined}>
+        {t(language, "navResearchWorkspace")}
+      </Link>
+      <Link
+        href="/overview"
+        className={pathname === "/overview" ? "is-active" : undefined}
+      >
         {t(language, "navOverview")}
       </Link>
 
