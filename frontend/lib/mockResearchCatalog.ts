@@ -1,114 +1,95 @@
 /**
- * Research Workspace catalog — one canonical project only.
- *
- * Authenticity over quantity: inventing multiple unfinished “projects”
- * is forbidden. Market-derived metrics stay null until the Research
- * Execution Engine loads real historical data (separate PR).
+ * Research Workspace catalog — projections from the canonical MA Crossover package.
  *
  * TODO(backend): 替换为 GET /api/research 与 GET /api/research/{id}。
  */
 
+import {
+  CANONICAL_MA_CROSSOVER,
+  CANONICAL_RESEARCH_ID,
+  getCanonicalResearchPackage,
+} from "@/lib/canonicalMaCrossover";
 import {
   toResearchListItem,
   type ResearchDetail,
   type ResearchListItem,
 } from "@/types/research";
 
-/** Canonical Research Workspace project id. */
-export const CANONICAL_RESEARCH_ID = "rs-ma-crossover-001";
+export { CANONICAL_RESEARCH_ID };
 
-export const METRIC_PENDING_PLACEHOLDER =
-  "Real market data will be loaded by the Research Execution Engine";
+function buildCanonicalDetail(): ResearchDetail {
+  const pkg = getCanonicalResearchPackage();
+  const { definition: def, integrity, plannedExperiments, plannedValidationStages } =
+    pkg;
 
-export const MOCK_RESEARCH_DETAILS: ResearchDetail[] = [
-  {
-    id: CANONICAL_RESEARCH_ID,
-    name: "MA Crossover Research",
-    researchQuestion:
-      "Does a simple MA20/MA60 crossover outperform buy-and-hold after transaction costs?",
-    status: "Running",
-    currentStage: "Running",
+  return {
+    id: def.id,
+    name: def.name,
+    researchQuestion: def.researchQuestion,
+    status: integrity.operationalStatus,
+    currentStage: integrity.progressStage,
     confidenceScore: null,
-    owner: "Research Desk",
-    tags: ["ma-crossover", "SPY", "trend-following"],
-    createdAt: "2026-03-12T09:20:00.000Z",
-    updatedAt: "2026-07-13T12:00:00.000Z",
-    experimentCount: 1,
-    lastValidation:
-      "Pending — real market data will be loaded by the Research Execution Engine",
-    currentRecommendation:
-      "Design and document the MA20/MA60 protocol; do not claim performance until execution results exist.",
-    hypothesis:
-      "A 20/60 moving-average crossover on SPY, with positions lagged by one trading day and a 0.001 transaction cost on position changes, can improve risk-adjusted returns versus SPY buy-and-hold after costs.",
-    researchObjective:
-      "Run one reproducible, cost-aware historical evaluation of MA20/MA60 on SPY versus buy-and-hold, with chronological out-of-sample and sensitivity checks — without inventing metrics in the UI.",
-    researchSummary:
-      "This workspace holds a single end-to-end research lifecycle for MA Crossover on SPY. Strategy narrative and protocol metadata are local. Sharpe, CAGR, drawdown, trade statistics, validation outcomes, and evaluation scores are not fabricated here; they require the Research Execution Engine.",
+    owner: def.ownerLabel,
+    tags: [...def.tags],
+    createdAt: pkg.timelineEvents[0]?.occurredAt ?? "2026-07-14T04:00:00.000Z",
+    updatedAt: pkg.timelineEvents[0]?.occurredAt ?? "2026-07-14T04:00:00.000Z",
+    experimentCount: plannedExperiments.length,
+    lastValidation: integrity.validationStatus,
+    currentRecommendation: integrity.evaluationPendingMessage,
+    integrity: {
+      dataStatus: integrity.dataStatus,
+      metricsStatus: integrity.metricsStatus,
+      validationStatus: integrity.validationStatus,
+      evaluationStatus: integrity.evaluationStatus,
+      publicityLabel: def.publicityLabel,
+      explanatoryText: def.explanatoryText,
+      evaluationPendingMessage: integrity.evaluationPendingMessage,
+    },
+    configuration: {
+      symbol: def.symbol,
+      benchmark: def.benchmark,
+      strategyName: def.strategyName,
+      parameterLines: def.parameters.map(
+        (parameter) => `${parameter.label}: ${parameter.value}`
+      ),
+      dataRequirements: [...def.dataRequirements],
+    },
+    hypothesis: def.hypothesis,
+    researchObjective: def.researchObjective,
+    researchSummary: def.explanatoryText,
     evidenceSummary:
-      "Evidence packages are scaffolded only. Quantitative evidence will be produced from real historical prices by the Research Execution Engine — not hardcoded.",
-    validationSummary:
-      "Validation stages (historical backtest, benchmark comparison, chronological OOS, sensitivity, transaction-cost review, data quality) are planned. Pass/fail will derive from calculated series, not mock gates.",
+      "No calculated evidence yet. Evidence packages will be produced by the Research Execution Engine from real historical prices.",
+    validationSummary: `Validation status: ${integrity.validationStatus}. Stages remain Not Started or Awaiting Data until market data arrives.`,
     keyStrengths: [
-      "Single clear research question and falsification criteria",
-      "Explicit instrument (SPY) and benchmark (SPY buy-and-hold)",
-      "Protocol parameters documented before execution",
+      "Single clear research question and frozen protocol parameters",
+      "Explicit SPY instrument and SPY buy-and-hold benchmark",
+      "Separation of design metadata from calculated results",
     ],
     knownWeaknesses: [
-      "No calculated metrics until the Research Execution Engine runs",
-      "Single-asset demo — not a cross-sectional study",
-      "Yahoo/research-grade history is not an exchange-grade feed",
+      "No calculated metrics until real historical data is integrated",
+      "Single-asset reference study — not a multi-strategy portfolio",
+      "Provider-grade research data is not an exchange feed",
     ],
     openQuestions: [
-      "Does MA20/MA60 beat SPY buy-and-hold after 0.001 costs on the full sample?",
-      "Does the chronological OOS window preserve the sign of net expectancy?",
-      "How fragile is the edge across a bounded short/long MA grid?",
+      "Does MA20/MA60 beat SPY buy-and-hold after 0.001 costs on the planned window?",
+      "Does chronological OOS preserve the sign of any apparent edge?",
+      "How fragile is the protocol across a bounded short/long MA grid?",
     ],
     nextActions: [
-      "Keep protocol parameters frozen (MA 20/60, lag 1 day, cost 0.001)",
-      "Connect Research Execution Engine for real historical metrics",
-      "Review calculated validation before any Evaluation recommendation",
+      "Keep protocol parameters frozen until execution exists",
+      "Integrate Research Execution Engine with real historical prices",
+      "Populate validation before any Evaluation recommendation",
     ],
-    evidenceItems: [
-      {
-        id: "ev-ma-protocol",
-        label: "Protocol defined",
-        status: "completed",
-        result:
-          "MA20/MA60 on SPY; position = signal lagged 1 day; cost 0.001 on position change; benchmark SPY buy-and-hold",
-      },
-      {
-        id: "ev-ma-bt",
-        label: "Historical backtest",
-        status: "pending",
-        result: METRIC_PENDING_PLACEHOLDER,
-      },
-      {
-        id: "ev-ma-bench",
-        label: "Benchmark comparison",
-        status: "pending",
-        result: METRIC_PENDING_PLACEHOLDER,
-      },
-      {
-        id: "ev-ma-oos",
-        label: "Out-of-sample validation",
-        status: "pending",
-        result: METRIC_PENDING_PLACEHOLDER,
-      },
-      {
-        id: "ev-ma-sens",
-        label: "Parameter sensitivity",
-        status: "pending",
-        result: METRIC_PENDING_PLACEHOLDER,
-      },
-      {
-        id: "ev-ma-cost",
-        label: "Transaction-cost review",
-        status: "pending",
-        result: METRIC_PENDING_PLACEHOLDER,
-      },
-    ],
-  },
-];
+    evidenceItems: plannedValidationStages.map((stage) => ({
+      id: stage.id,
+      label: stage.name,
+      status: "pending" as const,
+      result: `${stage.status === "awaiting_data" ? "Awaiting Data" : "Not Started"} — ${stage.description}`,
+    })),
+  };
+}
+
+export const MOCK_RESEARCH_DETAILS: ResearchDetail[] = [buildCanonicalDetail()];
 
 export function getMockResearchDetails(): ResearchDetail[] {
   return MOCK_RESEARCH_DETAILS.map((item) => ({
@@ -119,6 +100,12 @@ export function getMockResearchDetails(): ResearchDetail[] {
     openQuestions: [...item.openQuestions],
     nextActions: [...item.nextActions],
     evidenceItems: item.evidenceItems.map((evidence) => ({ ...evidence })),
+    integrity: { ...item.integrity },
+    configuration: {
+      ...item.configuration,
+      parameterLines: [...item.configuration.parameterLines],
+      dataRequirements: [...item.configuration.dataRequirements],
+    },
   }));
 }
 
@@ -127,10 +114,6 @@ export function getMockResearchProjects(): ResearchListItem[] {
 }
 
 export function getMockResearchById(researchId: string): ResearchDetail | null {
-  const found = MOCK_RESEARCH_DETAILS.find((item) => item.id === researchId);
-  if (!found) {
-    return null;
-  }
   return getMockResearchDetails().find((item) => item.id === researchId) ?? null;
 }
 
@@ -189,3 +172,13 @@ export async function loadMockResearchById(
 
 export const MOCK_RESEARCH_PROJECTS: ResearchListItem[] =
   MOCK_RESEARCH_DETAILS.map(toResearchListItem);
+
+/** Guarantees catalog remains keyed to the canonical package. */
+export function assertCanonicalCatalog(): void {
+  if (CANONICAL_MA_CROSSOVER.definition.id !== CANONICAL_RESEARCH_ID) {
+    throw new Error("Canonical research id mismatch.");
+  }
+  if (MOCK_RESEARCH_DETAILS.length !== 1) {
+    throw new Error("Public research catalog must contain exactly one project.");
+  }
+}

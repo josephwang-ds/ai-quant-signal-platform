@@ -1,7 +1,8 @@
-import ConfidenceBadge from "@/components/ui/ConfidenceBadge";
+import EvaluationPendingNotice from "@/components/features/research/EvaluationPendingNotice";
 import MetricSummaryCard from "@/components/ui/MetricSummaryCard";
 import EvidenceSummary from "@/components/features/research/EvidenceSummary";
 import LifecycleProgress from "@/components/features/research/LifecycleProgress";
+import type { ReactNode } from "react";
 import type { ResearchDetail } from "@/types/research";
 
 export type OverviewSectionLabels = {
@@ -23,11 +24,38 @@ export type OverviewSectionLabels = {
   evidenceTitle: string;
   evidenceDescription: string;
   confidence: string;
+  strategyConfig: string;
+  dataRequirements: string;
+  symbol: string;
+  benchmark: string;
+  strategy: string;
+  dataStatus: string;
+  metricsStatus: string;
+  calculatedMetricsTitle?: string;
+  metricTotalReturn?: string;
+  metricBenchmarkReturn?: string;
+  metricCagr?: string;
+  metricSharpe?: string;
+  metricMaxDd?: string;
+  metricVol?: string;
+  metricTrades?: string;
+};
+
+export type OverviewCalculatedMetrics = {
+  totalReturn: string;
+  benchmarkReturn: string;
+  cagr: string;
+  sharpe: string;
+  maxDrawdown: string;
+  volatility: string;
+  tradeCount: string;
 };
 
 export type OverviewSectionProps = {
   research: ResearchDetail;
   labels: OverviewSectionLabels;
+  calculatedMetrics?: OverviewCalculatedMetrics | null;
+  provenanceSlot?: ReactNode;
 };
 
 function BulletList({ items, title }: { items: string[]; title: string }) {
@@ -43,10 +71,19 @@ function BulletList({ items, title }: { items: string[]; title: string }) {
   );
 }
 
-/** Research Workspace Overview：问题、证据、生命周期与下一步。 */
-export default function OverviewSection({ research, labels }: OverviewSectionProps) {
+/** Research Workspace Overview：问题、配置、生命周期；可选展示真实计算结果。 */
+export default function OverviewSection({
+  research,
+  labels,
+  calculatedMetrics = null,
+  provenanceSlot = null,
+}: OverviewSectionProps) {
   return (
     <div className="research-overview">
+      <p className="research-overview__publicity">{research.integrity.publicityLabel}</p>
+      <p className="research-overview__explain">{research.integrity.explanatoryText}</p>
+      {provenanceSlot}
+
       <div className="research-overview__metrics">
         <MetricSummaryCard
           label={labels.currentStage}
@@ -56,9 +93,9 @@ export default function OverviewSection({ research, labels }: OverviewSectionPro
         />
         <div className="research-overview__confidence">
           <p className="metric-summary-card__label">{labels.researchConfidence}</p>
-          <ConfidenceBadge
-            score={research.confidenceScore}
+          <EvaluationPendingNotice
             label={labels.confidence}
+            message={research.integrity.evaluationPendingMessage}
           />
         </div>
         <MetricSummaryCard
@@ -66,6 +103,47 @@ export default function OverviewSection({ research, labels }: OverviewSectionPro
           value={research.currentRecommendation}
         />
       </div>
+
+      {calculatedMetrics ? (
+        <section
+          className="overview-block"
+          aria-label={labels.calculatedMetricsTitle ?? "Calculated metrics"}
+        >
+          <h3 className="overview-block__title">
+            {labels.calculatedMetricsTitle ?? "Calculated backtest metrics"}
+          </h3>
+          <dl className="overview-block__config">
+            <div>
+              <dt>{labels.metricTotalReturn ?? "Total return"}</dt>
+              <dd className="font-mono">{calculatedMetrics.totalReturn}</dd>
+            </div>
+            <div>
+              <dt>{labels.metricBenchmarkReturn ?? "Benchmark total return"}</dt>
+              <dd className="font-mono">{calculatedMetrics.benchmarkReturn}</dd>
+            </div>
+            <div>
+              <dt>{labels.metricCagr ?? "CAGR"}</dt>
+              <dd className="font-mono">{calculatedMetrics.cagr}</dd>
+            </div>
+            <div>
+              <dt>{labels.metricSharpe ?? "Sharpe"}</dt>
+              <dd className="font-mono">{calculatedMetrics.sharpe}</dd>
+            </div>
+            <div>
+              <dt>{labels.metricMaxDd ?? "Max drawdown"}</dt>
+              <dd className="font-mono">{calculatedMetrics.maxDrawdown}</dd>
+            </div>
+            <div>
+              <dt>{labels.metricVol ?? "Ann. volatility"}</dt>
+              <dd className="font-mono">{calculatedMetrics.volatility}</dd>
+            </div>
+            <div>
+              <dt>{labels.metricTrades ?? "Trade count"}</dt>
+              <dd className="font-mono">{calculatedMetrics.tradeCount}</dd>
+            </div>
+          </dl>
+        </section>
+      ) : null}
 
       <section className="overview-block overview-block--featured">
         <h3 className="overview-block__title">{labels.researchQuestion}</h3>
@@ -84,6 +162,42 @@ export default function OverviewSection({ research, labels }: OverviewSectionPro
           <p className="overview-block__body">{research.researchObjective}</p>
         </section>
       </div>
+
+      <section className="overview-block">
+        <h3 className="overview-block__title">{labels.strategyConfig}</h3>
+        <dl className="overview-block__config">
+          <div>
+            <dt>{labels.symbol}</dt>
+            <dd className="font-mono">{research.configuration.symbol}</dd>
+          </div>
+          <div>
+            <dt>{labels.benchmark}</dt>
+            <dd>{research.configuration.benchmark}</dd>
+          </div>
+          <div>
+            <dt>{labels.strategy}</dt>
+            <dd>{research.configuration.strategyName}</dd>
+          </div>
+          <div>
+            <dt>{labels.dataStatus}</dt>
+            <dd>{research.integrity.dataStatus}</dd>
+          </div>
+          <div>
+            <dt>{labels.metricsStatus}</dt>
+            <dd>{research.integrity.metricsStatus}</dd>
+          </div>
+        </dl>
+        <ul className="overview-block__list">
+          {research.configuration.parameterLines.map((line) => (
+            <li key={line}>{line}</li>
+          ))}
+        </ul>
+      </section>
+
+      <BulletList
+        title={labels.dataRequirements}
+        items={research.configuration.dataRequirements}
+      />
 
       <LifecycleProgress
         currentStage={research.currentStage}

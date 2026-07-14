@@ -1,65 +1,70 @@
 /**
- * Research Experiments catalog — MA Crossover only.
- *
- * Market metrics are intentionally null. They must come from the
- * Research Execution Engine over real historical data — never invented here.
- *
- * TODO(backend): GET /api/research/{id}/experiments
+ * Planned experiments for the canonical MA Crossover research.
+ * Metrics remain null — Research Execution Engine only (PR-008B+).
  */
 
-import type { ResearchExperiment } from "@/types/experiment";
 import {
   CANONICAL_RESEARCH_ID,
-  METRIC_PENDING_PLACEHOLDER,
-} from "@/lib/mockResearchCatalog";
+  getCanonicalResearchPackage,
+} from "@/lib/canonicalMaCrossover";
+import {
+  EMPTY_EXPERIMENT_METRICS,
+  type ExperimentType,
+  type ResearchExperiment,
+} from "@/types/experiment";
 
-const MA_CROSSOVER_EXPERIMENTS: ResearchExperiment[] = [
-  {
-    id: "exp-ma-001",
+const METRICS_PENDING =
+  "Metrics not calculated — real market data will be loaded by the Research Execution Engine.";
+
+function toExperimentType(value: string): ExperimentType {
+  const allowed: ExperimentType[] = [
+    "Backtest",
+    "Parameter Test",
+    "Feature Test",
+    "Regime Test",
+    "Cost Test",
+    "Model Comparison",
+  ];
+  return (allowed.find((item) => item === value) ?? "Backtest") as ExperimentType;
+}
+
+function buildPlannedExperiments(): ResearchExperiment[] {
+  const pkg = getCanonicalResearchPackage();
+  const def = pkg.definition;
+  const documentedAt =
+    pkg.timelineEvents[0]?.occurredAt ?? "2026-07-14T04:00:00.000Z";
+
+  return pkg.plannedExperiments.map((planned) => ({
+    id: planned.id,
     researchId: CANONICAL_RESEARCH_ID,
-    name: "MA 20/60 baseline — SPY",
-    hypothesis:
-      "A 20/60 moving-average crossover on SPY, with a one-day lagged position and 0.001 cost per position change, outperforms SPY buy-and-hold after costs on 2018→latest complete trading day.",
-    status: "Approved",
-    experimentType: "Backtest",
-    datasetOrSymbol: "SPY",
+    name: planned.name,
+    hypothesis: planned.hypothesis,
+    status: "Designed",
+    experimentType: toExperimentType(planned.experimentType),
+    datasetOrSymbol: def.symbol,
     startDate: "2018-01-01",
     endDate: "latest-complete-trading-day",
-    benchmark: "SPY Buy & Hold",
-    parameters: [
-      { key: "short_ma", value: "20" },
-      { key: "long_ma", value: "60" },
-      { key: "position_lag_days", value: "1" },
-      { key: "transaction_cost", value: "0.001" },
-      { key: "risk_free_rate", value: "0" },
-    ],
-    successCriteria:
-      "Net strategy beats buy-and-hold on risk-adjusted terms after costs on the full sample; OOS does not reverse the conclusion alone from in-sample noise.",
-    falsificationCondition:
-      "After costs, net Sharpe is not meaningfully better than buy-and-hold, or OOS and sensitivity collapse the apparent edge.",
-    notes:
-      "Canonical baseline for this workspace. Execution and metrics deferred to the Research Execution Engine.",
-    owner: "Research Desk",
-    createdAt: "2026-03-18T14:00:00.000Z",
-    updatedAt: "2026-07-13T12:00:00.000Z",
-    resultSummary: METRIC_PENDING_PLACEHOLDER,
-    metrics: {
-      sharpe: null,
-      cagr: null,
-      maxDrawdown: null,
-      volatility: null,
-      tradeCount: null,
-      winRate: null,
-      totalTransactionCost: null,
-    },
+    benchmark: def.benchmark,
+    parameters: planned.parameters.map((parameter) => ({
+      key: parameter.key,
+      value: parameter.value,
+    })),
+    successCriteria: planned.successCriteria,
+    falsificationCondition: planned.falsificationCondition,
+    notes: planned.notes,
+    owner: def.ownerLabel,
+    createdAt: documentedAt,
+    updatedAt: documentedAt,
+    resultSummary: METRICS_PENDING,
+    metrics: { ...EMPTY_EXPERIMENT_METRICS },
     linkedNotebookEntryIds: ["nb-ma-003"],
-    relatedEvidenceIds: ["ev-ma-protocol", "ev-ma-bt"],
+    relatedEvidenceIds: [],
     validationReadiness: "not_ready",
-  },
-];
+  }));
+}
 
 export const MOCK_EXPERIMENTS_BY_RESEARCH: Record<string, ResearchExperiment[]> = {
-  [CANONICAL_RESEARCH_ID]: MA_CROSSOVER_EXPERIMENTS,
+  [CANONICAL_RESEARCH_ID]: buildPlannedExperiments(),
 };
 
 function cloneExperiment(item: ResearchExperiment): ResearchExperiment {
@@ -80,8 +85,7 @@ export function getMockExperimentById(
   researchId: string,
   experimentId: string
 ): ResearchExperiment | null {
-  const found = getMockExperiments(researchId).find((item) => item.id === experimentId);
-  return found ?? null;
+  return getMockExperiments(researchId).find((item) => item.id === experimentId) ?? null;
 }
 
 export class MockExperimentError extends Error {

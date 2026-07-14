@@ -25,6 +25,7 @@ import {
   loadMockResearchById,
   MockResearchError,
 } from "@/lib/mockResearchCatalog";
+import { getCanonicalResearchPackage } from "@/lib/canonicalMaCrossover";
 import { mergeTimelineEvents } from "@/lib/researchNotebook";
 import {
   isResearchWorkspaceSection,
@@ -37,6 +38,17 @@ import type {
   ResearchDetail,
   ResearchWorkspaceSection,
 } from "@/types/research";
+import ValidationPendingPanel from "@/components/features/research/ValidationPendingPanel";
+import ProvenanceBanner from "@/components/features/research/execution/ProvenanceBanner";
+import { useResearchExecution } from "@/components/features/research/execution/useResearchExecution";
+import {
+  applyExecutionToExperiments,
+  applyExecutionToResearch,
+  HISTORICAL_DISCLAIMER,
+  validationDisplayStatus,
+} from "@/lib/applyResearchExecution";
+import { getMockExperiments } from "@/lib/mockExperimentCatalog";
+import { METRIC_NOT_CALCULATED } from "@/lib/researchExperiments";
 
 type LoadStatus = "loading" | "ready" | "error" | "not_found";
 
@@ -49,12 +61,7 @@ type PlaceholderCopy = {
 const PLACEHOLDER_COPY: Record<
   Exclude<
     ResearchWorkspaceSection,
-    | "overview"
-    | "notebook"
-    | "timeline"
-    | "experiments"
-    | "validation"
-    | "evaluation"
+    "overview" | "notebook" | "timeline" | "experiments" | "validation" | "evaluation"
   >,
   PlaceholderCopy
 > = {
@@ -112,6 +119,61 @@ export default function ResearchWorkspacePage({
   const [selectedExperimentId, setSelectedExperimentId] = useState<string | null>(
     null
   );
+
+  const {
+    enabled: executionEnabled,
+    status: executionStatus,
+    execution,
+    error: executionError,
+    reload: reloadExecution,
+  } = useResearchExecution(researchId);
+
+  const displayResearch = useMemo(() => {
+    if (!research) {
+      return null;
+    }
+    if (executionEnabled && executionStatus === "ready" && execution) {
+      return applyExecutionToResearch(research, execution);
+    }
+    return research;
+  }, [research, executionEnabled, executionStatus, execution]);
+
+  const executedExperiments = useMemo(() => {
+    if (!executionEnabled || executionStatus !== "ready" || !execution) {
+      return null;
+    }
+    return applyExecutionToExperiments(
+      getMockExperiments(researchId),
+      execution
+    );
+  }, [executionEnabled, executionStatus, execution, researchId]);
+
+  const provenanceLabels = useMemo(
+    () => ({
+      realData: tr("researchExecRealData"),
+      cached: tr("researchExecCached"),
+      stale: tr("researchExecStale"),
+      provider: tr("researchExecProvider"),
+      symbol: tr("researchExecSymbol"),
+      range: tr("researchExecRange"),
+      retrieved: tr("researchExecRetrieved"),
+      disclaimer: tr("researchExecDisclaimer"),
+    }),
+    [tr]
+  );
+
+  function formatMetric(value: number | null, kind: "pct" | "num" | "raw"): string {
+    if (value === null || Number.isNaN(value)) {
+      return METRIC_NOT_CALCULATED;
+    }
+    if (kind === "pct") {
+      return `${(value * 100).toFixed(1)}%`;
+    }
+    if (kind === "num") {
+      return value.toFixed(2);
+    }
+    return String(Math.round(value));
+  }
 
   const loadDetail = useCallback(async () => {
     setLoadStatus("loading");
@@ -192,14 +254,56 @@ export default function ResearchWorkspacePage({
   }
 
   function renderMainSection() {
-    if (!research) {
+    if (!displayResearch) {
       return null;
     }
+
+    const provenanceSlot =
+      executionEnabled && executionStatus === "ready" && execution ? (
+        <ProvenanceBanner
+          provenance={execution.provenance}
+          labels={provenanceLabels}
+          warnings={execution.warnings}
+        />
+      ) : executionEnabled && executionStatus === "error" ? (
+        <div className="research-execution-error">
+          <ErrorAlert
+            title={tr("researchExecUnavailableTitle")}
+            message={executionError ?? tr("researchExecUnavailableDescription")}
+          />
+          <Button primary onClick={reloadExecution}>
+            {tr("researchExecRetry")}
+          </Button>
+        </div>
+      ) : executionEnabled && executionStatus === "loading" ? (
+        <LoadingState message={tr("researchExecLoading")} />
+      ) : null;
+
+    const calculatedMetrics =
+      executionEnabled && executionStatus === "ready" && execution
+        ? {
+            totalReturn: formatMetric(execution.metrics.total_return, "pct"),
+            benchmarkReturn: formatMetric(
+              execution.benchmark_metrics.total_return,
+              "pct"
+            ),
+            cagr: formatMetric(execution.metrics.cagr, "pct"),
+            sharpe: formatMetric(execution.metrics.sharpe_ratio, "num"),
+            maxDrawdown: formatMetric(execution.metrics.maximum_drawdown, "pct"),
+            volatility: formatMetric(
+              execution.metrics.annualized_volatility,
+              "pct"
+            ),
+            tradeCount: formatMetric(execution.metrics.trade_count, "raw"),
+          }
+        : null;
 
     if (activeSection === "overview") {
       return (
         <OverviewSection
-          research={research}
+          research={displayResearch}
+          calculatedMetrics={calculatedMetrics}
+          provenanceSlot={provenanceSlot}
           labels={{
             researchQuestion: tr("researchWsQuestion"),
             hypothesis: tr("researchWsHypothesis"),
@@ -218,7 +322,22 @@ export default function ResearchWorkspacePage({
             lifecycleDescription: tr("researchWsLifecycleDescription"),
             evidenceTitle: tr("researchWsEvidenceTitle"),
             evidenceDescription: tr("researchWsEvidenceDescription"),
-            confidence: tr("researchListConfidence"),
+            confidence: tr("researchListEvaluationArea"),
+            strategyConfig: tr("researchWsStrategyConfig"),
+            dataRequirements: tr("researchWsDataRequirements"),
+            symbol: tr("researchListSymbol"),
+            benchmark: tr("researchListBenchmark"),
+            strategy: tr("researchListStrategy"),
+            dataStatus: tr("researchListDataStatus"),
+            metricsStatus: tr("researchListMetricsStatus"),
+            calculatedMetricsTitle: tr("researchWsCalculatedMetrics"),
+            metricTotalReturn: tr("researchWsMetricTotalReturn"),
+            metricBenchmarkReturn: tr("researchWsMetricBenchReturn"),
+            metricCagr: tr("researchExpMetricCagr"),
+            metricSharpe: tr("researchExpMetricSharpe"),
+            metricMaxDd: tr("researchExpMetricMaxDD"),
+            metricVol: tr("researchExpMetricVol"),
+            metricTrades: tr("researchExpMetricTrades"),
           }}
         />
       );
@@ -227,12 +346,12 @@ export default function ResearchWorkspacePage({
     if (activeSection === "notebook") {
       return (
         <ResearchNotebook
-          research={research}
+          research={displayResearch}
           language={language}
           sessionEntries={sessionNotebookEntries}
           onSessionEntrySaved={handleSessionEntrySaved}
           labels={{
-            title: tr("researchNbTitle"),
+            title: tr("researchNbDesignNotesTitle"),
             entryCount: tr("researchNbEntryCount"),
             lastUpdated: tr("researchNbLastUpdated"),
             newEntry: tr("researchNbNewEntry"),
@@ -280,12 +399,14 @@ export default function ResearchWorkspacePage({
     if (activeSection === "experiments") {
       return (
         <ResearchExperiments
-          research={research}
+          research={displayResearch}
           language={language}
           sessionExperiments={sessionExperiments}
           selectedExperimentId={selectedExperimentId}
           onSelectExperiment={setSelectedExperimentId}
           onExperimentDesigned={handleExperimentDesigned}
+          executedExperiments={executedExperiments}
+          provenanceSlot={provenanceSlot}
           labels={{
             title: tr("researchExpTitle"),
             totalCount: tr("researchExpTotalCount"),
@@ -402,16 +523,29 @@ export default function ResearchWorkspacePage({
 
     if (activeSection === "validation") {
       return (
-        <WorkspacePlaceholder
-          title={tr("researchWsValidationTitle")}
-          summary={tr("researchWsValidationSectionSummary")}
-          plannedCapabilities={[
-            tr("researchWsValidationCap1"),
-            tr("researchWsValidationCap2"),
-            tr("researchWsValidationCap3"),
-          ]}
-          deferredNote={tr("researchWsExecutionPendingNote")}
-        />
+        <>
+          {provenanceSlot}
+          <ValidationPendingPanel
+            stages={getCanonicalResearchPackage().plannedValidationStages}
+            statusForStage={(stageId) =>
+              validationDisplayStatus(
+                stageId,
+                executionStatus === "ready" ? execution : null
+              )
+            }
+            labels={{
+              title: tr("researchWsValidationTitle"),
+              summary: tr("researchWsValidationSectionSummary"),
+              notStarted: tr("researchWsValidationNotStarted"),
+              awaitingData: tr("researchWsValidationAwaitingData"),
+              completed: tr("researchWsValidationCompleted"),
+              note:
+                executionStatus === "ready"
+                  ? HISTORICAL_DISCLAIMER
+                  : tr("researchWsExecutionPendingNote"),
+            }}
+          />
+        </>
       );
     }
 
@@ -419,7 +553,7 @@ export default function ResearchWorkspacePage({
       return (
         <WorkspacePlaceholder
           title={tr("researchWsEvaluationTitle")}
-          summary={tr("researchWsEvaluationSummary")}
+          summary={tr("researchWsEvaluationUnavailable")}
           plannedCapabilities={[
             tr("researchWsEvaluationCap1"),
             tr("researchWsEvaluationCap2"),
@@ -499,10 +633,10 @@ export default function ResearchWorkspacePage({
           />
         ) : null}
 
-        {loadStatus === "ready" && research ? (
+        {loadStatus === "ready" && displayResearch ? (
           <div className="research-workspace">
             <ResearchWorkspaceHeader
-              research={research}
+              research={displayResearch}
               language={language}
               labels={{
                 back: tr("researchWsBackToList"),
@@ -512,13 +646,13 @@ export default function ResearchWorkspacePage({
                 created: tr("researchWsCreated"),
                 updated: tr("researchListUpdated"),
                 recommendation: tr("researchListRecommendation"),
-                confidence: tr("researchListConfidence"),
+                confidence: tr("researchListEvaluationArea"),
                 tags: tr("researchWsTags"),
               }}
             />
 
             <ResearchWorkspaceNavigation
-              researchId={research.id}
+              researchId={displayResearch.id}
               activeSection={activeSection}
               labels={navLabels}
             />
@@ -530,7 +664,7 @@ export default function ResearchWorkspacePage({
                 {showEvidencePreview ? (
                   <div className="research-workspace__placeholder-evidence">
                     <EvidenceSummary
-                      items={research.evidenceItems.slice(0, 3)}
+                      items={displayResearch.evidenceItems.slice(0, 3)}
                       title={tr("researchWsEvidencePreviewTitle")}
                       description={tr("researchWsEvidencePreviewDescription")}
                     />

@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
+  CANONICAL_RESEARCH_ID,
   getMockResearchById,
   getMockResearchProjects,
   MOCK_RESEARCH_DETAILS,
-  CANONICAL_RESEARCH_ID,
 } from "@/lib/mockResearchCatalog";
 import { getLifecycleStepState, resolveWorkspaceSection } from "@/lib/researchWorkspace";
 import {
@@ -30,6 +30,7 @@ describe("mock research catalog", () => {
       expect(detail?.status).toBe(item.status);
       expect(detail?.confidenceScore).toBe(item.confidenceScore);
       expect(detail?.currentRecommendation).toBe(item.currentRecommendation);
+      expect(detail?.integrity.publicityLabel).toBe(item.integrity.publicityLabel);
     }
   });
 
@@ -37,11 +38,11 @@ describe("mock research catalog", () => {
     expect(getMockResearchById("does-not-exist")).toBeNull();
   });
 
-  it("selects the MA crossover research by route id", () => {
+  it("selects MA Crossover by route id without a confidence score", () => {
     const detail = getMockResearchById(CANONICAL_RESEARCH_ID);
-    expect(detail?.name).toBe("MA Crossover Research");
-    expect(detail?.researchQuestion).toContain("MA20/MA60");
     expect(detail?.confidenceScore).toBeNull();
+    expect(detail?.status).toBe("Data Integration");
+    expect(detail?.currentStage).toBe("Planning");
   });
 });
 
@@ -56,6 +57,7 @@ describe("lifecycle progress helpers", () => {
 
   it("maps list operational status onto Ch3 progress stages", () => {
     expect(mapLifecycleStatusToProgressStage("Draft")).toBe("Draft");
+    expect(mapLifecycleStatusToProgressStage("Data Integration")).toBe("Planning");
     expect(mapLifecycleStatusToProgressStage("Running")).toBe("Running");
     expect(mapLifecycleStatusToProgressStage("Review")).toBe("Reviewed");
     expect(mapLifecycleStatusToProgressStage("Archived")).toBe("Closed");

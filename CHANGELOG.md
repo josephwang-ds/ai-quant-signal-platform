@@ -8,6 +8,22 @@ The project intends to follow [Keep a Changelog](https://keepachangelog.com/en/1
 
 ### Added
 
+#### PR-008B — Real SPY research execution
+
+- `POST /api/v1/research/execution` on the legacy FastAPI runtime with
+  `MarketDataPort`, Yahoo Finance adapter, filesystem cache, and deterministic
+  MA20/60 calculations (adjusted close, one-day position lag, tested costs).
+- Canonical Research Workspace (`ma-crossover-spy`) connected to backend
+  evidence only — provenance banner, calculated overview metrics, baseline
+  experiment overlay; Evaluation remains unavailable.
+- Offline fixture tests, optional live Yahoo smoke (`pytest -m live`), and
+  slice documentation in `docs/slices/research-execution.md`.
+
+#### PR-008A — Authenticity-first research baseline
+
+- Single canonical MA Crossover research project; fictional projects and
+  fabricated confidence/validation outcomes removed from the public workspace.
+
 #### PR-001 — Engineering Foundation
 
 - Repository constitution in `docs/PROJECT_BIBLE.md`.
@@ -25,6 +41,13 @@ The project intends to follow [Keep a Changelog](https://keepachangelog.com/en/1
 - Final foundation review checklist in `docs/PR-001-FINAL-REVIEW.md`.
 
 ### Changed
+
+#### PR-008B review follow-ups
+
+- Enforce same-asset buy-and-hold only (`benchmark` must equal `symbol`; HTTP 400 otherwise).
+- Apply Yahoo `timeout_seconds` via `yfinance.download(timeout=…)`.
+- Clip open-ended history to completed daily bars using an America/New_York exclusive cutoff.
+- Clarify ROADMAP: OOS / sensitivity / stress / regime / full robustness remain pending.
 
 - Reframed the README around AI Quant Research Workspace as a research operating system rather than a trading dashboard.
 - Established explicit documentation precedence and a no-big-bang migration policy.

@@ -273,15 +273,15 @@ export function createTimelineEventFromExperiment(
   };
 }
 
-/** Compact pending label for metric cells (not an invented number). */
-export const METRIC_PENDING_SHORT = "Pending (execution engine)";
+/** Pending / unavailable metric cells — never invent numbers. */
+export const METRIC_NOT_CALCULATED = "Not calculated";
 
 export function formatMetricValue(
   value: number | null,
   kind: keyof ResearchExperiment["metrics"]
 ): string {
   if (value === null || Number.isNaN(value)) {
-    return METRIC_PENDING_SHORT;
+    return METRIC_NOT_CALCULATED;
   }
   switch (kind) {
     case "sharpe":

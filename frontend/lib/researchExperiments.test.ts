@@ -17,23 +17,26 @@ import {
 import { DEFAULT_EXPERIMENT_FILTERS } from "@/types/experiment";
 
 describe("experiment catalog", () => {
-  it("provides the single MA crossover baseline experiment", () => {
+  it("lists planned MA crossover experiments without metrics", () => {
     const experiments = getMockExperiments(CANONICAL_RESEARCH_ID);
-    expect(experiments).toHaveLength(1);
-    expect(experiments[0].name).toBe("MA 20/60 baseline — SPY");
-    expect(experiments[0].datasetOrSymbol).toBe("SPY");
-    expect(experiments[0].benchmark).toBe("SPY Buy & Hold");
-    expect(experiments[0].metrics.sharpe).toBeNull();
+    expect(experiments).toHaveLength(5);
+    expect(experiments.every((item) => item.status === "Designed")).toBe(true);
+    expect(experiments.every((item) => item.metrics.sharpe === null)).toBe(true);
+    expect(experiments.map((item) => item.name)).toEqual(
+      expect.arrayContaining([
+        "MA20/60 Baseline Backtest — Planned",
+        "Chronological OOS Validation — Planned",
+        "Parameter Sensitivity Grid — Planned",
+        "Transaction-Cost Review — Planned",
+        "Regime Analysis — Planned",
+      ])
+    );
   });
 
   it("selects experiment by id within research", () => {
-    const found = getMockExperimentById(CANONICAL_RESEARCH_ID, "exp-ma-001");
-    expect(found?.name).toBe("MA 20/60 baseline — SPY");
+    const found = getMockExperimentById(CANONICAL_RESEARCH_ID, "exp-ma-baseline");
+    expect(found?.name).toContain("Baseline");
     expect(getMockExperimentById(CANONICAL_RESEARCH_ID, "missing")).toBeNull();
-  });
-
-  it("returns an empty catalog for unknown research ids", () => {
-    expect(getMockExperiments("rs-fictional-999")).toEqual([]);
   });
 });
 
@@ -43,23 +46,15 @@ describe("filterAndSortExperiments", () => {
   it("filters by status and type", () => {
     const byStatus = filterAndSortExperiments(experiments, {
       ...DEFAULT_EXPERIMENT_FILTERS,
-      status: "Approved",
+      status: "Designed",
     });
-    expect(byStatus).toHaveLength(1);
+    expect(byStatus).toHaveLength(5);
 
     const byType = filterAndSortExperiments(experiments, {
       ...DEFAULT_EXPERIMENT_FILTERS,
       experimentType: "Cost Test",
     });
-    expect(byType).toHaveLength(0);
-  });
-
-  it("keeps pending metrics null under result sort", () => {
-    const sorted = filterAndSortExperiments(experiments, {
-      ...DEFAULT_EXPERIMENT_FILTERS,
-      sort: "result",
-    });
-    expect(sorted.every((item) => item.metrics.sharpe === null)).toBe(true);
+    expect(byType).toHaveLength(1);
   });
 });
 
@@ -76,7 +71,7 @@ describe("experiment lifecycle helpers", () => {
 
   it("counts active experiments", () => {
     expect(countActiveExperiments(getMockExperiments(CANONICAL_RESEARCH_ID))).toBe(
-      1
+      5
     );
   });
 });
@@ -126,8 +121,8 @@ describe("validateExperimentComposer", () => {
         endDate: "2021-01-01",
         benchmark: "B&H",
         parameters: "fast=20",
-        successCriteria: "Sharpe > 0.5",
-        falsificationCondition: "Sharpe < 0.2",
+        successCriteria: "document results",
+        falsificationCondition: "protocol unreproducible",
         notes: "",
       },
       messages
@@ -140,7 +135,7 @@ describe("local experiment integration", () => {
   it("creates Designed experiment plus notebook and timeline artifacts", () => {
     const experiment = createLocalExperiment({
       researchId: CANONICAL_RESEARCH_ID,
-      owner: "Research Desk",
+      owner: "Research Workspace",
       values: {
         name: "Local draft",
         hypothesis: "H",
@@ -154,7 +149,7 @@ describe("local experiment integration", () => {
         falsificationCondition: "fail",
         notes: "n",
       },
-      now: "2026-07-13T13:00:00.000Z",
+      now: "2026-07-14T13:00:00.000Z",
     });
     expect(experiment.status).toBe("Designed");
 
