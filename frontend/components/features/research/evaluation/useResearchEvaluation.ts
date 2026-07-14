@@ -11,7 +11,18 @@ import type {
   ResearchEvaluationResult,
 } from "@/types/researchEvaluation";
 
-export function useResearchEvaluation(researchId: string, enabled: boolean) {
+/**
+ * Evaluation never triggers its own Validation run. It only summarizes a
+ * ValidationResult already saved by a prior Validation request, identified
+ * by validationRunId. When validationRunId is not yet available, the hook
+ * reports "awaiting_validation" and performs no request — it never falls
+ * back to mock evidence and never silently runs Validation itself.
+ */
+export function useResearchEvaluation(
+  researchId: string,
+  enabled: boolean,
+  validationRunId: string | null
+) {
   const requestEnabled = enabled && researchId === CANONICAL_RESEARCH_ID;
   const [status, setStatus] = useState<ResearchEvaluationRequestStatus>("idle");
   const [evaluation, setEvaluation] =
@@ -31,6 +42,13 @@ export function useResearchEvaluation(researchId: string, enabled: boolean) {
       return;
     }
 
+    if (!validationRunId) {
+      setStatus("awaiting_validation");
+      setEvaluation(null);
+      setError(null);
+      return;
+    }
+
     const controller = new AbortController();
     setStatus("loading");
     setEvaluation(null);
@@ -38,7 +56,7 @@ export function useResearchEvaluation(researchId: string, enabled: boolean) {
 
     void (async () => {
       try {
-        const result = await fetchResearchEvaluation({
+        const result = await fetchResearchEvaluation(validationRunId, {
           signal: controller.signal,
         });
         if (!controller.signal.aborted) {
@@ -60,7 +78,7 @@ export function useResearchEvaluation(researchId: string, enabled: boolean) {
     })();
 
     return () => controller.abort();
-  }, [requestEnabled, reloadToken]);
+  }, [requestEnabled, validationRunId, reloadToken]);
 
   return {
     enabled: requestEnabled,

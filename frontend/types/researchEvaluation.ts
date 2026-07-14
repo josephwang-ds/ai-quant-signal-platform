@@ -23,6 +23,7 @@ export type EvidenceCoverage = {
 
 export type ResearchEvaluationProvenance = {
   research_id: string;
+  validation_run_id: string;
   validation_generated_at: string | null;
   market_data_provenance: Record<string, unknown> | null;
 };
@@ -42,4 +43,9 @@ export type ResearchEvaluationResult = {
   generated_at: string;
 };
 
-export type ResearchEvaluationRequestStatus = "idle" | "loading" | "ready" | "error";
+export type ResearchEvaluationRequestStatus =
+  | "idle"
+  | "awaiting_validation"
+  | "loading"
+  | "ready"
+  | "error";

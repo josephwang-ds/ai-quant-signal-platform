@@ -3,12 +3,15 @@
 PR-010 answers one question only: "Do we have enough trustworthy evidence to
 continue research?" It never answers "should we buy?"
 
-Evaluation is evidence aggregation, not a second validation engine:
+Evaluation is pure evidence aggregation over an *already-produced*
+ValidationResult, identified by a ``validation_run_id`` minted by Validation.
+It is not a second validation engine:
 
 - It performs no market-data reads.
 - It performs no MA-crossover, OOS, sensitivity, or cost calculations.
-- It calls ``ResearchValidationService`` exactly once and only reads the
-  stage/status/summary/blocker fields that service already computed.
+- It never calls ``ResearchValidationService.execute`` and has no dependency
+  on ``ResearchValidationService`` at all — it depends only on
+  ``ValidationResultStore``, reading exactly one stored payload per request.
 - Allowed evaluation_status values are strictly ``completed``, ``incomplete``,
   or ``blocked`` — never a quality, confidence, or investment judgement.
 """
@@ -18,11 +21,8 @@ from __future__ import annotations
 from typing import Any
 
 from app.research_execution.market_data_port import utc_now_iso
-from app.research_validation.service import (
-    CANONICAL_RESEARCH_ID,
-    ResearchValidationError,
-    ResearchValidationService,
-)
+from app.research_validation.result_store import ValidationResultStore
+from app.research_validation.service import CANONICAL_RESEARCH_ID
 
 # Implemented validation stages (PR-009), in canonical order. Labels match
 # app.research_validation.service._stage(...) calls exactly so evidence_summary
@@ -78,10 +78,15 @@ def _deduplicate(items: list[str]) -> list[str]:
 
 
 class ResearchEvaluationService:
-    """Aggregate PR-009 validation evidence into a governance summary."""
+    """Aggregate one stored ValidationResult into a governance summary.
 
-    def __init__(self, validation_service: ResearchValidationService) -> None:
-        self.validation_service = validation_service
+    This service depends only on ``ValidationResultStore``. It has no
+    market-data-port dependency and no ``ResearchValidationService``
+    dependency, so it is structurally unable to trigger a new Validation run.
+    """
+
+    def __init__(self, store: ValidationResultStore) -> None:
+        self.store = store
 
     def execute(self, request: dict[str, Any]) -> dict[str, Any]:
         research_id = str(
@@ -93,53 +98,40 @@ class ResearchEvaluationService:
                 f"Supported: ['{CANONICAL_RESEARCH_ID}']."
             )
 
+        validation_run_id = str(request.get("validation_run_id") or "").strip()
+        if not validation_run_id:
+            raise ResearchEvaluationError(
+                "validation_run_id is required. Run or load Validation "
+                "evidence before Evaluation can be generated.",
+                status_code=400,
+            )
+
+        # Exactly one read from storage. Evaluation never re-runs or
+        # re-derives evidence, and never calls ResearchValidationService.
+        stored = self.store.get(validation_run_id)
+        if stored is None:
+            raise ResearchEvaluationError(
+                f"Unknown validation_run_id '{validation_run_id}'. Run or "
+                "load Validation evidence before Evaluation can be "
+                "generated.",
+                status_code=404,
+            )
+
+        stored_research_id = stored.get("research_id")
+        if stored_research_id != research_id:
+            raise ResearchEvaluationError(
+                f"validation_run_id '{validation_run_id}' belongs to "
+                f"research '{stored_research_id}', not '{research_id}'.",
+                status_code=400,
+            )
+
         generated_at = utc_now_iso()
-        try:
-            # Exactly one call. Evaluation never re-runs or re-derives evidence.
-            validation = self.validation_service.execute({"research_id": research_id})
-        except ResearchValidationError as exc:
-            return self._blocked_result(research_id, exc, generated_at)
-
-        return self._summarize(research_id, validation, generated_at)
-
-    def _blocked_result(
-        self,
-        research_id: str,
-        exc: ResearchValidationError,
-        generated_at: str,
-    ) -> dict[str, Any]:
-        """No validation evidence could be produced at all: fatal blocker."""
-        blocker = (
-            f"Provider unavailable: {exc.message}"
-            if exc.status_code == 502
-            else f"Historical execution failed: {exc.message}"
-        )
-        return {
-            "research_id": research_id,
-            "evaluation_status": "blocked",
-            "evidence_summary": [],
-            "evidence_coverage": {
-                "implemented_stage_count": len(IMPLEMENTED_STAGE_LABELS),
-                "completed_stage_count": 0,
-                "coverage_percentage": 0.0,
-            },
-            "completed_stages": [],
-            "incomplete_stages": list(IMPLEMENTED_STAGE_LABELS.values()),
-            "unavailable_stages": list(UNAVAILABLE_STAGES),
-            "blockers": [blocker],
-            "limitations": list(LIMITATIONS),
-            "outstanding_evidence": list(OUTSTANDING_EVIDENCE),
-            "provenance": {
-                "research_id": research_id,
-                "validation_generated_at": None,
-                "market_data_provenance": None,
-            },
-            "generated_at": generated_at,
-        }
+        return self._summarize(research_id, validation_run_id, stored, generated_at)
 
     def _summarize(
         self,
         research_id: str,
+        validation_run_id: str,
         validation: dict[str, Any],
         generated_at: str,
     ) -> dict[str, Any]:
@@ -198,6 +190,7 @@ class ResearchEvaluationService:
             "outstanding_evidence": list(OUTSTANDING_EVIDENCE),
             "provenance": {
                 "research_id": research_id,
+                "validation_run_id": validation_run_id,
                 "validation_generated_at": validation["generated_at"],
                 "market_data_provenance": validation["provenance"],
             },

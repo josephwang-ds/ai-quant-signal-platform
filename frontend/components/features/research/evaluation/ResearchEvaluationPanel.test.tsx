@@ -86,6 +86,7 @@ function buildEvaluation(
     ],
     provenance: {
       research_id: "ma-crossover-spy",
+      validation_run_id: "val-sample-run-id",
       validation_generated_at: "2026-07-14T01:02:00Z",
       market_data_provenance: {
         provider: "yahoo",
@@ -194,10 +195,18 @@ describe("researchEvaluationApi", () => {
     }));
     vi.stubGlobal("fetch", fetchMock);
 
-    await expect(fetchResearchEvaluation()).resolves.toEqual(evaluation);
+    await expect(fetchResearchEvaluation("val-sample-run-id")).resolves.toEqual(
+      evaluation
+    );
     expect(fetchMock).toHaveBeenCalledWith(
       "http://127.0.0.1:8000/api/v1/research/evaluation",
-      expect.objectContaining({ method: "POST" })
+      expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify({
+          research_id: "ma-crossover-spy",
+          validation_run_id: "val-sample-run-id",
+        }),
+      })
     );
   });
 
@@ -211,12 +220,30 @@ describe("researchEvaluationApi", () => {
       }))
     );
 
-    await expect(fetchResearchEvaluation()).rejects.toBeInstanceOf(
-      ResearchEvaluationApiError
-    );
-    await expect(fetchResearchEvaluation()).rejects.toMatchObject({
+    await expect(
+      fetchResearchEvaluation("val-sample-run-id")
+    ).rejects.toBeInstanceOf(ResearchEvaluationApiError);
+    await expect(fetchResearchEvaluation("val-sample-run-id")).rejects.toMatchObject({
       status: 400,
       message: "Unsupported research_id 'unknown'.",
+    });
+  });
+
+  it("surfaces a 404 when the validation_run_id is unknown to the backend", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => ({
+        ok: false,
+        status: 404,
+        json: async () => ({
+          detail: "Unknown validation_run_id 'val-missing'.",
+        }),
+      }))
+    );
+
+    await expect(fetchResearchEvaluation("val-missing")).rejects.toMatchObject({
+      status: 404,
+      message: "Unknown validation_run_id 'val-missing'.",
     });
   });
 });

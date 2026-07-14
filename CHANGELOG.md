@@ -10,26 +10,44 @@ The project intends to follow [Keep a Changelog](https://keepachangelog.com/en/1
 
 #### PR-010 — Research evaluation governance layer
 
-- `POST /api/v1/research/evaluation` summarizing PR-009 validation evidence
-  only: it calls `ResearchValidationService` exactly once and performs no
-  MA-crossover, OOS, sensitivity, or cost calculations of its own.
+- `POST /api/v1/research/evaluation` summarizing an already-produced
+  PR-009 `ValidationResult`, identified by `validation_run_id`. Evaluation
+  performs no MA-crossover, OOS, sensitivity, or cost calculations, no
+  market-data reads, and — after an architecture fix on this branch — **no
+  longer calls `ResearchValidationService.execute` at all**: its
+  constructor accepts only a `ValidationResultStore`, so it is structurally
+  unable to trigger a new Validation run.
+- New `ValidationResultStore` (in-memory MVP; `InMemoryValidationResultStore`
+  in `app.research_validation.result_store`). `POST /api/v1/research/validation`
+  now saves its result exactly once per run and returns the new
+  `validation_run_id` in its response; `POST /api/v1/research/evaluation`
+  requires that id, returns `404` if it is unknown and `400` if it belongs
+  to a different `research_id`. Saved results are lost on backend restart —
+  persistent `ValidationRun` storage remains future work.
 - Deterministic `evaluation_status` restricted to `completed`, `incomplete`,
   or `blocked` — no quality, robustness, or investment judgement.
 - Evidence coverage as implementation completeness only (implemented vs.
   completed stage counts and percentage — never a confidence score).
-- Deterministic blockers reused verbatim from validation stage results;
-  fixed, informational limitations and outstanding-evidence lists for
-  stress testing, regime analysis, walk-forward validation, Monte Carlo
+- Deterministic blockers reused verbatim from the stored validation stage
+  results; fixed, informational limitations and outstanding-evidence lists
+  for stress testing, regime analysis, walk-forward validation, Monte Carlo
   simulation, and paper trading.
 - Evaluation Workspace tab replaced with an enterprise governance
   dashboard: evaluation status, evidence coverage, evidence summary table,
   completed/incomplete/outstanding evidence, limitations, blockers, and the
   research timeline. No score, confidence, star rating, or buy/sell
-  recommendation is rendered anywhere in the view.
+  recommendation is rendered anywhere in the view. The frontend reuses the
+  `validation_run_id` from the Validation result already loaded by the
+  workspace and never silently runs Validation from the Evaluation tab; if
+  Validation evidence is not yet available it shows "Run or load
+  Validation evidence before Evaluation can be generated."
 - Offline evaluation fixture tests (backend aggregation/coverage/blocker
-  rules; frontend loading/success/incomplete/blocked/API-unavailable
-  states) and slice documentation in
-  `docs/slices/research-evaluation.md`.
+  rules, store-based isolation, spy/failing-dependency proof that
+  Evaluation never touches `MarketDataPort` or `ResearchValidationService`;
+  frontend loading/success/awaiting-validation/incomplete/blocked/API-
+  unavailable states) and slice documentation in
+  `docs/slices/research-evaluation.md` and
+  `docs/slices/research-validation.md`.
 
 #### PR-009 — Real MA Crossover validation evidence
 

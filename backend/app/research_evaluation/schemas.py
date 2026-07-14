@@ -12,11 +12,18 @@ from pydantic import BaseModel, ConfigDict
 
 
 class ResearchEvaluationRequest(BaseModel):
-    """SummarizeEvidence input; only identifies which research to summarize."""
+    """SummarizeEvidence input.
+
+    ``validation_run_id`` must reference a ValidationResult already saved by
+    a prior ``POST /api/v1/research/validation`` call. Evaluation never
+    triggers a new Validation run, so this field has no default: callers
+    without a validation_run_id must run or load Validation evidence first.
+    """
 
     model_config = ConfigDict(extra="forbid")
 
     research_id: str = "ma-crossover-spy"
+    validation_run_id: str
 
 
 class EvidenceSummaryItem(BaseModel):

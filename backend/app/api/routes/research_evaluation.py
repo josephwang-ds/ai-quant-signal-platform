@@ -12,8 +12,7 @@ from app.research_evaluation.service import (
     ResearchEvaluationError,
     ResearchEvaluationService,
 )
-from app.research_execution.yahoo_adapter import YahooFinanceMarketDataAdapter
-from app.research_validation.service import ResearchValidationService
+from app.research_validation.result_store import get_default_validation_result_store
 
 router = APIRouter(prefix="/api/v1/research", tags=["research-evaluation"])
 
@@ -23,10 +22,10 @@ _service: ResearchEvaluationService | None = None
 def get_research_evaluation_service() -> ResearchEvaluationService:
     global _service
     if _service is None:
-        validation_service = ResearchValidationService(
-            YahooFinanceMarketDataAdapter()
-        )
-        _service = ResearchEvaluationService(validation_service)
+        # Evaluation depends only on the shared ValidationResultStore — it
+        # has no MarketDataPort and no ResearchValidationService dependency,
+        # so it cannot trigger a new Validation run.
+        _service = ResearchEvaluationService(get_default_validation_result_store())
     return _service
 
 
@@ -34,7 +33,7 @@ def get_research_evaluation_service() -> ResearchEvaluationService:
 def evaluate_research(
     body: ResearchEvaluationRequest,
 ) -> ResearchEvaluationResponse:
-    """Summarize existing PR-009 evidence; never recalculates, never recommends."""
+    """Summarize an existing PR-009 ValidationResult; never recalculates."""
     try:
         result = get_research_evaluation_service().execute(body.model_dump())
     except ResearchEvaluationError as exc:

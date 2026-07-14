@@ -24,14 +24,20 @@ export class ResearchEvaluationApiError extends Error {
   }
 }
 
-export async function fetchResearchEvaluation(options?: {
-  signal?: AbortSignal;
-}): Promise<ResearchEvaluationResult> {
+export async function fetchResearchEvaluation(
+  validationRunId: string,
+  options?: {
+    signal?: AbortSignal;
+  }
+): Promise<ResearchEvaluationResult> {
   const response = await fetch(`${apiBase()}/api/v1/research/evaluation`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     signal: options?.signal,
-    body: JSON.stringify({ research_id: CANONICAL_RESEARCH_ID }),
+    body: JSON.stringify({
+      research_id: CANONICAL_RESEARCH_ID,
+      validation_run_id: validationRunId,
+    }),
   });
 
   if (!response.ok) {

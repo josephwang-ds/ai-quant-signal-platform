@@ -172,6 +172,7 @@ const SAMPLE_VALIDATION: ResearchValidationResult = {
   },
   warnings: ["Validation is incomplete."],
   generated_at: "2026-07-14T01:02:00Z",
+  validation_run_id: "val-sample-run-id",
 };
 
 const labels: ResearchValidationLabels = {

@@ -134,13 +134,18 @@ export default function ResearchWorkspacePage({
     error: validationError,
     reload: reloadValidation,
   } = useResearchValidation(researchId, activeSection === "validation");
+  const validationRunId = validation?.validation_run_id ?? null;
   const {
     enabled: evaluationEnabled,
     status: evaluationStatus,
     evaluation,
     error: evaluationError,
     reload: reloadEvaluation,
-  } = useResearchEvaluation(researchId, activeSection === "evaluation");
+  } = useResearchEvaluation(
+    researchId,
+    activeSection === "evaluation",
+    validationRunId
+  );
 
   const displayResearch = useMemo(() => {
     if (!research) {
@@ -641,6 +646,22 @@ export default function ResearchWorkspacePage({
             title={tr("researchEvalUnavailableTitle")}
             message={tr("researchEvalUnavailableDescription")}
           />
+        );
+      }
+      if (evaluationStatus === "awaiting_validation") {
+        return (
+          <div className="research-execution-error">
+            <ErrorAlert
+              title={tr("researchEvalAwaitingValidationTitle")}
+              message={tr("researchEvalAwaitingValidationDescription")}
+            />
+            <Link
+              href={`/research/${encodeURIComponent(researchId)}?tab=validation`}
+              className="btn btn--primary"
+            >
+              {tr("researchEvalGoToValidation")}
+            </Link>
+          </div>
         );
       }
       if (evaluationStatus === "loading") {
