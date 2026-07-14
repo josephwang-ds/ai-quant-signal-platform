@@ -8,6 +8,29 @@ The project intends to follow [Keep a Changelog](https://keepachangelog.com/en/1
 
 ### Added
 
+#### PR-010 — Research evaluation governance layer
+
+- `POST /api/v1/research/evaluation` summarizing PR-009 validation evidence
+  only: it calls `ResearchValidationService` exactly once and performs no
+  MA-crossover, OOS, sensitivity, or cost calculations of its own.
+- Deterministic `evaluation_status` restricted to `completed`, `incomplete`,
+  or `blocked` — no quality, robustness, or investment judgement.
+- Evidence coverage as implementation completeness only (implemented vs.
+  completed stage counts and percentage — never a confidence score).
+- Deterministic blockers reused verbatim from validation stage results;
+  fixed, informational limitations and outstanding-evidence lists for
+  stress testing, regime analysis, walk-forward validation, Monte Carlo
+  simulation, and paper trading.
+- Evaluation Workspace tab replaced with an enterprise governance
+  dashboard: evaluation status, evidence coverage, evidence summary table,
+  completed/incomplete/outstanding evidence, limitations, blockers, and the
+  research timeline. No score, confidence, star rating, or buy/sell
+  recommendation is rendered anywhere in the view.
+- Offline evaluation fixture tests (backend aggregation/coverage/blocker
+  rules; frontend loading/success/incomplete/blocked/API-unavailable
+  states) and slice documentation in
+  `docs/slices/research-evaluation.md`.
+
 #### PR-009 — Real MA Crossover validation evidence
 
 - `POST /api/v1/research/validation` reusing the PR-008B market-data port,

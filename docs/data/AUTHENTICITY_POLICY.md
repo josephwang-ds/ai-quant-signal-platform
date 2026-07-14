@@ -89,3 +89,22 @@ This evidence does not establish a final Validation Pass or robustness
 conclusion. Stress testing, regime analysis, full robustness evaluation,
 Evaluation, Research Confidence, and readiness recommendations remain
 unavailable. See `docs/slices/research-validation.md`.
+
+## PR-010 evaluation-governance boundary
+
+PR-010 adds `POST /api/v1/research/evaluation`, which **summarizes** PR-009
+validation evidence (evidence coverage, completed/incomplete/unavailable
+stages, blockers, limitations, outstanding evidence). It performs no
+calculations of its own and introduces no new numeric evidence.
+
+Rules that remain in force:
+
+- Allowed `evaluation_status` values are only `completed`, `incomplete`, or
+  `blocked` — never a quality, robustness, or investment judgement.
+- No Research Confidence score, star rating, quality grade, or buy/sell
+  recommendation is shown anywhere in the Evaluation view.
+- Evidence coverage is implementation completeness only, never confidence.
+- Stress testing, regime analysis, walk-forward validation, Monte Carlo
+  simulation, Publish Strategy, and Paper Trading remain unavailable and
+  are listed as outstanding evidence, not as pending scores.
+- See `docs/slices/research-evaluation.md`.
