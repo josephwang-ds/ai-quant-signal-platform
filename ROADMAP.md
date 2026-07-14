@@ -66,8 +66,8 @@ Still deferred beyond PR-001: release automation, Dependabot policy, branch-prot
 - Experiment protocol, approval, execution, and outcome capture.
 - [x] Authentic historical backtest *(PR-008B: SPY MA20/60 via `POST /api/v1/research/execution`)*.
 - [x] Same-asset buy-and-hold benchmark comparison *(PR-008B; independent benchmark series deferred)*.
-- [ ] Out-of-sample (OOS) validation.
-- [ ] Parameter sensitivity.
+- [x] Chronological out-of-sample (OOS) evidence *(PR-009; no optimization or robustness verdict)*.
+- [x] Bounded parameter and transaction-cost sensitivity evidence *(PR-009; descriptive only)*.
 - [ ] Stress testing.
 - [ ] Regime analysis.
 - [ ] Full robustness evaluation.
@@ -77,7 +77,8 @@ Still deferred beyond PR-001: release automation, Dependabot policy, branch-prot
 
 ### Epic D — Validation context
 
-- Versioned validation plans and ValidationRun execution.
+- [x] Deterministic validation evidence for the canonical MA Crossover research *(PR-009: historical, benchmark, OOS, sensitivity, costs, and data quality)*.
+- [ ] Versioned, persisted ValidationRun lifecycle and final Pass / Fail / Inconclusive policy.
 - Evaluation policies for performance, robustness, leakage, and data confidence.
 - Reproducible benchmarks and comparable metric definitions.
 - Expiration and re-validation rules when evidence or market assumptions change.
