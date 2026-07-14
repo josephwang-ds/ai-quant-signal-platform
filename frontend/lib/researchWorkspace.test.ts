@@ -3,6 +3,7 @@ import {
   getMockResearchById,
   getMockResearchProjects,
   MOCK_RESEARCH_DETAILS,
+  CANONICAL_RESEARCH_ID,
 } from "@/lib/mockResearchCatalog";
 import { getLifecycleStepState, resolveWorkspaceSection } from "@/lib/researchWorkspace";
 import {
@@ -11,9 +12,15 @@ import {
 } from "@/types/research";
 
 describe("mock research catalog", () => {
+  it("exposes exactly one canonical research project", () => {
+    expect(MOCK_RESEARCH_DETAILS).toHaveLength(1);
+    expect(MOCK_RESEARCH_DETAILS[0].id).toBe(CANONICAL_RESEARCH_ID);
+    expect(MOCK_RESEARCH_DETAILS[0].name).toBe("MA Crossover Research");
+  });
+
   it("keeps list and detail projections consistent by id", () => {
     const list = getMockResearchProjects();
-    expect(list).toHaveLength(MOCK_RESEARCH_DETAILS.length);
+    expect(list).toHaveLength(1);
 
     for (const item of list) {
       const detail = getMockResearchById(item.id);
@@ -30,10 +37,11 @@ describe("mock research catalog", () => {
     expect(getMockResearchById("does-not-exist")).toBeNull();
   });
 
-  it("selects the correct research by route id", () => {
-    const detail = getMockResearchById("rs-pairs-003");
-    expect(detail?.name).toBe("Pairs Trading");
-    expect(detail?.currentStage).toBe("Reviewed");
+  it("selects the MA crossover research by route id", () => {
+    const detail = getMockResearchById(CANONICAL_RESEARCH_ID);
+    expect(detail?.name).toBe("MA Crossover Research");
+    expect(detail?.researchQuestion).toContain("MA20/MA60");
+    expect(detail?.confidenceScore).toBeNull();
   });
 });
 

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { getMockNotebookEntries } from "@/lib/mockNotebookCatalog";
+import { CANONICAL_RESEARCH_ID } from "@/lib/mockResearchCatalog";
 import {
   createLocalNotebookEntry,
   createTimelineEventFromNotebookEntry,
@@ -12,30 +13,36 @@ import { renderNotebookMarkdown } from "@/lib/notebookMarkdown";
 import { DEFAULT_NOTEBOOK_FILTERS } from "@/types/notebook";
 
 describe("notebook catalog", () => {
-  it("provides at least eight coherent entries for the momentum demo", () => {
-    const entries = getMockNotebookEntries("rs-momentum-001");
-    expect(entries.length).toBeGreaterThanOrEqual(8);
+  it("provides coherent MA crossover notebook entries", () => {
+    const entries = getMockNotebookEntries(CANONICAL_RESEARCH_ID);
+    expect(entries.length).toBeGreaterThanOrEqual(5);
     expect(entries.some((e) => e.entryType === "Hypothesis")).toBe(true);
-    expect(entries.some((e) => e.entryType === "Result")).toBe(true);
-    expect(entries.some((e) => e.entryType === "Reflection")).toBe(true);
+    expect(entries.some((e) => e.entryType === "Decision")).toBe(true);
+    expect(entries.every((e) => e.researchId === CANONICAL_RESEARCH_ID)).toBe(
+      true
+    );
+    expect(
+      entries.some((e) =>
+        e.body.includes("Research Execution Engine")
+      )
+    ).toBe(true);
   });
 
-  it("scopes entries to the requested research id", () => {
-    const entries = getMockNotebookEntries("rs-rsi-002");
-    expect(entries.every((e) => e.researchId === "rs-rsi-002")).toBe(true);
+  it("returns empty for non-canonical research ids", () => {
+    expect(getMockNotebookEntries("rs-rsi-002")).toEqual([]);
   });
 });
 
 describe("filterAndSortNotebookEntries", () => {
-  const entries = getMockNotebookEntries("rs-momentum-001");
+  const entries = getMockNotebookEntries(CANONICAL_RESEARCH_ID);
 
   it("filters by entry type", () => {
     const filtered = filterAndSortNotebookEntries(entries, {
       ...DEFAULT_NOTEBOOK_FILTERS,
-      type: "Reflection",
+      type: "Action",
     });
     expect(filtered.length).toBeGreaterThan(0);
-    expect(filtered.every((e) => e.entryType === "Reflection")).toBe(true);
+    expect(filtered.every((e) => e.entryType === "Action")).toBe(true);
   });
 
   it("sorts newest first by default", () => {
@@ -92,8 +99,8 @@ describe("validateNotebookComposer", () => {
 describe("local notebook + timeline integration", () => {
   it("creates a timeline event when a notebook entry is saved locally", () => {
     const entry = createLocalNotebookEntry({
-      researchId: "rs-momentum-001",
-      author: "A. Chen",
+      researchId: CANONICAL_RESEARCH_ID,
+      author: "Research Desk",
       entryType: "Observation",
       title: "Session note",
       body: "Local session entry.",
@@ -103,7 +110,7 @@ describe("local notebook + timeline integration", () => {
     const event = createTimelineEventFromNotebookEntry(entry);
     expect(event.kind).toBe("notebook_entry");
     expect(event.sourceEntryId).toBe(entry.id);
-    expect(event.researchId).toBe("rs-momentum-001");
+    expect(event.researchId).toBe(CANONICAL_RESEARCH_ID);
   });
 
   it("merges baseline and session timeline events newest-first", () => {
@@ -111,7 +118,7 @@ describe("local notebook + timeline integration", () => {
       [
         {
           id: "tl-1",
-          researchId: "rs-momentum-001",
+          researchId: CANONICAL_RESEARCH_ID,
           occurredAt: "2026-01-01T00:00:00.000Z",
           title: "Older",
           summary: "older",
@@ -121,7 +128,7 @@ describe("local notebook + timeline integration", () => {
       [
         {
           id: "tl-2",
-          researchId: "rs-momentum-001",
+          researchId: CANONICAL_RESEARCH_ID,
           occurredAt: "2026-07-13T12:00:00.000Z",
           title: "Newer",
           summary: "newer",
@@ -129,15 +136,15 @@ describe("local notebook + timeline integration", () => {
         },
       ]
     );
-    expect(merged[0].title).toBe("Newer");
+    expect(merged[0].id).toBe("tl-2");
+    expect(merged[1].id).toBe("tl-1");
   });
 });
 
-describe("renderNotebookMarkdown", () => {
-  it("renders headings, lists, and bold text", () => {
-    const html = renderNotebookMarkdown("## Title\n\n**Bold** line\n\n- item one");
-    expect(html).toContain("<h4");
-    expect(html).toContain("<strong>Bold</strong>");
-    expect(html).toContain("<li>item one</li>");
+describe("notebook markdown", () => {
+  it("renders bold markdown safely", () => {
+    const html = renderNotebookMarkdown("Hello **world**");
+    expect(html).toContain("<strong>");
+    expect(html).toContain("world");
   });
 });

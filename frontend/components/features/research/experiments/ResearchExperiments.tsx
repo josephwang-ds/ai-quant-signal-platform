@@ -167,10 +167,9 @@ export default function ResearchExperiments({
     void loadList();
   }, [loadList, reloadToken]);
 
-  const allExperiments = useMemo(
-    () => [...sessionExperiments, ...baseline],
-    [sessionExperiments, baseline]
-  );
+  const allExperiments = useMemo(() => {
+    return [...sessionExperiments, ...baseline];
+  }, [sessionExperiments, baseline]);
 
   const visible = useMemo(
     () => filterAndSortExperiments(allExperiments, filters),

@@ -4,7 +4,10 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { useState } from "react";
 import ResearchExperiments from "@/components/features/research/experiments/ResearchExperiments";
 import ExperimentLifecycle from "@/components/features/research/experiments/ExperimentLifecycle";
-import { getMockResearchById } from "@/lib/mockResearchCatalog";
+import {
+  CANONICAL_RESEARCH_ID,
+  getMockResearchById,
+} from "@/lib/mockResearchCatalog";
 import type { ResearchExperiment } from "@/types/experiment";
 import type { NotebookEntry, ResearchTimelineEvent } from "@/types/notebook";
 
@@ -147,10 +150,10 @@ describe("ExperimentLifecycle", () => {
 });
 
 describe("ResearchExperiments", () => {
-  const research = getMockResearchById("rs-momentum-001");
+  const research = getMockResearchById(CANONICAL_RESEARCH_ID);
   expect(research).not.toBeNull();
 
-  it("renders experiment list", async () => {
+  it("renders the canonical MA crossover experiment", async () => {
     render(
       <ResearchExperiments
         research={research!}
@@ -165,12 +168,10 @@ describe("ResearchExperiments", () => {
 
     await waitFor(() => {
       expect(
-        screen.getByRole("heading", { name: "MA 20/60 baseline" })
+        screen.getByRole("heading", { name: "MA 20/60 baseline — SPY" })
       ).toBeInTheDocument();
     });
-    expect(
-      screen.getByRole("heading", { name: "Sideways-market regime test" })
-    ).toBeInTheDocument();
+    expect(screen.getByText(/Pending \(execution engine\)/i)).toBeInTheDocument();
   });
 
   it("filters by status", async () => {
@@ -189,17 +190,15 @@ describe("ResearchExperiments", () => {
 
     await waitFor(() => {
       expect(
-        screen.getByRole("heading", { name: "MA 20/60 baseline" })
+        screen.getByRole("heading", { name: "MA 20/60 baseline — SPY" })
       ).toBeInTheDocument();
     });
 
     await user.selectOptions(screen.getByLabelText("Status"), "Running");
     expect(
-      screen.getByRole("heading", { name: "Out-of-sample 2022–2025 walk-forward" })
-    ).toBeInTheDocument();
-    expect(
-      screen.queryByRole("heading", { name: "MA 20/60 baseline" })
+      screen.queryByRole("heading", { name: "MA 20/60 baseline — SPY" })
     ).not.toBeInTheDocument();
+    expect(screen.getByText("No experiments match")).toBeInTheDocument();
   });
 
   it("opens experiment detail on select", async () => {
@@ -338,8 +337,8 @@ describe("ResearchExperiments", () => {
 });
 
 describe("empty experiments catalog", () => {
-  it("shows empty state when research has no experiments", async () => {
-    const research = getMockResearchById("rs-vol-004");
+  it("shows empty state when experiment load returns none", async () => {
+    const research = getMockResearchById(CANONICAL_RESEARCH_ID);
     expect(research).not.toBeNull();
 
     const { loadMockExperiments } = await import("@/lib/mockExperimentCatalog");

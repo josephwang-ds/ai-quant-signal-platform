@@ -3,7 +3,10 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { useState } from "react";
 import ResearchNotebook from "@/components/features/research/notebook/ResearchNotebook";
-import { getMockResearchById } from "@/lib/mockResearchCatalog";
+import {
+  CANONICAL_RESEARCH_ID,
+  getMockResearchById,
+} from "@/lib/mockResearchCatalog";
 import type { NotebookEntry, ResearchTimelineEvent } from "@/types/notebook";
 
 vi.mock("@/lib/mockNotebookCatalog", async (importOriginal) => {
@@ -64,7 +67,7 @@ afterEach(() => {
 });
 
 describe("ResearchNotebook", () => {
-  const research = getMockResearchById("rs-momentum-001");
+  const research = getMockResearchById(CANONICAL_RESEARCH_ID);
   expect(research).not.toBeNull();
 
   it("renders existing notebook entries", async () => {
@@ -79,7 +82,7 @@ describe("ResearchNotebook", () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByText("Primary momentum hypothesis")).toBeInTheDocument();
+      expect(screen.getByText("Primary MA crossover hypothesis")).toBeInTheDocument();
     });
     expect(screen.getByText("Frame the research question")).toBeInTheDocument();
   });
@@ -97,13 +100,15 @@ describe("ResearchNotebook", () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByText("Primary momentum hypothesis")).toBeInTheDocument();
+      expect(screen.getByText("Primary MA crossover hypothesis")).toBeInTheDocument();
     });
 
     await user.selectOptions(screen.getByLabelText("Entry type"), "Hypothesis");
     const entries = screen.getAllByRole("article");
     expect(entries).toHaveLength(1);
-    expect(within(entries[0]).getByText("Primary momentum hypothesis")).toBeInTheDocument();
+    expect(
+      within(entries[0]).getByText("Primary MA crossover hypothesis")
+    ).toBeInTheDocument();
   });
 
   it("shows validation errors when saving an empty entry", async () => {
@@ -170,8 +175,8 @@ describe("ResearchNotebook", () => {
 });
 
 describe("ResearchNotebook empty catalog", () => {
-  it("shows empty state when a project has no entries", async () => {
-    const research = getMockResearchById("rs-factor-006");
+  it("shows empty state when notebook load returns no entries", async () => {
+    const research = getMockResearchById(CANONICAL_RESEARCH_ID);
     expect(research).not.toBeNull();
 
     const { loadMockNotebookEntries } = await import("@/lib/mockNotebookCatalog");
