@@ -243,3 +243,114 @@ def test_cache_metadata_roundtrip(tmp_path) -> None:
     assert stale is False
     assert hit.provenance.cache_hit is True
     assert hit.provenance.retrieved_at == series.provenance.retrieved_at
+
+
+def test_benchmark_mismatch_rejected(service: ResearchExecutionService) -> None:
+    with pytest.raises(ResearchExecutionError) as exc:
+        service.execute(
+            {
+                "research_id": "ma-crossover-spy",
+                "symbol": "SPY",
+                "benchmark": "QQQ",
+            }
+        )
+    assert exc.value.status_code == 400
+    assert "same-asset buy-and-hold" in exc.value.message
+
+
+def test_api_benchmark_mismatch_returns_400(api_client: TestClient) -> None:
+    response = api_client.post(
+        "/api/v1/research/execution",
+        json={"symbol": "SPY", "benchmark": "QQQ"},
+    )
+    assert response.status_code == 400
+    assert "same-asset buy-and-hold" in response.json()["detail"]
+
+
+def test_response_benchmark_label_matches_calculated_series(
+    service: ResearchExecutionService,
+) -> None:
+    result = service.execute(
+        {
+            "research_id": "ma-crossover-spy",
+            "symbol": "SPY",
+            "benchmark": "SPY",
+        }
+    )
+    strategy = result["strategy"]
+    assert strategy["symbol"] == "SPY"
+    assert strategy["benchmark"] == "SPY"
+    assert strategy["benchmark_type"] == "same_asset_buy_and_hold"
+    assert strategy["benchmark_label"] == "SPY Buy & Hold"
+
+
+def test_open_ended_request_excludes_incomplete_session_day(
+    fixture_adapter: FixtureMarketDataAdapter,
+) -> None:
+    from datetime import date
+
+    from app.research_execution.market_data_port import clip_to_completed_daily_bars
+
+    series = fixture_adapter.get_daily_ohlcv("SPY", "2018-01-01")
+    # Simulate a fixture that includes an incomplete "today" bar relative to a fixed as_of.
+    frame = series.frame.copy()
+    last = frame.iloc[-1].copy()
+    incomplete_day = date(2024, 6, 15)
+    last["date"] = pd.Timestamp(incomplete_day)
+    # Avoid duplicate-date validation issues by replacing the last row date only after
+    # constructing a synthetic series via clip with as_of that day.
+    frame.loc[frame.index[-1], "date"] = pd.Timestamp(incomplete_day)
+    # Ensure uniqueness: drop any prior row on that date.
+    frame = frame[
+        ~(
+            (pd.to_datetime(frame["date"]).dt.date == incomplete_day)
+            & (frame.index != frame.index[-1])
+        )
+    ].reset_index(drop=True)
+
+    from app.research_execution.market_data_port import (
+        DataProvenance,
+        NormalizedMarketSeries,
+        series_actual_bounds,
+    )
+
+    actual_start, actual_end = series_actual_bounds(frame)
+    synthetic = NormalizedMarketSeries(
+        symbol="SPY",
+        frame=frame,
+        provenance=DataProvenance(
+            provider="fixture",
+            symbol="SPY",
+            source="Local Fixture",
+            retrieved_at="2024-06-15T15:00:00Z",
+            requested_start="2018-01-01",
+            requested_end=None,
+            actual_start=actual_start,
+            actual_end=actual_end,
+            interval="1d",
+        ),
+    )
+    clipped = clip_to_completed_daily_bars(
+        synthetic, end_date=None, as_of=incomplete_day
+    )
+    clipped_dates = pd.to_datetime(clipped.frame["date"]).dt.date
+    assert incomplete_day not in set(clipped_dates)
+    assert clipped.provenance.actual_end < incomplete_day.isoformat() or (
+        clipped.provenance.actual_end != incomplete_day.isoformat()
+    )
+    assert clipped.provenance.actual_end == max(clipped_dates).isoformat()
+
+
+def test_yahoo_timeout_maps_to_unavailable(monkeypatch: pytest.MonkeyPatch, tmp_path) -> None:
+    from app.research_execution.market_data_port import MarketDataUnavailableError
+    from app.research_execution.yahoo_adapter import YahooFinanceMarketDataAdapter
+
+    def _timeout(*_args, **_kwargs):
+        raise TimeoutError("simulated provider timeout")
+
+    monkeypatch.setattr("app.research_execution.yahoo_adapter.yf.download", _timeout)
+    adapter = YahooFinanceMarketDataAdapter(cache=__import__(
+        "app.research_execution.price_cache", fromlist=["PriceCache"]
+    ).PriceCache(root=tmp_path), timeout_seconds=1.5)
+    with pytest.raises(MarketDataUnavailableError, match="timed out"):
+        adapter.get_daily_ohlcv("SPY", "2018-01-01")

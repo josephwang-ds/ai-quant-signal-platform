@@ -42,6 +42,13 @@ The project intends to follow [Keep a Changelog](https://keepachangelog.com/en/1
 
 ### Changed
 
+#### PR-008B review follow-ups
+
+- Enforce same-asset buy-and-hold only (`benchmark` must equal `symbol`; HTTP 400 otherwise).
+- Apply Yahoo `timeout_seconds` via `yfinance.download(timeout=…)`.
+- Clip open-ended history to completed daily bars using an America/New_York exclusive cutoff.
+- Clarify ROADMAP: OOS / sensitivity / stress / regime / full robustness remain pending.
+
 - Reframed the README around AI Quant Research Workspace as a research operating system rather than a trading dashboard.
 - Established explicit documentation precedence and a no-big-bang migration policy.
 - Marked `docs/ARCHITECTURE.md` and the former `README 2.md` as legacy.

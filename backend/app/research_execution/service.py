@@ -13,6 +13,8 @@ from app.research_execution.calculations import (
 from app.research_execution.market_data_port import (
     MarketDataPort,
     MarketDataError,
+    MarketDataValidationError,
+    clip_to_completed_daily_bars,
     utc_now_iso,
 )
 
@@ -21,6 +23,11 @@ CANONICAL_RESEARCH_IDS = frozenset(
         "ma-crossover-spy",
         "rs-ma-crossover-001",  # compatibility alias from PR-008A catalogs
     }
+)
+
+SAME_ASSET_BENCHMARK_MESSAGE = (
+    "PR-008B supports only same-asset buy-and-hold benchmarking. "
+    "Independent benchmark series are deferred."
 )
 
 
@@ -50,7 +57,14 @@ class ResearchExecutionService:
         research_id = research_id or "ma-crossover-spy"
 
         symbol = str(request.get("symbol") or "SPY").upper().strip()
-        benchmark = str(request.get("benchmark") or "SPY").upper().strip()
+        benchmark = str(request.get("benchmark") or symbol).upper().strip()
+        if not symbol:
+            raise ResearchExecutionError("symbol must not be empty.", status_code=400)
+        if benchmark != symbol:
+            raise ResearchExecutionError(
+                SAME_ASSET_BENCHMARK_MESSAGE,
+                status_code=400,
+            )
         start_date = str(request.get("start_date") or "2018-01-01")
         end_date = request.get("end_date")
         end_date = str(end_date) if end_date else None
@@ -84,6 +98,9 @@ class ResearchExecutionService:
 
         try:
             market = self.market_data.get_daily_ohlcv(symbol, start_date, end_date)
+            market = clip_to_completed_daily_bars(market, end_date=end_date)
+        except MarketDataValidationError as exc:
+            raise ResearchExecutionError(str(exc), status_code=400) from exc
         except MarketDataError as exc:
             raise ResearchExecutionError(str(exc), status_code=502) from exc
 
@@ -110,7 +127,9 @@ class ResearchExecutionService:
             "strategy": {
                 "type": "ma_crossover",
                 "symbol": symbol,
-                "benchmark": benchmark,
+                "benchmark": symbol,
+                "benchmark_type": "same_asset_buy_and_hold",
+                "benchmark_label": f"{symbol} Buy & Hold",
                 "short_window": short_window,
                 "long_window": long_window,
                 "transaction_cost": transaction_cost,

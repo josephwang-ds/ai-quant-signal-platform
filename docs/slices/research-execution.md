@@ -47,6 +47,24 @@ Request (defaults shown):
 
 Also accepted research id alias: `rs-ma-crossover-001`.
 
+**Benchmark rule (PR-008B):** `benchmark` must equal `symbol` (same-asset
+buy-and-hold only). Independent benchmark series are deferred. Mismatched
+values return HTTP **400** with:
+
+`PR-008B supports only same-asset buy-and-hold benchmarking. Independent benchmark series are deferred.`
+
+Response `strategy.benchmark` / `benchmark_label` always describe the calculated
+same-asset buy-and-hold series (never a different ticker).
+
+**Open-ended `end_date: null`:** bars on or after the current calendar date in
+`America/New_York` are excluded so an incomplete in-session daily bar is never
+treated as complete. Provenance `actual_end` reflects the last retained bar.
+An explicit `end_date` is not clipped by this rule.
+
+**Yahoo timeout:** `YahooFinanceMarketDataAdapter(timeout_seconds=…)` is passed
+to `yfinance.download(..., timeout=…)`. Timeouts map to `MarketDataUnavailableError`
+(HTTP 502 via the service).
+
 Response includes `strategy`, `provenance`, `metrics`, `benchmark_metrics`,
 `series`, `warnings`, `generated_at`, and `supported_evidence`.
 
@@ -128,12 +146,17 @@ cd frontend && npm test && npm run build
 
 Supported after successful execution:
 
-- Historical Backtest → Completed
-- Benchmark Comparison → Completed
+- Authentic historical backtest → Completed
+- Same-asset buy-and-hold benchmark comparison → Completed
 
 Remain unavailable / not started:
 
-- OOS, sensitivity, transaction-cost review grid, stress, regime
-- Data-quality formal review
+- OOS
+- Parameter sensitivity
+- Stress testing
+- Regime analysis
+- Full robustness evaluation
+- Transaction-cost review grid
+- Formal data-quality review
 - Evaluation / Research Confidence score
 - Publish Strategy, Paper Trading, Portfolio

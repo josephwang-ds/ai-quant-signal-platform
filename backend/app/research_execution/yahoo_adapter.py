@@ -91,6 +91,7 @@ class YahooFinanceMarketDataAdapter:
             "auto_adjust": True,
             "progress": False,
             "threads": False,
+            "timeout": self.timeout_seconds,
         }
         if end_date:
             end_dt = datetime.strptime(end_date, "%Y-%m-%d").date()
@@ -99,6 +100,16 @@ class YahooFinanceMarketDataAdapter:
         try:
             raw = yf.download(symbol, **download_kwargs)
         except Exception as exc:  # noqa: BLE001 — map to unavailable
+            message = str(exc).lower()
+            if (
+                isinstance(exc, TimeoutError)
+                or "timeout" in message
+                or "timed out" in message
+            ):
+                raise MarketDataUnavailableError(
+                    f"Yahoo Finance timed out for {symbol} "
+                    f"after {self.timeout_seconds}s."
+                ) from exc
             raise MarketDataUnavailableError(
                 f"Yahoo Finance request failed for {symbol}: {exc}"
             ) from exc
@@ -145,7 +156,8 @@ class YahooFinanceMarketDataAdapter:
         )
         warnings: list[str] = [
             "Yahoo Finance / yfinance is suitable for research and portfolio demos "
-            "only — not an exchange-grade production feed."
+            "only — not an exchange-grade production feed.",
+            "Provider timeout is enforced via yfinance download(timeout=…).",
         ]
         return NormalizedMarketSeries(
             symbol=symbol,

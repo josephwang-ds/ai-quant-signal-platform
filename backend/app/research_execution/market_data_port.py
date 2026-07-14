@@ -7,9 +7,10 @@ Domain/Application code must not import yfinance.
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from datetime import date, datetime, timezone
 from typing import Protocol, Sequence
+from zoneinfo import ZoneInfo
 
 import pandas as pd
 
@@ -23,6 +24,9 @@ REQUIRED_COLUMNS = (
     "close",
     "volume",
 )
+
+# US equity daily bars for SPY — used only for the completed-session cutoff.
+MARKET_CALENDAR_TZ = "America/New_York"
 
 
 @dataclass(frozen=True)
@@ -146,3 +150,62 @@ def series_actual_bounds(frame: pd.DataFrame) -> tuple[str, str]:
     start = _to_date_str(frame["date"].iloc[0])
     end = _to_date_str(frame["date"].iloc[-1])
     return start, end
+
+
+def completed_session_cutoff_date(*, as_of: date | None = None) -> date:
+    """
+    Calendar date in America/New_York used as the exclusive upper bound when
+    end_date is null.
+
+    Rule: keep bars with date < cutoff. The current local session day is never
+    treated as a completed daily bar for open-ended requests.
+    """
+    if as_of is not None:
+        return as_of
+    return datetime.now(ZoneInfo(MARKET_CALENDAR_TZ)).date()
+
+
+def clip_to_completed_daily_bars(
+    series: NormalizedMarketSeries,
+    *,
+    end_date: str | None,
+    as_of: date | None = None,
+) -> NormalizedMarketSeries:
+    """
+    When end_date is null, drop any bars on/after the current NY calendar date.
+
+    Explicit end_date requests are left unchanged (caller owns inclusivity).
+    Provenance.actual_* is recomputed from the retained frame.
+    """
+    if end_date is not None:
+        return series
+
+    cutoff = completed_session_cutoff_date(as_of=as_of)
+    frame = series.frame.copy()
+    bar_dates = pd.to_datetime(frame["date"]).dt.date
+    kept = frame.loc[bar_dates < cutoff].reset_index(drop=True)
+    if kept.empty:
+        raise MarketDataValidationError(
+            f"No completed daily bars before {cutoff.isoformat()} "
+            f"(America/New_York session cutoff)."
+        )
+
+    actual_start, actual_end = series_actual_bounds(kept)
+    warnings = list(series.warnings)
+    note = (
+        "Open-ended request clipped to completed daily bars only "
+        f"(exclusive cutoff {cutoff.isoformat()} America/New_York)."
+    )
+    if note not in warnings:
+        warnings.append(note)
+
+    return NormalizedMarketSeries(
+        symbol=series.symbol,
+        frame=kept,
+        provenance=replace(
+            series.provenance,
+            actual_start=actual_start,
+            actual_end=actual_end,
+        ),
+        warnings=warnings,
+    )
