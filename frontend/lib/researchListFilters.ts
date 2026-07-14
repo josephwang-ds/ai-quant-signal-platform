@@ -69,7 +69,7 @@ export function filterAndSortResearchList(
       case "name":
         return a.name.localeCompare(b.name);
       case "confidence":
-        return b.confidenceScore - a.confidenceScore;
+        return (b.confidenceScore ?? -1) - (a.confidenceScore ?? -1);
       case "created":
         return Date.parse(b.createdAt) - Date.parse(a.createdAt);
       case "updated":

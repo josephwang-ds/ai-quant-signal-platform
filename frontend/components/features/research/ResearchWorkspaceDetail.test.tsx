@@ -3,7 +3,10 @@ import { describe, expect, it } from "vitest";
 import LifecycleProgress from "@/components/features/research/LifecycleProgress";
 import ResearchWorkspaceNavigation from "@/components/features/research/ResearchWorkspaceNavigation";
 import OverviewSection from "@/components/features/research/OverviewSection";
-import { getMockResearchById } from "@/lib/mockResearchCatalog";
+import {
+  CANONICAL_RESEARCH_ID,
+  getMockResearchById,
+} from "@/lib/mockResearchCatalog";
 
 const navLabels = {
   overview: "Overview",
@@ -31,7 +34,7 @@ describe("ResearchWorkspaceNavigation", () => {
   it("renders all workspace sections and marks the active one", () => {
     render(
       <ResearchWorkspaceNavigation
-        researchId="rs-momentum-001"
+        researchId={CANONICAL_RESEARCH_ID}
         activeSection="overview"
         labels={navLabels}
       />
@@ -44,14 +47,14 @@ describe("ResearchWorkspaceNavigation", () => {
     );
     expect(screen.getByRole("link", { name: "Notebook" })).toHaveAttribute(
       "href",
-      "/research/rs-momentum-001?tab=notebook"
+      `/research/${CANONICAL_RESEARCH_ID}?tab=notebook`
     );
   });
 });
 
 describe("OverviewSection", () => {
   it("renders research detail content for the selected project", () => {
-    const research = getMockResearchById("rs-momentum-001");
+    const research = getMockResearchById(CANONICAL_RESEARCH_ID);
     expect(research).not.toBeNull();
 
     render(
@@ -81,10 +84,15 @@ describe("OverviewSection", () => {
     );
 
     expect(
-      screen.getByText(/12–1 month cross-sectional momentum/i)
+      screen.getByText(/MA20\/MA60 crossover outperform buy-and-hold/i)
     ).toBeInTheDocument();
-    expect(screen.getByText("Continue; freeze universe before next OOS fold")).toBeInTheDocument();
-    expect(screen.getByText("Backtest completed")).toBeInTheDocument();
+    expect(
+      screen.getByText(/Design and document the MA20\/MA60 protocol/i)
+    ).toBeInTheDocument();
+    expect(screen.getByText("Protocol defined")).toBeInTheDocument();
     expect(screen.getByText("Next actions")).toBeInTheDocument();
+    expect(
+      screen.getByTitle("Confidence: Pending")
+    ).toBeInTheDocument();
   });
 });

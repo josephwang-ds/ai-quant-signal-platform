@@ -36,8 +36,8 @@ export type ResearchListItem = {
   name: string;
   researchQuestion: string;
   status: ResearchLifecycleStatus;
-  /** 0–100 置信度分数 */
-  confidenceScore: number;
+  /** 0–100 置信度分数；null = 待 Research Execution Engine 计算 */
+  confidenceScore: number | null;
   owner: string;
   tags: string[];
   createdAt: string;

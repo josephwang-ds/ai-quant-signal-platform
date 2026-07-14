@@ -3,6 +3,7 @@ import {
   getMockExperimentById,
   getMockExperiments,
 } from "@/lib/mockExperimentCatalog";
+import { CANONICAL_RESEARCH_ID } from "@/lib/mockResearchCatalog";
 import {
   countActiveExperiments,
   createLocalExperiment,
@@ -16,55 +17,49 @@ import {
 import { DEFAULT_EXPERIMENT_FILTERS } from "@/types/experiment";
 
 describe("experiment catalog", () => {
-  it("provides a coherent six-experiment story for momentum research", () => {
-    const experiments = getMockExperiments("rs-momentum-001");
-    expect(experiments).toHaveLength(6);
-    expect(experiments.map((item) => item.name)).toEqual(
-      expect.arrayContaining([
-        "MA 20/60 baseline",
-        "MA 10/50 parameter variant",
-        "RSI-filtered crossover",
-        "Transaction-cost stress test",
-        "Out-of-sample 2022–2025 walk-forward",
-        "Sideways-market regime test",
-      ])
-    );
+  it("provides the single MA crossover baseline experiment", () => {
+    const experiments = getMockExperiments(CANONICAL_RESEARCH_ID);
+    expect(experiments).toHaveLength(1);
+    expect(experiments[0].name).toBe("MA 20/60 baseline — SPY");
+    expect(experiments[0].datasetOrSymbol).toBe("SPY");
+    expect(experiments[0].benchmark).toBe("SPY Buy & Hold");
+    expect(experiments[0].metrics.sharpe).toBeNull();
   });
 
   it("selects experiment by id within research", () => {
-    const found = getMockExperimentById("rs-momentum-001", "exp-mom-001");
-    expect(found?.name).toBe("MA 20/60 baseline");
-    expect(getMockExperimentById("rs-momentum-001", "missing")).toBeNull();
+    const found = getMockExperimentById(CANONICAL_RESEARCH_ID, "exp-ma-001");
+    expect(found?.name).toBe("MA 20/60 baseline — SPY");
+    expect(getMockExperimentById(CANONICAL_RESEARCH_ID, "missing")).toBeNull();
+  });
+
+  it("returns an empty catalog for unknown research ids", () => {
+    expect(getMockExperiments("rs-fictional-999")).toEqual([]);
   });
 });
 
 describe("filterAndSortExperiments", () => {
-  const experiments = getMockExperiments("rs-momentum-001");
+  const experiments = getMockExperiments(CANONICAL_RESEARCH_ID);
 
   it("filters by status and type", () => {
     const byStatus = filterAndSortExperiments(experiments, {
       ...DEFAULT_EXPERIMENT_FILTERS,
-      status: "Completed",
+      status: "Approved",
     });
-    expect(byStatus.every((item) => item.status === "Completed")).toBe(true);
+    expect(byStatus).toHaveLength(1);
 
     const byType = filterAndSortExperiments(experiments, {
       ...DEFAULT_EXPERIMENT_FILTERS,
       experimentType: "Cost Test",
     });
-    expect(byType).toHaveLength(1);
-    expect(byType[0].name).toBe("Transaction-cost stress test");
+    expect(byType).toHaveLength(0);
   });
 
-  it("sorts by sharpe when result sort is selected", () => {
+  it("keeps pending metrics null under result sort", () => {
     const sorted = filterAndSortExperiments(experiments, {
       ...DEFAULT_EXPERIMENT_FILTERS,
       sort: "result",
     });
-    const sharpes = sorted
-      .map((item) => item.metrics.sharpe)
-      .filter((value): value is number => value !== null);
-    expect(sharpes[0]).toBeGreaterThanOrEqual(sharpes[sharpes.length - 1]);
+    expect(sorted.every((item) => item.metrics.sharpe === null)).toBe(true);
   });
 });
 
@@ -80,8 +75,8 @@ describe("experiment lifecycle helpers", () => {
   });
 
   it("counts active experiments", () => {
-    expect(countActiveExperiments(getMockExperiments("rs-momentum-001"))).toBe(
-      2
+    expect(countActiveExperiments(getMockExperiments(CANONICAL_RESEARCH_ID))).toBe(
+      1
     );
   });
 });
@@ -144,16 +139,16 @@ describe("validateExperimentComposer", () => {
 describe("local experiment integration", () => {
   it("creates Designed experiment plus notebook and timeline artifacts", () => {
     const experiment = createLocalExperiment({
-      researchId: "rs-momentum-001",
-      owner: "A. Chen",
+      researchId: CANONICAL_RESEARCH_ID,
+      owner: "Research Desk",
       values: {
         name: "Local draft",
         hypothesis: "H",
         experimentType: "Backtest",
-        datasetOrSymbol: "Panel",
+        datasetOrSymbol: "SPY",
         startDate: "2020-01-01",
         endDate: "2021-01-01",
-        benchmark: "B&H",
+        benchmark: "SPY Buy & Hold",
         parameters: "a=1",
         successCriteria: "ok",
         falsificationCondition: "fail",

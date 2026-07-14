@@ -49,28 +49,15 @@ type PlaceholderCopy = {
 const PLACEHOLDER_COPY: Record<
   Exclude<
     ResearchWorkspaceSection,
-    "overview" | "notebook" | "timeline" | "experiments"
+    | "overview"
+    | "notebook"
+    | "timeline"
+    | "experiments"
+    | "validation"
+    | "evaluation"
   >,
   PlaceholderCopy
 > = {
-  validation: {
-    titleKey: "researchWsValidationTitle",
-    summaryKey: "researchWsValidationSectionSummary",
-    capabilityKeys: [
-      "researchWsValidationCap1",
-      "researchWsValidationCap2",
-      "researchWsValidationCap3",
-    ],
-  },
-  evaluation: {
-    titleKey: "researchWsEvaluationTitle",
-    summaryKey: "researchWsEvaluationSummary",
-    capabilityKeys: [
-      "researchWsEvaluationCap1",
-      "researchWsEvaluationCap2",
-      "researchWsEvaluationCap3",
-    ],
-  },
   files: {
     titleKey: "researchWsFilesTitle",
     summaryKey: "researchWsFilesSummary",
@@ -413,6 +400,36 @@ export default function ResearchWorkspacePage({
       );
     }
 
+    if (activeSection === "validation") {
+      return (
+        <WorkspacePlaceholder
+          title={tr("researchWsValidationTitle")}
+          summary={tr("researchWsValidationSectionSummary")}
+          plannedCapabilities={[
+            tr("researchWsValidationCap1"),
+            tr("researchWsValidationCap2"),
+            tr("researchWsValidationCap3"),
+          ]}
+          deferredNote={tr("researchWsExecutionPendingNote")}
+        />
+      );
+    }
+
+    if (activeSection === "evaluation") {
+      return (
+        <WorkspacePlaceholder
+          title={tr("researchWsEvaluationTitle")}
+          summary={tr("researchWsEvaluationSummary")}
+          plannedCapabilities={[
+            tr("researchWsEvaluationCap1"),
+            tr("researchWsEvaluationCap2"),
+            tr("researchWsEvaluationCap3"),
+          ]}
+          deferredNote={tr("researchWsExecutionPendingNote")}
+        />
+      );
+    }
+
     if (activeSection === "timeline") {
       return (
         <ResearchTimeline
@@ -447,7 +464,9 @@ export default function ResearchWorkspacePage({
     activeSection !== "overview" &&
     activeSection !== "notebook" &&
     activeSection !== "timeline" &&
-    activeSection !== "experiments";
+    activeSection !== "experiments" &&
+    activeSection !== "validation" &&
+    activeSection !== "evaluation";
 
   return (
     <AppShell language={language} onLanguageChange={setLanguage}>

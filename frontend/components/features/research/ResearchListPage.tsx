@@ -115,7 +115,7 @@ export default function ResearchListPage() {
       id: `${source.id}-copy-${Date.now()}`,
       name: `${source.name} (Copy)`,
       status: "Draft",
-      confidenceScore: Math.max(10, Math.round(source.confidenceScore * 0.6)),
+      confidenceScore: null,
       createdAt: now,
       updatedAt: now,
       experimentCount: 0,

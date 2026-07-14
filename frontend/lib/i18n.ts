@@ -385,7 +385,7 @@ export const translations = {
     researchListEyebrow: "PR-002 · Story 2.1",
     researchListTitle: "Research Workspace",
     researchListSubtitle:
-      "Browse active research projects, validation posture, and next actions — mock data until list API ships.",
+      "One canonical research lifecycle — MA Crossover on SPY. Authenticity over quantity; no invented performance cards.",
     researchListNewResearch: "New Research",
     researchListNewResearchTodo:
       "CreateResearch API is not wired yet. This button is a placeholder.",
@@ -477,6 +477,8 @@ export const translations = {
     researchWsComingLater: "Coming in a later PR",
     researchWsDeferredNote:
       "Deferred to a later PR. No workflows are executable in this mock.",
+    researchWsExecutionPendingNote:
+      "Real market data will be loaded by the Research Execution Engine. No invented validation or evaluation outcomes are shown here.",
     researchWsNotebookTitle: "Notebook",
     researchWsNotebookSummary:
       "The notebook will hold dated research notes, assumption changes, and interpretation clearly separated from quantitative facts.",
@@ -491,16 +493,16 @@ export const translations = {
     researchWsExperimentsCap3: "Terminal outcomes feed Evidence candidates",
     researchWsValidationTitle: "Validation",
     researchWsValidationSectionSummary:
-      "Validation will present ValidationRun results, gates, and failures without inventing quantitative truth in the UI.",
-    researchWsValidationCap1: "OOS, walk-forward, and sensitivity packages",
-    researchWsValidationCap2: "Pass/fail against declared criteria",
-    researchWsValidationCap3: "Blocking conditions surfaced before Evaluation",
+      "Validation will present deterministic gates from calculated historical series for MA Crossover on SPY — never invented pass/fail labels.",
+    researchWsValidationCap1: "Historical backtest and benchmark comparison from real prices",
+    researchWsValidationCap2: "Chronological OOS and bounded sensitivity (no shuffled time series)",
+    researchWsValidationCap3: "Transaction-cost and data-quality reviews before Evaluation",
     researchWsEvaluationTitle: "Evaluation",
     researchWsEvaluationSummary:
-      "Evaluation will coordinate review packets and Decision readiness — never silent lifecycle transitions.",
-    researchWsEvaluationCap1: "Review checklist and accountable reviewer",
-    researchWsEvaluationCap2: "Decision draft linked to Evidence lineage",
-    researchWsEvaluationCap3: "Explicit approve / changes-requested outcomes",
+      "Research Evaluation will derive dimensions from validation outputs for this single MA Crossover project. It is not probability of profit.",
+    researchWsEvaluationCap1: "Dimensions linked to calculated validation — not hardcoded scores",
+    researchWsEvaluationCap2: "Blockers from failed or incomplete validation rules only",
+    researchWsEvaluationCap3: "Explicit disclaimer: historical research, not investment advice",
     researchWsTimelineTitle: "Timeline",
     researchWsTimelineSummary:
       "Timeline will show immutable domain events for this research aggregate.",
@@ -637,7 +639,7 @@ export const translations = {
       "Approve / start / complete actions are deferred. UI cannot silently violate the frozen state machine.",
     researchExpMetricsTitle: "Primary metrics",
     researchExpMetricsDisclaimer:
-      "Mock research metrics only. Not a performance guarantee or investment advice.",
+      "Real market data will be loaded by the Research Execution Engine. Pending cells are not invented results. Historical research — not investment advice.",
     researchExpMetricSharpe: "Sharpe",
     researchExpMetricCagr: "CAGR",
     researchExpMetricMaxDD: "Max Drawdown",
@@ -1395,7 +1397,7 @@ export const translations = {
     researchListEyebrow: "PR-002 · Story 2.1",
     researchListTitle: "研究工作区",
     researchListSubtitle:
-      "浏览进行中的研究项目、验证状态与下一步动作——列表 API 接入前为模拟数据。",
+      "仅保留一条端到端研究生命周期——SPY 上的 MA 均线交叉。真实性优先，不展示虚构业绩卡片。",
     researchListNewResearch: "新建研究",
     researchListNewResearchTodo: "CreateResearch 接口尚未接入，当前为占位按钮。",
     researchListSearch: "搜索",
@@ -1484,6 +1486,8 @@ export const translations = {
     researchWsActionExport: "导出研究",
     researchWsComingLater: "后续 PR 提供",
     researchWsDeferredNote: "延后至后续 PR。当前模拟不可执行工作流。",
+    researchWsExecutionPendingNote:
+      "真实市场数据将由 Research Execution Engine 加载。此处不展示虚构的验证或评估结果。",
     researchWsNotebookTitle: "笔记",
     researchWsNotebookSummary:
       "笔记将保存带日期的研究记录、假设变更，并明确区分解释与量化事实。",
@@ -1498,16 +1502,16 @@ export const translations = {
     researchWsExperimentsCap3: "终态结果进入证据候选",
     researchWsValidationTitle: "验证",
     researchWsValidationSectionSummary:
-      "验证页将展示 ValidationRun 结果与闸口，UI 不编造量化结论。",
-    researchWsValidationCap1: "OOS、Walk-forward 与敏感性包",
-    researchWsValidationCap2: "相对既定标准的通过/失败",
-    researchWsValidationCap3: "评估前暴露阻塞条件",
+      "验证将基于 SPY MA 交叉的实价计算结果展示确定性闸口——不编造通过/失败标签。",
+    researchWsValidationCap1: "来自实价的历史回测与基准对比",
+    researchWsValidationCap2: "按时间切分的 OOS 与有界敏感性（禁止打乱时序）",
+    researchWsValidationCap3: "交易成本与数据质量审查通过后再进入评估",
     researchWsEvaluationTitle: "评估",
     researchWsEvaluationSummary:
-      "评估将协调评审包与 Decision 就绪状态——禁止静默生命周期跃迁。",
-    researchWsEvaluationCap1: "评审清单与责任评审人",
-    researchWsEvaluationCap2: "关联证据谱系的 Decision 草稿",
-    researchWsEvaluationCap3: "明确的批准 / 要求修改结果",
+      "研究评估维度将来自本 MA 交叉项目的验证输出，不是盈利概率。",
+    researchWsEvaluationCap1: "维度关联计算结果——禁止硬编码分数",
+    researchWsEvaluationCap2: "仅由失败或不完整验证规则产生阻塞项",
+    researchWsEvaluationCap3: "明确声明：历史研究，不构成投资建议",
     researchWsTimelineTitle: "时间线",
     researchWsTimelineSummary: "时间线将展示本研究聚合的不可变领域事件。",
     researchWsTimelineCap1: "带操作者与原因的状态迁移",
@@ -1638,7 +1642,8 @@ export const translations = {
     researchExpLifecycleGoverned:
       "批准 / 启动 / 完成动作延后实现。UI 不得静默违反冻结状态机。",
     researchExpMetricsTitle: "主要指标",
-    researchExpMetricsDisclaimer: "仅为模拟研究指标，不构成业绩保证或投资建议。",
+    researchExpMetricsDisclaimer:
+      "真实市场数据将由 Research Execution Engine 加载。Pending 单元格不是虚构结果。历史研究——不构成投资建议。",
     researchExpMetricSharpe: "夏普",
     researchExpMetricCagr: "年化收益",
     researchExpMetricMaxDD: "最大回撤",
