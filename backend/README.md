@@ -69,9 +69,15 @@ PYTHONPATH=. python -m pytest tests -v
 # Research execution fixture suite only
 PYTHONPATH=. python -m pytest tests/test_research_execution.py -v
 
+# Research validation fixture suite only
+PYTHONPATH=. python -m pytest tests/test_research_validation.py -v
+
 # Optional live Yahoo smoke
 PYTHONPATH=. python -m pytest tests/test_research_execution_live.py -v -m live
 ```
 
 Research execution docs: `docs/slices/research-execution.md`.
 Endpoint: `POST /api/v1/research/execution`.
+
+Research validation docs: `docs/slices/research-validation.md`.
+Endpoint: `POST /api/v1/research/validation`.

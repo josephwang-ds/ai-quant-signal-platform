@@ -52,7 +52,12 @@ def test_data_sources_status_still_works() -> None:
     response = client.get(DATA_SOURCES_STATUS_URL)
 
     assert response.status_code == 200
-    assert response.json()["active_provider"] == "yahoo"
+    payload = response.json()
+    # Canonical selection mode is auto failover, not a pinned live provider.
+    assert payload["active_provider"] == "auto"
+    providers = {item["name"]: item for item in payload["providers"]}
+    assert providers["auto"]["status"] == "active"
+    assert providers["yahoo"]["status"] == "active"
 
 
 def test_backtest_still_works() -> None:

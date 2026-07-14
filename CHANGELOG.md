@@ -8,6 +8,21 @@ The project intends to follow [Keep a Changelog](https://keepachangelog.com/en/1
 
 ### Added
 
+#### PR-009 — Real MA Crossover validation evidence
+
+- `POST /api/v1/research/validation` reusing the PR-008B market-data port,
+  provenance, normalized SPY series, and deterministic MA calculations.
+- Chronological IS/OOS evidence with pre-OOS warm-up and continuous
+  split-boundary position/cost state.
+- Bounded MA parameter and transaction-cost sensitivity grids with descriptive
+  summaries and no automatic strategy selection.
+- Structured data-quality evidence separating fatal checks, non-fatal
+  limitations, and provenance information.
+- Validation Workspace rendering driven only by backend stage results;
+  Evaluation and Research Confidence remain unavailable.
+- Offline validation fixture tests and slice documentation in
+  `docs/slices/research-validation.md`.
+
 #### PR-008B — Real SPY research execution
 
 - `POST /api/v1/research/execution` on the legacy FastAPI runtime with

@@ -89,6 +89,126 @@ def _max_drawdown(cum: pd.Series) -> float | None:
     return _json_safe(float(dd.min()))
 
 
+def _summarize_return_frame(
+    frame: pd.DataFrame,
+    *,
+    risk_free_rate: float,
+) -> tuple[pd.DataFrame, MetricBundle, MetricBundle, list[str]]:
+    """Rebase cumulative paths and calculate metrics from existing return rows."""
+    if frame.empty:
+        raise ValueError("No return rows available for segment metrics.")
+
+    valid = frame.copy()
+    valid["cumulative_strategy"] = (1 + valid["net_strategy_return"]).cumprod()
+    valid["cumulative_benchmark"] = (1 + valid["daily_return"]).cumprod()
+    warnings: list[str] = []
+
+    strat_total = float(valid["cumulative_strategy"].iloc[-1] - 1)
+    bench_total = float(valid["cumulative_benchmark"].iloc[-1] - 1)
+    n = len(valid)
+
+    strat_cagr, warning = _cagr(strat_total, n)
+    if warning:
+        warnings.append(warning)
+    bench_cagr, warning = _cagr(bench_total, n)
+    if warning:
+        warnings.append(warning.replace("CAGR", "Benchmark CAGR", 1))
+
+    strat_vol = _json_safe(
+        float(valid["net_strategy_return"].std(ddof=1)) * math.sqrt(TRADING_DAYS_PER_YEAR)
+        if n > 1
+        else float("nan")
+    )
+    if strat_vol is None:
+        warnings.append("Strategy annualized volatility not finite.")
+    bench_vol = _json_safe(
+        float(valid["daily_return"].std(ddof=1)) * math.sqrt(TRADING_DAYS_PER_YEAR)
+        if n > 1
+        else float("nan")
+    )
+
+    sharpe, warning = _sharpe(valid["net_strategy_return"], risk_free_rate)
+    if warning:
+        warnings.append(warning)
+    bench_sharpe, warning = _sharpe(valid["daily_return"], risk_free_rate)
+    if warning:
+        warnings.append(warning.replace("Sharpe", "Benchmark Sharpe", 1))
+
+    active = valid.loc[valid["position"] != 0, "net_strategy_return"]
+    if active.empty:
+        win_rate = None
+        warnings.append("Win rate undefined: no days with non-zero position.")
+    else:
+        win_rate = _json_safe(float((active > 0).mean()))
+
+    start = str(pd.Timestamp(valid["date"].iloc[0]).date())
+    end = str(pd.Timestamp(valid["date"].iloc[-1]).date())
+    strategy_metrics = MetricBundle(
+        total_return=_json_safe(strat_total),
+        cagr=strat_cagr,
+        annualized_volatility=strat_vol,
+        sharpe_ratio=sharpe,
+        maximum_drawdown=_max_drawdown(valid["cumulative_strategy"]),
+        trade_count=int((valid["turnover"] > 0).sum()),
+        win_rate=win_rate,
+        turnover=_json_safe(float(valid["turnover"].sum())),
+        total_transaction_costs=_json_safe(float(valid["transaction_cost"].sum())),
+        observation_count=n,
+        start_date=start,
+        end_date=end,
+    )
+    benchmark_metrics = MetricBundle(
+        total_return=_json_safe(bench_total),
+        cagr=bench_cagr,
+        annualized_volatility=bench_vol,
+        sharpe_ratio=bench_sharpe,
+        maximum_drawdown=_max_drawdown(valid["cumulative_benchmark"]),
+        trade_count=None,
+        win_rate=_json_safe(float((valid["daily_return"] > 0).mean())),
+        turnover=None,
+        total_transaction_costs=0.0,
+        observation_count=n,
+        start_date=start,
+        end_date=end,
+    )
+    return valid, strategy_metrics, benchmark_metrics, warnings
+
+
+def summarize_return_segment(
+    frame: pd.DataFrame,
+    *,
+    risk_free_rate: float = 0.0,
+) -> BacktestResult:
+    """
+    Calculate metrics for a slice of already-computed return rows.
+
+    Positions, turnover, and transaction costs are preserved from the full run,
+    while cumulative paths and all path-dependent metrics are rebased to the
+    first row in the segment.
+    """
+    required = {
+        "date",
+        "position",
+        "daily_return",
+        "net_strategy_return",
+        "turnover",
+        "transaction_cost",
+    }
+    missing = sorted(required.difference(frame.columns))
+    if missing:
+        raise ValueError(f"Segment return frame missing columns: {missing}.")
+    rebased, strategy, benchmark, warnings = _summarize_return_frame(
+        frame,
+        risk_free_rate=risk_free_rate,
+    )
+    return BacktestResult(
+        frame=rebased,
+        strategy_metrics=strategy,
+        benchmark_metrics=benchmark,
+        warnings=warnings,
+    )
+
+
 def run_ma_crossover_research(
     prices: pd.DataFrame,
     *,
@@ -144,84 +264,10 @@ def run_ma_crossover_research(
     valid["net_strategy_return"] = (
         valid["gross_strategy_return"] - valid["transaction_cost"]
     )
-    valid["cumulative_strategy"] = (1 + valid["net_strategy_return"]).cumprod()
-    valid["cumulative_benchmark"] = (1 + valid["daily_return"]).cumprod()
-
-    strat_total = float(valid["cumulative_strategy"].iloc[-1] - 1)
-    bench_total = float(valid["cumulative_benchmark"].iloc[-1] - 1)
-    n = len(valid)
-
-    strat_cagr, w = _cagr(strat_total, n)
-    if w:
-        warnings.append(w)
-    bench_cagr, w = _cagr(bench_total, n)
-    if w:
-        warnings.append(w.replace("CAGR", "Benchmark CAGR", 1))
-
-    strat_vol = _json_safe(
-        float(valid["net_strategy_return"].std(ddof=1)) * math.sqrt(TRADING_DAYS_PER_YEAR)
-        if n > 1
-        else float("nan")
+    valid, strategy_metrics, benchmark_metrics, metric_warnings = (
+        _summarize_return_frame(valid, risk_free_rate=risk_free_rate)
     )
-    if strat_vol is None:
-        warnings.append("Strategy annualized volatility not finite.")
-
-    bench_vol = _json_safe(
-        float(valid["daily_return"].std(ddof=1)) * math.sqrt(TRADING_DAYS_PER_YEAR)
-        if n > 1
-        else float("nan")
-    )
-
-    sharpe, w = _sharpe(valid["net_strategy_return"], risk_free_rate)
-    if w:
-        warnings.append(w)
-    bench_sharpe, w = _sharpe(valid["daily_return"], risk_free_rate)
-    if w:
-        warnings.append(w.replace("Sharpe", "Benchmark Sharpe", 1))
-
-    # Trade count = number of non-zero position changes after warm-up.
-    trade_count = int((valid["turnover"] > 0).sum())
-    turnover_total = float(valid["turnover"].sum())
-    total_costs = float(valid["transaction_cost"].sum())
-
-    active = valid.loc[valid["position"] != 0, "net_strategy_return"]
-    if len(active) == 0:
-        win_rate = None
-        warnings.append("Win rate undefined: no days with non-zero position.")
-    else:
-        win_rate = _json_safe(float((active > 0).mean()))
-
-    start = str(pd.Timestamp(valid["date"].iloc[0]).date())
-    end = str(pd.Timestamp(valid["date"].iloc[-1]).date())
-
-    strategy_metrics = MetricBundle(
-        total_return=_json_safe(strat_total),
-        cagr=strat_cagr,
-        annualized_volatility=strat_vol,
-        sharpe_ratio=sharpe,
-        maximum_drawdown=_max_drawdown(valid["cumulative_strategy"]),
-        trade_count=trade_count,
-        win_rate=win_rate,
-        turnover=_json_safe(turnover_total),
-        total_transaction_costs=_json_safe(total_costs),
-        observation_count=n,
-        start_date=start,
-        end_date=end,
-    )
-    benchmark_metrics = MetricBundle(
-        total_return=_json_safe(bench_total),
-        cagr=bench_cagr,
-        annualized_volatility=bench_vol,
-        sharpe_ratio=bench_sharpe,
-        maximum_drawdown=_max_drawdown(valid["cumulative_benchmark"]),
-        trade_count=None,
-        win_rate=_json_safe(float((valid["daily_return"] > 0).mean())),
-        turnover=None,
-        total_transaction_costs=0.0,
-        observation_count=n,
-        start_date=start,
-        end_date=end,
-    )
+    warnings.extend(metric_warnings)
 
     return BacktestResult(
         frame=valid,

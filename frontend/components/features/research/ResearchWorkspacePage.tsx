@@ -25,7 +25,6 @@ import {
   loadMockResearchById,
   MockResearchError,
 } from "@/lib/mockResearchCatalog";
-import { getCanonicalResearchPackage } from "@/lib/canonicalMaCrossover";
 import { mergeTimelineEvents } from "@/lib/researchNotebook";
 import {
   isResearchWorkspaceSection,
@@ -38,14 +37,13 @@ import type {
   ResearchDetail,
   ResearchWorkspaceSection,
 } from "@/types/research";
-import ValidationPendingPanel from "@/components/features/research/ValidationPendingPanel";
 import ProvenanceBanner from "@/components/features/research/execution/ProvenanceBanner";
 import { useResearchExecution } from "@/components/features/research/execution/useResearchExecution";
+import ResearchValidationPanel from "@/components/features/research/validation/ResearchValidationPanel";
+import { useResearchValidation } from "@/components/features/research/validation/useResearchValidation";
 import {
   applyExecutionToExperiments,
   applyExecutionToResearch,
-  HISTORICAL_DISCLAIMER,
-  validationDisplayStatus,
 } from "@/lib/applyResearchExecution";
 import { getMockExperiments } from "@/lib/mockExperimentCatalog";
 import { METRIC_NOT_CALCULATED } from "@/lib/researchExperiments";
@@ -127,6 +125,13 @@ export default function ResearchWorkspacePage({
     error: executionError,
     reload: reloadExecution,
   } = useResearchExecution(researchId);
+  const {
+    enabled: validationEnabled,
+    status: validationStatus,
+    validation,
+    error: validationError,
+    reload: reloadValidation,
+  } = useResearchValidation(researchId, activeSection === "validation");
 
   const displayResearch = useMemo(() => {
     if (!research) {
@@ -522,30 +527,101 @@ export default function ResearchWorkspacePage({
     }
 
     if (activeSection === "validation") {
-      return (
-        <>
-          {provenanceSlot}
-          <ValidationPendingPanel
-            stages={getCanonicalResearchPackage().plannedValidationStages}
-            statusForStage={(stageId) =>
-              validationDisplayStatus(
-                stageId,
-                executionStatus === "ready" ? execution : null
-              )
-            }
-            labels={{
-              title: tr("researchWsValidationTitle"),
-              summary: tr("researchWsValidationSectionSummary"),
-              notStarted: tr("researchWsValidationNotStarted"),
-              awaitingData: tr("researchWsValidationAwaitingData"),
-              completed: tr("researchWsValidationCompleted"),
-              note:
-                executionStatus === "ready"
-                  ? HISTORICAL_DISCLAIMER
-                  : tr("researchWsExecutionPendingNote"),
-            }}
+      if (!validationEnabled) {
+        return (
+          <ErrorAlert
+            title={tr("researchValUnavailableTitle")}
+            message={tr("researchValUnavailableDescription")}
           />
-        </>
+        );
+      }
+      if (validationStatus === "loading") {
+        return <LoadingState message={tr("researchValLoading")} />;
+      }
+      if (validationStatus === "error") {
+        return (
+          <div className="research-execution-error">
+            <ErrorAlert
+              title={tr("researchValUnavailableTitle")}
+              message={validationError ?? tr("researchValUnavailableDescription")}
+            />
+            <Button primary onClick={reloadValidation}>
+              {tr("researchValRetry")}
+            </Button>
+          </div>
+        );
+      }
+      if (validationStatus !== "ready" || !validation) {
+        return null;
+      }
+      return (
+        <ResearchValidationPanel
+          validation={validation}
+          labels={{
+            title: tr("researchWsValidationTitle"),
+            summary: tr("researchValSummary"),
+            status: tr("researchValStatus"),
+            evidenceComplete: tr("researchValEvidenceComplete"),
+            yes: tr("researchValYes"),
+            no: tr("researchValNo"),
+            completed: tr("researchWsValidationCompleted"),
+            incomplete: tr("researchValIncomplete"),
+            failed: tr("researchValFailed"),
+            unavailable: tr("researchValUnavailable"),
+            source: tr("researchValSource"),
+            generated: tr("researchValGenerated"),
+            rules: tr("researchValRules"),
+            warnings: tr("researchValWarnings"),
+            blockers: tr("researchValBlockers"),
+            evidence: tr("researchValEvidence"),
+            oosTitle: tr("researchValOosTitle"),
+            splitDate: tr("researchValSplitDate"),
+            inSampleRatio: tr("researchValInSampleRatio"),
+            minimumOos: tr("researchValMinimumOos"),
+            boundary: tr("researchValBoundary"),
+            inSample: tr("researchValInSample"),
+            outOfSample: tr("researchValOutOfSample"),
+            benchmark: tr("researchValBenchmark"),
+            observations: tr("researchValObservations"),
+            metric: tr("researchValMetric"),
+            totalReturn: tr("researchValTotalReturn"),
+            cagr: tr("researchValCagr"),
+            sharpe: tr("researchValSharpe"),
+            maxDrawdown: tr("researchValMaxDrawdown"),
+            volatility: tr("researchValVolatility"),
+            trades: tr("researchValTrades"),
+            totalCosts: tr("researchValTotalCosts"),
+            parameterTitle: tr("researchValParameterTitle"),
+            validCombinations: tr("researchValValidCombinations"),
+            profitableCombinations: tr("researchValProfitableCombinations"),
+            positiveSharpe: tr("researchValPositiveSharpe"),
+            medianSharpe: tr("researchValMedianSharpe"),
+            sharpeRange: tr("researchValSharpeRange"),
+            medianDrawdown: tr("researchValMedianDrawdown"),
+            canonicalPercentile: tr("researchValCanonicalPercentile"),
+            shortWindow: tr("researchValShortWindow"),
+            longWindow: tr("researchValLongWindow"),
+            canonical: tr("researchValCanonical"),
+            costTitle: tr("researchValCostTitle"),
+            transactionCost: tr("researchValTransactionCost"),
+            returnDegradation: tr("researchValReturnDegradation"),
+            sharpeDegradation: tr("researchValSharpeDegradation"),
+            mathematicallyValid: tr("researchValMathematicallyValid"),
+            canonicalCost: tr("researchValCanonicalCost"),
+            dataQualityTitle: tr("researchValDataQualityTitle"),
+            provider: tr("researchValProvider"),
+            dateRange: tr("researchValDateRange"),
+            cache: tr("researchValCache"),
+            cacheHit: tr("researchValCacheHit"),
+            cacheMiss: tr("researchValCacheMiss"),
+            fatalIssues: tr("researchValFatalIssues"),
+            checks: tr("researchValChecks"),
+            check: tr("researchValCheck"),
+            severity: tr("researchValSeverity"),
+            details: tr("researchValDetails"),
+            notAvailable: tr("researchValNotAvailable"),
+          }}
+          />
       );
     }
 
