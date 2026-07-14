@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import Button from "@/components/ui/Button";
-import ConfidenceBadge from "@/components/ui/ConfidenceBadge";
+import EvaluationPendingNotice from "@/components/features/research/EvaluationPendingNotice";
 import StatusBadge, { researchLifecycleVariant } from "@/components/ui/StatusBadge";
 import TagList from "@/components/ui/TagList";
 import type { Language } from "@/lib/i18n";
@@ -34,6 +34,13 @@ export type ResearchCardProps = {
     updated: string;
     owner: string;
     confidence: string;
+    symbol: string;
+    benchmark: string;
+    strategy: string;
+    dataStatus: string;
+    metricsStatus: string;
+    validationStatus: string;
+    evaluationStatus: string;
   };
   onDuplicate: (id: string) => void;
   onArchive: (id: string) => void;
@@ -62,12 +69,28 @@ export default function ResearchCard({
             variant={researchLifecycleVariant(item.status)}
           />
         </div>
-        <ConfidenceBadge score={item.confidenceScore} label={labels.confidence} />
+        <EvaluationPendingNotice
+          label={labels.confidence}
+          message={item.integrity.evaluationPendingMessage}
+        />
       </header>
 
+      <p className="research-card__publicity">{item.integrity.publicityLabel}</p>
       <p className="research-card__question">{item.researchQuestion}</p>
 
       <dl className="research-card__meta">
+        <div className="research-card__meta-item">
+          <dt>{labels.symbol}</dt>
+          <dd className="font-mono">{item.configuration.symbol}</dd>
+        </div>
+        <div className="research-card__meta-item">
+          <dt>{labels.benchmark}</dt>
+          <dd>{item.configuration.benchmark}</dd>
+        </div>
+        <div className="research-card__meta-item">
+          <dt>{labels.strategy}</dt>
+          <dd>MA20 / MA60</dd>
+        </div>
         <div className="research-card__meta-item">
           <dt>{labels.owner}</dt>
           <dd>{item.owner}</dd>
@@ -79,6 +102,25 @@ export default function ResearchCard({
         <div className="research-card__meta-item">
           <dt>{labels.updated}</dt>
           <dd>{formatUpdated(item.updatedAt, language)}</dd>
+        </div>
+      </dl>
+
+      <dl className="research-card__integrity">
+        <div>
+          <dt>{labels.dataStatus}</dt>
+          <dd>{item.integrity.dataStatus}</dd>
+        </div>
+        <div>
+          <dt>{labels.metricsStatus}</dt>
+          <dd>{item.integrity.metricsStatus}</dd>
+        </div>
+        <div>
+          <dt>{labels.validationStatus}</dt>
+          <dd>{item.integrity.validationStatus}</dd>
+        </div>
+        <div>
+          <dt>{labels.evaluationStatus}</dt>
+          <dd>{item.integrity.evaluationStatus}</dd>
         </div>
       </dl>
 

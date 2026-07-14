@@ -69,6 +69,8 @@ export function researchLifecycleVariant(status: string): StatusBadgeVariant {
   switch (status) {
     case "Draft":
       return "neutral";
+    case "Data Integration":
+      return "info";
     case "Running":
       return "info";
     case "Review":

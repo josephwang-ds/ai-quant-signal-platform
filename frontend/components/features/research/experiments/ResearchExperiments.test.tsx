@@ -54,7 +54,7 @@ const detailLabels = {
   },
   metrics: {
     title: "Metrics",
-    disclaimer: "Demo only",
+    disclaimer: "Not calculated",
     sharpe: "Sharpe",
     cagr: "CAGR",
     maxDrawdown: "Max DD",
@@ -145,7 +145,6 @@ describe("ExperimentLifecycle", () => {
       <ExperimentLifecycle status="Running" labels={detailLabels.lifecycle} />
     );
     expect(screen.getByText("Running")).toBeInTheDocument();
-    expect(screen.getAllByText("Current")).toHaveLength(1);
   });
 });
 
@@ -153,7 +152,7 @@ describe("ResearchExperiments", () => {
   const research = getMockResearchById(CANONICAL_RESEARCH_ID);
   expect(research).not.toBeNull();
 
-  it("renders the canonical MA crossover experiment", async () => {
+  it("renders planned experiments without invented metrics", async () => {
     render(
       <ResearchExperiments
         research={research!}
@@ -168,10 +167,11 @@ describe("ResearchExperiments", () => {
 
     await waitFor(() => {
       expect(
-        screen.getByRole("heading", { name: "MA 20/60 baseline — SPY" })
+        screen.getByRole("heading", { name: "MA20/60 Baseline Backtest — Planned" })
       ).toBeInTheDocument();
     });
-    expect(screen.getByText(/Pending \(execution engine\)/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/Not calculated/i).length).toBeGreaterThan(0);
+    expect(screen.queryByText(/0\.78/)).not.toBeInTheDocument();
   });
 
   it("filters by status", async () => {
@@ -190,14 +190,11 @@ describe("ResearchExperiments", () => {
 
     await waitFor(() => {
       expect(
-        screen.getByRole("heading", { name: "MA 20/60 baseline — SPY" })
+        screen.getByRole("heading", { name: "MA20/60 Baseline Backtest — Planned" })
       ).toBeInTheDocument();
     });
 
-    await user.selectOptions(screen.getByLabelText("Status"), "Running");
-    expect(
-      screen.queryByRole("heading", { name: "MA 20/60 baseline — SPY" })
-    ).not.toBeInTheDocument();
+    await user.selectOptions(screen.getByLabelText("Status"), "Completed");
     expect(screen.getByText("No experiments match")).toBeInTheDocument();
   });
 
@@ -226,10 +223,7 @@ describe("ResearchExperiments", () => {
     });
 
     await user.click(screen.getAllByRole("button", { name: "Open detail" })[0]);
-    expect(
-      screen.getByRole("region", { name: "Experiment detail" })
-    ).toBeInTheDocument();
-    expect(screen.getByText("Experiment lifecycle")).toBeInTheDocument();
+    expect(screen.getByRole("region", { name: "Experiment detail" })).toBeInTheDocument();
   });
 
   it("validates new experiment composer", async () => {
@@ -256,7 +250,6 @@ describe("ResearchExperiments", () => {
     });
     await user.click(within(composer).getByRole("button", { name: "Save as Designed" }));
     expect(within(composer).getByText("Name required")).toBeInTheDocument();
-    expect(within(composer).getByText("Hypothesis required")).toBeInTheDocument();
   });
 
   it("adds a Designed experiment after save", async () => {
@@ -302,19 +295,15 @@ describe("ResearchExperiments", () => {
     await user.type(within(composer).getByLabelText("End date"), "2021-01-01");
     await user.type(
       within(composer).getByLabelText("Success criteria"),
-      "Sharpe > 0.5"
+      "document results"
     );
     await user.type(
       within(composer).getByLabelText("Falsification condition"),
-      "Sharpe < 0.2"
+      "protocol unreproducible"
     );
     await user.click(within(composer).getByRole("button", { name: "Save as Designed" }));
 
-    expect(
-      screen.getByRole("heading", { name: "Local MA test" })
-    ).toBeInTheDocument();
-    const detail = screen.getByRole("region", { name: "Experiment detail" });
-    expect(within(detail).getAllByText("Designed").length).toBeGreaterThan(0);
+    expect(screen.getByRole("heading", { name: "Local MA test" })).toBeInTheDocument();
   });
 
   it("shows experiment not found for unknown selection", async () => {

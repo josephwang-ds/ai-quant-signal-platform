@@ -118,13 +118,11 @@ export default function ExperimentCard({
         {experiment.resultSummary}
       </p>
 
-      <p className="experiment-card__metrics font-mono">
-        {labels.sharpe} {formatMetricValue(experiment.metrics.sharpe, "sharpe")}
+      <p className="experiment-card__metrics section-meta">
+        {labels.sharpe}: {formatMetricValue(experiment.metrics.sharpe, "sharpe")}
         {" · "}
-        {labels.maxDrawdown}{" "}
+        {labels.maxDrawdown}:{" "}
         {formatMetricValue(experiment.metrics.maxDrawdown, "maxDrawdown")}
-        {" · "}
-        {labels.linkedNotes} {experiment.linkedNotebookEntryIds.length}
       </p>
     </article>
   );

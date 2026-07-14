@@ -9,6 +9,7 @@ from app.api.routes.data_sources import router as data_sources_router
 from app.api.routes.database import router as database_router
 from app.api.routes.experiments import router as experiments_router
 from app.api.routes.paper_trading import router as paper_trading_router
+from app.api.routes.research_execution import router as research_execution_router
 from app.config import get_allowed_origins
 from app.backtest.engine import (
     run_combined_signal_backtest,
@@ -50,6 +51,7 @@ app.include_router(data_sources_router)
 app.include_router(database_router)
 app.include_router(experiments_router)
 app.include_router(paper_trading_router)
+app.include_router(research_execution_router)
 
 # 响应中最多返回的行数（仅用于 /api/price）
 MAX_PRICE_ROWS = 300

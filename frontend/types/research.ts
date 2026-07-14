@@ -1,8 +1,9 @@
-/** Research List / Workspace 领域投影类型（前端 mock；后端接入后对齐 API）。 */
+/** Research List / Workspace 领域投影类型（前端；后端接入后对齐 API）。 */
 
-/** 列表与徽标使用的运营状态（产品投影，非 Ch3 权威状态机全集）。 */
+/** 列表与徽标使用的运营状态（产品投影；含 authenticity “Data Integration”). */
 export type ResearchLifecycleStatus =
   | "Draft"
+  | "Data Integration"
   | "Running"
   | "Review"
   | "Validated"
@@ -31,12 +32,30 @@ export type ResearchEvidenceItem = {
   result: string;
 };
 
+export type ResearchIntegrityDisplay = {
+  dataStatus: string;
+  metricsStatus: string;
+  validationStatus: string;
+  evaluationStatus: string;
+  publicityLabel: string;
+  explanatoryText: string;
+  evaluationPendingMessage: string;
+};
+
+export type ResearchConfigurationDisplay = {
+  symbol: string;
+  benchmark: string;
+  strategyName: string;
+  parameterLines: string[];
+  dataRequirements: string[];
+};
+
 export type ResearchListItem = {
   id: string;
   name: string;
   researchQuestion: string;
   status: ResearchLifecycleStatus;
-  /** 0–100 置信度分数；null = 待 Research Execution Engine 计算 */
+  /** null until evaluation evidence exists — never invent a score */
   confidenceScore: number | null;
   owner: string;
   tags: string[];
@@ -45,6 +64,8 @@ export type ResearchListItem = {
   experimentCount: number;
   lastValidation: string;
   currentRecommendation: string;
+  integrity: ResearchIntegrityDisplay;
+  configuration: ResearchConfigurationDisplay;
 };
 
 export type ResearchDetail = ResearchListItem & {
@@ -64,6 +85,7 @@ export type ResearchDetail = ResearchListItem & {
 
 export const RESEARCH_LIFECYCLE_STATUSES: ResearchLifecycleStatus[] = [
   "Draft",
+  "Data Integration",
   "Running",
   "Review",
   "Validated",
@@ -101,6 +123,8 @@ export function mapLifecycleStatusToProgressStage(
   switch (status) {
     case "Draft":
       return "Draft";
+    case "Data Integration":
+      return "Planning";
     case "Running":
       return "Running";
     case "Review":
@@ -130,5 +154,11 @@ export function toResearchListItem(detail: ResearchDetail): ResearchListItem {
     experimentCount: detail.experimentCount,
     lastValidation: detail.lastValidation,
     currentRecommendation: detail.currentRecommendation,
+    integrity: { ...detail.integrity },
+    configuration: {
+      ...detail.configuration,
+      parameterLines: [...detail.configuration.parameterLines],
+      dataRequirements: [...detail.configuration.dataRequirements],
+    },
   };
 }

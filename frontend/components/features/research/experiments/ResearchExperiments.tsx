@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import Button from "@/components/ui/Button";
 import EmptyState from "@/components/ui/EmptyState";
 import ErrorAlert from "@/components/ui/ErrorAlert";
@@ -120,6 +120,8 @@ export type ResearchExperimentsProps = {
     notebookEntry: NotebookEntry;
     timelineEvent: ResearchTimelineEvent;
   }) => void;
+  executedExperiments?: ResearchExperiment[] | null;
+  provenanceSlot?: React.ReactNode;
 };
 
 /**
@@ -134,6 +136,8 @@ export default function ResearchExperiments({
   selectedExperimentId,
   onSelectExperiment,
   onExperimentDesigned,
+  executedExperiments = null,
+  provenanceSlot = null,
 }: ResearchExperimentsProps) {
   const [baseline, setBaseline] = useState<ResearchExperiment[]>([]);
   const [loadStatus, setLoadStatus] = useState<LoadStatus>("loading");
@@ -168,8 +172,9 @@ export default function ResearchExperiments({
   }, [loadList, reloadToken]);
 
   const allExperiments = useMemo(() => {
-    return [...sessionExperiments, ...baseline];
-  }, [sessionExperiments, baseline]);
+    const catalog = executedExperiments ?? baseline;
+    return [...sessionExperiments, ...catalog];
+  }, [sessionExperiments, baseline, executedExperiments]);
 
   const visible = useMemo(
     () => filterAndSortExperiments(allExperiments, filters),
@@ -250,6 +255,8 @@ export default function ResearchExperiments({
           {labels.newExperiment}
         </Button>
       </header>
+
+      {provenanceSlot}
 
       <ExperimentFiltersBar
         filters={filters}

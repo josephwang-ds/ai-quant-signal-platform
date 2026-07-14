@@ -25,6 +25,9 @@ import {
   RESEARCH_LIFECYCLE_STATUSES,
   type ResearchListItem,
 } from "@/types/research";
+import { useResearchExecution } from "@/components/features/research/execution/useResearchExecution";
+import { applyExecutionToListItem } from "@/lib/applyResearchExecution";
+import { CANONICAL_RESEARCH_ID } from "@/lib/canonicalMaCrossover";
 
 type LoadStatus = "loading" | "ready" | "error";
 
@@ -52,6 +55,10 @@ export default function ResearchListPage() {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [reloadToken, setReloadToken] = useState(0);
   const [actionNotice, setActionNotice] = useState<string | null>(null);
+  const {
+    status: executionStatus,
+    execution,
+  } = useResearchExecution(CANONICAL_RESEARCH_ID);
 
   const loadList = useCallback(async () => {
     setLoadStatus("loading");
@@ -78,9 +85,19 @@ export default function ResearchListPage() {
 
   const owners = useMemo(() => getUniqueResearchOwners(items), [items]);
   const tags = useMemo(() => getUniqueResearchTags(items), [items]);
+  const displayedItems = useMemo(() => {
+    if (executionStatus !== "ready" || !execution) {
+      return items;
+    }
+    return items.map((item) =>
+      item.id === CANONICAL_RESEARCH_ID
+        ? applyExecutionToListItem(item, execution)
+        : item
+    );
+  }, [items, executionStatus, execution]);
   const visible = useMemo(
-    () => filterAndSortResearchList(items, filters),
-    [items, filters]
+    () => filterAndSortResearchList(displayedItems, filters),
+    [displayedItems, filters]
   );
 
   function updateFilter<K extends keyof ResearchListFilters>(
@@ -159,7 +176,14 @@ export default function ResearchListPage() {
     recommendation: tr("researchListRecommendation"),
     updated: tr("researchListUpdated"),
     owner: tr("researchListOwner"),
-    confidence: tr("researchListConfidence"),
+    confidence: tr("researchListEvaluationArea"),
+    symbol: tr("researchListSymbol"),
+    benchmark: tr("researchListBenchmark"),
+    strategy: tr("researchListStrategy"),
+    dataStatus: tr("researchListDataStatus"),
+    metricsStatus: tr("researchListMetricsStatus"),
+    validationStatus: tr("researchListValidationStatus"),
+    evaluationStatus: tr("researchListEvaluationStatus"),
   };
 
   const showToolbar = loadStatus !== "error";

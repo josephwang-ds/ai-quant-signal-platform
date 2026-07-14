@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useId, useState } from "react";
 import Button from "@/components/ui/Button";
-import ConfidenceBadge from "@/components/ui/ConfidenceBadge";
+import EvaluationPendingNotice from "@/components/features/research/EvaluationPendingNotice";
 import StatusBadge, { researchLifecycleVariant } from "@/components/ui/StatusBadge";
 import TagList from "@/components/ui/TagList";
 import type { Language } from "@/lib/i18n";
@@ -75,18 +75,25 @@ export default function ResearchWorkspaceHeader({
         <div>
           <h1 className="research-workspace-header__name">{research.name}</h1>
           <p className="research-workspace-header__question">{research.researchQuestion}</p>
+          <p className="research-workspace-header__publicity">
+            {research.integrity.publicityLabel}
+          </p>
         </div>
         <div className="research-workspace-header__badges">
           <StatusBadge
             label={research.status}
             variant={researchLifecycleVariant(research.status)}
           />
-          <ConfidenceBadge
-            score={research.confidenceScore}
+          <EvaluationPendingNotice
             label={labels.confidence}
+            message={research.integrity.evaluationPendingMessage}
           />
         </div>
       </div>
+
+      <p className="research-workspace-header__explain">
+        {research.integrity.explanatoryText}
+      </p>
 
       <dl className="research-workspace-header__meta">
         <div>

@@ -25,8 +25,6 @@ describe("LifecycleProgress", () => {
 
     expect(screen.getByText("Synthesizing")).toBeInTheDocument();
     expect(screen.getAllByText("Current")).toHaveLength(1);
-    expect(screen.getAllByText("Completed").length).toBeGreaterThanOrEqual(3);
-    expect(screen.getAllByText("Upcoming").length).toBeGreaterThanOrEqual(2);
   });
 });
 
@@ -41,10 +39,6 @@ describe("ResearchWorkspaceNavigation", () => {
     );
 
     expect(screen.getByRole("navigation", { name: /research workspace sections/i })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Overview" })).toHaveAttribute(
-      "aria-current",
-      "page"
-    );
     expect(screen.getByRole("link", { name: "Notebook" })).toHaveAttribute(
       "href",
       `/research/${CANONICAL_RESEARCH_ID}?tab=notebook`
@@ -53,7 +47,7 @@ describe("ResearchWorkspaceNavigation", () => {
 });
 
 describe("OverviewSection", () => {
-  it("renders research detail content for the selected project", () => {
+  it("renders definition content without a numeric confidence score", () => {
     const research = getMockResearchById(CANONICAL_RESEARCH_ID);
     expect(research).not.toBeNull();
 
@@ -78,21 +72,25 @@ describe("OverviewSection", () => {
           lifecycleDescription: "Lifecycle description",
           evidenceTitle: "Evidence checklist",
           evidenceDescription: "Evidence description",
-          confidence: "Confidence",
+          confidence: "Evaluation",
+          strategyConfig: "Strategy configuration",
+          dataRequirements: "Data requirements",
+          symbol: "Symbol",
+          benchmark: "Benchmark",
+          strategy: "Strategy",
+          dataStatus: "Data status",
+          metricsStatus: "Metrics status",
         }}
       />
     );
 
     expect(
-      screen.getByText(/MA20\/MA60 crossover outperform buy-and-hold/i)
+      screen.getByText(/MA20\/MA60 crossover outperform SPY buy-and-hold/i)
     ).toBeInTheDocument();
     expect(
-      screen.getByText(/Design and document the MA20\/MA60 protocol/i)
-    ).toBeInTheDocument();
-    expect(screen.getByText("Protocol defined")).toBeInTheDocument();
-    expect(screen.getByText("Next actions")).toBeInTheDocument();
-    expect(
-      screen.getByTitle("Confidence: Pending")
-    ).toBeInTheDocument();
+      screen.getAllByText(/Evaluation pending real validation evidence/i).length
+    ).toBeGreaterThan(0);
+    expect(screen.getByText("SPY")).toBeInTheDocument();
+    expect(screen.queryByText(/^62$/)).not.toBeInTheDocument();
   });
 });

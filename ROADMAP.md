@@ -1,6 +1,6 @@
 # AI Quant Research Workspace — Roadmap
 
-> **Planning horizon:** capability-based, not date-based · **Last reviewed:** 2026-07-13
+> **Planning horizon:** capability-based, not date-based · **Last reviewed:** 2026-07-14
 
 This roadmap describes intended product and engineering outcomes. It is not a promise of dates, and planned capabilities must not be presented as implemented. Architecture remains governed by the [Project Bible](docs/PROJECT_BIBLE.md) and accepted ADRs.
 
@@ -64,9 +64,10 @@ Still deferred beyond PR-001: release automation, Dependabot policy, branch-prot
 
 - Hypothesis definition and falsification criteria.
 - Experiment protocol, approval, execution, and outcome capture.
-- Backtest linkage with benchmark and robustness evidence.
+- [x] Backtest linkage with benchmark and robustness evidence *(PR-008B: authentic SPY MA20/60 historical execution via `POST /api/v1/research/execution`; OOS/sensitivity still pending)*.
 - Research synthesis, review, close, and reopen workflows.
 - Notebook records linked to Strategy and Evidence, not isolated documents.
+- [x] Authenticity-first canonical MA Crossover research baseline *(PR-008A)*.
 
 ### Epic D — Validation context
 

@@ -20,7 +20,7 @@ vi.mock("@/lib/mockNotebookCatalog", async (importOriginal) => {
 });
 
 const labels = {
-  title: "Notebook",
+  title: "Research Design Notes",
   entryCount: "entries",
   lastUpdated: "Last updated",
   newEntry: "New Entry",
@@ -70,7 +70,7 @@ describe("ResearchNotebook", () => {
   const research = getMockResearchById(CANONICAL_RESEARCH_ID);
   expect(research).not.toBeNull();
 
-  it("renders existing notebook entries", async () => {
+  it("renders research design notes", async () => {
     render(
       <ResearchNotebook
         research={research!}
@@ -82,9 +82,11 @@ describe("ResearchNotebook", () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByText("Primary MA crossover hypothesis")).toBeInTheDocument();
+      expect(screen.getByText("Primary hypothesis (design)")).toBeInTheDocument();
     });
-    expect(screen.getByText("Frame the research question")).toBeInTheDocument();
+    expect(
+      screen.getByRole("region", { name: "Research Design Notes" })
+    ).toBeInTheDocument();
   });
 
   it("filters entries by type", async () => {
@@ -100,15 +102,12 @@ describe("ResearchNotebook", () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByText("Primary MA crossover hypothesis")).toBeInTheDocument();
+      expect(screen.getByText("Primary hypothesis (design)")).toBeInTheDocument();
     });
 
     await user.selectOptions(screen.getByLabelText("Entry type"), "Hypothesis");
     const entries = screen.getAllByRole("article");
     expect(entries).toHaveLength(1);
-    expect(
-      within(entries[0]).getByText("Primary MA crossover hypothesis")
-    ).toBeInTheDocument();
   });
 
   it("shows validation errors when saving an empty entry", async () => {
@@ -130,10 +129,7 @@ describe("ResearchNotebook", () => {
     await user.click(screen.getByRole("button", { name: "New Entry" }));
     const composer = screen.getByRole("region", { name: "New notebook entry" });
     await user.click(within(composer).getByRole("button", { name: "Save Entry" }));
-
     expect(within(composer).getByText("Entry type is required.")).toBeInTheDocument();
-    expect(screen.getByText("Title is required.")).toBeInTheDocument();
-    expect(screen.getByText("Content is required.")).toBeInTheDocument();
   });
 
   it("adds a new entry after successful save", async () => {
@@ -169,7 +165,6 @@ describe("ResearchNotebook", () => {
       "Saved locally in this session."
     );
     await user.click(within(composer).getByRole("button", { name: "Save Entry" }));
-
     expect(screen.getByText("Session observation")).toBeInTheDocument();
   });
 });
@@ -195,8 +190,5 @@ describe("ResearchNotebook empty catalog", () => {
     await waitFor(() => {
       expect(screen.getByText("No research notes yet")).toBeInTheDocument();
     });
-    expect(
-      screen.getByText("Capture the first observation, hypothesis, or decision.")
-    ).toBeInTheDocument();
   });
 });

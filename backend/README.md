@@ -63,5 +63,15 @@ curl https://ai-quant-signal-platform.onrender.com/api/database/status
 
 ```bash
 source .venv/bin/activate
-python -m pytest tests -v
+# Default CI: excludes live network smoke tests
+PYTHONPATH=. python -m pytest tests -v
+
+# Research execution fixture suite only
+PYTHONPATH=. python -m pytest tests/test_research_execution.py -v
+
+# Optional live Yahoo smoke
+PYTHONPATH=. python -m pytest tests/test_research_execution_live.py -v -m live
 ```
+
+Research execution docs: `docs/slices/research-execution.md`.
+Endpoint: `POST /api/v1/research/execution`.
