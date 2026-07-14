@@ -2,10 +2,8 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { CANONICAL_RESEARCH_ID } from "@/lib/canonicalMaCrossover";
-import {
-  fetchResearchEvaluation,
-  ResearchEvaluationApiError,
-} from "@/lib/researchEvaluationApi";
+import { getApiUserMessage } from "@/lib/apiRequest";
+import { fetchResearchEvaluation } from "@/lib/researchEvaluationApi";
 import type {
   ResearchEvaluationRequestStatus,
   ResearchEvaluationResult,
@@ -70,9 +68,10 @@ export function useResearchEvaluation(
         setEvaluation(null);
         setStatus("error");
         setError(
-          err instanceof ResearchEvaluationApiError
-            ? err.message
-            : "Research evaluation unavailable. No score is fabricated."
+          getApiUserMessage(
+            err,
+            "Research evaluation unavailable. No score is fabricated."
+          )
         );
       }
     })();

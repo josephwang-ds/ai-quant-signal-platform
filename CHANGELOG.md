@@ -130,6 +130,34 @@ The project intends to follow [Keep a Changelog](https://keepachangelog.com/en/1
   `docs/reviews/RC-1-REPOSITORY-AUDIT.md` for the audit finding this
   addresses.
 
+#### PR-011B — Harden production API wiring and backend-unavailable states
+
+- Added shared frontend API configuration (`frontend/lib/apiConfig.ts`):
+  `getApiBaseUrl()`, `buildApiUrl()`, `ApiConfigurationError`, and
+  `isProductionRuntime()`. Local development may fall back to
+  `http://127.0.0.1:8000` when unset; production requires
+  `NEXT_PUBLIC_API_BASE_URL` and never silently calls localhost.
+- Added shared request transport (`frontend/lib/apiRequest.ts`) with typed
+  error categories (`configuration`, `network`, `timeout`,
+  `backend_unavailable`, `provider_unavailable`, `invalid_request`,
+  `not_found`, `server_error`, `unknown`), safe backend-detail parsing,
+  bounded timeouts (60s canonical research POSTs, 5s health/status), and
+  `AbortSignal` composition without silent retries.
+- Updated canonical research API clients (`researchExecutionApi`,
+  `researchValidationApi`, `researchEvaluationApi`) and health/status helpers
+  in `frontend/lib/api.ts` to use the shared configuration and transport.
+  Research hooks render stable user-facing messages per category and never
+  show fabricated fallback evidence.
+- Hardened backend CORS parsing (`backend/app/config.py`): explicit origins
+  only, trailing-slash normalization, deduplication, and rejection of `*`.
+- Added deployment runbook `docs/deployment/PRODUCTION_API_WIRING.md` and
+  updated `.env.example`, `README.md`, `backend/README.md`, and
+  `docs/ARCHITECTURE.md` with the environment contract, timeout policy,
+  health vs provider-status semantics, and troubleshooting guidance.
+- Added frontend unit tests (`apiConfig.test.ts`, `apiRequest.test.ts`,
+  `researchApiClients.test.ts`, hook failure-state tests) and backend CORS
+  contract tests (`tests/test_config_cors.py`).
+
 #### PR-008B review follow-ups
 
 - Enforce same-asset buy-and-hold only (`benchmark` must equal `symbol`; HTTP 400 otherwise).

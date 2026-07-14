@@ -2,10 +2,8 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { CANONICAL_RESEARCH_ID } from "@/lib/canonicalMaCrossover";
-import {
-  fetchResearchValidation,
-  ResearchValidationApiError,
-} from "@/lib/researchValidationApi";
+import { getApiUserMessage } from "@/lib/apiRequest";
+import { fetchResearchValidation } from "@/lib/researchValidationApi";
 import type {
   ResearchValidationResult,
   ResearchValidationStatus,
@@ -52,9 +50,10 @@ export function useResearchValidation(researchId: string, enabled: boolean) {
         setValidation(null);
         setStatus("error");
         setError(
-          err instanceof ResearchValidationApiError
-            ? err.message
-            : "Research validation unavailable. Invented evidence is not shown."
+          getApiUserMessage(
+            err,
+            "Research validation unavailable. Invented evidence is not shown."
+          )
         );
       }
     })();

@@ -115,6 +115,10 @@ Still deferred beyond PR-001: release automation, Dependabot policy, branch-prot
 
 ### Epic I — Platform operations
 
+- [x] Production API wiring contract *(PR-011B: required explicit frontend
+  production URL, shared typed transport failures and bounded timeouts,
+  normalized explicit CORS origins, and documented liveness/provider-status
+  semantics)*.
 - Authentication, authorization, tenant and workspace boundaries.
 - Structured logs, traces, metrics, alerting, and audit retention.
 - Postgres backup/restore and object-storage lifecycle policy.

@@ -141,9 +141,12 @@ The target API reference slice lives under `apps/api/`. See [`apps/api/README.md
 |---|---|---|
 | `ALLOWED_ORIGINS` | backend | comma-separated browser origins for CORS |
 | `SUPABASE_DB_URL` | backend | optional PostgreSQL transaction-pooler connection |
-| `NEXT_PUBLIC_API_BASE_URL` | frontend | backend base URL; local template uses port 8000 |
+| `NEXT_PUBLIC_API_BASE_URL` | frontend | required production backend URL; local development falls back to `http://127.0.0.1:8000` |
 
 Use the checked-in `.env.example` files as the source for variable names. Keep secrets in local or deployment environment configuration only.
+Production has no hardcoded API fallback. See the
+[Production API Wiring runbook](docs/deployment/PRODUCTION_API_WIRING.md) for
+Vercel, Render CORS, timeout, endpoint-semantics, and troubleshooting details.
 
 ## Repository structure
 
