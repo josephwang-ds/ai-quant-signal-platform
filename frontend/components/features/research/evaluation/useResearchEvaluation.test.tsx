@@ -1,11 +1,11 @@
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { useResearchEvaluation } from "@/components/features/research/evaluation/useResearchEvaluation";
+import { ApiRequestError } from "@/lib/apiRequest";
 import { fetchResearchEvaluation } from "@/lib/researchEvaluationApi";
 
 vi.mock("@/lib/researchEvaluationApi", () => ({
   fetchResearchEvaluation: vi.fn(),
-  ResearchEvaluationApiError: class ResearchEvaluationApiError extends Error {},
 }));
 
 const fetchMock = vi.mocked(fetchResearchEvaluation);
@@ -72,7 +72,7 @@ describe("useResearchEvaluation", () => {
     const { result, rerender } = renderHook(
       ({ validationRunId }: { validationRunId: string | null }) =>
         useResearchEvaluation("ma-crossover-spy", true, validationRunId),
-      { initialProps: { validationRunId: null } }
+      { initialProps: { validationRunId: null as string | null } }
     );
 
     expect(result.current.status).toBe("awaiting_validation");
@@ -85,5 +85,26 @@ describe("useResearchEvaluation", () => {
       "val-xyz",
       expect.objectContaining({ signal: expect.anything() })
     );
+  });
+
+  it("shows the stable missing-validation message for an evaluation 404", async () => {
+    const userMessage =
+      "Run or load Validation evidence before Evaluation can be generated.";
+    fetchMock.mockRejectedValueOnce(
+      new ApiRequestError({
+        category: "not_found",
+        code: "HTTP_404",
+        status: 404,
+        userMessage,
+      })
+    );
+
+    const { result } = renderHook(() =>
+      useResearchEvaluation("ma-crossover-spy", true, "missing")
+    );
+
+    await waitFor(() => expect(result.current.status).toBe("error"));
+    expect(result.current.error).toBe(userMessage);
+    expect(result.current.evaluation).toBeNull();
   });
 });

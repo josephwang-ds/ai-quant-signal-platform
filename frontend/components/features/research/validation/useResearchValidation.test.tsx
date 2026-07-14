@@ -1,11 +1,11 @@
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { useResearchValidation } from "@/components/features/research/validation/useResearchValidation";
+import { API_USER_MESSAGES, ApiRequestError } from "@/lib/apiRequest";
 import { fetchResearchValidation } from "@/lib/researchValidationApi";
 
 vi.mock("@/lib/researchValidationApi", () => ({
   fetchResearchValidation: vi.fn(),
-  ResearchValidationApiError: class ResearchValidationApiError extends Error {},
 }));
 
 const fetchMock = vi.mocked(fetchResearchValidation);
@@ -39,5 +39,22 @@ describe("useResearchValidation", () => {
     await waitFor(() => expect(result.current.status).toBe("ready"));
     expect(result.current.validation?.research_id).toBe("ma-crossover-spy");
     expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it("shows the provider-unavailable message without validation evidence", async () => {
+    fetchMock.mockRejectedValueOnce(
+      new ApiRequestError({
+        category: "provider_unavailable",
+        code: "HTTP_502",
+      })
+    );
+
+    const { result } = renderHook(() =>
+      useResearchValidation("ma-crossover-spy", true)
+    );
+
+    await waitFor(() => expect(result.current.status).toBe("error"));
+    expect(result.current.error).toBe(API_USER_MESSAGES.provider_unavailable);
+    expect(result.current.validation).toBeNull();
   });
 });

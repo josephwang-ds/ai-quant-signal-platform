@@ -45,7 +45,7 @@ export const translations = {
     checkBackend: "Check Backend",
     checking: "Checking...",
     backendUnreachable:
-      "Backend is not reachable. Make sure FastAPI is running on port 8000.",
+      "The research backend is currently unavailable or starting up. Try again shortly.",
 
     marketWatch: "Markets",
     marketWatchDesc:
@@ -945,7 +945,7 @@ export const translations = {
     dataCenterDesc:
       "Documents current Yahoo/yfinance coverage, asset classes, symbol formats, and the planned multi-source roadmap.",
     dcCurrentActiveProvider: "Current Active Provider",
-    dcLiveProviderStatus: "Live Provider Status",
+    dcLiveProviderStatus: "Configured Provider Status",
     dcActiveProvider: "Active Provider",
     dcPreferredSource: "Preferred Data Source",
     dcPreferredSourceDesc:
@@ -1255,7 +1255,7 @@ export const translations = {
     service: "服务",
     checkBackend: "检查后端",
     checking: "检查中...",
-    backendUnreachable: "无法连接后端，请确认 FastAPI 已在 8000 端口运行。",
+    backendUnreachable: "研究后端当前不可用或正在启动，请稍后重试。",
 
     marketWatch: "行情",
     marketWatchDesc:
@@ -2104,7 +2104,7 @@ export const translations = {
     dataCenterDesc:
       "记录当前 Yahoo/yfinance 覆盖范围、资产类别、代码格式与多数据源规划路线图。",
     dcCurrentActiveProvider: "当前启用数据源",
-    dcLiveProviderStatus: "实时数据源状态",
+    dcLiveProviderStatus: "已配置数据源状态",
     dcActiveProvider: "当前启用数据源",
     dcPreferredSource: "首选数据源",
     dcPreferredSourceDesc:

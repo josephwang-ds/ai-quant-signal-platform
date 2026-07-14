@@ -19,31 +19,11 @@ import type {
 } from "@/types/market";
 import { getDataSourcePreference } from "@/lib/dataSourcePreference";
 import type { MarketDataSource } from "@/lib/dataSourcePreference";
-
-const DEFAULT_PRODUCTION_API_BASE_URL =
-  "https://ai-quant-signal-platform.onrender.com";
-
-function resolveApiBaseUrl(): string {
-  const configured = process.env.NEXT_PUBLIC_API_BASE_URL?.trim();
-  if (configured) {
-    return configured.replace(/\/$/, "");
-  }
-  if (process.env.NODE_ENV === "development") {
-    return "http://localhost:8000";
-  }
-  return DEFAULT_PRODUCTION_API_BASE_URL;
-}
-
-const API_BASE_URL = resolveApiBaseUrl();
-
-function buildApiUrl(path: string): string {
-  if (!API_BASE_URL) {
-    throw new Error(
-      "NEXT_PUBLIC_API_BASE_URL is not configured. Set it in Vercel project environment variables."
-    );
-  }
-  return `${API_BASE_URL}${path}`;
-}
+import { buildApiUrl } from "@/lib/apiConfig";
+import {
+  API_STATUS_TIMEOUT_MS,
+  requestJson,
+} from "@/lib/apiRequest";
 
 function withPreferredDataSource(
   body: Record<string, unknown>
@@ -69,32 +49,22 @@ type FastApiValidationError = {
  * 调用后端 GET /health，确认 FastAPI 服务是否可用。
  */
 export async function getBackendHealth(): Promise<HealthResponse> {
-  const response = await fetch(buildApiUrl("/health"));
-
-  if (!response.ok) {
-    throw new Error(`Health check failed with status ${response.status}`);
-  }
-
-  return response.json() as Promise<HealthResponse>;
+  return requestJson<HealthResponse>(
+    "/health",
+    {},
+    { timeoutMs: API_STATUS_TIMEOUT_MS }
+  );
 }
 
 /**
- * 调用后端 GET /api/data-sources/status，获取实时数据源状态。
+ * 获取数据源配置/安装状态；此端点不探测提供商的实时连通性。
  */
 export async function getDataSourceStatus(): Promise<DataSourceStatusResponse> {
-  const response = await fetch(buildApiUrl("/api/data-sources/status"), {
-    cache: "no-store",
-  });
-
-  if (!response.ok) {
-    const message = await parseApiError(
-      response,
-      `Data source status request failed with status ${response.status}`
-    );
-    throw new Error(message);
-  }
-
-  return response.json() as Promise<DataSourceStatusResponse>;
+  return requestJson<DataSourceStatusResponse>(
+    "/api/data-sources/status",
+    { cache: "no-store" },
+    { timeoutMs: API_STATUS_TIMEOUT_MS }
+  );
 }
 
 /**

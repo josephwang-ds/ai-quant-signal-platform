@@ -29,7 +29,7 @@ This document describes a historical intended architecture. Database, cache, ML,
 
 | Component | Platform | URL / config |
 |-----------|----------|--------------|
-| Frontend | Vercel | Sets `NEXT_PUBLIC_API_BASE_URL` (optional; code falls back to Render URL in production builds) |
+| Frontend | Vercel | Requires `NEXT_PUBLIC_API_BASE_URL` in production; no hardcoded production fallback |
 | Backend | Render | `https://ai-quant-signal-platform.onrender.com` |
 | Database | Supabase Postgres | Transaction Pooler via backend `SUPABASE_DB_URL` only |
 
@@ -38,8 +38,9 @@ Rules:
 - **Active backend URL:** `https://ai-quant-signal-platform.onrender.com`
 - **Backend env:** `SUPABASE_DB_URL` (Render Environment; never commit real credentials)
 - **Frontend must not** connect directly to Supabase; all DB access goes through FastAPI
-- Local dev: frontend → `http://localhost:8000` when `NODE_ENV=development` and env unset
+- Local dev: frontend → `http://127.0.0.1:8000` when the env is unset
 - `NEXT_PUBLIC_API_BASE_URL` always takes precedence when set
+- Production fails with a typed configuration error when the env is unset or invalid
 - Do **not** use `https://ai-quant-backend.onrender.com` (deprecated / inactive)
 
 ### Canonical production endpoints
@@ -52,8 +53,8 @@ curl https://ai-quant-signal-platform.onrender.com/api/database/status
 
 | Endpoint | Purpose |
 |----------|---------|
-| `GET /health` | Service health |
-| `GET /api/data-sources/status` | Active/planned market data providers |
+| `GET /health` | Process liveness only |
+| `GET /api/data-sources/status` | Configured/install-time active and planned providers; not live connectivity |
 | `GET /api/database/status` | Supabase Postgres connectivity |
 
 ---
@@ -97,7 +98,7 @@ All providers implement a common interface in `base.py`:
 
 Default request mode is `data_source=auto` with failover order **AKShare → Yahoo → Stooq**. Callers may lock a single provider. Manual lock does **not** fall back on failure.
 
-The **Data Center** frontend module surfaces live provider status, preferred-source selection (localStorage), and a probe action.
+The **Data Center** frontend module surfaces configured/install-time provider status, preferred-source selection (localStorage), and a separate price probe action.
 
 ### Data Center (live status + preference)
 

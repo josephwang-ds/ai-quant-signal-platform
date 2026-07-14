@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import AppShell from "@/components/layout/AppShell";
 import { Button, ErrorAlert, SectionCard, SectionHeader, StatusBadge, healthVariant } from "@/components/ui";
 import { getBackendHealth, getPaperAccount, type HealthResponse } from "@/lib/api";
+import { getApiUserMessage } from "@/lib/apiRequest";
 import { paperRiskVariant, translateRiskLabel } from "@/lib/i18n";
 import { useWorkspaceLanguage } from "@/lib/useWorkspaceLanguage";
 import {
@@ -35,9 +36,9 @@ export default function OverviewPage() {
     try {
       const result = await getBackendHealth();
       setHealth(result);
-    } catch {
+    } catch (error) {
       setHealth(null);
-      setHealthError(tr("backendUnreachable"));
+      setHealthError(getApiUserMessage(error, tr("backendUnreachable")));
     } finally {
       setHealthLoading(false);
     }

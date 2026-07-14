@@ -2,10 +2,8 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { CANONICAL_RESEARCH_ID } from "@/lib/canonicalMaCrossover";
-import {
-  fetchResearchExecution,
-  ResearchExecutionApiError,
-} from "@/lib/researchExecutionApi";
+import { getApiUserMessage } from "@/lib/apiRequest";
+import { fetchResearchExecution } from "@/lib/researchExecutionApi";
 import type {
   ResearchExecutionResult,
   ResearchExecutionStatus,
@@ -50,9 +48,10 @@ export function useResearchExecution(researchId: string) {
         setExecution(null);
         setStatus("error");
         setError(
-          err instanceof ResearchExecutionApiError
-            ? err.message
-            : "Research execution unavailable. Invented metrics are not shown."
+          getApiUserMessage(
+            err,
+            "Research execution unavailable. Invented metrics are not shown."
+          )
         );
       }
     })();

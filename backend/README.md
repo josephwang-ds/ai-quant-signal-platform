@@ -48,7 +48,7 @@ curl https://ai-quant-signal-platform.onrender.com/api/database/status
 
 | Variable | Required | Description |
 |----------|----------|-------------|
-| `ALLOWED_ORIGINS` | Production | Comma-separated frontend URLs for CORS |
+| `ALLOWED_ORIGINS` | Production | Comma-separated explicit frontend origins for CORS; trailing slashes are normalized and `*` is rejected |
 | `PORT` | Render | Injected by Render; optional locally |
 
 ## Health Check
@@ -58,6 +58,11 @@ curl https://ai-quant-signal-platform.onrender.com/api/database/status
 ```json
 {"status": "ok", "service": "ai-quant-signal-backend"}
 ```
+
+This endpoint reports process liveness only; it does not test market-data or
+database connectivity. `/api/data-sources/status` reports configured and
+install-time provider capability, not live connectivity. See the
+[production wiring runbook](../docs/deployment/PRODUCTION_API_WIRING.md).
 
 ## Tests
 
