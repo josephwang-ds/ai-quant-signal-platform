@@ -23,6 +23,10 @@ from app.research_execution.market_data_port import (
     utc_now_iso,
 )
 from app.research_execution.service import SAME_ASSET_BENCHMARK_MESSAGE
+from app.research_validation.result_store import (
+    InMemoryValidationResultStore,
+    ValidationResultStore,
+)
 
 CANONICAL_RESEARCH_ID = "ma-crossover-spy"
 PARAMETER_SHORT_WINDOWS = (10, 20, 30)
@@ -138,10 +142,22 @@ def _approximate_missing_weekday_intervals(frame: pd.DataFrame) -> list[dict[str
 
 
 class ResearchValidationService:
-    """Coordinate one market-data read and deterministic validation stages."""
+    """Coordinate one market-data read and deterministic validation stages.
 
-    def __init__(self, market_data: MarketDataPort) -> None:
+    Every successful run is saved to ``store`` under a fresh
+    ``validation_run_id`` so that Evaluation can later summarize this exact
+    evidence without re-running Validation. Callers that only need the
+    calculation (e.g. focused unit tests) may omit ``store``; each instance
+    then gets its own private in-memory store.
+    """
+
+    def __init__(
+        self,
+        market_data: MarketDataPort,
+        store: ValidationResultStore | None = None,
+    ) -> None:
         self.market_data = market_data
+        self.store = store if store is not None else InMemoryValidationResultStore()
 
     def execute(self, request: dict[str, Any]) -> dict[str, Any]:
         parameters = self._validate_request(request)
@@ -268,7 +284,7 @@ class ResearchValidationService:
             + list(baseline.warnings)
             + [warning for stage in stages for warning in stage["warnings"]]
         )
-        return {
+        result = {
             "research_id": parameters["research_id"],
             "strategy": {
                 "type": "ma_crossover",
@@ -297,6 +313,11 @@ class ResearchValidationService:
             "warnings": warnings,
             "generated_at": generated_at,
         }
+        # Save exactly once per run so Evaluation can later load this same
+        # evidence by id instead of re-running Validation.
+        validation_run_id = self.store.save(result)
+        result["validation_run_id"] = validation_run_id
+        return result
 
     def _validate_request(self, request: dict[str, Any]) -> dict[str, Any]:
         research_id = str(

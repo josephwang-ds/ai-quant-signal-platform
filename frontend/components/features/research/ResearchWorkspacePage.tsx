@@ -41,6 +41,8 @@ import ProvenanceBanner from "@/components/features/research/execution/Provenanc
 import { useResearchExecution } from "@/components/features/research/execution/useResearchExecution";
 import ResearchValidationPanel from "@/components/features/research/validation/ResearchValidationPanel";
 import { useResearchValidation } from "@/components/features/research/validation/useResearchValidation";
+import ResearchEvaluationPanel from "@/components/features/research/evaluation/ResearchEvaluationPanel";
+import { useResearchEvaluation } from "@/components/features/research/evaluation/useResearchEvaluation";
 import {
   applyExecutionToExperiments,
   applyExecutionToResearch,
@@ -132,6 +134,18 @@ export default function ResearchWorkspacePage({
     error: validationError,
     reload: reloadValidation,
   } = useResearchValidation(researchId, activeSection === "validation");
+  const validationRunId = validation?.validation_run_id ?? null;
+  const {
+    enabled: evaluationEnabled,
+    status: evaluationStatus,
+    evaluation,
+    error: evaluationError,
+    reload: reloadEvaluation,
+  } = useResearchEvaluation(
+    researchId,
+    activeSection === "evaluation",
+    validationRunId
+  );
 
   const displayResearch = useMemo(() => {
     if (!research) {
@@ -626,17 +640,91 @@ export default function ResearchWorkspacePage({
     }
 
     if (activeSection === "evaluation") {
+      if (!evaluationEnabled) {
+        return (
+          <ErrorAlert
+            title={tr("researchEvalUnavailableTitle")}
+            message={tr("researchEvalUnavailableDescription")}
+          />
+        );
+      }
+      if (evaluationStatus === "awaiting_validation") {
+        return (
+          <div className="research-execution-error">
+            <ErrorAlert
+              title={tr("researchEvalAwaitingValidationTitle")}
+              message={tr("researchEvalAwaitingValidationDescription")}
+            />
+            <Link
+              href={`/research/${encodeURIComponent(researchId)}?tab=validation`}
+              className="btn btn--primary"
+            >
+              {tr("researchEvalGoToValidation")}
+            </Link>
+          </div>
+        );
+      }
+      if (evaluationStatus === "loading") {
+        return <LoadingState message={tr("researchEvalLoading")} />;
+      }
+      if (evaluationStatus === "error") {
+        return (
+          <div className="research-execution-error">
+            <ErrorAlert
+              title={tr("researchEvalUnavailableTitle")}
+              message={evaluationError ?? tr("researchEvalUnavailableDescription")}
+            />
+            <Button primary onClick={reloadEvaluation}>
+              {tr("researchEvalRetry")}
+            </Button>
+          </div>
+        );
+      }
+      if (evaluationStatus !== "ready" || !evaluation) {
+        return null;
+      }
       return (
-        <WorkspacePlaceholder
-          title={tr("researchWsEvaluationTitle")}
-          summary={tr("researchWsEvaluationUnavailable")}
-          plannedCapabilities={[
-            tr("researchWsEvaluationCap1"),
-            tr("researchWsEvaluationCap2"),
-            tr("researchWsEvaluationCap3"),
-          ]}
-          deferredNote={tr("researchWsExecutionPendingNote")}
-        />
+        <>
+          <ResearchEvaluationPanel
+            evaluation={evaluation}
+            labels={{
+              title: tr("researchWsEvaluationTitle"),
+              summary: tr("researchEvalSummary"),
+              status: tr("researchEvalStatus"),
+              completed: tr("researchEvalCompleted"),
+              incomplete: tr("researchEvalIncomplete"),
+              blocked: tr("researchEvalBlocked"),
+              source: tr("researchEvalSource"),
+              generated: tr("researchEvalGenerated"),
+              coverageTitle: tr("researchEvalCoverageTitle"),
+              implementedStages: tr("researchEvalImplementedStages"),
+              completedStagesCount: tr("researchEvalCompletedStagesCount"),
+              coveragePercentage: tr("researchEvalCoveragePercentage"),
+              coverageDisclaimer: tr("researchEvalCoverageDisclaimer"),
+              evidenceSummaryTitle: tr("researchEvalEvidenceSummaryTitle"),
+              stageColumn: tr("researchEvalStageColumn"),
+              statusColumn: tr("researchEvalStatusColumn"),
+              summaryColumn: tr("researchEvalSummaryColumn"),
+              completedEvidenceTitle: tr("researchEvalCompletedEvidenceTitle"),
+              incompleteEvidenceTitle: tr("researchEvalIncompleteEvidenceTitle"),
+              outstandingEvidenceTitle: tr("researchEvalOutstandingEvidenceTitle"),
+              limitationsTitle: tr("researchEvalLimitationsTitle"),
+              blockersTitle: tr("researchEvalBlockersTitle"),
+              none: tr("researchEvalNone"),
+              notAvailable: tr("researchEvalNotAvailable"),
+            }}
+          />
+          <ResearchTimeline
+            events={timelineEvents}
+            language={language}
+            labels={{
+              title: tr("researchTlTitle"),
+              description: tr("researchTlDescription"),
+              sessionNote: tr("researchTlSessionNote"),
+              empty: tr("researchTlEmpty"),
+            }}
+          />
+        </>
       );
     }
 

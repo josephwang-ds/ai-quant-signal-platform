@@ -111,6 +111,9 @@ export type ResearchValidationResult = {
   data_quality: DataQualityValidation;
   warnings: string[];
   generated_at: string;
+  // Opaque id under which the backend saved this exact result. Evaluation
+  // loads evidence by this id instead of re-running Validation.
+  validation_run_id: string;
 };
 
 export type ResearchValidationStatus = "idle" | "loading" | "ready" | "error";

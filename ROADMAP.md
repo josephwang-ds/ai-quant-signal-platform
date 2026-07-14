@@ -78,8 +78,10 @@ Still deferred beyond PR-001: release automation, Dependabot policy, branch-prot
 ### Epic D — Validation context
 
 - [x] Deterministic validation evidence for the canonical MA Crossover research *(PR-009: historical, benchmark, OOS, sensitivity, costs, and data quality)*.
-- [ ] Versioned, persisted ValidationRun lifecycle and final Pass / Fail / Inconclusive policy.
-- Evaluation policies for performance, robustness, leakage, and data confidence.
+- [x] In-memory `ValidationResultStore` keyed by `validation_run_id` *(PR-010: Validation saves its own result once; Evaluation loads it by id and never re-runs Validation. Not durable — results are lost on backend restart)*.
+- [x] Evidence-aggregation governance summary *(PR-010: `POST /api/v1/research/evaluation`; pure aggregation over a stored `ValidationResult` — evidence coverage, blockers, limitations, outstanding evidence — no recalculation, no market-data call, no score, no recommendation)*.
+- [ ] Versioned, *persisted* ValidationRun lifecycle (e.g. Postgres-backed) and final Pass / Fail / Inconclusive policy. The current `validation_run_id` is an in-memory MVP seam, not this.
+- [ ] Evaluation policies for performance, robustness, leakage, and data confidence *(PR-010 summarizes existing evidence only; scoring/robustness policy remains future work)*.
 - Reproducible benchmarks and comparable metric definitions.
 - Expiration and re-validation rules when evidence or market assumptions change.
 

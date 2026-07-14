@@ -41,10 +41,32 @@ The response contains:
 - six ordered `stages`, each with status, summary, evidence, deterministic
   rules, warnings, blockers, generation time, and provenance;
 - structured OOS, parameter-sensitivity, cost-sensitivity, and data-quality
-  results.
+  results;
+- `validation_run_id` — an opaque id under which this exact result was
+  saved to the `ValidationResultStore` (see below). PR-010 Evaluation loads
+  evidence by this id instead of re-running Validation.
 
 No response value may be NaN or Infinity. A mathematically undefined metric is
 `null` with a warning.
+
+## ValidationResultStore
+
+Every successful `ResearchValidationService.execute(...)` call saves its
+complete result to a `ValidationResultStore` exactly once and mints a new
+`validation_run_id` for it. The MVP implementation
+(`InMemoryValidationResultStore`) is an in-process dict — there is no
+Postgres, no Redis, and no background worker. **Saved results are lost on
+backend restart.** Persistent `ValidationRun` storage is explicitly deferred
+to a future ADR.
+
+The Validation API route and the PR-010 Evaluation API route resolve the
+same process-wide store instance
+(`app.research_validation.result_store.get_default_validation_result_store()`),
+so a `validation_run_id` returned by a validation request can later be
+loaded by an evaluation request. Validation only ever calls `store.save(...)`;
+it never calls `store.get(...)`. Evaluation only ever calls `store.get(...)`;
+it has no dependency on `ResearchValidationService` at all and cannot
+trigger a new validation run.
 
 ## Chronological OOS methodology
 
@@ -132,8 +154,12 @@ incomplete or unavailable, otherwise `completed`.
 Yahoo Finance remains research/demo grade, not exchange grade. This slice does
 not implement stress testing, regime analysis, walk-forward optimization,
 parameter selection, independent benchmarks, full robustness evaluation,
-Evaluation, Research Confidence, Publish Strategy, or portfolio eligibility.
-Positive returns or Sharpe do not establish robustness or future performance.
+Research Confidence, Publish Strategy, or portfolio eligibility. Positive
+returns or Sharpe do not establish robustness or future performance.
+
+Evidence aggregation over this slice's output is implemented separately in
+PR-010 (`docs/slices/research-evaluation.md`); it is not part of this slice
+and never re-executes it.
 
 ## Local verification
 

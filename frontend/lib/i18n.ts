@@ -11,7 +11,7 @@ export const translations = {
     educationalDemo: "Research Demo",
     dailyMarketData: "Daily Market Data",
     notFinancialAdvice: "Not Financial Advice",
-    navOverview: "Executive Cockpit",
+    navOverview: "Overview",
     navResearchWorkspace: "Research Workspace",
     navGroupCockpit: "Decision Cockpit",
     navStrategyHealthScore: "Health Score",
@@ -594,13 +594,40 @@ export const translations = {
       "The backend did not return calculated evidence. Invented metrics are not shown.",
     researchExecRetry: "Retry execution",
     researchWsEvaluationTitle: "Evaluation",
-    researchWsEvaluationSummary:
-      "Research Evaluation requires calculated validation evidence. No numerical score is shown yet.",
-    researchWsEvaluationUnavailable:
-      "Evaluation unavailable until real validation evidence is generated.",
-    researchWsEvaluationCap1: "Dimensions linked to calculated validation only",
-    researchWsEvaluationCap2: "Blockers from failed or incomplete validation rules",
-    researchWsEvaluationCap3: "Explicit disclaimer: historical research, not investment advice",
+    researchEvalSummary:
+      "Evaluation summarizes calculated PR-009 validation evidence only. It performs no new calculations, no scoring, and no investment recommendation.",
+    researchEvalStatus: "Evaluation status",
+    researchEvalCompleted: "Completed",
+    researchEvalIncomplete: "Incomplete",
+    researchEvalBlocked: "Blocked",
+    researchEvalSource: "Source",
+    researchEvalGenerated: "Generated",
+    researchEvalCoverageTitle: "Evidence coverage",
+    researchEvalImplementedStages: "Implemented stages",
+    researchEvalCompletedStagesCount: "Completed stages",
+    researchEvalCoveragePercentage: "Coverage",
+    researchEvalCoverageDisclaimer:
+      "Coverage measures implementation completeness only. It is not a confidence, quality, or robustness score.",
+    researchEvalEvidenceSummaryTitle: "Evidence summary",
+    researchEvalStageColumn: "Stage",
+    researchEvalStatusColumn: "Status",
+    researchEvalSummaryColumn: "Summary",
+    researchEvalCompletedEvidenceTitle: "Completed evidence",
+    researchEvalIncompleteEvidenceTitle: "Incomplete evidence",
+    researchEvalOutstandingEvidenceTitle: "Outstanding evidence",
+    researchEvalLimitationsTitle: "Limitations",
+    researchEvalBlockersTitle: "Blockers",
+    researchEvalNone: "None",
+    researchEvalNotAvailable: "n/a",
+    researchEvalLoading: "Loading evaluation evidence from backend…",
+    researchEvalUnavailableTitle: "Evaluation unavailable",
+    researchEvalUnavailableDescription:
+      "The backend did not return an evaluation summary. Invented evidence is not shown.",
+    researchEvalRetry: "Retry evaluation",
+    researchEvalAwaitingValidationTitle: "Validation evidence required",
+    researchEvalAwaitingValidationDescription:
+      "Run or load Validation evidence before Evaluation can be generated.",
+    researchEvalGoToValidation: "Go to Validation",
     researchWsTimelineTitle: "Timeline",
     researchWsTimelineSummary:
       "Timeline will show immutable domain events for this research aggregate.",
@@ -747,9 +774,9 @@ export const translations = {
     researchExpMetricWinRate: "Win Rate",
     researchExpMetricCost: "Total Transaction Cost",
 
-    overviewTitle: "Executive Cockpit",
+    overviewTitle: "Workspace Overview",
     overviewDesc:
-      "Simulated decision-support views for leadership review: risk governance, return quality, and audit trail — not live trading.",
+      "A directory of research workspace modules grouped by area, each labeled with an honest availability status — available, in progress, or not started.",
     executiveCockpit: "Executive Cockpit",
     executiveCockpitDesc:
       "Leadership view of simulated portfolio posture, risk gates, and decision traceability. For governance review only.",
@@ -845,6 +872,56 @@ export const translations = {
       "Predefined shock library for simulated NAV, drawdown, and risk-level contingency review.",
     moduleDecisionLedgerOverviewDesc:
       "Traceable audit ledger for signals, gate decisions, human notes, and review outcomes.",
+    strategyHealthScorePlaceholderSummary:
+      "Strategy Health Score is planned as a composite score built only from real Validation and Evaluation evidence. No scoring methodology exists yet, so no score is shown.",
+    strategyHealthScorePlaceholderCap1:
+      "Composite score derived from real Sharpe, drawdown, and cost-drag evidence",
+    strategyHealthScorePlaceholderCap2:
+      "Backed by completed Validation and Evaluation results, not simulated pillars",
+    strategyHealthScorePlaceholderCap3:
+      "Published only after a scoring methodology is defined and reviewed",
+    returnQualityLensPlaceholderSummary:
+      "Return Quality Lens is planned to show real return attribution, cost drag, and hit-rate evidence once produced by the Research Execution and Validation engines. No simulated figures are shown.",
+    returnQualityLensPlaceholderCap1:
+      "Return, benchmark, and excess-return figures sourced from real execution evidence",
+    returnQualityLensPlaceholderCap2:
+      "Cost drag and hit rate derived from real validation stage results",
+    returnQualityLensPlaceholderCap3:
+      "Available once a strategy completes Execution and Validation",
+    riskGateReviewPlaceholderSummary:
+      "Risk Gate Review is planned to apply deterministic governance rules to real strategy evidence. No simulated signal, gate decision, or paper action is shown until those rules and evidence exist.",
+    riskGateReviewPlaceholderCap1:
+      "Deterministic risk-gate rules applied to real Evaluation evidence",
+    riskGateReviewPlaceholderCap2:
+      "Signal, gate decision, and action traced to source, never simulated",
+    riskGateReviewPlaceholderCap3:
+      "Governed by explicit guardrails reviewed before publication",
+    scenarioShockTestPlaceholderSummary:
+      "Scenario Shock Test is planned to run stress and regime scenarios against real strategy history. No simulated NAV, drawdown, or risk-level outcome is shown until that capability exists.",
+    scenarioShockTestPlaceholderCap1:
+      "Stress testing and regime analysis against real validated evidence",
+    scenarioShockTestPlaceholderCap2:
+      "NAV, drawdown, and risk-level impact computed, never simulated",
+    scenarioShockTestPlaceholderCap3:
+      "Delivered as part of the Robustness capability roadmap",
+    decisionLedgerPlaceholderSummary:
+      "Decision Ledger is planned to record real governance decisions with human accountability once Risk Gate Review and Decision Room are backed by real evidence. No simulated entries are shown.",
+    decisionLedgerPlaceholderCap1:
+      "Ledger entries backed by real signal, gate decision, and outcome evidence",
+    decisionLedgerPlaceholderCap2:
+      "Human review notes tied to an auditable decision record",
+    decisionLedgerPlaceholderCap3:
+      "Populated once governance decisions are made on real strategies",
+    decisionRoomPlaceholderSummary:
+      "Decision Room is planned to explain how a real signal moves through risk governance into a paper-trading action, with AI interpretation clearly labeled and traceable to evidence. No simulated roles or retrieval snippets are shown.",
+    decisionRoomPlaceholderCap1:
+      "AI interpretation of real signal, gate, and action evidence, clearly labeled",
+    decisionRoomPlaceholderCap2:
+      "Retrieved context traced to real policy and evidence sources",
+    decisionRoomPlaceholderCap3:
+      "Available once governed AI review is implemented",
+    publicPreviewDeferredNote:
+      "Deferred until real research evidence exists. Fabricated demo data has been removed from this preview.",
     overviewStatusLegend:
       "Module tags: Available = ready to use now · In progress = placeholder page · Not started = on the roadmap.",
     categoryCoreResearch: "Core Research",
@@ -1145,7 +1222,7 @@ export const translations = {
     educationalDemo: "研究演示",
     dailyMarketData: "日线市场数据",
     notFinancialAdvice: "非投资建议",
-    navOverview: "管理层驾驶舱",
+    navOverview: "总览",
     navResearchWorkspace: "研究工作区",
     navGroupCockpit: "决策驾驶舱",
     navStrategyHealthScore: "策略健康度",
@@ -1702,11 +1779,39 @@ export const translations = {
       "后端未返回计算证据。不展示虚构指标。",
     researchExecRetry: "重试执行",
     researchWsEvaluationTitle: "评估",
-    researchWsEvaluationSummary: "研究评估需要已计算的验证证据。当前不展示数值分数。",
-    researchWsEvaluationUnavailable: "在生成真实验证证据之前，评估不可用。",
-    researchWsEvaluationCap1: "维度仅关联计算结果",
-    researchWsEvaluationCap2: "仅由失败或不完整验证规则产生阻塞项",
-    researchWsEvaluationCap3: "明确声明：历史研究，不构成投资建议",
+    researchEvalSummary:
+      "评估仅汇总 PR-009 已计算的验证证据，不执行新计算、不打分、不给出投资建议。",
+    researchEvalStatus: "评估状态",
+    researchEvalCompleted: "已完成",
+    researchEvalIncomplete: "不完整",
+    researchEvalBlocked: "受阻",
+    researchEvalSource: "数据源",
+    researchEvalGenerated: "生成时间",
+    researchEvalCoverageTitle: "证据覆盖度",
+    researchEvalImplementedStages: "已实现阶段数",
+    researchEvalCompletedStagesCount: "已完成阶段数",
+    researchEvalCoveragePercentage: "覆盖率",
+    researchEvalCoverageDisclaimer:
+      "覆盖率仅衡量实现完整度，不是置信度、质量或稳健性评分。",
+    researchEvalEvidenceSummaryTitle: "证据摘要",
+    researchEvalStageColumn: "阶段",
+    researchEvalStatusColumn: "状态",
+    researchEvalSummaryColumn: "摘要",
+    researchEvalCompletedEvidenceTitle: "已完成证据",
+    researchEvalIncompleteEvidenceTitle: "不完整证据",
+    researchEvalOutstandingEvidenceTitle: "尚缺证据",
+    researchEvalLimitationsTitle: "局限说明",
+    researchEvalBlockersTitle: "阻塞项",
+    researchEvalNone: "无",
+    researchEvalNotAvailable: "n/a",
+    researchEvalLoading: "正在从后端加载评估证据…",
+    researchEvalUnavailableTitle: "评估不可用",
+    researchEvalUnavailableDescription: "后端未返回评估摘要。不展示虚构证据。",
+    researchEvalRetry: "重试评估",
+    researchEvalAwaitingValidationTitle: "需要验证证据",
+    researchEvalAwaitingValidationDescription:
+      "请先运行或加载验证证据，之后才能生成评估。",
+    researchEvalGoToValidation: "前往验证",
     researchWsTimelineTitle: "时间线",
     researchWsTimelineSummary: "时间线将展示本研究聚合的不可变领域事件。",
     researchWsTimelineCap1: "带操作者与原因的状态迁移",
@@ -1848,9 +1953,9 @@ export const translations = {
     researchExpMetricWinRate: "胜率",
     researchExpMetricCost: "总交易成本",
 
-    overviewTitle: "管理层驾驶舱",
+    overviewTitle: "工作台总览",
     overviewDesc:
-      "面向管理层的模拟决策支持视图：风险治理、收益质量与决策留痕，不用于实盘交易。",
+      "按功能分组展示研究工作台各模块，并如实标注每个模块的可用状态——已上线、开发中或尚未开始。",
     executiveCockpit: "管理层驾驶舱",
     executiveCockpitDesc:
       "汇总模拟组合态势、风控闸口与决策可追溯信息，供管理层审阅与治理。",
@@ -1945,6 +2050,38 @@ export const translations = {
       "预设冲击情景库，模拟净值、回撤与风控等级的预案审阅。",
     moduleDecisionLedgerOverviewDesc:
       "信号、闸口结论、人工备注与审阅结果的可追溯审计台账。",
+    strategyHealthScorePlaceholderSummary:
+      "策略健康度评分计划仅基于真实的验证与评估证据构建综合评分。目前尚无可用的评分方法，因此不展示任何分数。",
+    strategyHealthScorePlaceholderCap1: "综合评分将来自真实的夏普比率、回撤与成本拖累证据",
+    strategyHealthScorePlaceholderCap2: "评分需以已完成的验证与评估结果为依据，而非模拟维度",
+    strategyHealthScorePlaceholderCap3: "仅在评分方法被定义并评审通过后才会上线",
+    returnQualityLensPlaceholderSummary:
+      "收益质量透视计划在研究执行与验证引擎产出真实证据后，展示真实的收益归因、成本拖累与胜率。当前不展示任何模拟数字。",
+    returnQualityLensPlaceholderCap1: "收益、基准与超额收益均来自真实执行证据",
+    returnQualityLensPlaceholderCap2: "成本拖累与胜率来自真实的验证阶段结果",
+    returnQualityLensPlaceholderCap3: "策略完成执行与验证后即可查看",
+    riskGateReviewPlaceholderSummary:
+      "风控闸口审查计划将确定性治理规则应用于真实策略证据。在相关规则与证据具备之前，不展示任何模拟信号、闸口结论或模拟动作。",
+    riskGateReviewPlaceholderCap1: "确定性风控规则将应用于真实的评估证据",
+    riskGateReviewPlaceholderCap2: "信号、闸口结论与动作均可追溯至来源，绝不模拟",
+    riskGateReviewPlaceholderCap3: "上线前需经过明确的护栏规则评审",
+    scenarioShockTestPlaceholderSummary:
+      "情景冲击测试计划对真实策略历史运行压力与regime情景。在该能力具备之前，不展示任何模拟净值、回撤或风控等级结果。",
+    scenarioShockTestPlaceholderCap1: "压力测试与regime分析将基于真实的已验证证据",
+    scenarioShockTestPlaceholderCap2: "净值、回撤与风控等级影响将被计算，绝不模拟",
+    scenarioShockTestPlaceholderCap3: "作为稳健性能力路线图的一部分交付",
+    decisionLedgerPlaceholderSummary:
+      "决策留痕台账计划在风控闸口审查与策略决策室具备真实证据后，记录带人工问责的真实治理决策。当前不展示任何模拟条目。",
+    decisionLedgerPlaceholderCap1: "台账条目将基于真实的信号、闸口结论与结果证据",
+    decisionLedgerPlaceholderCap2: "人工复核备注将关联可审计的决策记录",
+    decisionLedgerPlaceholderCap3: "真实策略产生治理决策后即会填充",
+    decisionRoomPlaceholderSummary:
+      "策略决策室计划解释真实信号如何经过风控治理转化为模拟盘动作，AI 解读将明确标注并可追溯至证据。当前不展示任何模拟角色或检索片段。",
+    decisionRoomPlaceholderCap1: "对真实信号、闸口与动作证据的 AI 解读，并会明确标注",
+    decisionRoomPlaceholderCap2: "检索到的上下文将可追溯至真实政策与证据来源",
+    decisionRoomPlaceholderCap3: "治理化的 AI 审阅能力落地后即可使用",
+    publicPreviewDeferredNote:
+      "在真实研究证据具备之前暂缓上线。本预览页面中的虚构演示数据已被移除。",
     overviewStatusLegend:
       "模块标签说明：可使用 = 现在就能用 · 开发中 = 仅占位，功能未完成 · 未开始 = 还在路线图里。",
     categoryCoreResearch: "核心研究",
@@ -2384,111 +2521,6 @@ const BACKEND_TEXT_ZH: Record<string, string> = {
     "策略信号为空；模拟账户保持现金。",
   "Paper trading simulation only. Not financial advice. No live orders.":
     "仅供模拟试盘，非投资建议，不会下真实单。",
-  "Downgraded to WATCH": "降级为观察",
-  "Current drawdown reached -6.4%": "当前回撤已达 -6.4%",
-  "Volatility above normal range": "波动率高于正常区间",
-  "Recent simulated trades underperformed": "近期模拟交易表现偏弱",
-  "Signal conflicts with short-term market regime": "信号与短期市场状态存在冲突",
-  "HOLD ONLY": "仅持有",
-  "No new simulated position": "不新增模拟仓位",
-  "Single-day market drop -5%": "单日市场下跌 5%",
-  "5-day market selloff": "五日市场抛售",
-  "Volatility doubles": "波动率翻倍",
-  "Transaction cost triples": "交易成本升至三倍",
-  "3 consecutive losing trades": "连续三笔模拟亏损",
-  "Drawdown threshold crossed at -6.4%": "回撤阈值触发，当前 -6.4%",
-  "Intraday volatility spike detected": "检测到日内波动率骤升",
-  "Restrict new simulated positions; maintain existing paper exposure only":
-    "限制新增模拟仓位，仅维持现有模拟敞口",
-  "A one-day shock is contained but moves the session into cautious governance. Review whether simulated adds should resume after stabilization.":
-    "单日冲击尚可承受，但会话进入谨慎治理状态。待市场企稳后再评估是否恢复模拟加仓。",
-  "Multi-day drawdown acceleration": "多日回撤加速",
-  "Rolling Sharpe deterioration": "滚动夏普比率走弱",
-  "Risk gate downgrade triggered": "风控闸口降级触发",
-  "Suspend simulated adds; flag portfolio for leadership review":
-    "暂停模拟加仓，并标记组合供管理层审阅",
-  "Persistent selloff stress tests capital buffer and governance patience. Treat as a risk预案 checkpoint, not a forecast of further losses.":
-    "持续抛售考验资本缓冲与治理耐心。应视为风险预案检查点，而非对未来损失的预测。",
-  "Volatility regime shift above baseline": "波动率状态高于基线",
-  "Position sizing guardrail activated": "仓位规模护栏已激活",
-  "Reduce simulated position change frequency; widen watch thresholds":
-    "降低模拟调仓频率，放宽观察阈值",
-  "Higher volatility raises execution drag in paper mode. Emphasize risk-adjusted quality over headline return during the shock window.":
-    "波动率上升会放大模拟执行拖累。冲击窗口内应优先关注风险调整后质量，而非名义收益。",
-  "Cost drag ratio exceeds governance limit": "成本拖累比率超出治理上限",
-  "Turnover efficiency warning": "换手效率预警",
-  "Throttle simulated rebalance frequency; require cost-aware review":
-    "限制模拟再平衡频率，并要求成本敏感性审阅",
-  "Cost shocks erode simulated edge faster than price moves alone. Useful for testing whether the strategy remains viable under frictions.":
-    "成本冲击比仅靠价格变动更快侵蚀模拟优势。可用于检验策略在摩擦环境下的可持续性。",
-  "Consecutive loss counter reached 3": "连续亏损计数达到 3 次",
-  "Cooldown window recommended": "建议进入冷却窗口",
-  "Signal confidence downgraded": "信号置信度下调",
-  "Enter simulated cooldown; block new entries until review":
-    "进入模拟冷却期，审阅完成前禁止新开仓",
-  "Loss streaks test discipline more than single-day marks. The ledger should capture why the gate paused paper follow-through.":
-    "连续亏损更考验纪律而非单日波动。台账应记录闸口暂停模拟跟随的原因。",
-  "Approved with caution": "谨慎批准",
-  "REDUCE": "减仓",
-  "Blocked — cooldown active": "已拦截 — 冷却期生效",
-  "NO ACTION": "无动作",
-  "Approved — size capped": "已批准 — 规模受限",
-  "ADD (capped)": "加仓（受限）",
-  "No gate intervention": "无需闸口干预",
-  "MAINTAIN": "维持",
-  "Drawdown reached -6.4% while volatility expanded. Gate blocked a new simulated entry despite a positive momentum signal.":
-    "回撤达 -6.4% 且波动扩大。尽管动量信号偏多，闸口仍拦截新增模拟仓位。",
-  "Reviewer: pause adds until weekly risk review. Document rationale for audit.":
-    "审阅人：暂停加仓至周度风险复核。记录理由以备审计。",
-  "No simulated position change. Session flagged for accountability follow-up in next governance meeting.":
-    "未变更模拟仓位。本次会议标记为待下次治理会议问责跟进。",
-  "Signal and risk gate aligned. Simulated reduction allowed to align paper exposure with rule exit.":
-    "信号与风控闸口一致。允许模拟减仓以使敞口与规则退出对齐。",
-  "Reviewer: acceptable de-risk; confirm cost impact in ledger.":
-    "审阅人：可接受的去风险动作；在台账中确认成本影响。",
-  "Simulated exposure reduced. Outcome logged for post-review comparison against benchmark.":
-    "模拟敞口已降低。结果已记录，供审阅后与基准对比。",
-  "Three consecutive simulated losses triggered cooldown. Human override was not requested.":
-    "连续三笔模拟亏损触发冷却。未申请人工覆写。",
-  "Reviewer: uphold gate decision. Do not treat raw signal as an execution instruction.":
-    "审阅人：维持闸口结论。勿将原始信号视为执行指令。",
-  "Gate decision upheld. Accountability record shows human-in-the-loop confirmation.":
-    "闸口结论已维持。问责记录显示人工复核确认。",
-  "Risk-adjusted approval with position cap after cost-drag review. Not a full-conviction simulated add.":
-    "经成本拖累审阅后的风险调整批准，并设仓位上限。非全仓位模拟加仓。",
-  "Reviewer: cap reflects governance limit, not strategy conviction score.":
-    "审阅人：上限反映治理约束，而非策略信念评分。",
-  "Capped simulated add executed. Follow-up: monitor drawdown buffer vs red level for 5 sessions.":
-    "已执行受限模拟加仓。后续：连续 5 个会话监控距红色档位的回撤缓冲。",
-  "No actionable signal change. Ledger entry created for traceability even when no simulated action occurs.":
-    "无可执行信号变化。即使无模拟动作，也创建台账条目以保证可追溯。",
-  "Reviewer: routine watch — document that inaction is also a governed decision.":
-    "审阅人：常规观察 — 记录「不动作」同样是受治理约束的决策。",
-  "Maintained simulated posture. Audit trail complete for quarterly review sample.":
-    "维持模拟姿态。审计留痕完整，可供季度审阅抽样。",
-  "Strategy Analyst": "策略分析师",
-  "Risk Officer": "风控官",
-  "CFO View": "管理层视角",
-  "Momentum on SPY is positive over the lookback window, producing a raw BUY. Confidence is medium because trend strength is intact but not accelerating. This is a rule output only — not an execution instruction.":
-    "SPY 动量在回看窗口内为正，产生原始 BUY 信号。置信度为中等——趋势仍在但未加速。这仅是规则输出，不是执行指令。",
-  "Composite risk is Yellow (L3): drawdown near -6.4% and volatility above baseline. Policy restricts new simulated positions. Gate downgrades the session to WATCH and maps final paper action to HOLD ONLY.":
-    "综合风险为 Yellow（L3）：回撤约 -6.4%，波动高于基线。政策限制新增模拟仓位。闸口将会话降级为 WATCH，最终模拟动作为 HOLD ONLY。",
-  "From a governance lens, return quality is acceptable but drawdown buffer to Red is narrowing. Strategy Health Score 76/100 supports continued monitoring, not aggressive simulated adds. Human review should confirm before any cooldown release.":
-    "从治理视角看，收益质量尚可，但距红色档位的回撤缓冲收窄。策略健康度 76/100 支持继续观察，不宜激进模拟加仓。解除冷却前须人工复核确认。",
-  "Risk Policy": "风控政策",
-  "Decision Policy": "决策政策",
-  "Metric Glossary": "指标术语",
-  "Level 3 Yellow restricts new simulated positions.":
-    "L3 黄色档位限制新增模拟仓位。",
-  "Raw signal must pass Risk Gate Review before any paper action.":
-    "原始信号必须先通过风控闸口审查，方可产生模拟动作。",
-  "Max Drawdown measures the largest peak-to-trough decline.":
-    "最大回撤衡量净值从峰值到谷底的最大跌幅。",
-  "Did the next 3-day return confirm the signal?":
-    "随后 3 日收益是否验证了信号？",
-  "Did volatility normalize?": "波动率是否回归正常？",
-  "Did risk level return to Green or Light Yellow?":
-    "风控等级是否回到 Green 或 Light Yellow？",
 };
 
 export function translateBackendText(lang: Language, text: string): string {

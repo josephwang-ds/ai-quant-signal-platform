@@ -5,6 +5,7 @@ from __future__ import annotations
 from fastapi import APIRouter, HTTPException
 
 from app.research_execution.yahoo_adapter import YahooFinanceMarketDataAdapter
+from app.research_validation.result_store import get_default_validation_result_store
 from app.research_validation.schemas import (
     ResearchValidationRequest,
     ResearchValidationResponse,
@@ -22,7 +23,10 @@ _service: ResearchValidationService | None = None
 def get_research_validation_service() -> ResearchValidationService:
     global _service
     if _service is None:
-        _service = ResearchValidationService(YahooFinanceMarketDataAdapter())
+        _service = ResearchValidationService(
+            YahooFinanceMarketDataAdapter(),
+            get_default_validation_result_store(),
+        )
     return _service
 
 

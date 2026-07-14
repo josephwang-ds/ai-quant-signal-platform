@@ -24,6 +24,7 @@ from app.research_execution.market_data_port import (
     series_actual_bounds,
 )
 from app.research_execution.service import SAME_ASSET_BENCHMARK_MESSAGE
+from app.research_validation.result_store import InMemoryValidationResultStore
 from app.research_validation.schemas import ResearchValidationRequest
 from app.research_validation.service import (
     ResearchValidationError,
@@ -433,6 +434,51 @@ def test_api_success_uses_isolated_router(
     body = response.json()
     assert body["research_id"] == "ma-crossover-spy"
     assert [stage["stage"] for stage in body["stages"]] == STAGE_ORDER
+    assert isinstance(body["validation_run_id"], str) and body["validation_run_id"]
+
+
+def test_execute_saves_the_complete_result_and_returns_its_run_id(
+    service: ResearchValidationService,
+) -> None:
+    """Validation must save its own output so Evaluation can load it later
+    without re-running Validation."""
+    result = service.execute({})
+    validation_run_id = result["validation_run_id"]
+    assert isinstance(validation_run_id, str) and validation_run_id
+    stored = service.store.get(validation_run_id)
+    assert stored == result
+
+
+def test_each_validation_run_is_saved_under_a_distinct_run_id(
+    service: ResearchValidationService,
+) -> None:
+    first = service.execute({})
+    second = service.execute({})
+    assert first["validation_run_id"] != second["validation_run_id"]
+    assert service.store.get(first["validation_run_id"])["generated_at"] == (
+        first["generated_at"]
+    )
+    assert service.store.get(second["validation_run_id"])["generated_at"] == (
+        second["generated_at"]
+    )
+
+
+def test_unknown_validation_run_id_is_not_found(
+    service: ResearchValidationService,
+) -> None:
+    assert service.store.get("val-does-not-exist") is None
+
+
+def test_service_without_explicit_store_still_saves_results(
+    fixture_adapter: FixtureMarketDataAdapter,
+) -> None:
+    """A store is not required at call sites that only need the calculation
+    (e.g. focused unit tests): each service instance gets its own private
+    in-memory store by default."""
+    service = ResearchValidationService(fixture_adapter)
+    assert isinstance(service.store, InMemoryValidationResultStore)
+    result = service.execute({})
+    assert service.store.get(result["validation_run_id"]) == result
 
 
 @pytest.mark.parametrize("ratio", [0.49, 0.91])

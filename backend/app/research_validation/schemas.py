@@ -52,3 +52,6 @@ class ResearchValidationResponse(BaseModel):
     data_quality: dict[str, Any]
     warnings: list[str]
     generated_at: str
+    # Opaque id under which this exact ValidationResult was saved. Evaluation
+    # loads evidence by this id instead of re-running Validation.
+    validation_run_id: str

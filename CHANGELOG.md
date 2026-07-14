@@ -8,6 +8,47 @@ The project intends to follow [Keep a Changelog](https://keepachangelog.com/en/1
 
 ### Added
 
+#### PR-010 — Research evaluation governance layer
+
+- `POST /api/v1/research/evaluation` summarizing an already-produced
+  PR-009 `ValidationResult`, identified by `validation_run_id`. Evaluation
+  performs no MA-crossover, OOS, sensitivity, or cost calculations, no
+  market-data reads, and — after an architecture fix on this branch — **no
+  longer calls `ResearchValidationService.execute` at all**: its
+  constructor accepts only a `ValidationResultStore`, so it is structurally
+  unable to trigger a new Validation run.
+- New `ValidationResultStore` (in-memory MVP; `InMemoryValidationResultStore`
+  in `app.research_validation.result_store`). `POST /api/v1/research/validation`
+  now saves its result exactly once per run and returns the new
+  `validation_run_id` in its response; `POST /api/v1/research/evaluation`
+  requires that id, returns `404` if it is unknown and `400` if it belongs
+  to a different `research_id`. Saved results are lost on backend restart —
+  persistent `ValidationRun` storage remains future work.
+- Deterministic `evaluation_status` restricted to `completed`, `incomplete`,
+  or `blocked` — no quality, robustness, or investment judgement.
+- Evidence coverage as implementation completeness only (implemented vs.
+  completed stage counts and percentage — never a confidence score).
+- Deterministic blockers reused verbatim from the stored validation stage
+  results; fixed, informational limitations and outstanding-evidence lists
+  for stress testing, regime analysis, walk-forward validation, Monte Carlo
+  simulation, and paper trading.
+- Evaluation Workspace tab replaced with an enterprise governance
+  dashboard: evaluation status, evidence coverage, evidence summary table,
+  completed/incomplete/outstanding evidence, limitations, blockers, and the
+  research timeline. No score, confidence, star rating, or buy/sell
+  recommendation is rendered anywhere in the view. The frontend reuses the
+  `validation_run_id` from the Validation result already loaded by the
+  workspace and never silently runs Validation from the Evaluation tab; if
+  Validation evidence is not yet available it shows "Run or load
+  Validation evidence before Evaluation can be generated."
+- Offline evaluation fixture tests (backend aggregation/coverage/blocker
+  rules, store-based isolation, spy/failing-dependency proof that
+  Evaluation never touches `MarketDataPort` or `ResearchValidationService`;
+  frontend loading/success/awaiting-validation/incomplete/blocked/API-
+  unavailable states) and slice documentation in
+  `docs/slices/research-evaluation.md` and
+  `docs/slices/research-validation.md`.
+
 #### PR-009 — Real MA Crossover validation evidence
 
 - `POST /api/v1/research/validation` reusing the PR-008B market-data port,
@@ -56,6 +97,38 @@ The project intends to follow [Keep a Changelog](https://keepachangelog.com/en/1
 - Final foundation review checklist in `docs/PR-001-FINAL-REVIEW.md`.
 
 ### Changed
+
+#### PR-011A — Remove fabricated evidence from adjacent public product previews
+
+- Removed `frontend/lib/mockQuantData.ts` (hardcoded Sharpe 1.12, max
+  drawdown -8.6%, hit rate 0.58, a "Strategy Health Score" of 76/100 with
+  fabricated pillar scores, simulated "Approved with caution" / "Approved —
+  size capped" governance verdicts, and `BUY`/`SELL` signal strings) and the
+  two dead-code components it fed that no route rendered
+  (`ExecutiveCockpitGrid`, `ExecutiveCockpitSnapshot`).
+- Converted six public preview routes — Strategy Health Score
+  (`/strategy-health-score`), Return Quality Lens (`/return-quality-lens`),
+  Risk Gate Review (`/risk-gate-review`), Scenario Shock Test
+  (`/scenario-shock-test`), Decision Ledger (`/decision-ledger`), and
+  Decision Room (`/decision-room`) — from fabricated-metric panels to an
+  honest `WorkspacePlaceholder` "Planned Capability" state. No score,
+  signal, or verdict is shown until real Research Execution / Validation /
+  Evaluation evidence exists; none of these modules were previously listed
+  in top-level navigation or `WORKSPACE_MODULES`, and remain unlisted.
+- Removed the now-dead `BACKEND_TEXT_ZH` translation entries in
+  `frontend/lib/i18n.ts` that only existed to translate the fabricated copy
+  above, and corrected the `/overview` route's title/description (previously
+  "Executive Cockpit" / a "risk governance, return quality, and audit trail"
+  description) to "Workspace Overview", matching what that page actually
+  renders (the honest `WORKSPACE_MODULES` directory).
+- Added `frontend/lib/publicPreviewAuthenticity.test.ts` proving
+  `mockQuantData` no longer exists or is imported anywhere reachable from
+  public navigation, that none of the six remediated routes render any
+  fabricated Sharpe/CAGR/drawdown/health-score/BUY/SELL/Approved value, and
+  that each renders the honest placeholder state instead.
+- See `docs/data/AUTHENTICITY_POLICY.md` ("PR-011A remediation") and
+  `docs/reviews/RC-1-REPOSITORY-AUDIT.md` for the audit finding this
+  addresses.
 
 #### PR-008B review follow-ups
 
