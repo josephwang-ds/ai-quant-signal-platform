@@ -98,6 +98,38 @@ The project intends to follow [Keep a Changelog](https://keepachangelog.com/en/1
 
 ### Changed
 
+#### PR-011A — Remove fabricated evidence from adjacent public product previews
+
+- Removed `frontend/lib/mockQuantData.ts` (hardcoded Sharpe 1.12, max
+  drawdown -8.6%, hit rate 0.58, a "Strategy Health Score" of 76/100 with
+  fabricated pillar scores, simulated "Approved with caution" / "Approved —
+  size capped" governance verdicts, and `BUY`/`SELL` signal strings) and the
+  two dead-code components it fed that no route rendered
+  (`ExecutiveCockpitGrid`, `ExecutiveCockpitSnapshot`).
+- Converted six public preview routes — Strategy Health Score
+  (`/strategy-health-score`), Return Quality Lens (`/return-quality-lens`),
+  Risk Gate Review (`/risk-gate-review`), Scenario Shock Test
+  (`/scenario-shock-test`), Decision Ledger (`/decision-ledger`), and
+  Decision Room (`/decision-room`) — from fabricated-metric panels to an
+  honest `WorkspacePlaceholder` "Planned Capability" state. No score,
+  signal, or verdict is shown until real Research Execution / Validation /
+  Evaluation evidence exists; none of these modules were previously listed
+  in top-level navigation or `WORKSPACE_MODULES`, and remain unlisted.
+- Removed the now-dead `BACKEND_TEXT_ZH` translation entries in
+  `frontend/lib/i18n.ts` that only existed to translate the fabricated copy
+  above, and corrected the `/overview` route's title/description (previously
+  "Executive Cockpit" / a "risk governance, return quality, and audit trail"
+  description) to "Workspace Overview", matching what that page actually
+  renders (the honest `WORKSPACE_MODULES` directory).
+- Added `frontend/lib/publicPreviewAuthenticity.test.ts` proving
+  `mockQuantData` no longer exists or is imported anywhere reachable from
+  public navigation, that none of the six remediated routes render any
+  fabricated Sharpe/CAGR/drawdown/health-score/BUY/SELL/Approved value, and
+  that each renders the honest placeholder state instead.
+- See `docs/data/AUTHENTICITY_POLICY.md` ("PR-011A remediation") and
+  `docs/reviews/RC-1-REPOSITORY-AUDIT.md` for the audit finding this
+  addresses.
+
 #### PR-008B review follow-ups
 
 - Enforce same-asset buy-and-hold only (`benchmark` must equal `symbol`; HTTP 400 otherwise).
