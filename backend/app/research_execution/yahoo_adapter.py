@@ -19,6 +19,9 @@ from app.research_execution.market_data_port import (
 from app.research_execution.price_cache import PriceCache
 
 
+YAHOO_ADJUSTMENT = "auto_adjust"
+
+
 class YahooFinanceMarketDataAdapter:
     """
     Research/demo historical-data adapter via yfinance.
@@ -45,7 +48,9 @@ class YahooFinanceMarketDataAdapter:
         end_date: str | None = None,
     ) -> NormalizedMarketSeries:
         symbol = symbol.upper().strip()
-        key = self.cache.make_key(self.name, symbol, start_date, end_date, "1d")
+        key = self.cache.make_key(
+            self.name, symbol, start_date, end_date, "1d", YAHOO_ADJUSTMENT
+        )
 
         cached, _ = self.cache.get(key, allow_stale=False)
         if cached is not None:
@@ -153,11 +158,17 @@ class YahooFinanceMarketDataAdapter:
             cache_hit=False,
             cache_stale=False,
             currency="USD",
+            adapter=self.name,
+            canonical_symbol=symbol,
+            provider_symbol=symbol,
+            adjustment=YAHOO_ADJUSTMENT,
+            row_count=len(df),
         )
         warnings: list[str] = [
             "Yahoo Finance / yfinance is suitable for research and portfolio demos "
             "only — not an exchange-grade production feed.",
             "Provider timeout is enforced via yfinance download(timeout=…).",
+            f"Yahoo prices use yfinance auto_adjust ({YAHOO_ADJUSTMENT}).",
         ]
         return NormalizedMarketSeries(
             symbol=symbol,

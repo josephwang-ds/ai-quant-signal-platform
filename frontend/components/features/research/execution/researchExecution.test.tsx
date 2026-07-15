@@ -123,6 +123,34 @@ describe("PR-008B research execution UI", () => {
     ).toBeInTheDocument();
   });
 
+  it("renders extended provenance fields when present", () => {
+    render(
+      <ProvenanceBanner
+        provenance={{
+          ...SAMPLE_EXECUTION.provenance,
+          asset_class: "etf",
+          adjustment: "auto_adjust",
+          canonical_symbol: "SPY",
+        }}
+        labels={{
+          realData: "Real Historical Data",
+          cached: "Cached",
+          stale: "Stale cache",
+          provider: "Provider",
+          symbol: "Symbol",
+          assetClass: "Asset class",
+          adjustment: "Adjustment",
+          range: "Actual date range",
+          retrieved: "Retrieved",
+          disclaimer: HISTORICAL_DISCLAIMER,
+        }}
+      />
+    );
+
+    expect(screen.getByText("etf")).toBeInTheDocument();
+    expect(screen.getByText("auto_adjust")).toBeInTheDocument();
+  });
+
   it("renders provenance labels and historical disclaimer", () => {
     render(
       <ProvenanceBanner

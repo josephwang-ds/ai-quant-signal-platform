@@ -12,7 +12,7 @@ from app.research_execution.service import (
     ResearchExecutionError,
     ResearchExecutionService,
 )
-from app.research_execution.yahoo_adapter import YahooFinanceMarketDataAdapter
+from app.research_execution.market_data_router import build_default_market_data_port
 
 router = APIRouter(prefix="/api/v1/research", tags=["research-execution"])
 
@@ -22,7 +22,7 @@ _service: ResearchExecutionService | None = None
 def get_research_execution_service() -> ResearchExecutionService:
     global _service
     if _service is None:
-        _service = ResearchExecutionService(YahooFinanceMarketDataAdapter())
+        _service = ResearchExecutionService(build_default_market_data_port())
     return _service
 
 

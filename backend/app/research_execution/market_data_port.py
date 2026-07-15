@@ -43,6 +43,15 @@ class DataProvenance:
     cache_hit: bool = False
     cache_stale: bool = False
     currency: str | None = "USD"
+    # PR-014 routing metadata (optional for backward compatibility).
+    adapter: str = ""
+    requested_symbol: str = ""
+    canonical_symbol: str = ""
+    provider_symbol: str = ""
+    asset_class: str = ""
+    exchange: str | None = None
+    adjustment: str = "auto"
+    row_count: int = 0
 
 
 @dataclass
@@ -77,6 +86,34 @@ class MarketDataValidationError(MarketDataError):
 
 class MarketDataUnavailableError(MarketDataError):
     """Provider timeout, missing ticker, or empty payload."""
+
+
+class UnsupportedSymbolError(MarketDataValidationError):
+    """Symbol format is malformed or unsupported for routing."""
+
+
+class UnsupportedProviderError(MarketDataValidationError):
+    """Requested provider override is invalid or incompatible."""
+
+
+class UnsupportedAssetClassError(MarketDataValidationError):
+    """Asset class is not supported by any configured provider."""
+
+
+class ProviderNotConfiguredError(MarketDataUnavailableError):
+    """Provider package or configuration is missing."""
+
+
+class ProviderRateLimitedError(MarketDataUnavailableError):
+    """Provider rejected the request due to rate limiting."""
+
+
+class InvalidProviderResponseError(MarketDataUnavailableError):
+    """Provider returned an unparseable or contract-violating payload."""
+
+
+class InsufficientHistoryError(MarketDataValidationError):
+    """Provider returned too few rows for the requested range."""
 
 
 def _to_date_str(value: object) -> str:

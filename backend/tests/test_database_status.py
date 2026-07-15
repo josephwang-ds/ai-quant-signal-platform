@@ -53,11 +53,11 @@ def test_data_sources_status_still_works() -> None:
 
     assert response.status_code == 200
     payload = response.json()
-    # Canonical selection mode is auto failover, not a pinned live provider.
-    assert payload["active_provider"] == "auto"
+    assert payload["routing_mode"] == "asset_class"
     providers = {item["name"]: item for item in payload["providers"]}
-    assert providers["auto"]["status"] == "active"
-    assert providers["yahoo"]["status"] == "active"
+    assert providers["yahoo"]["installed"] is True
+    assert "us_equity" in providers["yahoo"]["supported_assets"]
+    assert providers["akshare"]["supported_assets"] == ["cn_equity"]
 
 
 def test_backtest_still_works() -> None:

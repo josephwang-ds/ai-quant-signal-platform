@@ -50,6 +50,8 @@ jobs:
             tests/test_research_validation.py \
             tests/test_research_evaluation.py \
             tests/test_research_copilot.py \
+            tests/test_market_data_router.py \
+            tests/test_akshare_adapter.py \
             -q
 
   apps-api:

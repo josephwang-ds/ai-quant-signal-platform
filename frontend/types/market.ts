@@ -263,6 +263,14 @@ export type OOSResponse = {
   interpretation: string[];
 };
 
+export type ResearchDataProviderStatus = {
+  name: string;
+  installed: boolean;
+  configured: boolean;
+  supported_assets: string[];
+  live_health_checked: boolean;
+};
+
 export type DataSourceProviderStatus = {
   name: string;
   status: string;
@@ -271,12 +279,15 @@ export type DataSourceProviderStatus = {
 };
 
 export type DataSourceStatusResponse = {
-  active_provider: string;
+  routing_mode?: string;
+  providers: Array<DataSourceProviderStatus | ResearchDataProviderStatus>;
+  symbol_examples?: string[];
+  notes?: string[];
+  active_provider?: string;
   fallback_chain?: {
     default: string[];
     a_share: string[];
   };
-  providers: DataSourceProviderStatus[];
 };
 
 export type PriceProbeResponse = {

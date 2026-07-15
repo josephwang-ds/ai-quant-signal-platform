@@ -13,6 +13,14 @@ export type DataProvenance = {
   cache_hit: boolean;
   cache_stale: boolean;
   currency: string | null;
+  adapter?: string;
+  requested_symbol?: string;
+  canonical_symbol?: string;
+  provider_symbol?: string;
+  asset_class?: string;
+  exchange?: string | null;
+  adjustment?: string;
+  row_count?: number;
 };
 
 export type ExecutionMetrics = {

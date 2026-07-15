@@ -27,7 +27,16 @@ import {
 } from "@/lib/dataSourcePreference";
 import { useWorkspaceLanguage } from "@/lib/useWorkspaceLanguage";
 import type { TranslationKey } from "@/lib/i18n";
-import type { DataSourceStatusResponse } from "@/types/market";
+import type {
+  DataSourceStatusResponse,
+  ResearchDataProviderStatus,
+} from "@/types/market";
+
+function isResearchProviderStatus(
+  provider: DataSourceStatusResponse["providers"][number]
+): provider is ResearchDataProviderStatus {
+  return "installed" in provider && "supported_assets" in provider;
+}
 
 function providerApiStatusLabel(
   status: string,
@@ -191,13 +200,31 @@ export default function DataCenterPage() {
         ) : null}
         {providerStatus ? (
           <>
-            <p className="section-meta">
-              <strong>{tr("dcActiveProvider")}:</strong>{" "}
-              <code>{providerStatus.active_provider}</code>
-            </p>
+            {providerStatus.routing_mode ? (
+              <p className="section-meta">
+                <strong>{tr("dcRoutingMode")}:</strong>{" "}
+                <code>{providerStatus.routing_mode}</code>
+              </p>
+            ) : null}
+            {providerStatus.active_provider ? (
+              <p className="section-meta">
+                <strong>{tr("dcActiveProvider")}:</strong>{" "}
+                <code>{providerStatus.active_provider}</code>
+              </p>
+            ) : null}
             {providerStatus.fallback_chain?.default?.length ? (
               <p className="section-meta">
                 fallback: <code>{providerStatus.fallback_chain.default.join(" → ")}</code>
+              </p>
+            ) : null}
+            {providerStatus.symbol_examples?.length ? (
+              <p className="section-meta">
+                <strong>{tr("dcSymbolExamples")}:</strong>{" "}
+                {providerStatus.symbol_examples.map((symbol) => (
+                  <code key={symbol} style={{ marginRight: 8 }}>
+                    {symbol}
+                  </code>
+                ))}
               </p>
             ) : null}
             <p className="section-meta">{tr("dcProvidersList")}</p>
@@ -206,24 +233,64 @@ export default function DataCenterPage() {
                 <article key={provider.name} className="module-card">
                   <div className="module-card__header">
                     <h3 className="module-card__title">{provider.name}</h3>
-                    <StatusBadge
-                      label={providerApiStatusLabel(provider.status, tr)}
-                      variant={providerApiStatusVariant(provider.status)}
-                    />
+                    {isResearchProviderStatus(provider) ? (
+                      <StatusBadge
+                        label={
+                          provider.installed && provider.configured
+                            ? tr("statusActive")
+                            : tr("statusPlanned")
+                        }
+                        variant={
+                          provider.installed && provider.configured
+                            ? "success"
+                            : "info"
+                        }
+                      />
+                    ) : (
+                      <StatusBadge
+                        label={providerApiStatusLabel(provider.status, tr)}
+                        variant={providerApiStatusVariant(provider.status)}
+                      />
+                    )}
                   </div>
-                  {provider.asset_classes?.length ? (
-                    <ul className="system-notes-list">
-                      {provider.asset_classes.map((assetClass) => (
-                        <li key={assetClass}>{assetClass}</li>
-                      ))}
-                    </ul>
-                  ) : null}
-                  {provider.note ? (
-                    <p className="section-meta">{provider.note}</p>
-                  ) : null}
+                  {isResearchProviderStatus(provider) ? (
+                    <>
+                      <p className="section-meta">
+                        {tr("dcProviderInstalled")}:{" "}
+                        {provider.installed ? tr("yes") : tr("no")} ·{" "}
+                        {tr("dcProviderConfigured")}:{" "}
+                        {provider.configured ? tr("yes") : tr("no")} ·{" "}
+                        {tr("dcProviderLiveHealth")}:{" "}
+                        {provider.live_health_checked ? tr("yes") : tr("no")}
+                      </p>
+                      <ul className="system-notes-list">
+                        {provider.supported_assets.map((assetClass) => (
+                          <li key={assetClass}>{assetClass}</li>
+                        ))}
+                      </ul>
+                    </>
+                  ) : (
+                    <>
+                      {provider.asset_classes?.length ? (
+                        <ul className="system-notes-list">
+                          {provider.asset_classes.map((assetClass) => (
+                            <li key={assetClass}>{assetClass}</li>
+                          ))}
+                        </ul>
+                      ) : null}
+                      {provider.note ? (
+                        <p className="section-meta">{provider.note}</p>
+                      ) : null}
+                    </>
+                  )}
                 </article>
               ))}
             </div>
+            {providerStatus.notes?.map((note) => (
+              <p key={note} className="section-meta">
+                {note}
+              </p>
+            ))}
           </>
         ) : null}
       </SectionCard>
