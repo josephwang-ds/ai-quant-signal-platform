@@ -147,6 +147,8 @@ offline tests, `apps/api` tests, frontend tests/typecheck/build, and
 repository authenticity policy checks. Live Yahoo and AkShare verification is
 optional and manual only — see
 [`docs/deployment/LIVE_DATA_VERIFICATION.md`](docs/deployment/LIVE_DATA_VERIFICATION.md).
+Deployed end-to-end evidence (operator-run, not required CI) is recorded in
+[`docs/reviews/DEPLOYED-E2E-VERIFICATION.md`](docs/reviews/DEPLOYED-E2E-VERIFICATION.md).
 
 The target API reference slice lives under `apps/api/`. See [`apps/api/README.md`](apps/api/README.md) for dependencies, entrypoint, startup, and development commands.
 

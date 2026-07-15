@@ -8,6 +8,15 @@ The project intends to follow [Keep a Changelog](https://keepachangelog.com/en/1
 
 ### Added
 
+#### PR-016 — Deployed end-to-end verification evidence
+
+- Operator evidence report
+  `docs/reviews/DEPLOYED-E2E-VERIFICATION.md` documenting process health,
+  asset-class provider status, deployed SPY / Yahoo execution success (after one
+  provider flake), AkShare remote-disconnect classification, frontend API host
+  + CORS checks, Copilot honest 503 without `OPENAI_API_KEY`, and failure-state
+  probes. No deployment secrets or hardcoded app URLs were added.
+
 #### PR-015 — Live market data verification
 
 - `tests/test_market_data_live.py` with `@pytest.mark.live` Yahoo (SPY) and

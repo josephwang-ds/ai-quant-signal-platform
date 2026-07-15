@@ -126,6 +126,10 @@ Still deferred beyond PR-001: release automation, Dependabot policy, branch-prot
 - [x] Bounded live market-data verification tooling *(PR-015: Yahoo SPY +
   AkShare 600519.SH live-marked tests, manual workflow, local and deployed
   verification scripts — offline contract verified; live runs reported honestly)*.
+- [x] Deployed end-to-end verification evidence *(PR-016: process health,
+  asset-class status, SPY/Yahoo deployed execution verified after flake;
+  AkShare failed due to provider/network; frontend CORS/API host verified;
+  Copilot unconfigured 503; report in `docs/reviews/DEPLOYED-E2E-VERIFICATION.md`)*.
 - [x] Production API wiring contract *(PR-011B: required explicit frontend
   production URL, shared typed transport failures and bounded timeouts,
   normalized explicit CORS origins, and documented liveness/provider-status
