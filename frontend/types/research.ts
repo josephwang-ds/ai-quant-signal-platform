@@ -109,6 +109,7 @@ export const RESEARCH_WORKSPACE_SECTIONS = [
   "experiments",
   "validation",
   "evaluation",
+  "copilot",
   "timeline",
   "files",
   "settings",

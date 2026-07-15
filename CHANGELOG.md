@@ -8,6 +8,27 @@ The project intends to follow [Keep a Changelog](https://keepachangelog.com/en/1
 
 ### Added
 
+#### PR-012 — Evidence-grounded Research Copilot
+
+- `POST /api/v1/research/copilot/query` — backend-owned interpretation layer
+  that explains assembled workspace evidence for the canonical MA Crossover
+  research. Reads a stored `ValidationResult` by `validation_run_id`, derives
+  evaluation governance context, assembles bounded structured context, and
+  calls `LlmPort` — never calculates metrics, never triggers Validation, and
+  never fabricates answers when the provider is unavailable.
+- `ResearchContextAssembler`, lightweight in-memory document retrieval,
+  `OpenAiLlmAdapter` (stdlib HTTP; `OPENAI_API_KEY` + `COPILOT_MODEL`),
+  `FakeLlmAdapter` for offline CI, server-owned system policy, deterministic
+  citations, and post-generation grounding checks (prohibited recommendation
+  language, unsupported numeric claims).
+- Research Workspace **Research Copilot** tab with sample questions, citations,
+  grounding status, limitations disclaimer, awaiting-validation guidance, and
+  honest not-configured / provider-unavailable states. The browser never calls
+  an LLM provider directly.
+- Offline copilot tests, frontend policy tests (no `NEXT_PUBLIC_*API_KEY`, no
+  frontend OpenAI SDK), and slice documentation in
+  `docs/slices/research-copilot.md`.
+
 #### PR-010 — Research evaluation governance layer
 
 - `POST /api/v1/research/evaluation` summarizing an already-produced

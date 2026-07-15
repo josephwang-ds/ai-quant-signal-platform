@@ -49,6 +49,7 @@ jobs:
             tests/test_research_execution.py \
             tests/test_research_validation.py \
             tests/test_research_evaluation.py \
+            tests/test_research_copilot.py \
             -q
 
   apps-api:

@@ -43,6 +43,8 @@ import ResearchValidationPanel from "@/components/features/research/validation/R
 import { useResearchValidation } from "@/components/features/research/validation/useResearchValidation";
 import ResearchEvaluationPanel from "@/components/features/research/evaluation/ResearchEvaluationPanel";
 import { useResearchEvaluation } from "@/components/features/research/evaluation/useResearchEvaluation";
+import ResearchCopilotPanel from "@/components/features/research/copilot/ResearchCopilotPanel";
+import { useResearchCopilot } from "@/components/features/research/copilot/useResearchCopilot";
 import {
   applyExecutionToExperiments,
   applyExecutionToResearch,
@@ -61,7 +63,13 @@ type PlaceholderCopy = {
 const PLACEHOLDER_COPY: Record<
   Exclude<
     ResearchWorkspaceSection,
-    "overview" | "notebook" | "timeline" | "experiments" | "validation" | "evaluation"
+    | "overview"
+    | "notebook"
+    | "timeline"
+    | "experiments"
+    | "validation"
+    | "evaluation"
+    | "copilot"
   >,
   PlaceholderCopy
 > = {
@@ -127,13 +135,17 @@ export default function ResearchWorkspacePage({
     error: executionError,
     reload: reloadExecution,
   } = useResearchExecution(researchId);
+  const validationEvidenceActive =
+    activeSection === "validation" ||
+    activeSection === "evaluation" ||
+    activeSection === "copilot";
   const {
     enabled: validationEnabled,
     status: validationStatus,
     validation,
     error: validationError,
     reload: reloadValidation,
-  } = useResearchValidation(researchId, activeSection === "validation");
+  } = useResearchValidation(researchId, validationEvidenceActive);
   const validationRunId = validation?.validation_run_id ?? null;
   const {
     enabled: evaluationEnabled,
@@ -144,6 +156,19 @@ export default function ResearchWorkspacePage({
   } = useResearchEvaluation(
     researchId,
     activeSection === "evaluation",
+    validationRunId
+  );
+  const [copilotQuestion, setCopilotQuestion] = useState("");
+  const {
+    enabled: copilotEnabled,
+    status: copilotStatus,
+    result: copilotResult,
+    error: copilotError,
+    ask: askCopilot,
+    reset: resetCopilot,
+  } = useResearchCopilot(
+    researchId,
+    activeSection === "copilot",
     validationRunId
   );
 
@@ -230,6 +255,24 @@ export default function ResearchWorkspacePage({
     // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional: seed from URL once per researchId
   }, [researchId]);
 
+  useEffect(() => {
+    if (activeSection !== "copilot") {
+      resetCopilot();
+      setCopilotQuestion("");
+    }
+  }, [activeSection, resetCopilot]);
+
+  const copilotSampleQuestions = useMemo(
+    () => [
+      tr("researchCopilotSample1"),
+      tr("researchCopilotSample2"),
+      tr("researchCopilotSample3"),
+      tr("researchCopilotSample4"),
+      tr("researchCopilotSample5"),
+    ],
+    [tr]
+  );
+
   const navLabels = useMemo(
     () => ({
       overview: tr("researchWsNavOverview"),
@@ -237,6 +280,7 @@ export default function ResearchWorkspacePage({
       experiments: tr("researchWsNavExperiments"),
       validation: tr("researchWsNavValidation"),
       evaluation: tr("researchWsNavEvaluation"),
+      copilot: tr("researchWsNavCopilot"),
       timeline: tr("researchWsNavTimeline"),
       files: tr("researchWsNavFiles"),
       settings: tr("researchWsNavSettings"),
@@ -728,6 +772,68 @@ export default function ResearchWorkspacePage({
       );
     }
 
+    if (activeSection === "copilot") {
+      if (!copilotEnabled) {
+        return (
+          <ErrorAlert
+            title={tr("researchCopilotUnavailableTitle")}
+            message={tr("researchCopilotUnavailableDescription")}
+          />
+        );
+      }
+      return (
+        <ResearchCopilotPanel
+          labels={{
+            title: tr("researchCopilotTitle"),
+            subtitle: tr("researchCopilotSubtitle"),
+            disclaimer: tr("researchCopilotDisclaimer"),
+            sampleQuestionsTitle: tr("researchCopilotSampleQuestionsTitle"),
+            questionPlaceholder: tr("researchCopilotQuestionPlaceholder"),
+            askButton: tr("researchCopilotAskButton"),
+            askingButton: tr("researchCopilotAskingButton"),
+            answerTitle: tr("researchCopilotAnswerTitle"),
+            citationsTitle: tr("researchCopilotCitationsTitle"),
+            warningsTitle: tr("researchCopilotWarningsTitle"),
+            groundingTitle: tr("researchCopilotGroundingTitle"),
+            generatedAt: tr("researchCopilotGeneratedAt"),
+            grounded: tr("researchCopilotGrounded"),
+            partiallyGrounded: tr("researchCopilotPartiallyGrounded"),
+            unavailable: tr("researchCopilotUnavailable"),
+            awaitingValidationTitle: tr("researchCopilotAwaitingValidationTitle"),
+            awaitingValidationDescription: tr(
+              "researchCopilotAwaitingValidationDescription"
+            ),
+            goToValidation: tr("researchCopilotGoToValidation"),
+            notConfigured: tr("researchCopilotNotConfigured"),
+            limitations: tr("researchCopilotLimitations"),
+          }}
+          sampleQuestions={copilotSampleQuestions}
+          status={
+            validationEvidenceActive && validationStatus === "loading"
+              ? "loading"
+              : copilotStatus
+          }
+          result={copilotResult}
+          error={
+            copilotError ??
+            (validationEvidenceActive && validationStatus === "error"
+              ? validationError
+              : null)
+          }
+          question={copilotQuestion}
+          onQuestionChange={setCopilotQuestion}
+          onAsk={() => void askCopilot(copilotQuestion)}
+          onSampleQuestion={(sample) => {
+            setCopilotQuestion(sample);
+            void askCopilot(sample);
+          }}
+          onGoToValidation={() => {
+            window.location.href = `/research/${encodeURIComponent(researchId)}?tab=validation`;
+          }}
+        />
+      );
+    }
+
     if (activeSection === "timeline") {
       return (
         <ResearchTimeline
@@ -764,7 +870,8 @@ export default function ResearchWorkspacePage({
     activeSection !== "timeline" &&
     activeSection !== "experiments" &&
     activeSection !== "validation" &&
-    activeSection !== "evaluation";
+    activeSection !== "evaluation" &&
+    activeSection !== "copilot";
 
   return (
     <AppShell language={language} onLanguageChange={setLanguage}>

@@ -83,6 +83,9 @@ PYTHONPATH=. python -m pytest tests/test_research_validation.py -v
 # Research evaluation fixture suite only
 PYTHONPATH=. python -m pytest tests/test_research_evaluation.py -v
 
+# Research copilot fixture suite only
+PYTHONPATH=. python -m pytest tests/test_research_copilot.py -v
+
 # Optional live Yahoo smoke (manual / non-blocking; never required for PR CI)
 PYTHONPATH=. python -m pytest tests/test_research_execution_live.py -v -m live
 ```
@@ -107,3 +110,11 @@ performs no calculations of its own, no market-data reads, and never calls
 
 `ValidationResultStore` is in-memory (MVP scope): saved results are lost on
 backend restart, and persistent `ValidationRun` storage remains future work.
+
+Research Copilot docs: `docs/slices/research-copilot.md`.
+Endpoint: `POST /api/v1/research/copilot/query`. Requires `validation_run_id`
+from a prior validation call. Assembles bounded workspace context and calls
+`LlmPort` for interpretation only — no calculations, no Validation
+re-execution, no market-data reads. Configure with `OPENAI_API_KEY` and
+optional `COPILOT_MODEL` (default `gpt-4o-mini`). Offline CI injects
+`FakeLlmAdapter` explicitly in tests; runtime without a key returns HTTP 503.

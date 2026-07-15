@@ -2155,6 +2155,74 @@ th.num,
   line-height: 1.45;
 }
 
+/* PR-012 Research Copilot — evidence explanation only. */
+.research-copilot {
+  display: grid;
+  gap: 1rem;
+}
+
+.research-copilot__disclaimer {
+  margin: 0.5rem 0 0;
+}
+
+.research-copilot__samples {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 0.75rem 0 1rem;
+}
+
+.research-copilot__sample {
+  border: 1px solid var(--border-subtle);
+  border-radius: 999px;
+  background: #f8fafc;
+  color: var(--text-primary);
+  font-size: var(--font-sm);
+  padding: 0.35rem 0.75rem;
+  cursor: pointer;
+}
+
+.research-copilot__sample:hover {
+  border-color: var(--accent);
+}
+
+.research-copilot__field {
+  display: grid;
+  gap: 0.35rem;
+  margin-bottom: 0.75rem;
+}
+
+.research-copilot__input {
+  width: 100%;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius);
+  padding: 0.65rem 0.75rem;
+  font: inherit;
+  resize: vertical;
+}
+
+.research-copilot__meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 1rem;
+  margin-bottom: 0.75rem;
+}
+
+.research-copilot__answer {
+  margin: 0.5rem 0;
+  line-height: 1.55;
+  white-space: pre-wrap;
+}
+
+.research-copilot__citations,
+.research-copilot__warnings {
+  margin: 0;
+  padding-left: 1.1rem;
+  display: grid;
+  gap: 0.65rem;
+}
+
 .evaluation-coverage-card,
 .evaluation-list-card {
   padding: 1rem;
