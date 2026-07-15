@@ -116,6 +116,5 @@ Endpoint: `POST /api/v1/research/copilot/query`. Requires `validation_run_id`
 from a prior validation call. Assembles bounded workspace context and calls
 `LlmPort` for interpretation only — no calculations, no Validation
 re-execution, no market-data reads. Configure with `OPENAI_API_KEY` and
-optional `COPILOT_MODEL` (default `gpt-4o-mini`). Set
-`COPILOT_ALLOW_FAKE_LLM=true` for local demos without a provider key.
-Offline CI uses `FakeLlmAdapter` automatically.
+optional `COPILOT_MODEL` (default `gpt-4o-mini`). Offline CI injects
+`FakeLlmAdapter` explicitly in tests; runtime without a key returns HTTP 503.

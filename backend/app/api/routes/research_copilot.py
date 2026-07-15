@@ -18,9 +18,9 @@ _llm_override = None
 def get_research_copilot_service() -> ResearchCopilotService:
     global _service, _llm_override
     if _service is None:
-        from app.research_copilot.service import resolve_llm_adapter_for_runtime
+        from app.research_copilot.service import resolve_llm_adapter
 
-        llm = _llm_override or resolve_llm_adapter_for_runtime()
+        llm = _llm_override or resolve_llm_adapter()
         store = get_default_validation_result_store()
         _service = ResearchCopilotService(
             store,

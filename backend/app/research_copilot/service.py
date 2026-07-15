@@ -9,9 +9,13 @@ import uuid
 from typing import Any
 
 from app.research_copilot.canonical_notebook import CANONICAL_RESEARCH_ID
+from app.research_copilot.citations import (
+    build_context_index,
+    resolve_selected_citations,
+)
 from app.research_copilot.context_assembler import ResearchContextAssembler
-from app.research_copilot.fake_llm import DEFAULT_FAKE_MODEL, FakeLlmAdapter
 from app.research_copilot.llm_port import LlmPort
+from app.research_copilot.llm_response import parse_structured_llm_response
 from app.research_copilot.openai_adapter import (
     OpenAiLlmAdapter,
     ProviderTimeoutError,
@@ -19,7 +23,6 @@ from app.research_copilot.openai_adapter import (
 )
 from app.research_copilot.retrieval import RetrievalIndex
 from app.research_copilot.safety import evaluate_answer
-from app.research_copilot.schemas import EvidenceCitation
 from app.research_copilot.system_policy import COPILOT_SYSTEM_POLICY
 from app.research_evaluation.service import ResearchEvaluationService
 from app.research_execution.market_data_port import utc_now_iso
@@ -45,19 +48,6 @@ def resolve_llm_adapter() -> LlmPort:
         "Research Copilot is not configured for this deployment.",
         status_code=503,
     )
-
-
-def resolve_llm_adapter_for_runtime(*, allow_fake: bool = False) -> LlmPort:
-    try:
-        return resolve_llm_adapter()
-    except ResearchCopilotError:
-        if allow_fake or os.getenv("COPILOT_ALLOW_FAKE_LLM", "").strip().lower() in {
-            "1",
-            "true",
-            "yes",
-        }:
-            return FakeLlmAdapter()
-        raise
 
 
 class ResearchCopilotService:
@@ -126,6 +116,7 @@ class ResearchCopilotService:
             validation=stored,
             evaluation=evaluation,
         )
+        context_index = build_context_index(context_items)
         context_blob = json.dumps(structured, ensure_ascii=False)
 
         history = request.get("conversation") or []
@@ -160,15 +151,33 @@ class ResearchCopilotService:
                 status_code=502,
             ) from exc
 
-        citations = _build_citations(structured, evaluation, validation_run_id)
+        parsed = parse_structured_llm_response(llm_result.text)
+        citations, citation_warnings = resolve_selected_citations(
+            parsed.citation_ids,
+            context_index,
+        )
+
         verdict = evaluate_answer(
-            llm_result.text,
+            parsed.answer,
             citations=[item.model_dump() for item in citations],
             context_blob=context_blob,
         )
+
+        warning_codes = list(parsed.warnings) + citation_warnings + verdict.warnings
+        grounding_status = verdict.grounding_status
+        if (
+            parsed.citation_ids
+            and not citations
+            and parsed.answer
+            and len(parsed.answer) > 80
+            and grounding_status == "grounded"
+        ):
+            grounding_status = "partially_grounded"
+            warning_codes.append("unresolved_citation_ids")
+
         warnings = [
             {"code": warning, "message": _warning_message(warning)}
-            for warning in verdict.warnings
+            for warning in _dedupe(warning_codes)
         ]
         answer = verdict.sanitized_answer or (
             "Research Copilot could not return a safe grounded answer."
@@ -180,7 +189,7 @@ class ResearchCopilotService:
                 "request_id": request_id,
                 "research_id": research_id,
                 "model": llm_result.model,
-                "grounding_status": verdict.grounding_status,
+                "grounding_status": grounding_status,
                 "latency_ms": llm_result.latency_ms,
                 "citation_count": len(citations),
                 "failure_category": None if verdict.safe else "policy_block",
@@ -192,61 +201,21 @@ class ResearchCopilotService:
             "answer": answer,
             "citations": [item.model_dump() for item in citations],
             "warnings": warnings,
-            "grounding_status": verdict.grounding_status,
+            "grounding_status": grounding_status,
             "model": llm_result.model,
             "generated_at": utc_now_iso(),
         }
 
 
-def _build_citations(
-    structured: dict[str, Any],
-    evaluation: dict[str, Any],
-    validation_run_id: str,
-) -> list[EvidenceCitation]:
-    citations: list[EvidenceCitation] = []
-    eval_status = evaluation.get("evaluation_status")
-    if eval_status:
-        citations.append(
-            EvidenceCitation(
-                source_type="evaluation",
-                source_id=validation_run_id,
-                label="Evaluation status",
-                excerpt=f"evaluation_status={eval_status}",
-            )
-        )
-    outstanding = evaluation.get("outstanding_evidence") or []
-    if outstanding:
-        citations.append(
-            EvidenceCitation(
-                source_type="evaluation",
-                source_id=validation_run_id,
-                label="Outstanding evidence",
-                excerpt="; ".join(str(item) for item in outstanding[:4]),
-            )
-        )
-    for stage in structured.get("validation_evidence", {}).get("stages", [])[:4]:
-        citations.append(
-            EvidenceCitation(
-                source_type="validation",
-                source_id=validation_run_id,
-                label=str(stage.get("label") or stage.get("stage")),
-                excerpt=str(stage.get("summary") or stage.get("status")),
-            )
-        )
-    if not citations:
-        citations.append(
-            EvidenceCitation(
-                source_type="research_definition",
-                source_id=CANONICAL_RESEARCH_ID,
-                label="Research definition",
-                excerpt=str(
-                    structured.get("research_definition", {}).get(
-                        "research_question", ""
-                    )
-                )[:240],
-            )
-        )
-    return citations
+def _dedupe(items: list[str]) -> list[str]:
+    seen: set[str] = set()
+    ordered: list[str] = []
+    for item in items:
+        if item in seen:
+            continue
+        seen.add(item)
+        ordered.append(item)
+    return ordered
 
 
 def _warning_message(code: str) -> str:
@@ -255,7 +224,15 @@ def _warning_message(code: str) -> str:
             "The answer may include numbers not present in the assembled evidence."
         )
     if code == "missing_citations":
-        return "The answer did not include enough explicit evidence citations."
+        return "The answer did not include valid evidence citations."
+    if code == "missing_citation_ids":
+        return "The model response did not include citation_ids."
+    if code == "invalid_structured_output":
+        return "The model response was not valid structured JSON."
+    if code == "unresolved_citation_ids":
+        return "None of the cited evidence IDs matched the assembled context."
+    if code.startswith("unknown_citation_id:"):
+        return "The model cited evidence that was not present in the assembled context."
     if code.startswith("prohibited_language"):
         return "Investment recommendation language was blocked."
     if code == "empty_answer":

@@ -8,6 +8,7 @@ from typing import Protocol
 
 @dataclass(frozen=True)
 class ContextItem:
+    citation_id: str
     source_type: str
     source_id: str
     label: str

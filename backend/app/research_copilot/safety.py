@@ -94,8 +94,12 @@ def evaluate_answer(
         warnings.append("unsupported_numeric_claim")
 
     if not citations and len(normalized) > 80:
-        grounding_status = "partially_grounded"
-        warnings.append("missing_citations")
+        return SafetyVerdict(
+            safe=True,
+            grounding_status="unavailable",
+            warnings=["missing_citations"],
+            sanitized_answer=normalized,
+        )
 
     return SafetyVerdict(
         safe=True,

@@ -10,6 +10,7 @@ from pathlib import Path
 @dataclass(frozen=True)
 class DocumentChunk:
     chunk_id: str
+    citation_id: str
     source_type: str
     source_id: str
     label: str
@@ -35,13 +36,15 @@ def build_default_chunks() -> list[DocumentChunk]:
     specs = [
         (
             "doc-execution",
+            "documentation:look_ahead_policy",
             "documentation",
             "docs/slices/research-execution.md",
-            "Research execution methodology",
-            ("execution", "provenance", "lag", "cost"),
+            "Look-ahead and position-lag policy",
+            ("execution", "provenance", "lag", "cost", "look-ahead"),
         ),
         (
             "doc-validation",
+            "documentation:validation_methodology",
             "documentation",
             "docs/slices/research-validation.md",
             "Research validation methodology",
@@ -49,6 +52,7 @@ def build_default_chunks() -> list[DocumentChunk]:
         ),
         (
             "doc-evaluation",
+            "documentation:evaluation_governance",
             "documentation",
             "docs/slices/research-evaluation.md",
             "Research evaluation governance",
@@ -56,6 +60,7 @@ def build_default_chunks() -> list[DocumentChunk]:
         ),
         (
             "doc-authenticity",
+            "documentation:authenticity_policy",
             "documentation",
             "docs/data/AUTHENTICITY_POLICY.md",
             "Authenticity policy",
@@ -63,18 +68,20 @@ def build_default_chunks() -> list[DocumentChunk]:
         ),
         (
             "doc-bible",
+            "documentation:project_constitution",
             "documentation",
             "docs/PROJECT_BIBLE.md",
             "Project constitution",
             ("governance", "research", "ai"),
         ),
     ]
-    for chunk_id, source_type, rel_path, label, tags in specs:
+    for chunk_id, citation_id, source_type, rel_path, label, tags in specs:
         text = _read_excerpt(root / rel_path)
         if text:
             chunks.append(
                 DocumentChunk(
                     chunk_id=chunk_id,
+                    citation_id=citation_id,
                     source_type=source_type,
                     source_id=rel_path,
                     label=label,

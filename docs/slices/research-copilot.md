@@ -60,22 +60,37 @@ class LlmPort(Protocol):
     ) -> LlmResult: ...
 ```
 
-Offline CI uses `FakeLlmAdapter`. Production uses `OpenAiLlmAdapter` when
-`OPENAI_API_KEY` is set. Optional `COPILOT_ALLOW_FAKE_LLM=true` enables the
-fake adapter for local demos without a provider key.
+Offline CI injects `FakeLlmAdapter` explicitly through test dependency
+injection. Production uses `OpenAiLlmAdapter` when `OPENAI_API_KEY` is set.
+There is no runtime environment switch that can activate a fake provider in a
+deployed app. Missing `OPENAI_API_KEY` returns HTTP 503.
 
 Default model: `gpt-4o-mini` (override with `COPILOT_MODEL`).
 
 ## Context assembly
 
-`ResearchContextAssembler` builds bounded structured sections:
+`ResearchContextAssembler` builds bounded `ContextItem` records. Each item
+carries a stable `citation_id` used for answer-specific citation resolution.
 
-- Research Definition (canonical MA Crossover)
-- Execution Evidence (compact validation stages)
-- Validation Evidence (stage summaries; large series stripped)
-- Evaluation Governance (status, coverage, blockers, outstanding evidence)
-- Notebook Context (structured design notes)
-- Methodology documentation chunks (retrieval top-k)
+Initial citation IDs:
+
+| citation_id | Source |
+|---|---|
+| `execution:metrics` | Historical backtest + benchmark comparison summaries |
+| `validation:out_of_sample` | OOS validation stage |
+| `validation:parameter_sensitivity` | Parameter grid stage |
+| `validation:transaction_cost_sensitivity` | Transaction-cost grid stage |
+| `validation:data_quality` | Data-quality stage |
+| `evaluation:status` | Evaluation status, coverage, blockers |
+| `evaluation:outstanding_evidence` | Outstanding evidence list |
+| `notebook:hypothesis` | Structured notebook hypothesis entry |
+| `notebook:methodology` | Notebook methodology entry |
+| `notebook:observation` | Notebook observation entry |
+| `documentation:look_ahead_policy` | Execution methodology excerpt |
+| `documentation:validation_methodology` | Validation slice excerpt |
+| `documentation:evaluation_governance` | Evaluation slice excerpt |
+| `documentation:authenticity_policy` | Authenticity policy excerpt |
+| `documentation:project_constitution` | Project Bible excerpt |
 
 Requirements enforced in code:
 
@@ -147,10 +162,26 @@ No provider stack traces are returned.
 
 ## Citation contract
 
-Every substantive answer includes deterministic citations built from
-assembled evidence (evaluation status, outstanding evidence, validation
-stage summaries, research definition fallback). Citations include
-`source_type`, `source_id`, `label`, and `excerpt`.
+The provider must return structured JSON:
+
+```json
+{
+  "answer": "<grounded explanation>",
+  "citation_ids": ["evaluation:status", "evaluation:outstanding_evidence"]
+}
+```
+
+`ResearchCopilotService` then:
+
+1. Parses the structured output safely.
+2. Resolves only `citation_ids` present in the assembled context index.
+3. Drops or warns on unknown IDs.
+4. Returns only the citations selected for that answer.
+5. Marks substantive answers with no valid citations as `unavailable` or
+   `partially_grounded` — never attaches a fixed generic citation bundle.
+
+Resolved API citations still expose `source_type`, `source_id`, `label`, and
+`excerpt` derived from the matching `ContextItem`.
 
 ## Grounding and safety
 
@@ -180,10 +211,12 @@ The browser calls only `POST /api/v1/research/copilot/query` via
 
 ## Offline testing
 
-- `FakeLlmAdapter` for success paths
-- `FabricatingFakeLlm` for fabricated-metric rejection
+- `FakeLlmAdapter` injected explicitly in unit/API tests
+- `FabricatingFakeLlm`, `EmptyCitationFakeLlm`, and `UnknownCitationFakeLlm`
+  for safety and citation-resolution tests
 - `evaluate_answer` unit tests for prohibited language
 - repository policy tests: no `NEXT_PUBLIC_*API_KEY`, no frontend SDK imports
+- tests proving `COPILOT_ALLOW_FAKE_LLM` cannot enable fake runtime answers
 
 ## Explicit non-goals
 

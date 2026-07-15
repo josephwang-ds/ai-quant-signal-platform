@@ -33,11 +33,16 @@ class OpenAiLlmAdapter(LlmPort):
         context: list[ContextItem],
     ) -> LlmResult:
         context_block = "\n\n".join(
-            f"[{item.source_type}:{item.source_id}] {item.label}\n{item.content}"
+            (
+                f"[citation_id={item.citation_id}] "
+                f"({item.source_type}:{item.source_id}) {item.label}\n"
+                f"{item.content}"
+            )
             for item in context
         )
         payload = {
             "model": self.model,
+            "response_format": {"type": "json_object"},
             "messages": [
                 {"role": "system", "content": system_prompt},
                 {
