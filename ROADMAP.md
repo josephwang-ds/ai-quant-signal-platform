@@ -130,6 +130,9 @@ Still deferred beyond PR-001: release automation, Dependabot policy, branch-prot
   asset-class status, SPY/Yahoo deployed execution verified after flake;
   AkShare failed due to provider/network; frontend CORS/API host verified;
   Copilot unconfigured 503; report in `docs/reviews/DEPLOYED-E2E-VERIFICATION.md`)*.
+- [x] Research Workspace production SSR exception fix *(PR-017: remove
+  Server→Client event-handler prop that produced digest `440809330` on
+  `/research/ma-crossover-spy`; honest route loading/error boundaries)*.
 - [x] Production API wiring contract *(PR-011B: required explicit frontend
   production URL, shared typed transport failures and bounded timeouts,
   normalized explicit CORS origins, and documented liveness/provider-status

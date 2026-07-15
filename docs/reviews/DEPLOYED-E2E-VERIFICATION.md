@@ -133,10 +133,23 @@ Honest classification: **egress/provider remote disconnect**, not package-missin
 
 - Consistent Yahoo availability from Render on first try (attempt 1 failed).
 - Deployed AkShare live A-share execution for `600519.SH` (both attempts failed due to remote disconnect).
-- End-to-end browser interaction of Research Workspace UI clicking Execute (SSR probe was incomplete / 500 digest under curl).
 - Copilot grounded LLM answer quality (key absent — not applicable).
 - Persistent process cold-start after long idle (not deliberately measured).
 - Exchange-grade or guaranteed continuous provider availability.
+
+## PR-017 Research Workspace SSR exception
+
+| Item | Detail |
+|---|---|
+| Production URL | `https://signals.josephjwang.com/research/ma-crossover-spy` |
+| Observed digest | `440809330` |
+| Local reproduction digest | `1607303388` (same class) |
+| Exception | `Error: Event handlers cannot be passed to Client Component props.` |
+| Root cause | Server Component Suspense fallback in `frontend/app/research/[researchId]/page.tsx` passed a no-op `onLanguageChange` callback into Client `AppShell` |
+| Fix | Remove shell wrapper from the Server fallback; render only `SectionCard` + `ResearchWorkspaceSkeleton`. Add route `loading.tsx` / `error.tsx`. |
+| Local production verification | **Verified** — `npm run build && next start`; `curl http://127.0.0.1:3000/research/ma-crossover-spy` → HTTP 200, `workspace-shell` present, no digest error. Also HTTP 200 when `NEXT_PUBLIC_API_BASE_URL` is absent at build time. |
+| Vercel preview verification | Not verified in this documentation update — pending PR preview browser check |
+| Post-merge production verification | Not verified until merge + redeploy |
 
 ## Known Limitations
 
@@ -144,13 +157,11 @@ Honest classification: **egress/provider remote disconnect**, not package-missin
 - AkShare mainland data from Render may be blocked or disconnect; package installed ≠ connectivity.
 - Process `/health` must never be marketed as market-data readiness.
 - Copilot remains disabled until `OPENAI_API_KEY` is configured in deployment secrets.
-- Research Workspace browser UX verification still needs a manual human screen session for screenshot evidence (not fabricated here).
+- Browser UX screenshots for Execution → Validation → Copilot remain operator-captured after production redeploy.
 
 ## Final Verdict
 
-**Partially verified production research wiring.**
-
-The deployed backend is process-healthy, reports honest asset-class routing, and successfully executed the canonical SPY / Yahoo path with valid provenance. Frontend is bound to that backend with correct CORS. Deployed AkShare A-share execution is **not** currently reliable from this host (provider/network). Copilot is correctly gated behind missing configuration. Ordinary required CI remains offline and was not made dependent on these live checks.
+**Partially verified production research wiring**, with Research Workspace SSR failure **root-caused and fixed in PR-017** (local production route verified; Vercel preview/production browser confirmation pending merge).
 
 | Area | Label |
 |---|---|
@@ -158,7 +169,8 @@ The deployed backend is process-healthy, reports honest asset-class routing, and
 | Provider status | Verified |
 | Yahoo SPY execution | Verified (after 1 flake) |
 | AkShare 600519.SH execution | Failed due to provider/network |
-| Frontend production wiring | Verified (API/CORS); Partially verified (Research page SSR curl) |
+| Frontend production wiring | Verified (API/CORS) |
+| Research Workspace SSR route | Fixed locally; preview/production browser pending |
 | Copilot configuration | Verified (absent key / honest 503) |
 | Failure states | Verified |
 | Deployed end-to-end readiness overall | Partially verified |

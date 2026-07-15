@@ -6,6 +6,17 @@ The project intends to follow [Keep a Changelog](https://keepachangelog.com/en/1
 
 ## [Unreleased]
 
+### Fixed
+
+#### PR-017 — Research Workspace production server exception
+
+- Fixed `/research/[researchId]` SSR crash caused by passing
+  `onLanguageChange={() => undefined}` from a Server Component Suspense
+  fallback into Client `AppShell` (`Event handlers cannot be passed to Client
+  Component props`; production digest `440809330`).
+- Added honest route `loading.tsx` / `error.tsx` boundaries and regression
+  tests. Fallback skeleton no longer wraps AppShell.
+
 ### Added
 
 #### PR-016 — Deployed end-to-end verification evidence
