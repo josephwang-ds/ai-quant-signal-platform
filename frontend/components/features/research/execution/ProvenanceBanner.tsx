@@ -8,6 +8,8 @@ export type ProvenanceBannerLabels = {
   symbol: string;
   range: string;
   retrieved: string;
+  assetClass?: string;
+  adjustment?: string;
   disclaimer: string;
 };
 
@@ -16,6 +18,13 @@ type ProvenanceBannerProps = {
   labels: ProvenanceBannerLabels;
   warnings?: string[];
 };
+
+function providerDisplay(provenance: DataProvenance): string {
+  if (provenance.source) {
+    return provenance.source;
+  }
+  return provenance.provider;
+}
 
 export default function ProvenanceBanner({
   provenance,
@@ -35,12 +44,26 @@ export default function ProvenanceBanner({
       <dl className="provenance-banner__meta">
         <div>
           <dt>{labels.provider}</dt>
-          <dd>{provenance.source}</dd>
+          <dd>{providerDisplay(provenance)}</dd>
         </div>
         <div>
           <dt>{labels.symbol}</dt>
-          <dd className="font-mono">{provenance.symbol}</dd>
+          <dd className="font-mono">
+            {provenance.canonical_symbol ?? provenance.symbol}
+          </dd>
         </div>
+        {provenance.asset_class && labels.assetClass ? (
+          <div>
+            <dt>{labels.assetClass}</dt>
+            <dd className="font-mono">{provenance.asset_class}</dd>
+          </div>
+        ) : null}
+        {provenance.adjustment && labels.adjustment ? (
+          <div>
+            <dt>{labels.adjustment}</dt>
+            <dd className="font-mono">{provenance.adjustment}</dd>
+          </div>
+        ) : null}
         <div>
           <dt>{labels.range}</dt>
           <dd className="font-mono">

@@ -199,6 +199,8 @@ export default function ResearchWorkspacePage({
       stale: tr("researchExecStale"),
       provider: tr("researchExecProvider"),
       symbol: tr("researchExecSymbol"),
+      assetClass: tr("researchExecAssetClass"),
+      adjustment: tr("researchExecAdjustment"),
       range: tr("researchExecRange"),
       retrieved: tr("researchExecRetrieved"),
       disclaimer: tr("researchExecDisclaimer"),

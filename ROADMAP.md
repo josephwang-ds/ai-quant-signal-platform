@@ -68,6 +68,7 @@ Still deferred beyond PR-001: release automation, Dependabot policy, branch-prot
 - Hypothesis definition and falsification criteria.
 - Experiment protocol, approval, execution, and outcome capture.
 - [x] Authentic historical backtest *(PR-008B: SPY MA20/60 via `POST /api/v1/research/execution`)*.
+- [x] Multi-provider market-data routing for research *(PR-014: `MarketDataRouter` — Yahoo for global assets, AkShare for mainland A-shares; no cross-provider failover)*.
 - [x] Same-asset buy-and-hold benchmark comparison *(PR-008B; independent benchmark series deferred)*.
 - [x] Chronological out-of-sample (OOS) evidence *(PR-009; no optimization or robustness verdict)*.
 - [x] Bounded parameter and transaction-cost sensitivity evidence *(PR-009; descriptive only)*.

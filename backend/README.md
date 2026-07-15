@@ -11,7 +11,11 @@ pip install -r requirements.txt
 pip install -r requirements-dev.txt
 ```
 
-`requirements.txt` includes `akshare` for the default auto failover chain. If it is missing from the active env, `/api/data-sources/status` reports akshare as degraded and auto skips it.
+`requirements.txt` includes `akshare>=1.14.0` (Python 3.11+) for mainland A-share
+research routing and the legacy dashboard auto-failover chain. Research execution
+uses `MarketDataRouter` — see `docs/slices/multi-provider-market-data.md`.
+If AkShare is missing from the active env, `/api/data-sources/status` reports
+`installed: false` for the akshare provider.
 
 Copy environment template:
 

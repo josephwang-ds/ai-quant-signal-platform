@@ -41,9 +41,12 @@ class PriceCache:
         start: str,
         end: str | None,
         interval: str = "1d",
+        adjustment: str = "auto",
     ) -> str:
         end_part = end or "latest"
-        raw = f"{provider}|{symbol.upper()}|{start}|{end_part}|{interval}"
+        raw = (
+            f"{provider}|{symbol.upper()}|{adjustment}|{start}|{end_part}|{interval}"
+        )
         return "".join(ch if ch.isalnum() or ch in "-_." else "_" for ch in raw)
 
     def _paths(self, key: str) -> tuple[Path, Path]:
@@ -93,6 +96,14 @@ class PriceCache:
                 cache_hit=True,
                 cache_stale=stale,
                 currency=meta.get("currency"),
+                adapter=str(meta.get("adapter", "")),
+                requested_symbol=str(meta.get("requested_symbol", "")),
+                canonical_symbol=str(meta.get("canonical_symbol", symbol)),
+                provider_symbol=str(meta.get("provider_symbol", "")),
+                asset_class=str(meta.get("asset_class", "")),
+                exchange=meta.get("exchange"),
+                adjustment=str(meta.get("adjustment", "auto")),
+                row_count=int(meta.get("row_count", len(frame))),
             )
             return (
                 NormalizedMarketSeries(

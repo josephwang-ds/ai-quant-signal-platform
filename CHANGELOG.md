@@ -8,6 +8,25 @@ The project intends to follow [Keep a Changelog](https://keepachangelog.com/en/1
 
 ### Added
 
+#### PR-014 — Multi-provider market data routing
+
+- `MarketDataRouter` behind `MarketDataPort` with deterministic asset-class
+  routing: Yahoo for US/HK equities, ETFs, indices, and crypto; AkShare for
+  mainland A-shares (`*.SZ`, `*.SH`, `*.BJ`).
+- `SymbolDescriptor` / `classify_symbol()` value object with explicit exchange
+  suffixes; bare six-digit mainland codes are rejected.
+- `AkShareMarketDataAdapter` normalizing Chinese OHLCV columns to the canonical
+  research schema with `qfq` adjustment recorded in provenance.
+- Provider-aware cache keys (`provider|symbol|adjustment|start|end|interval`).
+- Extended `DataProvenance` fields: `adapter`, `canonical_symbol`,
+  `provider_symbol`, `asset_class`, `exchange`, `adjustment`, `row_count`.
+- Updated `GET /api/data-sources/status` with `routing_mode: "asset_class"` and
+  honest installed/configured capability flags (no live health probe per request).
+- Frontend provenance banner and Data Center updates for routing metadata and
+  A-share symbol guidance.
+- Offline router/adapter tests, slice doc `docs/slices/multi-provider-market-data.md`,
+  and ADR-0007.
+
 #### PR-012 — Evidence-grounded Research Copilot
 
 - `POST /api/v1/research/copilot/query` — backend-owned interpretation layer
