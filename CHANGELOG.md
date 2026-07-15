@@ -89,7 +89,7 @@ The project intends to follow [Keep a Changelog](https://keepachangelog.com/en/1
 - GitHub issue forms for bugs, features, epics, and stories.
 - Pull request template and CODEOWNERS review routing.
 - MIT `LICENSE`.
-- Continuous integration workflow (`.github/workflows/ci.yml`) for backend tests, `apps/api` tests, and frontend build.
+- Continuous integration workflow (`.github/workflows/ci.yml`) for backend offline tests, `apps/api` tests, frontend tests/typecheck/build, and repository policy checks *(implemented in PR-011C; prior docs claimed this before the workflow existed)*.
 - `apps/api` dependency manifests and runbook (`apps/api/README.md`).
 - Cursor project rules with corrected attachment metadata; merged frontend UI/engineering rule.
 - Architecture Bible Appendix A (Information Architecture) and legacy documentation archive.
@@ -157,6 +157,23 @@ The project intends to follow [Keep a Changelog](https://keepachangelog.com/en/1
 - Added frontend unit tests (`apiConfig.test.ts`, `apiRequest.test.ts`,
   `researchApiClients.test.ts`, hook failure-state tests) and backend CORS
   contract tests (`tests/test_config_cors.py`).
+
+#### PR-011C — Deterministic CI and offline test gates
+
+- Added `.github/workflows/ci.yml` with required jobs for backend offline
+  tests (`pytest -m "not live"`), focused research suites, independent
+  `apps/api` tests, frontend tests/typecheck/build, and repository policy
+  checks (governance files, no tracked `.env` secrets, public authenticity
+  suite).
+- Added optional manual `.github/workflows/live-smoke.yml` for live Yahoo
+  smoke tests only (`pytest -m live`); non-blocking and not required for PR
+  CI.
+- Added `backend/tests/conftest.py` to inject deterministic legacy market
+  data and block outbound network access in default offline tests.
+- Tightened `backend/pytest.ini` and `apps/api/pytest.ini` with
+  `--strict-markers`; documented default offline, focused, and live suites in
+  `README.md`, `CONTRIBUTING.md`, `backend/README.md`, and
+  `apps/api/README.md`.
 
 #### PR-008B review follow-ups
 

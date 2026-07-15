@@ -41,6 +41,9 @@ PR-001 delivers the mergeable engineering-foundation baseline for M0:
 
 Still deferred beyond PR-001: release automation, Dependabot policy, branch-protection configuration in GitHub settings, formatting/lint matrix expansion, and dependency-boundary enforcement tests.
 
+> **PR-011C note:** the workflow file above is created by PR-011C. Prior
+> documentation claimed CI existed before the workflow was checked in.
+
 ## Epic roadmap
 
 ### Epic A — Engineering system
@@ -115,6 +118,9 @@ Still deferred beyond PR-001: release automation, Dependabot policy, branch-prot
 
 ### Epic I — Platform operations
 
+- [x] Deterministic GitHub Actions CI *(PR-011C: backend offline suite,
+  `apps/api` tests, frontend tests/typecheck/build, repository authenticity
+  checks; live Yahoo smoke remains manual and non-blocking)*.
 - [x] Production API wiring contract *(PR-011B: required explicit frontend
   production URL, shared typed transport failures and bounded timeouts,
   normalized explicit CORS origins, and documented liveness/provider-status

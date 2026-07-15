@@ -68,7 +68,10 @@ install-time provider capability, not live connectivity. See the
 
 ```bash
 source .venv/bin/activate
-# Default CI: excludes live network smoke tests
+# Default offline CI suite (excludes live network smoke tests)
+PYTHONPATH=. python -m pytest tests -m "not live" -q
+
+# Equivalent verbose run
 PYTHONPATH=. python -m pytest tests -v
 
 # Research execution fixture suite only
@@ -80,9 +83,13 @@ PYTHONPATH=. python -m pytest tests/test_research_validation.py -v
 # Research evaluation fixture suite only
 PYTHONPATH=. python -m pytest tests/test_research_evaluation.py -v
 
-# Optional live Yahoo smoke
+# Optional live Yahoo smoke (manual / non-blocking; never required for PR CI)
 PYTHONPATH=. python -m pytest tests/test_research_execution_live.py -v -m live
 ```
+
+Default offline tests inject deterministic market data and block outbound
+network access via `tests/conftest.py`. Only tests marked `@pytest.mark.live`
+may reach external providers.
 
 Research execution docs: `docs/slices/research-execution.md`.
 Endpoint: `POST /api/v1/research/execution`.

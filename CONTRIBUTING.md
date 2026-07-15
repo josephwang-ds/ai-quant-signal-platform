@@ -104,6 +104,27 @@ The proposal must include context, decision, alternatives, consequences, migrati
 
 Done means the acceptance criteria are met, architecture remains compliant, appropriate automated and manual checks pass, documentation is current, risks are visible, and the change is safe to review, operate, migrate, and reverse. The full definition is maintained in the [Project Bible](docs/PROJECT_BIBLE.md#definition-of-done).
 
+## Continuous integration
+
+Required GitHub Actions checks (`.github/workflows/ci.yml`) run on pull requests
+and pushes to `main`:
+
+| Job | Command / scope |
+|---|---|
+| Backend offline tests | `PYTHONPATH=. pytest tests -m "not live" -q` |
+| Focused research suites | execution + validation + evaluation test files |
+| `apps/api` reference tests | `python -m pytest -q` from `apps/api/` |
+| Frontend | `npm test -- --run`, `npx tsc --noEmit`, `npm run build` |
+| Repository policy | governance file presence, no tracked `.env` secrets, public authenticity tests |
+
+Live Yahoo provider smoke tests are **optional and non-blocking**. Run locally
+with `pytest -m live` or trigger the manual
+[`.github/workflows/live-smoke.yml`](.github/workflows/live-smoke.yml) workflow.
+They are excluded from default CI via the `live` pytest marker.
+
+Branch protection rules are configured in GitHub repository settings and are not
+defined in this repository.
+
 ## Review principles
 
 Review the most consequential concerns first: correctness, domain integrity, data/evidence provenance, security, failure behavior, and operability. Style feedback should reference an established rule. Ask for smaller follow-up work when it is independently valuable; do not expand a PR without a clear reason.

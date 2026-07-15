@@ -53,7 +53,9 @@ source .venv/bin/activate
 python -m pytest -q
 ```
 
-`pytest.ini` sets `pythonpath = src` and `testpaths = tests`.
+`pytest.ini` sets `pythonpath = src` and `testpaths = tests`. These offline
+unit and integration tests are required in GitHub Actions CI independently from
+the legacy `backend/` suite.
 
 ## Relationship to `backend/`
 
