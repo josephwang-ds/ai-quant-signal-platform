@@ -1,13 +1,23 @@
-name: Live Yahoo smoke (manual)
+name: Live market data verification (manual)
 
 on:
   workflow_dispatch:
+    inputs:
+      run_yahoo:
+        description: Run Yahoo live smoke (SPY)
+        type: boolean
+        default: true
+      run_akshare:
+        description: Run AkShare live smoke (600519.SH)
+        type: boolean
+        default: true
 
-# Optional, non-blocking provider smoke checks. Ordinary PR CI does not run this.
+# Optional, non-blocking provider verification. Ordinary PR CI does not run this.
 
 jobs:
-  live-yahoo-smoke:
-    name: Live Yahoo research execution smoke
+  live-yahoo:
+    name: Live Yahoo market data smoke
+    if: inputs.run_yahoo
     runs-on: ubuntu-latest
     timeout-minutes: 10
     defaults:
@@ -31,7 +41,38 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements-dev.txt
 
-      - name: Run live-marked Yahoo smoke only
+      - name: Run live Yahoo verification
         env:
           PYTHONPATH: .
-        run: python -m pytest tests/test_research_execution_live.py -m live -v
+        run: python -m pytest tests/test_market_data_live.py -m live -k yahoo -v
+
+  live-akshare:
+    name: Live AkShare market data smoke
+    if: inputs.run_akshare
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: |
+            backend/requirements.txt
+            backend/requirements-dev.txt
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements-dev.txt
+
+      - name: Run live AkShare verification
+        env:
+          PYTHONPATH: .
+        run: python -m pytest tests/test_market_data_live.py -m live -k akshare -v

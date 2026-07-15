@@ -122,7 +122,10 @@ Still deferred beyond PR-001: release automation, Dependabot policy, branch-prot
 
 - [x] Deterministic GitHub Actions CI *(PR-011C: backend offline suite,
   `apps/api` tests, frontend tests/typecheck/build, repository authenticity
-  checks; live Yahoo smoke remains manual and non-blocking)*.
+  checks; live provider smoke remains manual and non-blocking)*.
+- [x] Bounded live market-data verification tooling *(PR-015: Yahoo SPY +
+  AkShare 600519.SH live-marked tests, manual workflow, local and deployed
+  verification scripts — offline contract verified; live runs reported honestly)*.
 - [x] Production API wiring contract *(PR-011B: required explicit frontend
   production URL, shared typed transport failures and bounded timeouts,
   normalized explicit CORS origins, and documented liveness/provider-status

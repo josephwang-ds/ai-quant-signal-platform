@@ -52,6 +52,7 @@ jobs:
             tests/test_research_copilot.py \
             tests/test_market_data_router.py \
             tests/test_akshare_adapter.py \
+            tests/test_live_verification_offline.py \
             -q
 
   apps-api:

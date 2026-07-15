@@ -144,8 +144,9 @@ npm run build
 GitHub Actions runs the same offline gates on every pull request and push to
 `main` via [`.github/workflows/ci.yml`](.github/workflows/ci.yml): backend
 offline tests, `apps/api` tests, frontend tests/typecheck/build, and
-repository authenticity policy checks. Live Yahoo smoke tests are optional and
-manual only (see `backend/README.md`).
+repository authenticity policy checks. Live Yahoo and AkShare verification is
+optional and manual only — see
+[`docs/deployment/LIVE_DATA_VERIFICATION.md`](docs/deployment/LIVE_DATA_VERIFICATION.md).
 
 The target API reference slice lives under `apps/api/`. See [`apps/api/README.md`](apps/api/README.md) for dependencies, entrypoint, startup, and development commands.
 

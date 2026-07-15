@@ -8,6 +8,17 @@ The project intends to follow [Keep a Changelog](https://keepachangelog.com/en/1
 
 ### Added
 
+#### PR-015 — Live market data verification
+
+- `tests/test_market_data_live.py` with `@pytest.mark.live` Yahoo (SPY) and
+  AkShare (600519.SH) OHLCV + Research Execution end-to-end smoke cases.
+- Shared `live_verification.py` helpers for provenance, JSON safety, and
+  fabricated-fallback detection.
+- Manual `live-smoke.yml` workflow with `run_yahoo` / `run_akshare` inputs.
+- Local scripts: `scripts/live_market_data_check.py` and
+  `scripts/verify_deployed_research_api.py`.
+- Offline verification tests and `docs/deployment/LIVE_DATA_VERIFICATION.md`.
+
 #### PR-014 — Multi-provider market data routing
 
 - `MarketDataRouter` behind `MarketDataPort` with deterministic asset-class
