@@ -111,6 +111,7 @@ Still deferred beyond PR-001: release automation, Dependabot policy, branch-prot
 
 ### Epic H — Agent runtime
 
+- [x] Evidence-grounded Research Copilot *(PR-012: `POST /api/v1/research/copilot/query`; explains stored execution/validation/evaluation evidence and approved documentation only — no metric calculation, no Validation re-run, no BUY/SELL, no fabricated fallback answers; OpenAI adapter behind `LlmPort`; offline `FakeLlmAdapter`)*.
 - Research, Review, Market, and Portfolio agent roles.
 - Event consumption, repository reads, and Application-only mutations.
 - Model/prompt versioning, evidence citations, cost and latency telemetry.

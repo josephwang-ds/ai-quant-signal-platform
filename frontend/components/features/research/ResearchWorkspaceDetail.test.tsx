@@ -14,6 +14,7 @@ const navLabels = {
   experiments: "Experiments",
   validation: "Validation",
   evaluation: "Evaluation",
+  copilot: "Research Copilot",
   timeline: "Timeline",
   files: "Files",
   settings: "Settings",

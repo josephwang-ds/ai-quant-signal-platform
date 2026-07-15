@@ -146,3 +146,24 @@ Cockpit" / described a "risk governance, return quality, and audit trail"
 view, even though the page itself only ever rendered the honest workspace
 module directory (`WORKSPACE_MODULES`). That mismatched branding was
 corrected to "Workspace Overview" to describe what the page actually shows.
+
+## Research Copilot (PR-012)
+
+The Research Copilot is an **interpretation layer only**. It may explain
+evidence already produced by Execution, Validation, and Evaluation, plus
+approved documentation chunks and structured notebook context.
+
+The Copilot must not:
+
+- calculate new financial metrics
+- invent Sharpe, CAGR, drawdown, win rate, trade count, or validation status
+- recommend BUY, SELL, HOLD, position size, or allocation
+- claim a strategy is approved, robust, safe, or profitable
+- present a mock or canned answer as if it were model-generated when the
+  provider is unavailable
+
+Provider API keys remain backend-only (`OPENAI_API_KEY`, `COPILOT_MODEL`).
+Never expose keys through `NEXT_PUBLIC_*` variables or call OpenAI/Anthropic
+from the frontend. Offline tests use `FakeLlmAdapter`; production without a
+key returns HTTP 503 and the UI shows "Research Copilot is not configured
+for this deployment."
