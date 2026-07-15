@@ -8,6 +8,18 @@ The project intends to follow [Keep a Changelog](https://keepachangelog.com/en/1
 
 ### Fixed
 
+#### PR-018 — Research Execution request contract and production errors
+
+- Fixed Yahoo adapter rejecting valid SPY requests when yfinance returned the
+  current session day with NaN OHLC bars (`Column 'open' must be positive and
+  valid.`). Incomplete bars are now dropped before validation.
+- Reclassified provider-normalized market-data validation failures from HTTP
+  400 to HTTP 502 so the frontend no longer labels Yahoo payload issues as
+  invalid user parameters.
+- Added `getApiDisplayMessage()` and wired Research Execution errors to show
+  safe backend `detail` text instead of only generic category messages.
+- Added canonical execution contract regression tests (backend + frontend).
+
 #### PR-017 — Research Workspace production server exception
 
 - Fixed `/research/[researchId]` SSR crash caused by passing

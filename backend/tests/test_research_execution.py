@@ -173,17 +173,88 @@ def test_api_success_with_fixture(api_client: TestClient) -> None:
         json={
             "research_id": "ma-crossover-spy",
             "symbol": "SPY",
+            "benchmark": "SPY",
             "start_date": "2018-01-01",
+            "end_date": None,
             "short_window": 20,
             "long_window": 60,
             "transaction_cost": 0.001,
+            "risk_free_rate": 0,
         },
     )
     assert response.status_code == 200
     body = response.json()
+    assert body["research_id"] == "ma-crossover-spy"
     assert body["provenance"]["provider"] == "fixture"
     assert body["metrics"]["observation_count"] > 0
     assert "generated_at" in body
+
+
+def test_api_market_data_validation_maps_to_502(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from app.research_execution.market_data_port import MarketDataValidationError
+
+    class BrokenAdapter:
+        def get_daily_ohlcv(self, symbol, start_date, end_date=None):
+            raise MarketDataValidationError(
+                "Column 'open' must be positive and valid."
+            )
+
+    monkeypatch.setattr(
+        research_execution_route,
+        "get_research_execution_service",
+        lambda: ResearchExecutionService(BrokenAdapter()),  # type: ignore[arg-type]
+    )
+    app = FastAPI()
+    app.include_router(research_execution_route.router)
+    client = TestClient(app)
+    response = client.post(
+        "/api/v1/research/execution",
+        json={
+            "research_id": "ma-crossover-spy",
+            "symbol": "SPY",
+            "benchmark": "SPY",
+            "start_date": "2018-01-01",
+            "end_date": None,
+            "short_window": 20,
+            "long_window": 60,
+            "transaction_cost": 0.001,
+            "risk_free_rate": 0,
+        },
+    )
+    assert response.status_code == 502
+    assert response.json()["detail"] == "Column 'open' must be positive and valid."
+
+
+def test_yahoo_adapter_drops_incomplete_nan_bar(
+    monkeypatch: pytest.MonkeyPatch, tmp_path
+) -> None:
+    from app.research_execution.yahoo_adapter import YahooFinanceMarketDataAdapter
+
+    frame = pd.DataFrame(
+        {
+            "Date": pd.to_datetime(["2018-01-02", "2026-07-14"]),
+            "Open": [235.0, float("nan")],
+            "High": [236.0, float("nan")],
+            "Low": [234.0, float("nan")],
+            "Close": [235.5, float("nan")],
+            "Volume": [1000, 0],
+        }
+    ).set_index("Date")
+
+    monkeypatch.setattr(
+        "app.research_execution.yahoo_adapter.yf.download",
+        lambda *_args, **_kwargs: frame,
+    )
+    adapter = YahooFinanceMarketDataAdapter(
+        cache=__import__(
+            "app.research_execution.price_cache", fromlist=["PriceCache"]
+        ).PriceCache(root=tmp_path)
+    )
+    series = adapter.get_daily_ohlcv("SPY", "2018-01-01")
+    assert len(series.frame) == 1
+    assert any("incomplete Yahoo Finance bar" in warning for warning in series.warnings)
 
 
 def test_api_invalid_windows(api_client: TestClient) -> None:

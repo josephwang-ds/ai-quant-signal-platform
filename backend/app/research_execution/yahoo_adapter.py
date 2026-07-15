@@ -21,6 +21,23 @@ from app.research_execution.price_cache import PriceCache
 
 YAHOO_ADJUSTMENT = "auto_adjust"
 
+OHLC_COLUMNS = ("open", "high", "low", "close")
+
+
+def _drop_incomplete_ohlc_rows(df: pd.DataFrame) -> tuple[pd.DataFrame, int]:
+    """
+    Remove rows with missing OHLC values.
+
+    yfinance may include the current session day with NaN OHLC before the bar
+    completes. Those rows must be dropped before contract validation.
+    """
+    present = [col for col in OHLC_COLUMNS if col in df.columns]
+    if not present:
+        return df, 0
+    before = len(df)
+    cleaned = df.dropna(subset=present).reset_index(drop=True)
+    return cleaned, before - len(cleaned)
+
 
 class YahooFinanceMarketDataAdapter:
     """
@@ -141,6 +158,13 @@ class YahooFinanceMarketDataAdapter:
         if "adjusted_close" not in df.columns:
             df["adjusted_close"] = df["close"]
         df["symbol"] = symbol
+        df, dropped = _drop_incomplete_ohlc_rows(df)
+        warnings: list[str] = []
+        if dropped:
+            warnings.append(
+                f"Dropped {dropped} incomplete Yahoo Finance bar(s) with missing OHLC "
+                "before validation."
+            )
         df = validate_normalized_ohlcv(df, symbol=symbol)
 
         actual_start, actual_end = series_actual_bounds(df)
@@ -164,12 +188,14 @@ class YahooFinanceMarketDataAdapter:
             adjustment=YAHOO_ADJUSTMENT,
             row_count=len(df),
         )
-        warnings: list[str] = [
-            "Yahoo Finance / yfinance is suitable for research and portfolio demos "
-            "only — not an exchange-grade production feed.",
-            "Provider timeout is enforced via yfinance download(timeout=…).",
-            f"Yahoo prices use yfinance auto_adjust ({YAHOO_ADJUSTMENT}).",
-        ]
+        warnings.extend(
+            [
+                "Yahoo Finance / yfinance is suitable for research and portfolio demos "
+                "only — not an exchange-grade production feed.",
+                "Provider timeout is enforced via yfinance download(timeout=…).",
+                f"Yahoo prices use yfinance auto_adjust ({YAHOO_ADJUSTMENT}).",
+            ]
+        )
         return NormalizedMarketSeries(
             symbol=symbol,
             frame=df,

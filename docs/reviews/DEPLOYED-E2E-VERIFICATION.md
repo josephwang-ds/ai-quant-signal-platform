@@ -149,7 +149,22 @@ Honest classification: **egress/provider remote disconnect**, not package-missin
 | Fix | Remove shell wrapper from the Server fallback; render only `SectionCard` + `ResearchWorkspaceSkeleton`. Add route `loading.tsx` / `error.tsx`. |
 | Local production verification | **Verified** — `npm run build && next start`; `curl http://127.0.0.1:3000/research/ma-crossover-spy` → HTTP 200, `workspace-shell` present, no digest error. Also HTTP 200 when `NEXT_PUBLIC_API_BASE_URL` is absent at build time. |
 | Vercel preview verification | Not verified in this documentation update — pending PR preview browser check |
-| Post-merge production verification | Not verified until merge + redeploy |
+| Post-merge production verification | **Verified** — HTTP 200 after PR #18 merge + Vercel redeploy |
+
+## PR-018 Research Execution invalid-request error
+
+| Item | Detail |
+|---|---|
+| Production URL | `https://signals.josephjwang.com/research/ma-crossover-spy` |
+| Workspace SSR | **Verified** — HTTP 200 after PR-017 merge |
+| Frontend payload (production JS) | Canonical — `benchmark: "SPY"`, `end_date: null`, numeric windows/costs |
+| Deployed POST `/api/v1/research/execution` (canonical curl) | HTTP **400** — `Column 'open' must be positive and valid.` |
+| Classification before fix | Provider data validation mislabeled as invalid request (HTTP 400 + generic UI) |
+| Root cause | yfinance returned the incomplete current session bar with NaN OHLC; Yahoo adapter validated before dropping it |
+| Fix | Drop incomplete OHLC rows in Yahoo adapter; map market-data validation failures to HTTP 502; show safe backend detail in Execution UI |
+| Local verification | **Verified** — Yahoo SPY download succeeds after dropping incomplete bar; offline + frontend tests pass |
+| Deployed backend verification | **Pending** — requires Render redeploy from PR-018 merge |
+| Deployed frontend verification | **Pending** — requires Vercel redeploy from PR-018 merge |
 
 ## Known Limitations
 
@@ -161,7 +176,10 @@ Honest classification: **egress/provider remote disconnect**, not package-missin
 
 ## Final Verdict
 
-**Partially verified production research wiring**, with Research Workspace SSR failure **root-caused and fixed in PR-017** (local production route verified; Vercel preview/production browser confirmation pending merge).
+**Partially verified production research wiring**, with Research Workspace SSR
+**verified after PR-017 merge** and Research Execution invalid-request failure
+**root-caused and fixed in PR-018** (local + contract tests verified;
+deployed backend/frontend confirmation pending PR-018 merge + redeploy).
 
 | Area | Label |
 |---|---|
@@ -170,7 +188,8 @@ Honest classification: **egress/provider remote disconnect**, not package-missin
 | Yahoo SPY execution | Verified (after 1 flake) |
 | AkShare 600519.SH execution | Failed due to provider/network |
 | Frontend production wiring | Verified (API/CORS) |
-| Research Workspace SSR route | Fixed locally; preview/production browser pending |
+| Research Workspace SSR route | Verified after PR-017 merge |
+| Research Execution canonical request | Fixed in PR-018; deployed verification pending |
 | Copilot configuration | Verified (absent key / honest 503) |
 | Failure states | Verified |
 | Deployed end-to-end readiness overall | Partially verified |

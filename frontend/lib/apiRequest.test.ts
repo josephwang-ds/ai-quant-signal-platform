@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   API_USER_MESSAGES,
   ApiRequestError,
+  getApiDisplayMessage,
   requestJson,
 } from "@/lib/apiRequest";
 
@@ -121,5 +122,45 @@ describe("shared API request transport", () => {
 
     await expect(request).rejects.toMatchObject({ name: "AbortError" });
     await expect(request).rejects.not.toBeInstanceOf(ApiRequestError);
+  });
+
+  it("shows safe backend detail for invalid requests", () => {
+    const message = getApiDisplayMessage(
+      new ApiRequestError({
+        category: "invalid_request",
+        code: "HTTP_400",
+        backendDetail: "short_window must be < long_window",
+      })
+    );
+
+    expect(message).toBe(
+      "The research request is invalid: short_window must be < long_window."
+    );
+  });
+
+  it("shows provider failures with safe backend detail", () => {
+    const message = getApiDisplayMessage(
+      new ApiRequestError({
+        category: "provider_unavailable",
+        code: "HTTP_502",
+        backendDetail: "Column 'open' must be positive and valid.",
+      })
+    );
+
+    expect(message).toBe(
+      "Historical market data could not be retrieved. Column 'open' must be positive and valid. No fallback values were used."
+    );
+  });
+
+  it("does not surface unsafe backend detail", () => {
+    const message = getApiDisplayMessage(
+      new ApiRequestError({
+        category: "server_error",
+        code: "HTTP_500",
+        backendDetail: "Traceback (most recent call last): boom",
+      })
+    );
+
+    expect(message).toBe(API_USER_MESSAGES.server_error);
   });
 });
