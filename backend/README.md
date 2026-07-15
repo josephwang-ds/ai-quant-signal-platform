@@ -105,6 +105,9 @@ PYTHONPATH=. python scripts/verify_deployed_research_api.py \
 ```
 
 See `docs/deployment/LIVE_DATA_VERIFICATION.md` for the full runbook.
+Deployed operator evidence (PR-016) is recorded in
+`docs/reviews/DEPLOYED-E2E-VERIFICATION.md` — do not treat it as continuous
+provider SLA.
 
 Default offline tests inject deterministic market data and block outbound
 network access via `tests/conftest.py`. Only tests marked `@pytest.mark.live`

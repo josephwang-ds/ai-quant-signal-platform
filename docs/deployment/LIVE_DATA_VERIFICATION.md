@@ -1,6 +1,9 @@
 # Live Data Verification
 
-> **Status:** Code path implemented · **Last reviewed:** 2026-07-15
+> **Status:** Code path implemented · Offline contract verified · Live Yahoo
+> verified (local) · Live AkShare partially verified (local) · Deployed backend
+> **partially verified** (see `docs/reviews/DEPLOYED-E2E-VERIFICATION.md`) ·
+> **Last reviewed:** 2026-07-15
 
 This runbook describes **optional, explicit** live verification for Yahoo and
 AkShare market-data routing. It is separate from required offline CI.
@@ -172,8 +175,30 @@ Capture locally for portfolio evidence:
 
 Do not commit screenshots containing local paths, tokens, or secrets.
 
+## Deployed end-to-end evidence (PR-016)
+
+Operator-run evidence against the public Render/Vercel hosts documented in
+`docs/PROJECT_TRACKER.md` and `backend/README.md` is recorded in:
+
+[`docs/reviews/DEPLOYED-E2E-VERIFICATION.md`](../reviews/DEPLOYED-E2E-VERIFICATION.md)
+
+Summary of that run:
+
+| Area | Status |
+|---|---|
+| Process health | Verified |
+| Asset-class data-source status | Verified |
+| Deployed SPY / Yahoo execution | Verified (1 provider flake then success) |
+| Deployed 600519.SH / AkShare | Failed due to provider/network |
+| Frontend API host + CORS | Verified |
+| Copilot without `OPENAI_API_KEY` | Verified honest 503 |
+
+Do not treat that report as a continuous SLA. Re-run the scripts when
+investigating incidents.
+
 ## Related docs
 
 - `docs/slices/multi-provider-market-data.md`
 - `docs/deployment/PRODUCTION_API_WIRING.md`
+- `docs/reviews/DEPLOYED-E2E-VERIFICATION.md`
 - `backend/README.md`
