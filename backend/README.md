@@ -91,8 +91,20 @@ PYTHONPATH=. python -m pytest tests/test_research_evaluation.py -v
 PYTHONPATH=. python -m pytest tests/test_research_copilot.py -v
 
 # Optional live Yahoo smoke (manual / non-blocking; never required for PR CI)
-PYTHONPATH=. python -m pytest tests/test_research_execution_live.py -v -m live
+PYTHONPATH=. python -m pytest tests/test_market_data_live.py -v -m live
+
+# Provider-specific live smoke
+PYTHONPATH=. python -m pytest tests/test_market_data_live.py -m live -k yahoo -v
+PYTHONPATH=. python -m pytest tests/test_market_data_live.py -m live -k akshare -v
+
+# Local scripts (concise JSON output)
+PYTHONPATH=. python scripts/live_market_data_check.py --symbol SPY
+PYTHONPATH=. python scripts/verify_deployed_research_api.py \
+  --base-url https://<backend-host> --symbol SPY \
+  --start-date 2023-01-01 --end-date 2024-12-31
 ```
+
+See `docs/deployment/LIVE_DATA_VERIFICATION.md` for the full runbook.
 
 Default offline tests inject deterministic market data and block outbound
 network access via `tests/conftest.py`. Only tests marked `@pytest.mark.live`
