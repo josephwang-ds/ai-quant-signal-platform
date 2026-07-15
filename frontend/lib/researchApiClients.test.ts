@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { CANONICAL_RESEARCH_ID } from "@/lib/canonicalMaCrossover";
 import { fetchResearchEvaluation } from "@/lib/researchEvaluationApi";
 import { fetchResearchExecution } from "@/lib/researchExecutionApi";
 import { fetchResearchValidation } from "@/lib/researchValidationApi";
@@ -28,6 +29,31 @@ describe("canonical research API clients", () => {
       "https://api.example.com/api/v1/research/validation",
       "https://api.example.com/api/v1/research/evaluation",
     ]);
+  });
+
+  it("emits the canonical execution payload contract", async () => {
+    const fetchMock = vi.fn().mockImplementation(async () =>
+      new Response("{}", {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      })
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    await fetchResearchExecution();
+
+    const [, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(JSON.parse(String(init.body))).toEqual({
+      research_id: CANONICAL_RESEARCH_ID,
+      symbol: "SPY",
+      benchmark: "SPY",
+      start_date: "2018-01-01",
+      end_date: null,
+      short_window: 20,
+      long_window: 60,
+      transaction_cost: 0.001,
+      risk_free_rate: 0,
+    });
   });
 
   it("gives evaluation 404 a missing-validation evidence message", async () => {

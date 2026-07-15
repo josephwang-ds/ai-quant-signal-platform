@@ -133,6 +133,9 @@ Still deferred beyond PR-001: release automation, Dependabot policy, branch-prot
 - [x] Research Workspace production SSR exception fix *(PR-017: remove
   Server→Client event-handler prop that produced digest `440809330` on
   `/research/ma-crossover-spy`; honest route loading/error boundaries)*.
+- [x] Research Execution production invalid-request fix *(PR-018: drop
+  incomplete Yahoo OHLC bars, map provider validation to HTTP 502, surface safe
+  backend detail in Execution UI; canonical payload contract tests)*.
 - [x] Production API wiring contract *(PR-011B: required explicit frontend
   production URL, shared typed transport failures and bounded timeouts,
   normalized explicit CORS origins, and documented liveness/provider-status

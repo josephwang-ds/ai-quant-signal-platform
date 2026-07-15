@@ -14,6 +14,7 @@ from app.research_execution.market_data_port import (
     MarketDataPort,
     MarketDataError,
     MarketDataValidationError,
+    UnsupportedSymbolError,
     clip_to_completed_daily_bars,
     utc_now_iso,
 )
@@ -99,8 +100,10 @@ class ResearchExecutionService:
         try:
             market = self.market_data.get_daily_ohlcv(symbol, start_date, end_date)
             market = clip_to_completed_daily_bars(market, end_date=end_date)
-        except MarketDataValidationError as exc:
+        except UnsupportedSymbolError as exc:
             raise ResearchExecutionError(str(exc), status_code=400) from exc
+        except MarketDataValidationError as exc:
+            raise ResearchExecutionError(str(exc), status_code=502) from exc
         except MarketDataError as exc:
             raise ResearchExecutionError(str(exc), status_code=502) from exc
 

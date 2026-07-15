@@ -70,6 +70,59 @@ export function getApiUserMessage(
   return error instanceof ApiRequestError ? error.userMessage : fallback;
 }
 
+const UNSAFE_DETAIL_PATTERNS = [
+  /traceback/i,
+  /\bat\s+\S+\.py:\d+/i,
+  /exception/i,
+  /error:\s*\d+/i,
+];
+
+function isSafeBackendDetail(detail: string): boolean {
+  const trimmed = detail.trim();
+  if (!trimmed || trimmed.length > 280) {
+    return false;
+  }
+  return !UNSAFE_DETAIL_PATTERNS.some((pattern) => pattern.test(trimmed));
+}
+
+function formatDetailSuffix(detail: string): string {
+  const normalized = detail.trim().replace(/\s+/g, " ");
+  return normalized.endsWith(".") ? normalized : `${normalized}.`;
+}
+
+export function getApiDisplayMessage(
+  error: unknown,
+  fallback = API_USER_MESSAGES.unknown
+): string {
+  if (!(error instanceof ApiRequestError)) {
+    return fallback;
+  }
+
+  const detail =
+    error.backendDetail && isSafeBackendDetail(error.backendDetail)
+      ? formatDetailSuffix(error.backendDetail)
+      : undefined;
+
+  if (!detail) {
+    return error.userMessage;
+  }
+
+  switch (error.category) {
+    case "invalid_request":
+      return `The research request is invalid: ${detail}`;
+    case "provider_unavailable":
+      return `Historical market data could not be retrieved. ${detail} No fallback values were used.`;
+    case "backend_unavailable":
+    case "network":
+    case "timeout":
+      return `${error.userMessage} ${detail}`;
+    case "configuration":
+      return error.userMessage;
+    default:
+      return `${error.userMessage} ${detail}`;
+  }
+}
+
 type FastApiValidationError = {
   loc?: (string | number)[];
   msg?: string;
