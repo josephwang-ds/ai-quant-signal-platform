@@ -160,7 +160,12 @@ const SAMPLE_VALIDATION: ResearchValidationResult = {
     status: "completed",
     fatal_issues: [],
     warnings: ["One provider warning retained."],
-    informational: { duplicate_dates: 0 },
+    informational: {
+      duplicate_dates: 0,
+      notes: [
+        "Yahoo prices use yfinance auto_adjust (auto_adjust).",
+      ],
+    },
     checks: [
       {
         name: "Unique dates",
@@ -190,6 +195,7 @@ const labels: ResearchValidationLabels = {
   generated: "Generated",
   rules: "Rules",
   warnings: "Warnings",
+  dataNotes: "Data notes",
   blockers: "Blockers",
   evidence: "Evidence",
   oosTitle: "Out-of-sample validation",

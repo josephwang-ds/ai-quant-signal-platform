@@ -1,7 +1,9 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 import ProvenanceBanner from "@/components/features/research/execution/ProvenanceBanner";
-import OverviewSection from "@/components/features/research/OverviewSection";
+import OverviewSection, {
+  type OverviewSectionLabels,
+} from "@/components/features/research/OverviewSection";
 import ValidationPendingPanel from "@/components/features/research/ValidationPendingPanel";
 import LoadingState from "@/components/ui/LoadingState";
 import {
@@ -79,29 +81,52 @@ const SAMPLE_EXECUTION: ResearchExecutionResult = {
   },
 };
 
-const overviewLabels = {
-  researchQuestion: "Research question",
-  owner: "Owner",
-  benchmark: "Benchmark",
-  strategy: "Strategy",
-  created: "Created",
-  progressTitle: "Research Progress",
-  progressResearch: "Research",
-  progressExperiments: "Experiments",
-  progressEvidence: "Evidence",
-  progressDecision: "Decision",
-  quickActionsTitle: "Quick Actions",
-  runExperiment: "Run Experiment",
-  openValidation: "Open Validation",
-  generateReview: "Generate Review",
-  recentExperimentsTitle: "Recent Experiments",
-  latestEvidenceTitle: "Latest Evidence",
-  currentDecisionTitle: "Current Decision",
-  confidence: "Evaluation",
-  noExperiments: "No experiments",
-  noEvidence: "No evidence",
-  decisionPending: "Decision pending",
-  calculatedMetricsTitle: "Calculated backtest metrics",
+const overviewLabels: OverviewSectionLabels = {
+  briefTitle: "Research Brief",
+  keyResultsTitle: "Key Results",
+  guidedWorkflowTitle: "Guided workflow",
+  conclusionTitle: "Research Conclusion",
+
+  datasetPeriodLabel: "Dataset & period",
+  strategyRuleLabel: "Strategy rule",
+  evidenceStatusLabel: "Evidence",
+  decisionStatusLabel: "Evaluation status",
+
+  evidenceComplete: "Evidence complete",
+  evidenceIncomplete: "Incomplete",
+  evidencePending: "Not started",
+
+  decisionPending: "Decision pending evidence and review.",
+  evaluationCompleted: "Completed",
+  evaluationIncomplete: "Incomplete",
+  evaluationBlocked: "Blocked",
+
+  coverageLabel: "Coverage",
+  keyStrengthsLabel: "Key strengths",
+  limitationLabel: "Known weaknesses",
+  nextActionLabel: "Next actions",
+
+  strategyTotalReturnLabel: "Strategy total return",
+  benchmarkTotalReturnLabel: "Benchmark total return",
+  maxDrawdownLabel: "Maximum drawdown",
+  oosSharpeLabel: "Out-of-sample Sharpe ratio",
+
+  keyResultsUnavailable: "Run the research to calculate historical evidence.",
+  oosSharpeUnavailable:
+    "Run validation to calculate out-of-sample Sharpe ratio.",
+
+  stepRunResearch: "Run Research",
+  stepValidateEvidence: "Validate evidence",
+  stepReviewEvaluation: "Review evaluation",
+  stepAskCopilot: "Ask Copilot",
+
+  ctaRunResearch: "Run Research",
+  ctaResearchLoading: "Research is running…",
+  ctaRetryResearch: "Retry research",
+
+  ctaRunValidation: "Run Validation",
+  ctaRequestEvaluation: "Request Evaluation",
+  ctaAskCopilot: "Ask Copilot",
 };
 
 describe("PR-008B research execution UI", () => {
@@ -171,16 +196,14 @@ describe("PR-008B research execution UI", () => {
 
     render(
       <OverviewSection
+        language="en"
         research={research}
-        calculatedMetrics={{
-          totalReturn: "42.0%",
-          benchmarkReturn: "90.0%",
-          cagr: "5.0%",
-          sharpe: "0.55",
-          maxDrawdown: "-22.0%",
-          volatility: "15.0%",
-          tradeCount: "12",
-        }}
+        executionStatus="ready"
+        execution={SAMPLE_EXECUTION}
+        validationStatus="idle"
+        validation={null}
+        evaluationStatus="idle"
+        evaluation={null}
         provenanceSlot={
           <ProvenanceBanner
             provenance={SAMPLE_EXECUTION.provenance}
@@ -196,14 +219,18 @@ describe("PR-008B research execution UI", () => {
             }}
           />
         }
+        onRunResearch={() => void 0}
+        onRunValidation={() => void 0}
+        onRequestEvaluation={() => void 0}
+        onAskCopilot={() => void 0}
         labels={overviewLabels}
       />
     );
 
-    expect(
-      screen.getByText(/Calculated backtest metrics available in Experiments/i)
-    ).toBeInTheDocument();
-    expect(screen.queryByText("42.0%")).not.toBeInTheDocument();
+    expect(screen.getByText("42.0%")).toBeInTheDocument();
+    expect(screen.getByText("90.0%")).toBeInTheDocument();
+    expect(screen.getByText("-22.0%")).toBeInTheDocument();
+    expect(screen.getByText(overviewLabels.oosSharpeUnavailable)).toBeInTheDocument();
     expect(screen.queryByText(/Research Confidence:\s*\d/i)).not.toBeInTheDocument();
     expect(research.confidenceScore).toBeNull();
   });

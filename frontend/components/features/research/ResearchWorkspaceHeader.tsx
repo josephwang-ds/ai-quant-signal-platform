@@ -54,6 +54,68 @@ export default function ResearchWorkspaceHeader({
   const menuId = useId();
   const [menuOpen, setMenuOpen] = useState(false);
 
+  const protocol = (() => {
+    const symbol =
+      research.runConfiguration?.symbol ??
+      research.configuration.symbol ??
+      "";
+
+    const shortWindow =
+      typeof research.runConfiguration?.shortWindow === "number"
+        ? research.runConfiguration.shortWindow
+        : (() => {
+            const match =
+              research.configuration.parameterLines
+                ?.join("\n")
+                .match(/Short Window\s*:\s*(\d+)/i);
+            return match ? Number(match[1]) : null;
+          })();
+
+    const longWindow =
+      typeof research.runConfiguration?.longWindow === "number"
+        ? research.runConfiguration.longWindow
+        : (() => {
+            const match =
+              research.configuration.parameterLines
+                ?.join("\n")
+                .match(/Long Window\s*:\s*(\d+)/i);
+            return match ? Number(match[1]) : null;
+          })();
+
+    const transactionCost =
+      typeof research.runConfiguration?.transactionCost === "number"
+        ? research.runConfiguration.transactionCost
+        : (() => {
+            const match =
+              research.configuration.parameterLines
+                ?.join("\n")
+                .match(/Transaction Cost\s*:\s*([0-9.]+)/i);
+            return match ? Number(match[1]) : null;
+          })();
+
+    const benchmarkSymbol =
+      research.runConfiguration?.benchmark ?? symbol ?? "";
+
+    const tcPct =
+      typeof transactionCost === "number" && Number.isFinite(transactionCost)
+        ? `${(transactionCost * 100).toFixed(2)}%`
+        : null;
+
+    const maPart =
+      typeof shortWindow === "number" && typeof longWindow === "number"
+        ? `MA${shortWindow} / MA${longWindow}`
+        : null;
+
+    const parts = [
+      symbol || null,
+      maPart,
+      tcPct,
+      benchmarkSymbol || null,
+    ].filter(Boolean);
+
+    return parts.length ? parts.join(" · ") : null;
+  })();
+
   return (
     <header className="research-workspace-header">
       <div className="research-workspace-header__top">
@@ -89,6 +151,9 @@ export default function ResearchWorkspaceHeader({
           <p className="research-workspace-header__question">
             {researchQuestionLabel(research.id, research.researchQuestion, language)}
           </p>
+          {protocol ? (
+            <p className="research-workspace-header__protocol">{protocol}</p>
+          ) : null}
         </div>
         <StatusBadge
           label={researchStatusLabel(research.status, language)}

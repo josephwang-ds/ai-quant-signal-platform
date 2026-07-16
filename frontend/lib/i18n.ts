@@ -357,39 +357,11 @@ export const translations = {
     experimentsSavedRedirect: "Backtest run saved. Showing experiment detail.",
     experimentsDetailEmpty: "Select a saved run to view metrics, config, and trades.",
 
-    quantTipLabel: "Research tip",
-    quantTipFixSampleTitle: "Lock the sample period first",
-    quantTipFixSampleBody:
-      "Pick start and end dates before tuning parameters. Changing the window while optimizing invites overfitting.",
-    quantTipSaveNotesTitle: "Save runs with notes",
-    quantTipSaveNotesBody:
-      "Add a short note when saving a backtest so you can tell similar runs apart later.",
-    quantTipDrawdownTitle: "Read drawdown, not just return",
-    quantTipDrawdownBody:
-      "A high return with a deep drawdown may be unusable in practice. Always check max drawdown alongside Sharpe.",
-    quantTipBenchmarkTitle: "Compare to the benchmark",
-    quantTipBenchmarkBody:
-      "Beating buy-and-hold on the same ticker and period is a basic sanity check for any rule strategy.",
-    quantTipOosTitle: "Validate out of sample",
-    quantTipOosBody:
-      "Sensitivity grids look good in-sample. Use OOS validation before trusting a parameter region.",
-    quantTipFilterTitle: "Compare apples to apples",
-    quantTipFilterBody:
-      "Filter by ticker and strategy before comparing saved runs so you are not mixing different setups.",
-    quantTipSignalsTitle: "Signals are rules, not forecasts",
-    quantTipSignalsBody:
-      "Market Watch ranks rule-based signal strength. Treat it as a screening view, not a price prediction.",
-    quantTipGeneralTitle: "Research, not trading",
-    quantTipGeneralBody:
-      "This workspace helps you test ideas and keep records. It does not place orders or give investment advice.",
-
     researchListEyebrow: "Research Workspace",
     researchListTitle: "Research",
     researchListSubtitle:
       "Every investigation starts as Research. Experiments, evidence, and decisions live inside it.",
     researchListNewResearch: "New Research",
-    researchListNewResearchTodo:
-      "CreateResearch API is not wired yet. This button is a placeholder.",
     researchListCreateResearch: "Create Research",
     researchListLoadDemo: "Load Demo Research",
     researchListDemoLoaded: "Demo research restored to the list.",
@@ -501,6 +473,10 @@ export const translations = {
     researchWsNoExperiments: "No experiments yet — define the first protocol.",
     researchWsNoEvidence: "No evidence packages yet.",
     researchWsDecisionPending: "Decision pending evidence and review.",
+    researchWsKeyResultsUnavailable:
+      "Run the research to calculate historical evidence.",
+    researchWsOosSharpeUnavailable:
+      "Run validation to calculate out-of-sample Sharpe ratio.",
     researchWsQuestion: "Research question",
     researchWsHypothesis: "Hypothesis",
     researchWsObjective: "Research objective",
@@ -588,7 +564,8 @@ export const translations = {
     researchValSource: "Source",
     researchValGenerated: "Generated",
     researchValRules: "Rules",
-    researchValWarnings: "Warnings",
+    researchValWarnings: "Review items",
+    researchValDataNotes: "Data notes",
     researchValBlockers: "Blockers",
     researchValEvidence: "Evidence",
     researchValOosTitle: "Out-of-sample validation",
@@ -1658,30 +1635,11 @@ export const translations = {
     experimentsSavedRedirect: "回测已保存，正在显示实验详情。",
     experimentsDetailEmpty: "选择一条已保存记录，查看指标、配置与交易日志。",
 
-    quantTipLabel: "研究小妙招",
-    quantTipFixSampleTitle: "先固定样本区间",
-    quantTipFixSampleBody: "先确定起止日期，再调参数。边看边改区间，容易过拟合。",
-    quantTipSaveNotesTitle: "保存时写备注",
-    quantTipSaveNotesBody: "保存回测时加一句备注，方便以后区分参数相近的多条记录。",
-    quantTipDrawdownTitle: "不只看收益",
-    quantTipDrawdownBody: "高收益如果伴随深回撤，实盘往往难执行。请同时看最大回撤和 Sharpe。",
-    quantTipBenchmarkTitle: "和基准比一比",
-    quantTipBenchmarkBody: "同一标的、同一区间下，能否跑赢买入并持有，是规则策略的基本自检。",
-    quantTipOosTitle: "做样本外验证",
-    quantTipOosBody: "参数敏感性在样本内往往很好看。下结论前先做 OOS 验证。",
-    quantTipFilterTitle: "对比同类实验",
-    quantTipFilterBody: "对比前先按标的和策略筛选，避免把不同设定混在一起比。",
-    quantTipSignalsTitle: "信号是规则，不是预测",
-    quantTipSignalsBody: "行情页展示的是规则信号强弱排名，用于筛选观察，不是价格预测。",
-    quantTipGeneralTitle: "研究工具，不是交易",
-    quantTipGeneralBody: "这里用于验证想法、留存记录，不下单，也不构成投资建议。",
-
     researchListEyebrow: "研究工作区",
     researchListTitle: "研究",
     researchListSubtitle:
       "一切从研究开始。实验、证据与决策都归属在研究之下。",
     researchListNewResearch: "新建研究",
-    researchListNewResearchTodo: "CreateResearch 接口尚未接入，当前为占位按钮。",
     researchListCreateResearch: "创建研究",
     researchListLoadDemo: "加载演示研究",
     researchListDemoLoaded: "已恢复演示研究到列表。",
@@ -1791,6 +1749,8 @@ export const translations = {
     researchWsNoExperiments: "尚无实验——先定义第一个协议。",
     researchWsNoEvidence: "尚无证据包。",
     researchWsDecisionPending: "决策有待证据与审阅。",
+    researchWsKeyResultsUnavailable: "运行研究以计算历史证据。",
+    researchWsOosSharpeUnavailable: "运行验证以计算样本外夏普比率。",
     researchWsQuestion: "研究问题",
     researchWsHypothesis: "假设",
     researchWsObjective: "研究目标",
@@ -1874,7 +1834,8 @@ export const translations = {
     researchValSource: "来源",
     researchValGenerated: "生成时间",
     researchValRules: "规则",
-    researchValWarnings: "警告",
+    researchValWarnings: "需关注",
+    researchValDataNotes: "数据说明",
     researchValBlockers: "阻塞项",
     researchValEvidence: "证据",
     researchValOosTitle: "样本外验证",

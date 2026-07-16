@@ -58,40 +58,69 @@ describe("OverviewSection", () => {
 
     render(
       <OverviewSection
+        language="en"
         research={research!}
+        executionStatus="idle"
+        execution={null}
+        validationStatus="idle"
+        validation={null}
+        evaluationStatus="idle"
+        evaluation={null}
+        onRunResearch={() => void 0}
+        onRunValidation={() => void 0}
+        onRequestEvaluation={() => void 0}
+        onAskCopilot={() => void 0}
         labels={{
-          researchQuestion: "Research question",
-          owner: "Owner",
-          benchmark: "Benchmark",
-          strategy: "Strategy",
-          created: "Created",
-          progressTitle: "Research Progress",
-          progressResearch: "Research",
-          progressExperiments: "Experiments",
-          progressEvidence: "Evidence",
-          progressDecision: "Decision",
-          quickActionsTitle: "Quick Actions",
-          runExperiment: "Run Experiment",
-          openValidation: "Open Validation",
-          generateReview: "Generate Review",
-          recentExperimentsTitle: "Recent Experiments",
-          latestEvidenceTitle: "Latest Evidence",
-          currentDecisionTitle: "Current Decision",
-          confidence: "Evaluation",
-          noExperiments: "No experiments",
-          noEvidence: "No evidence",
-          decisionPending: "Decision pending",
+          briefTitle: "Research Brief",
+          keyResultsTitle: "Key Results",
+          guidedWorkflowTitle: "Guided workflow",
+          conclusionTitle: "Research Conclusion",
+
+          datasetPeriodLabel: "Dataset & period",
+          strategyRuleLabel: "Strategy rule",
+          evidenceStatusLabel: "Evidence",
+          decisionStatusLabel: "Evaluation status",
+
+          evidenceComplete: "Evidence complete",
+          evidenceIncomplete: "Incomplete",
+          evidencePending: "Not started",
+
+          decisionPending: "Decision pending evidence and review.",
+          evaluationCompleted: "Completed",
+          evaluationIncomplete: "Incomplete",
+          evaluationBlocked: "Blocked",
+
+          coverageLabel: "Coverage",
+          keyStrengthsLabel: "Key strengths",
+          limitationLabel: "Known weaknesses",
+          nextActionLabel: "Next actions",
+
+          strategyTotalReturnLabel: "Strategy total return",
+          benchmarkTotalReturnLabel: "Benchmark total return",
+          maxDrawdownLabel: "Maximum drawdown",
+          oosSharpeLabel: "Out-of-sample Sharpe ratio",
+
+          keyResultsUnavailable: "Run the research to calculate historical evidence.",
+          oosSharpeUnavailable: "Run validation to calculate out-of-sample Sharpe ratio.",
+
+          stepRunResearch: "Run Research",
+          stepValidateEvidence: "Validate evidence",
+          stepReviewEvaluation: "Review evaluation",
+          stepAskCopilot: "Ask Copilot",
+
+          ctaRunResearch: "Run Research",
+          ctaResearchLoading: "Research is running…",
+          ctaRetryResearch: "Retry research",
+          ctaRunValidation: "Run Validation",
+          ctaRequestEvaluation: "Request Evaluation",
+          ctaAskCopilot: "Ask Copilot",
         }}
       />
     );
 
+    expect(screen.getByText("Research Brief")).toBeInTheDocument();
     expect(
-      screen.getByText(/MA20\/MA60 outperform Buy & Hold/i)
+      screen.getByText("Run the research to calculate historical evidence.")
     ).toBeInTheDocument();
-    expect(
-      screen.getAllByText(/Evaluation pending real validation evidence/i).length
-    ).toBeGreaterThan(0);
-    expect(screen.getByText("SPY")).toBeInTheDocument();
-    expect(screen.queryByText(/^62$/)).not.toBeInTheDocument();
   });
 });

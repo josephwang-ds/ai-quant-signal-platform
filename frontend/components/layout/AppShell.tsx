@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
-import QuantTip from "@/components/ui/QuantTip";
 import type { Language } from "@/lib/i18n";
 import { t } from "@/lib/i18n";
 import LanguageToggle from "./LanguageToggle";
@@ -31,7 +30,6 @@ export default function AppShell({
           {t(language, "appTitleShort")}
         </Link>
         <SideNav language={language} />
-        <QuantTip language={language} />
         <div className="workspace-sidebar__footer">
           <LanguageToggle language={language} onLanguageChange={onLanguageChange} />
         </div>

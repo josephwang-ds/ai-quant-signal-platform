@@ -1,4 +1,9 @@
 import type { DataProvenance } from "@/types/researchExecution";
+import type { Language } from "@/lib/i18n";
+import {
+  formatResearchTimestamp,
+  localizeEvidenceNote,
+} from "@/lib/researchDisplay";
 
 export type ProvenanceBannerLabels = {
   realData: string;
@@ -11,12 +16,14 @@ export type ProvenanceBannerLabels = {
   assetClass?: string;
   adjustment?: string;
   disclaimer: string;
+  dataNotes?: string;
 };
 
 type ProvenanceBannerProps = {
   provenance: DataProvenance;
   labels: ProvenanceBannerLabels;
   warnings?: string[];
+  language?: Language;
 };
 
 function providerDisplay(provenance: DataProvenance): string {
@@ -30,6 +37,7 @@ export default function ProvenanceBanner({
   provenance,
   labels,
   warnings = [],
+  language = "en",
 }: ProvenanceBannerProps) {
   return (
     <aside className="provenance-banner" aria-label={labels.realData}>
@@ -72,16 +80,22 @@ export default function ProvenanceBanner({
         </div>
         <div>
           <dt>{labels.retrieved}</dt>
-          <dd className="font-mono">{provenance.retrieved_at}</dd>
+          <dd>{formatResearchTimestamp(provenance.retrieved_at, language)}</dd>
         </div>
       </dl>
       <p className="provenance-banner__disclaimer">{labels.disclaimer}</p>
       {warnings.length > 0 ? (
-        <ul className="provenance-banner__warnings">
-          {warnings.map((warning) => (
-            <li key={warning}>{warning}</li>
-          ))}
-        </ul>
+        <details className="provenance-banner__notes">
+          <summary>
+            {labels.dataNotes ?? "Data notes"}
+            <span>{warnings.length}</span>
+          </summary>
+          <ul>
+            {warnings.map((warning) => (
+              <li key={warning}>{localizeEvidenceNote(warning, language)}</li>
+            ))}
+          </ul>
+        </details>
       ) : null}
     </aside>
   );
