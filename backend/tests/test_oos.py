@@ -1,5 +1,6 @@
 """样本外验证端点 TestClient 测试。"""
 
+import pytest
 from fastapi.testclient import TestClient
 
 from app.main import app
@@ -17,6 +18,7 @@ REQUIRED_METRIC_FIELDS = [
 ]
 
 
+@pytest.mark.live
 def test_oos_valid_request_returns_segments() -> None:
     response = client.post(
         OOS_URL,

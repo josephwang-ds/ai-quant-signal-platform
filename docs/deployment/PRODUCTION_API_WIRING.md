@@ -93,10 +93,12 @@ belong only on the backend (Render). Never put keys in Vercel `NEXT_PUBLIC_*`.
 | `LLM_PROVIDER` | `openai` or `deepseek` |
 | `LLM_API_KEY` | provider secret |
 | `LLM_BASE_URL` | `https://api.openai.com/v1` or `https://api.deepseek.com` |
-| `COPILOT_MODEL` | provider model id |
+| `COPILOT_MODEL` | `deepseek-v4-flash` for the current DeepSeek deployment, or another explicitly verified provider model id |
 
 There is no provider failover. Model availability depends on the provider
-account/API version. `OPENAI_API_KEY` remains a temporary deprecated fallback.
+account/API version. The older `deepseek-chat` alias is deprecated; verify the
+current model catalog before deployment. `OPENAI_API_KEY` remains a temporary
+deprecated fallback.
 
 `LLM_BASE_URL` must be HTTPS in production (including Render). Loopback and
 `http://` bases are rejected when `RENDER` / `ENVIRONMENT` / `APP_ENV` /

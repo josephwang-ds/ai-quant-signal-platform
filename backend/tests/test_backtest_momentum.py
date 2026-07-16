@@ -1,5 +1,6 @@
 """动量策略回测端点 TestClient 测试。"""
 
+import pytest
 from fastapi.testclient import TestClient
 
 from app.main import app
@@ -9,6 +10,7 @@ client = TestClient(app)
 BACKTEST_URL = "/api/backtest"
 
 
+@pytest.mark.live
 def test_momentum_backtest_success() -> None:
     response = client.post(
         BACKTEST_URL,

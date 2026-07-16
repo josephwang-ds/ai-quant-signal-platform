@@ -1,5 +1,6 @@
 """参数敏感性分析端点 TestClient 测试。"""
 
+import pytest
 from fastapi.testclient import TestClient
 
 from app.main import app
@@ -21,6 +22,7 @@ REQUIRED_ROW_FIELDS = [
 ]
 
 
+@pytest.mark.live
 def test_sensitivity_default_parameter_sets() -> None:
     response = client.post(
         SENSITIVITY_URL,
@@ -43,6 +45,7 @@ def test_sensitivity_default_parameter_sets() -> None:
             assert field in row
 
 
+@pytest.mark.live
 def test_sensitivity_custom_parameter_sets() -> None:
     parameter_sets = [
         {"short_window": 10, "long_window": 30},

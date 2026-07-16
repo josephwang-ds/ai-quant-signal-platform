@@ -81,38 +81,27 @@ const SAMPLE_EXECUTION: ResearchExecutionResult = {
 
 const overviewLabels = {
   researchQuestion: "Research question",
-  hypothesis: "Hypothesis",
-  researchObjective: "Research objective",
-  currentStage: "Current stage",
-  researchConfidence: "Research confidence",
-  currentRecommendation: "Recommendation",
-  researchSummary: "Research summary",
-  evidenceNarrative: "Evidence summary",
-  validationSummary: "Validation summary",
-  keyStrengths: "Key strengths",
-  knownWeaknesses: "Known weaknesses",
-  openQuestions: "Open questions",
-  nextActions: "Next actions",
-  lifecycleTitle: "Research lifecycle",
-  lifecycleDescription: "Lifecycle description",
-  evidenceTitle: "Evidence checklist",
-  evidenceDescription: "Evidence description",
-  confidence: "Evaluation",
-  strategyConfig: "Strategy configuration",
-  dataRequirements: "Data requirements",
-  symbol: "Symbol",
+  owner: "Owner",
   benchmark: "Benchmark",
   strategy: "Strategy",
-  dataStatus: "Data status",
-  metricsStatus: "Metrics status",
+  created: "Created",
+  progressTitle: "Research Progress",
+  progressResearch: "Research",
+  progressExperiments: "Experiments",
+  progressEvidence: "Evidence",
+  progressDecision: "Decision",
+  quickActionsTitle: "Quick Actions",
+  runExperiment: "Run Experiment",
+  openValidation: "Open Validation",
+  generateReview: "Generate Review",
+  recentExperimentsTitle: "Recent Experiments",
+  latestEvidenceTitle: "Latest Evidence",
+  currentDecisionTitle: "Current Decision",
+  confidence: "Evaluation",
+  noExperiments: "No experiments",
+  noEvidence: "No evidence",
+  decisionPending: "Decision pending",
   calculatedMetricsTitle: "Calculated backtest metrics",
-  metricTotalReturn: "Total return",
-  metricBenchmarkReturn: "Benchmark total return",
-  metricCagr: "CAGR",
-  metricSharpe: "Sharpe",
-  metricMaxDd: "Max DD",
-  metricVol: "Vol",
-  metricTrades: "Trades",
 };
 
 describe("PR-008B research execution UI", () => {
@@ -211,8 +200,10 @@ describe("PR-008B research execution UI", () => {
       />
     );
 
-    expect(screen.getByText("Calculated backtest metrics")).toBeInTheDocument();
-    expect(screen.getByText("42.0%")).toBeInTheDocument();
+    expect(
+      screen.getByText(/Calculated backtest metrics available in Experiments/i)
+    ).toBeInTheDocument();
+    expect(screen.queryByText("42.0%")).not.toBeInTheDocument();
     expect(screen.queryByText(/Research Confidence:\s*\d/i)).not.toBeInTheDocument();
     expect(research.confidenceScore).toBeNull();
   });
@@ -273,6 +264,31 @@ describe("PR-008B research execution UI", () => {
     expect(baseline?.metrics.sharpe).toBe(0.55);
     expect(oos?.status).toBe("Designed");
     expect(oos?.metrics.sharpe).toBeNull();
+  });
+
+  it("creates an execution-backed baseline for a local research definition", () => {
+    const execution = {
+      ...SAMPLE_EXECUTION,
+      research_id: "research-local-demo",
+      provenance: { ...SAMPLE_EXECUTION.provenance, symbol: "QQQ" },
+      strategy: {
+        ...SAMPLE_EXECUTION.strategy,
+        short_window: 10,
+        long_window: 50,
+        transaction_cost: 0.002,
+      },
+    };
+
+    const experiments = applyExecutionToExperiments([], execution);
+
+    expect(experiments).toHaveLength(1);
+    expect(experiments[0]).toMatchObject({
+      researchId: "research-local-demo",
+      name: "MA10/50 Baseline Backtest — Executed",
+      status: "Completed",
+      datasetOrSymbol: "QQQ",
+      metrics: { sharpe: 0.55 },
+    });
   });
 });
 

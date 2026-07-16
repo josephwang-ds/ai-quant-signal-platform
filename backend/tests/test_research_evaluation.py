@@ -496,32 +496,35 @@ def test_api_success_uses_isolated_router(
     assert body["provenance"]["validation_run_id"] == validation_run_id
 
 
-def test_unsupported_research_id_is_400(
+def test_invalid_research_id_is_400(
     service: ResearchEvaluationService,
     validation_run_id: str,
 ) -> None:
     with pytest.raises(ResearchEvaluationError) as exc:
         service.execute(
             {
-                "research_id": "rs-ma-crossover-001",
+                "research_id": "invalid id / path",
                 "validation_run_id": validation_run_id,
             }
         )
     assert exc.value.status_code == 400
-    assert "Unsupported research_id" in exc.value.message
+    assert "research_id must contain" in exc.value.message
 
 
-def test_api_unsupported_research_id_is_400(
+def test_api_invalid_research_id_is_400(
     monkeypatch: pytest.MonkeyPatch,
     service: ResearchEvaluationService,
     validation_run_id: str,
 ) -> None:
     response = _client(monkeypatch, service).post(
         "/api/v1/research/evaluation",
-        json={"research_id": "unknown", "validation_run_id": validation_run_id},
+        json={
+            "research_id": "invalid id / path",
+            "validation_run_id": validation_run_id,
+        },
     )
     assert response.status_code == 400
-    assert "Unsupported research_id" in response.json()["detail"]
+    assert "research_id must contain" in response.json()["detail"]
 
 
 def test_evaluation_never_imports_implemented_stage_labels_count_from_stages() -> None:

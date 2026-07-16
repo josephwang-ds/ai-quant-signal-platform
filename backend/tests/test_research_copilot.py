@@ -363,7 +363,7 @@ def test_api_invalid_research_id(
     response = _client(monkeypatch, copilot_service).post(
         "/api/v1/research/copilot/query",
         json={
-            "research_id": "other",
+            "research_id": "invalid research/id",
             "validation_run_id": "val-1",
             "question": "test",
         },

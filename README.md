@@ -34,7 +34,27 @@ flowchart TB
   RN -.evidence and iteration.-> RL
 ```
 
-Current implementation includes a Next.js research interface and a FastAPI backend for market data, rule-based backtests, robustness checks, experiment records, risk monitoring, and paper simulation. The canonical MA Crossover research is connected to real backend evidence through four vertical slices: execution (`POST /api/v1/research/execution`), validation (`POST /api/v1/research/validation`), evaluation (`POST /api/v1/research/evaluation`), and the evidence-grounded Research Copilot (`POST /api/v1/research/copilot/query`) — evaluation summarizes validation evidence into a governance status (`completed` / `incomplete` / `blocked`) and never recalculates, scores, or recommends; the Copilot explains existing evidence only and never calculates or recommends trades. Research market data routes by asset class behind one `MarketDataPort` (Yahoo for global assets, AkShare for mainland A-shares) — see `docs/slices/multi-provider-market-data.md`. See `docs/slices/`. The newer `apps/api/` tree is an early reference slice for the target architecture, not yet the complete production runtime.
+Current implementation includes a Next.js research workspace and a FastAPI backend for market data, deterministic backtests, validation, governance evaluation, evidence-grounded AI explanation, experiment persistence, risk monitoring, and paper simulation. A configurable moving-average research definition can travel through four real backend slices: execution (`POST /api/v1/research/execution`), validation (`POST /api/v1/research/validation`), evaluation (`POST /api/v1/research/evaluation`), and Research Copilot (`POST /api/v1/research/copilot/query`). Evaluation summarizes validation evidence into `completed`, `incomplete`, or `blocked`; it does not recalculate metrics or issue recommendations. Copilot uses an OpenAI-compatible provider to explain existing evidence and cannot override deterministic validation.
+
+Research market data routes by asset class behind one `MarketDataPort` (Yahoo for global assets and AkShare for mainland A-shares). See [`docs/slices/multi-provider-market-data.md`](docs/slices/multi-provider-market-data.md) and the other [`docs/slices/`](docs/slices/) notes. The newer `apps/api/` tree is an early reference slice for the target architecture, not the deployed runtime.
+
+## Demonstrable vertical slice
+
+The primary reviewer journey is intentionally narrow and complete:
+
+```text
+Research List
+  → Create MA research definition
+  → Backend historical execution
+  → Calculated metrics and provenance
+  → Deterministic validation
+  → Governance evaluation
+  → Evidence-grounded Copilot explanation
+```
+
+The creation form accepts a symbol, date range, short and long moving-average windows, transaction cost, owner, and tags. The browser never fabricates quantitative evidence: calculated metrics, validation results, evaluation state, and Copilot citations all originate from backend responses.
+
+For the most reliable demonstration, start with one browser session, keep the Render service awake, and follow the workspace actions in order: **Run Experiment → Run Validation → Request Evaluation → Open Research Copilot**.
 
 ## Screenshots
 
@@ -79,8 +99,9 @@ Read the [Project Bible](docs/PROJECT_BIBLE.md) for the engineering constitution
 | Visualization | Recharts | research charts and quantitative views |
 | API | FastAPI, Pydantic | HTTP boundary and composition |
 | Quantitative computation | pandas | indicators, backtests, and metrics |
-| Persistence | PostgreSQL via psycopg; Supabase-compatible configuration | durable research assets |
+| Persistence | PostgreSQL via psycopg; Supabase-compatible configuration | durable legacy backtest runs and trades |
 | Market data | AKShare, Yahoo/yfinance, Stooq | external provider adapters |
+| AI explanation | DeepSeek through an OpenAI-compatible backend adapter | evidence interpretation only |
 | Testing | pytest | domain, service, and API verification |
 | Deployment | Vercel-compatible web, Render descriptor for current backend | current operational topology |
 
@@ -105,7 +126,7 @@ cp .env.example .env
 uvicorn app.main:app --reload --port 8000
 ```
 
-The backend runs without a database connection; persistence-dependent capabilities report their unavailable state. Never commit real credentials.
+The backend runs without a database connection; persistence-dependent capabilities report their unavailable state. For local Copilot testing, configure the backend-only `LLM_*` variables in `backend/.env`. Never commit real credentials, and never expose provider credentials through `NEXT_PUBLIC_*` variables.
 
 ### 2. Start the web application
 
@@ -113,7 +134,7 @@ In a second terminal:
 
 ```bash
 cd frontend
-npm install
+npm ci
 cp .env.example .env.local
 npm run dev
 ```
@@ -136,7 +157,7 @@ python -m pytest -q
 
 ```bash
 cd frontend
-npm test -- --run
+npm test
 npx tsc --noEmit
 npm run build
 ```
@@ -152,18 +173,86 @@ Deployed end-to-end evidence (operator-run, not required CI) is recorded in
 
 The target API reference slice lives under `apps/api/`. See [`apps/api/README.md`](apps/api/README.md) for dependencies, entrypoint, startup, and development commands.
 
+## Deployment topology and operational closure
+
+The current demo topology keeps browser concerns, quantitative execution, AI interpretation, and credentials on explicit boundaries:
+
+```mermaid
+flowchart LR
+    Browser["Browser / Next.js"] -->|HTTPS| API["FastAPI on Render"]
+    API -->|market history| Market["Yahoo / AKShare"]
+    API -->|grounded explanation| DeepSeek["DeepSeek API"]
+    API -->|durable legacy runs| DB["Supabase Postgres"]
+    Browser -.->|local Research definitions| Local["Browser storage"]
+    API -.->|temporary ValidationRun state| Memory["Render process memory"]
+```
+
+### Render configuration
+
+[`render.yaml`](render.yaml) declares the deployment contract. Values marked `sync: false` must be entered in the Render dashboard and must never be committed.
+
+| Variable | Required value or rule |
+|---|---|
+| `ALLOWED_ORIGINS` | exact Vercel/custom-domain origins, comma-separated; no wildcard |
+| `SUPABASE_DB_URL` | Supabase transaction-pooler URI; backend only |
+| `LLM_PROVIDER` | `deepseek` |
+| `LLM_API_KEY` | DeepSeek secret; backend only |
+| `LLM_BASE_URL` | `https://api.deepseek.com` |
+| `COPILOT_MODEL` | `deepseek-v4-flash` |
+
+DeepSeek's current API contract is documented in the [official API guide](https://api-docs.deepseek.com/), and Render explains `sync: false` behavior in its [Blueprint environment-variable documentation](https://render.com/docs/blueprint-spec#environment-variables). For an existing Blueprint service, add newly declared `sync: false` secrets manually in Render before redeploying.
+
+### Database bootstrap and verification
+
+Apply [`backend/db/schema.sql`](backend/db/schema.sql) through the Supabase SQL editor, then verify the deployed backend without exposing the connection string:
+
+```bash
+curl "$API_BASE_URL/health"
+curl "$API_BASE_URL/api/database/status"
+```
+
+The status endpoint reports only configuration and connectivity state. The browser must never connect to Supabase with the backend database URI.
+
+### Current persistence boundary
+
+The deployed workflow is a complete single-browser demo, but it is not yet a durable multi-user research system:
+
+| Artifact | Current lifetime |
+|---|---|
+| Research Definition | browser-local repository (`localStorage`) |
+| Experiment execution | synchronous request/response projection |
+| ValidationRun | one Render process, in memory |
+| Evaluation | deterministically derived from the referenced ValidationRun |
+| Copilot answer | request-scoped, grounded in supplied evidence |
+| Legacy backtest runs and trades | durable Supabase Postgres records |
+
+A Render restart can invalidate a ValidationRun ID, and another browser cannot see locally created Research definitions. The next persistence slice should add `PostgresResearchRepository`, `PostgresValidationResultStore`, durable evaluation lineage, and an API-backed frontend Research repository, followed by restart, cross-browser, and concurrent-write tests. Until that slice lands, this README deliberately describes the deployed boundary rather than implying durability that does not exist.
+
 ## Environment
 
 | Variable | Scope | Purpose |
 |---|---|---|
 | `ALLOWED_ORIGINS` | backend | comma-separated browser origins for CORS |
 | `SUPABASE_DB_URL` | backend | optional PostgreSQL transaction-pooler connection |
+| `LLM_PROVIDER` | backend | one configured LLM adapter; use `deepseek` for the Render deployment |
+| `LLM_API_KEY` | backend | provider secret; never expose it to the frontend |
+| `LLM_BASE_URL` | backend | OpenAI-compatible provider base URL |
+| `COPILOT_MODEL` | backend | explicit deployed model identifier |
 | `NEXT_PUBLIC_API_BASE_URL` | frontend | required production backend URL; local development falls back to `http://127.0.0.1:8000` |
 
 Use the checked-in `.env.example` files as the source for variable names. Keep secrets in local or deployment environment configuration only.
 Production has no hardcoded API fallback. See the
 [Production API Wiring runbook](docs/deployment/PRODUCTION_API_WIRING.md) for
 Vercel, Render CORS, timeout, endpoint-semantics, and troubleshooting details.
+
+## Repository safety
+
+- Commit example environment files only; never commit local or production `.env*` files.
+- Never commit provider keys, database URLs, private keys, certificates, local database files, build output, or deployment-state directories.
+- Keep every secret in backend or deployment configuration. A variable prefixed with `NEXT_PUBLIC_` is public by design.
+- If a secret ever reaches Git history, rotate it immediately; removing it from the latest commit is not sufficient.
+- Review `git status`, the staged diff, and the repository-policy checks before every push.
+- Keep CI deterministic and offline. Live provider verification is an explicit operator-run smoke test.
 
 ## Repository structure
 
@@ -233,7 +322,7 @@ Use the repository’s structured GitHub forms for [bug reports](https://github.
 
 ## Project status
 
-This repository is under active architectural migration. The `backend/` and `frontend/` paths contain the current demonstrable runtime; `apps/api/` begins the production-shaped modular structure. See [MIGRATION_REPORT.md](MIGRATION_REPORT.md) before moving, renaming, or deleting legacy assets.
+This repository is under active architectural migration. The `backend/` and `frontend/` paths contain the current demonstrable runtime; the Render + DeepSeek + Supabase topology is deployable when its environment contract is configured. Research definitions and validation lineage still require the documented durable-persistence slice before the platform can claim restart-safe, cross-browser continuity. `apps/api/` begins the production-shaped modular structure. See [MIGRATION_REPORT.md](MIGRATION_REPORT.md) before moving, renaming, or deleting legacy assets.
 
 ## Responsible use
 

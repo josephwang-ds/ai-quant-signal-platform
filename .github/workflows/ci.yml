@@ -129,17 +129,28 @@ jobs:
 
       - name: Reject tracked secret env files
         run: |
-          if git ls-files '*.env' ':!*.env.example' | grep -q .; then
-            echo "Tracked .env files are not allowed:"
-            git ls-files '*.env' ':!*.env.example'
+          tracked_env="$(git ls-files | grep -E '(^|/)\.env($|\.)' | grep -vE '(^|/)\.env\.example$' || true)"
+          if [ -n "$tracked_env" ]; then
+            echo "Tracked non-example environment files are not allowed:"
+            echo "$tracked_env"
             exit 1
           fi
 
-      - name: Reject duplicate accidental root README copy
+      - name: Reject accidental duplicate copies
         run: |
-          if git ls-files 'README 2.md' | grep -q .; then
-            echo "Root-level README 2.md must not be tracked."
-            git ls-files 'README 2.md'
+          duplicates="$(git ls-files | grep -E '(^|/).+ 2\.[^/]+$' || true)"
+          if [ -n "$duplicates" ]; then
+            echo "Accidental numbered duplicate files are not allowed:"
+            echo "$duplicates"
+            exit 1
+          fi
+
+      - name: Reject credential and local database artifacts
+        run: |
+          artifacts="$(git ls-files | grep -Ei '\.(pem|key|p12|pfx|sqlite|sqlite3|db)$' || true)"
+          if [ -n "$artifacts" ]; then
+            echo "Credential or local database artifacts are not allowed:"
+            echo "$artifacts"
             exit 1
           fi
 

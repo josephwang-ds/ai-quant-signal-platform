@@ -1,5 +1,6 @@
 """回测交易记录 TestClient 测试。"""
 
+import pytest
 from fastapi.testclient import TestClient
 
 from app.main import app
@@ -17,6 +18,7 @@ REQUIRED_TRADE_LOG_FIELDS = [
 ]
 
 
+@pytest.mark.live
 def test_ma_crossover_backtest_includes_trade_log() -> None:
     response = client.post(
         BACKTEST_URL,

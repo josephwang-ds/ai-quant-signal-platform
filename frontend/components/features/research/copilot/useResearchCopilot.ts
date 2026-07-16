@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { CANONICAL_RESEARCH_ID } from "@/lib/canonicalMaCrossover";
 import { ApiRequestError, getApiUserMessage } from "@/lib/apiRequest";
 import { fetchResearchCopilot } from "@/lib/researchCopilotApi";
 import type {
@@ -14,7 +13,7 @@ export function useResearchCopilot(
   enabled: boolean,
   validationRunId: string | null
 ) {
-  const requestEnabled = enabled && researchId === CANONICAL_RESEARCH_ID;
+  const requestEnabled = enabled;
   const [status, setStatus] = useState<ResearchCopilotRequestStatus>("idle");
   const [result, setResult] = useState<ResearchCopilotResult | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -61,7 +60,9 @@ export function useResearchCopilot(
       setLastQuestion(trimmed);
 
       try {
-        const response = await fetchResearchCopilot(validationRunId, trimmed);
+        const response = await fetchResearchCopilot(validationRunId, trimmed, {
+          researchId,
+        });
         setResult(response);
         setStatus("ready");
       } catch (err) {
@@ -77,7 +78,7 @@ export function useResearchCopilot(
         );
       }
     },
-    [requestEnabled, validationRunId]
+    [requestEnabled, researchId, validationRunId]
   );
 
   const reset = useCallback(() => {

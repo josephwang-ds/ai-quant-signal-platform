@@ -22,13 +22,19 @@ describe("useResearchEvaluation", () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  it("does not request evaluation for a non-canonical research id", () => {
+  it("requests evaluation for a local MA research id", async () => {
+    fetchMock.mockResolvedValueOnce({
+      research_id: "some-other-research",
+    } as never);
     const { result } = renderHook(() =>
       useResearchEvaluation("some-other-research", true, "val-abc")
     );
 
-    expect(result.current.status).toBe("idle");
-    expect(fetchMock).not.toHaveBeenCalled();
+    await waitFor(() => expect(result.current.status).toBe("ready"));
+    expect(fetchMock).toHaveBeenCalledWith(
+      "val-abc",
+      expect.objectContaining({ researchId: "some-other-research" })
+    );
   });
 
   it("reports awaiting_validation and never calls the API without a validation_run_id", () => {

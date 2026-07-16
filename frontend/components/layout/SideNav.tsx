@@ -18,18 +18,29 @@ export default function SideNav({ language }: SideNavProps) {
 
   return (
     <nav className="workspace-sidenav" aria-label="Workspace modules">
-      <Link
-        href="/"
-        className={`workspace-sidenav__item${pathname === "/" ? " is-active" : ""}`}
-      >
-        {t(language, "navResearchWorkspace")}
-      </Link>
-      <Link
-        href="/overview"
-        className={`workspace-sidenav__item${pathname === "/overview" ? " is-active" : ""}`}
-      >
-        {t(language, "navOverview")}
-      </Link>
+      <div className="workspace-sidenav__group">
+        <span className="workspace-sidenav__group-label" aria-hidden="true">
+          {t(language, "navGroupResearch")}
+        </span>
+        <Link
+          href="/"
+          className={`workspace-sidenav__item${
+            pathname === "/" || pathname.startsWith("/research/")
+              ? " is-active"
+              : ""
+          }`}
+        >
+          {t(language, "navResearchWorkspace")}
+        </Link>
+        <Link
+          href="/overview"
+          className={`workspace-sidenav__item${
+            pathname === "/overview" ? " is-active" : ""
+          }`}
+        >
+          {t(language, "navOverview")}
+        </Link>
+      </div>
 
       {WORKSPACE_NAV_GROUPS.map((group) => (
         <div key={group.id} className="workspace-sidenav__group">

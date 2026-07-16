@@ -2,6 +2,8 @@
 
 > **Audit date:** 2026-07-13 · **Mode:** Read-only review · **Action taken:** Recommendations only  
 > **PR-001 follow-up:** ADR numbering, Chapter-02 collision, legacy README archive, `docs/ARCHITECTURE.md` banner, `apps/api` runbook, LICENSE, and CI workflow were resolved in the engineering-foundation remediation. See [`docs/PR-001-FINAL-REVIEW.md`](docs/PR-001-FINAL-REVIEW.md). Historical findings below remain as the original audit trail.
+>
+> **2026-07-16 hygiene follow-up:** verified byte-identical files with the accidental ` 2` suffix were removed, the stale duplicate ADR index was retired, and CI now rejects numbered duplicate copies, non-example environment files, credentials, and local database artifacts. The original findings remain below for traceability.
 
 ## Executive summary
 

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import asdict
+import re
 from typing import Any
 
 from app.research_execution.calculations import (
@@ -19,12 +20,7 @@ from app.research_execution.market_data_port import (
     utc_now_iso,
 )
 
-CANONICAL_RESEARCH_IDS = frozenset(
-    {
-        "ma-crossover-spy",
-        "rs-ma-crossover-001",  # compatibility alias from PR-008A catalogs
-    }
-)
+RESEARCH_ID_PATTERN = re.compile(r"^[A-Za-z0-9._-]{1,128}$")
 
 SAME_ASSET_BENCHMARK_MESSAGE = (
     "PR-008B supports only same-asset buy-and-hold benchmarking. "
@@ -48,14 +44,13 @@ class ResearchExecutionService:
         self.market_data = market_data
 
     def execute(self, request: dict[str, Any]) -> dict[str, Any]:
-        research_id = str(request.get("research_id") or "").strip()
-        if research_id and research_id not in CANONICAL_RESEARCH_IDS:
+        research_id = str(request.get("research_id") or "ma-crossover-spy").strip()
+        if not RESEARCH_ID_PATTERN.fullmatch(research_id):
             raise ResearchExecutionError(
-                f"Unsupported research_id '{research_id}'. "
-                f"Supported: {sorted(CANONICAL_RESEARCH_IDS)}.",
+                "research_id must contain 1-128 letters, numbers, dots, "
+                "underscores, or hyphens.",
                 status_code=400,
             )
-        research_id = research_id or "ma-crossover-spy"
 
         symbol = str(request.get("symbol") or "SPY").upper().strip()
         benchmark = str(request.get("benchmark") or symbol).upper().strip()

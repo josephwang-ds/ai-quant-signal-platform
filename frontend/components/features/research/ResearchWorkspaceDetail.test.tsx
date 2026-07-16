@@ -10,11 +10,11 @@ import {
 
 const navLabels = {
   overview: "Overview",
-  notebook: "Notebook",
+  notebook: "Notes",
   experiments: "Experiments",
-  validation: "Validation",
-  evaluation: "Evaluation",
-  copilot: "Research Copilot",
+  validation: "Evidence",
+  evaluation: "Review",
+  copilot: "Copilot",
   timeline: "Timeline",
   files: "Files",
   settings: "Settings",
@@ -30,7 +30,7 @@ describe("LifecycleProgress", () => {
 });
 
 describe("ResearchWorkspaceNavigation", () => {
-  it("renders all workspace sections and marks the active one", () => {
+  it("renders primary research sections and marks the active one", () => {
     render(
       <ResearchWorkspaceNavigation
         researchId={CANONICAL_RESEARCH_ID}
@@ -40,9 +40,13 @@ describe("ResearchWorkspaceNavigation", () => {
     );
 
     expect(screen.getByRole("navigation", { name: /research workspace sections/i })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Notebook" })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: "Notes" })).toHaveAttribute(
       "href",
       `/research/${CANONICAL_RESEARCH_ID}?tab=notebook`
+    );
+    expect(screen.getByRole("link", { name: "Evidence" })).toHaveAttribute(
+      "href",
+      `/research/${CANONICAL_RESEARCH_ID}?tab=validation`
     );
   });
 });
@@ -57,36 +61,32 @@ describe("OverviewSection", () => {
         research={research!}
         labels={{
           researchQuestion: "Research question",
-          hypothesis: "Hypothesis",
-          researchObjective: "Research objective",
-          currentStage: "Current stage",
-          researchConfidence: "Research confidence",
-          currentRecommendation: "Recommendation",
-          researchSummary: "Research summary",
-          evidenceNarrative: "Evidence summary",
-          validationSummary: "Validation summary",
-          keyStrengths: "Key strengths",
-          knownWeaknesses: "Known weaknesses",
-          openQuestions: "Open questions",
-          nextActions: "Next actions",
-          lifecycleTitle: "Research lifecycle",
-          lifecycleDescription: "Lifecycle description",
-          evidenceTitle: "Evidence checklist",
-          evidenceDescription: "Evidence description",
-          confidence: "Evaluation",
-          strategyConfig: "Strategy configuration",
-          dataRequirements: "Data requirements",
-          symbol: "Symbol",
+          owner: "Owner",
           benchmark: "Benchmark",
           strategy: "Strategy",
-          dataStatus: "Data status",
-          metricsStatus: "Metrics status",
+          created: "Created",
+          progressTitle: "Research Progress",
+          progressResearch: "Research",
+          progressExperiments: "Experiments",
+          progressEvidence: "Evidence",
+          progressDecision: "Decision",
+          quickActionsTitle: "Quick Actions",
+          runExperiment: "Run Experiment",
+          openValidation: "Open Validation",
+          generateReview: "Generate Review",
+          recentExperimentsTitle: "Recent Experiments",
+          latestEvidenceTitle: "Latest Evidence",
+          currentDecisionTitle: "Current Decision",
+          confidence: "Evaluation",
+          noExperiments: "No experiments",
+          noEvidence: "No evidence",
+          decisionPending: "Decision pending",
         }}
       />
     );
 
     expect(
-      screen.getByText(/MA20\/MA60 crossover outperform SPY buy-and-hold/i)
+      screen.getByText(/MA20\/MA60 outperform Buy & Hold/i)
     ).toBeInTheDocument();
     expect(
       screen.getAllByText(/Evaluation pending real validation evidence/i).length

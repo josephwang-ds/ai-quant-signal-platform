@@ -1,18 +1,19 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import AppShell from "@/components/layout/AppShell";
+import NewResearchModal from "@/components/features/research/NewResearchModal";
 import ResearchCard from "@/components/features/research/ResearchCard";
 import ResearchListSkeleton from "@/components/features/research/ResearchListSkeleton";
+import ResearchWorkspaceSummary from "@/components/features/research/ResearchWorkspaceSummary";
 import Button from "@/components/ui/Button";
 import EmptyState from "@/components/ui/EmptyState";
 import ErrorAlert from "@/components/ui/ErrorAlert";
 import LoadingState from "@/components/ui/LoadingState";
 import SectionCard from "@/components/ui/SectionCard";
-import {
-  loadMockResearchProjects,
-  MockResearchListError,
-} from "@/lib/mockResearchList";
+import { getResearchRepository } from "@/lib/localResearchRepository";
+import type { CreateResearchInput } from "@/lib/researchRepository";
 import {
   DEFAULT_RESEARCH_LIST_FILTERS,
   filterAndSortResearchList,
@@ -28,6 +29,7 @@ import {
 import { useResearchExecution } from "@/components/features/research/execution/useResearchExecution";
 import { applyExecutionToListItem } from "@/lib/applyResearchExecution";
 import { CANONICAL_RESEARCH_ID } from "@/lib/canonicalMaCrossover";
+import { ownerLabel, researchStatusLabel } from "@/lib/researchDisplay";
 
 type LoadStatus = "loading" | "ready" | "error";
 
@@ -41,43 +43,56 @@ function filtersAreActive(filters: ResearchListFilters): boolean {
 }
 
 /**
- * Research Workspace 首页：研究项目列表（PR-002 / Story 2.1）。
- *
- * TODO(backend): 用 listResearch() 替换 loadMockResearchProjects()。
- * TODO(api): New Research → CreateResearch 命令。
- * TODO(database): 本页不引入持久化。
+ * Research Workspace home — Research-first list (Sprint 1 IA).
+ * Persistence: ResearchRepository → LocalResearchRepository (localStorage).
  */
 export default function ResearchListPage() {
   const { language, setLanguage, tr } = useWorkspaceLanguage();
+  const router = useRouter();
+  const repository = useMemo(() => getResearchRepository(), []);
   const [items, setItems] = useState<ResearchListItem[]>([]);
-  const [filters, setFilters] = useState<ResearchListFilters>(DEFAULT_RESEARCH_LIST_FILTERS);
+  const [summary, setSummary] = useState({
+    total: 0,
+    defined: 0,
+    evidenceAvailable: 0,
+    reviewOrArchived: 0,
+  });
+  const [filters, setFilters] = useState<ResearchListFilters>(
+    DEFAULT_RESEARCH_LIST_FILTERS
+  );
   const [loadStatus, setLoadStatus] = useState<LoadStatus>("loading");
   const [loadError, setLoadError] = useState<string | null>(null);
   const [reloadToken, setReloadToken] = useState(0);
   const [actionNotice, setActionNotice] = useState<string | null>(null);
-  const {
-    status: executionStatus,
-    execution,
-  } = useResearchExecution(CANONICAL_RESEARCH_ID);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [creating, setCreating] = useState(false);
+  const { status: executionStatus, execution } = useResearchExecution(
+    CANONICAL_RESEARCH_ID
+  );
 
   const loadList = useCallback(async () => {
     setLoadStatus("loading");
     setLoadError(null);
-    setActionNotice(null);
     try {
-      const data = await loadMockResearchProjects();
+      const [data, nextSummary] = await Promise.all([
+        repository.list(),
+        repository.getSummary(),
+      ]);
       setItems(data);
+      setSummary(nextSummary);
       setLoadStatus("ready");
-    } catch (error) {
-      const message =
-        error instanceof MockResearchListError
-          ? error.message
-          : "The research list could not be loaded. Please retry.";
+    } catch {
       setItems([]);
-      setLoadError(message);
+      setSummary({
+        total: 0,
+        defined: 0,
+        evidenceAvailable: 0,
+        reviewOrArchived: 0,
+      });
+      setLoadError("The research list could not be loaded. Please retry.");
       setLoadStatus("error");
     }
-  }, []);
+  }, [repository]);
 
   useEffect(() => {
     void loadList();
@@ -116,74 +131,47 @@ export default function ResearchListPage() {
   }
 
   function handleNewResearch() {
-    // TODO(api): POST /api/research（CreateResearch）
-    setActionNotice(tr("researchListNewResearchTodo"));
+    setActionNotice(null);
+    setModalOpen(true);
   }
 
-  function handleDuplicate(id: string) {
-    // TODO(api): POST /api/research/{id}/duplicate
-    const source = items.find((item) => item.id === id);
-    if (!source) {
-      return;
+  async function handleCreateResearch(input: CreateResearchInput) {
+    setCreating(true);
+    try {
+      const created = await repository.create(input);
+      setModalOpen(false);
+      setActionNotice(tr("researchListCreated"));
+      router.push(`/research/${encodeURIComponent(created.id)}`);
+    } catch (error) {
+      setActionNotice(
+        error instanceof Error ? error.message : tr("researchListCreateFailed")
+      );
+    } finally {
+      setCreating(false);
     }
-    const now = new Date().toISOString();
-    const copy: ResearchListItem = {
-      ...source,
-      id: `${source.id}-copy-${Date.now()}`,
-      name: `${source.name} (Copy)`,
-      status: "Draft",
-      confidenceScore: null,
-      createdAt: now,
-      updatedAt: now,
-      experimentCount: 0,
-      lastValidation: "No formal validation yet",
-      currentRecommendation: "Refine scope before first experiment",
-      tags: [...source.tags],
-    };
-    setItems((prev) => [copy, ...prev]);
-    setActionNotice(tr("researchListDuplicated"));
   }
 
-  function handleArchive(id: string) {
-    // TODO(api): POST /api/research/{id}/archive
-    setItems((prev) =>
-      prev.map((item) =>
-        item.id === id
-          ? {
-              ...item,
-              status: "Archived",
-              updatedAt: new Date().toISOString(),
-              currentRecommendation: "Archived from Research List",
-            }
-          : item
-      )
-    );
+  async function handleArchive(id: string) {
+    await repository.archive(id);
     setActionNotice(tr("researchListArchived"));
+    setReloadToken((token) => token + 1);
   }
 
-  function handleMore(id: string) {
-    // TODO(product): 更多操作菜单（rename / export / share）
-    setActionNotice(`${tr("researchListMoreTodo")} (${id})`);
+  async function handleLoadDemo() {
+    await repository.includeDemoResearch();
+    setActionNotice(tr("researchListDemoLoaded"));
+    setReloadToken((token) => token + 1);
   }
 
   const cardLabels = {
     openWorkspace: tr("researchListOpenWorkspace"),
-    duplicate: tr("researchListDuplicate"),
     archive: tr("researchListArchive"),
-    more: tr("researchListMore"),
     experiments: tr("researchListExperimentCount"),
-    lastValidation: tr("researchListLastValidation"),
-    recommendation: tr("researchListRecommendation"),
     updated: tr("researchListUpdated"),
-    owner: tr("researchListOwner"),
-    confidence: tr("researchListEvaluationArea"),
     symbol: tr("researchListSymbol"),
-    benchmark: tr("researchListBenchmark"),
     strategy: tr("researchListStrategy"),
-    dataStatus: tr("researchListDataStatus"),
-    metricsStatus: tr("researchListMetricsStatus"),
-    validationStatus: tr("researchListValidationStatus"),
-    evaluationStatus: tr("researchListEvaluationStatus"),
+    evidenceStatus: tr("researchListEvidenceStatus"),
+    more: tr("researchListMore"),
   };
 
   const showToolbar = loadStatus !== "error";
@@ -197,14 +185,40 @@ export default function ResearchListPage() {
       <SectionCard>
         <header className="research-list-header">
           <div className="research-list-header__copy">
-            <p className="research-list-header__eyebrow">{tr("researchListEyebrow")}</p>
-            <h1 className="research-list-header__title">{tr("researchListTitle")}</h1>
-            <p className="research-list-header__subtitle">{tr("researchListSubtitle")}</p>
+            <p className="research-list-header__eyebrow">
+              {tr("researchListEyebrow")}
+            </p>
+            <h1 className="research-list-header__title">
+              {tr("researchListTitle")}
+            </h1>
+            <p className="research-list-header__subtitle">
+              {tr("researchListSubtitle")}
+            </p>
           </div>
-          <Button primary onClick={handleNewResearch} disabled={loadStatus === "loading"}>
+          <Button
+            primary
+            onClick={handleNewResearch}
+            disabled={loadStatus === "loading"}
+          >
             {tr("researchListNewResearch")}
           </Button>
         </header>
+
+        {loadStatus === "ready" || loadStatus === "loading" ? (
+          <ResearchWorkspaceSummary
+            total={summary.total}
+            defined={summary.defined}
+            evidenceAvailable={summary.evidenceAvailable}
+            reviewOrArchived={summary.reviewOrArchived}
+            labels={{
+              research: tr("researchListKpiResearch"),
+              ariaLabel: tr("researchListSummaryAria"),
+              defined: tr("researchListKpiDefined"),
+              evidenceAvailable: tr("researchListKpiEvidenceAvailable"),
+              reviewOrArchived: tr("researchListKpiReviewArchived"),
+            }}
+          />
+        ) : null}
 
         {showToolbar ? (
           <div className="research-list-toolbar" role="search">
@@ -242,7 +256,7 @@ export default function ResearchListPage() {
                 <option value="all">{tr("researchListFilterAll")}</option>
                 {RESEARCH_LIFECYCLE_STATUSES.map((status) => (
                   <option key={status} value={status}>
-                    {status}
+                    {researchStatusLabel(status, language)}
                   </option>
                 ))}
               </select>
@@ -262,7 +276,7 @@ export default function ResearchListPage() {
                 <option value="all">{tr("researchListFilterAll")}</option>
                 {owners.map((owner) => (
                   <option key={owner} value={owner}>
-                    {owner}
+                    {ownerLabel(owner, language)}
                   </option>
                 ))}
               </select>
@@ -307,7 +321,9 @@ export default function ResearchListPage() {
                 <option value="updated">{tr("researchListSortUpdated")}</option>
                 <option value="created">{tr("researchListSortCreated")}</option>
                 <option value="name">{tr("researchListSortName")}</option>
-                <option value="confidence">{tr("researchListSortConfidence")}</option>
+                <option value="confidence">
+                  {tr("researchListSortConfidence")}
+                </option>
               </select>
             </div>
           </div>
@@ -329,7 +345,10 @@ export default function ResearchListPage() {
 
           {loadStatus === "error" && loadError ? (
             <div className="research-list-error">
-              <ErrorAlert title={tr("researchListErrorTitle")} message={loadError} />
+              <ErrorAlert
+                title={tr("researchListErrorTitle")}
+                message={loadError}
+              />
               <Button primary onClick={handleRetry}>
                 {tr("researchListRetry")}
               </Button>
@@ -359,9 +378,14 @@ export default function ResearchListPage() {
                   title={tr("researchListEmptyTitle")}
                   description={tr("researchListEmptyDescription")}
                   action={
-                    <Button primary onClick={handleNewResearch}>
-                      {tr("researchListNewResearch")}
-                    </Button>
+                    <div className="research-list-empty-actions">
+                      <Button primary onClick={handleNewResearch}>
+                        {tr("researchListCreateResearch")}
+                      </Button>
+                      <Button onClick={() => void handleLoadDemo()}>
+                        {tr("researchListLoadDemo")}
+                      </Button>
+                    </div>
                   }
                 />
               ) : null}
@@ -374,9 +398,7 @@ export default function ResearchListPage() {
                       item={item}
                       language={language}
                       labels={cardLabels}
-                      onDuplicate={handleDuplicate}
-                      onArchive={handleArchive}
-                      onMore={handleMore}
+                      onArchive={(id) => void handleArchive(id)}
                     />
                   ))}
                 </div>
@@ -385,6 +407,37 @@ export default function ResearchListPage() {
           ) : null}
         </div>
       </SectionCard>
+
+      <NewResearchModal
+        open={modalOpen}
+        busy={creating}
+        onClose={() => setModalOpen(false)}
+        onCreate={handleCreateResearch}
+        labels={{
+          title: tr("researchListNewResearch"),
+          localNote: tr("researchListModalLocalNote"),
+          name: tr("researchListModalName"),
+          question: tr("researchListModalQuestion"),
+          symbol: tr("researchListSymbol"),
+          startDate: tr("researchExpComposerStart"),
+          endDate: tr("researchExpComposerEnd"),
+          shortWindow: tr("researchValShortWindow"),
+          longWindow: tr("researchValLongWindow"),
+          transactionCost: tr("researchValTransactionCost"),
+          tags: tr("researchWsTags"),
+          tagsHint: tr("researchListModalTagsHint"),
+          owner: tr("researchListOwner"),
+          create: tr("researchListModalCreate"),
+          cancel: tr("researchListModalCancel"),
+          errorName: tr("researchListModalNameRequired"),
+          errorQuestion: tr("researchListModalQuestionRequired"),
+          errorSymbol: tr("researchListModalSymbolRequired"),
+          errorShortWindow: tr("researchListModalShortInvalid"),
+          errorLongWindow: tr("researchListModalLongInvalid"),
+          errorDateRange: tr("researchListModalDateInvalid"),
+          errorTransactionCost: tr("researchListModalCostInvalid"),
+        }}
+      />
     </AppShell>
   );
 }

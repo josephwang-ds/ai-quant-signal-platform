@@ -1,5 +1,7 @@
 import type { ExperimentStatus } from "@/types/experiment";
 import StatusBadge from "@/components/ui/StatusBadge";
+import type { Language } from "@/lib/i18n";
+import { experimentStatusLabel } from "@/lib/researchDisplay";
 
 function statusVariant(
   status: ExperimentStatus
@@ -23,8 +25,10 @@ function statusVariant(
 
 export default function ExperimentStatusBadge({
   status,
+  language,
 }: {
   status: ExperimentStatus;
+  language: Language;
 }) {
-  return <StatusBadge label={status} variant={statusVariant(status)} />;
+  return <StatusBadge label={experimentStatusLabel(status, language)} variant={statusVariant(status)} />;
 }

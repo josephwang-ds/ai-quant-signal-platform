@@ -78,7 +78,7 @@ Configuration (backend / Render secrets only — never `NEXT_PUBLIC_*`):
 Defaults:
 
 - OpenAI → `https://api.openai.com/v1`, `gpt-4o-mini`
-- DeepSeek → `https://api.deepseek.com`, `deepseek-chat`
+- DeepSeek → `https://api.deepseek.com`, `deepseek-v4-flash`
 
 Endpoint construction: `{LLM_BASE_URL}/chat/completions` (no duplicated
 `/v1` or `/chat/completions` segments).

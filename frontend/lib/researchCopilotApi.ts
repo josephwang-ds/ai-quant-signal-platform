@@ -18,6 +18,7 @@ export async function fetchResearchCopilot(
   question: string,
   options?: {
     signal?: AbortSignal;
+    researchId?: string;
   }
 ): Promise<ResearchCopilotResult> {
   return requestJson<ResearchCopilotResult>(
@@ -27,7 +28,7 @@ export async function fetchResearchCopilot(
       headers: { "Content-Type": "application/json" },
       signal: options?.signal,
       body: JSON.stringify({
-        research_id: CANONICAL_RESEARCH_ID,
+        research_id: options?.researchId ?? CANONICAL_RESEARCH_ID,
         validation_run_id: validationRunId,
         question,
         conversation: [],

@@ -3,10 +3,15 @@
 import Link from "next/link";
 import { useId, useState } from "react";
 import Button from "@/components/ui/Button";
-import EvaluationPendingNotice from "@/components/features/research/EvaluationPendingNotice";
 import StatusBadge, { researchLifecycleVariant } from "@/components/ui/StatusBadge";
-import TagList from "@/components/ui/TagList";
 import type { Language } from "@/lib/i18n";
+import {
+  benchmarkLabel,
+  ownerLabel,
+  researchNameLabel,
+  researchQuestionLabel,
+  researchStatusLabel,
+} from "@/lib/researchDisplay";
 import type { ResearchDetail } from "@/types/research";
 
 function formatDate(value: string, language: Language): string {
@@ -31,6 +36,7 @@ export type ResearchWorkspaceHeaderLabels = {
   recommendation: string;
   confidence: string;
   tags: string;
+  benchmark: string;
 };
 
 export type ResearchWorkspaceHeaderProps = {
@@ -39,7 +45,7 @@ export type ResearchWorkspaceHeaderProps = {
   labels: ResearchWorkspaceHeaderLabels;
 };
 
-/** 单个研究工作区头部：身份、状态、建议与非破坏性更多操作。 */
+/** Research Workspace hero — identity and lifecycle, not metric dump. */
 export default function ResearchWorkspaceHeader({
   research,
   language,
@@ -64,7 +70,11 @@ export default function ResearchWorkspaceHeader({
             {labels.moreActions}
           </Button>
           {menuOpen ? (
-            <div id={menuId} className="research-workspace-header__menu-panel" role="menu">
+            <div
+              id={menuId}
+              className="research-workspace-header__menu-panel"
+              role="menu"
+            >
               <p className="section-meta">{labels.moreActionsHint}</p>
             </div>
           ) : null}
@@ -73,32 +83,27 @@ export default function ResearchWorkspaceHeader({
 
       <div className="research-workspace-header__title-row">
         <div>
-          <h1 className="research-workspace-header__name">{research.name}</h1>
-          <p className="research-workspace-header__question">{research.researchQuestion}</p>
-          <p className="research-workspace-header__publicity">
-            {research.integrity.publicityLabel}
+          <h1 className="research-workspace-header__name">
+            {researchNameLabel(research.id, research.name, language)}
+          </h1>
+          <p className="research-workspace-header__question">
+            {researchQuestionLabel(research.id, research.researchQuestion, language)}
           </p>
         </div>
-        <div className="research-workspace-header__badges">
-          <StatusBadge
-            label={research.status}
-            variant={researchLifecycleVariant(research.status)}
-          />
-          <EvaluationPendingNotice
-            label={labels.confidence}
-            message={research.integrity.evaluationPendingMessage}
-          />
-        </div>
+        <StatusBadge
+          label={researchStatusLabel(research.status, language)}
+          variant={researchLifecycleVariant(research.status)}
+        />
       </div>
-
-      <p className="research-workspace-header__explain">
-        {research.integrity.explanatoryText}
-      </p>
 
       <dl className="research-workspace-header__meta">
         <div>
           <dt>{labels.owner}</dt>
-          <dd>{research.owner}</dd>
+          <dd>{ownerLabel(research.owner, language)}</dd>
+        </div>
+        <div>
+          <dt>{labels.benchmark}</dt>
+          <dd>{benchmarkLabel(research.configuration.benchmark, language)}</dd>
         </div>
         <div>
           <dt>{labels.created}</dt>
@@ -109,15 +114,6 @@ export default function ResearchWorkspaceHeader({
           <dd>{formatDate(research.updatedAt, language)}</dd>
         </div>
       </dl>
-
-      <TagList tags={research.tags} label={labels.tags} />
-
-      <p className="research-workspace-header__recommendation">
-        <span className="research-workspace-header__recommendation-label">
-          {labels.recommendation}
-        </span>
-        {research.currentRecommendation}
-      </p>
     </header>
   );
 }

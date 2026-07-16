@@ -65,8 +65,8 @@ export default function ExperimentDetail({
       <header className="experiment-detail__header">
         <div>
           <div className="experiment-detail__badges">
-            <ExperimentStatusBadge status={experiment.status} />
-            <ExperimentTypeBadge experimentType={experiment.experimentType} />
+            <ExperimentStatusBadge status={experiment.status} language={language} />
+            <ExperimentTypeBadge experimentType={experiment.experimentType} language={language} />
           </div>
           <h3 className="experiment-detail__name">{experiment.name}</h3>
         </div>

@@ -1,5 +1,6 @@
 """数据库状态端点 TestClient 测试。"""
 
+import pytest
 from fastapi.testclient import TestClient
 
 from app.main import app
@@ -60,6 +61,7 @@ def test_data_sources_status_still_works() -> None:
     assert providers["akshare"]["supported_assets"] == ["cn_equity"]
 
 
+@pytest.mark.live
 def test_backtest_still_works() -> None:
     response = client.post(
         BACKTEST_URL,
@@ -77,6 +79,7 @@ def test_backtest_still_works() -> None:
     assert response.json()["ticker"] == "AAPL"
 
 
+@pytest.mark.live
 def test_market_watch_still_works() -> None:
     response = client.post(
         MARKET_WATCH_URL,

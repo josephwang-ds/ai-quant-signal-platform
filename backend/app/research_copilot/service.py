@@ -31,6 +31,7 @@ from app.research_copilot.safety import evaluate_answer
 from app.research_copilot.system_policy import COPILOT_SYSTEM_POLICY
 from app.research_evaluation.service import ResearchEvaluationService
 from app.research_execution.market_data_port import utc_now_iso
+from app.research_execution.service import RESEARCH_ID_PATTERN
 from app.research_validation.result_store import ValidationResultStore
 
 logger = logging.getLogger(__name__)
@@ -73,10 +74,10 @@ class ResearchCopilotService:
     def execute(self, request: dict[str, Any]) -> dict[str, Any]:
         request_id = str(uuid.uuid4())
         research_id = str(request.get("research_id", CANONICAL_RESEARCH_ID) or "").strip()
-        if research_id != CANONICAL_RESEARCH_ID:
+        if not RESEARCH_ID_PATTERN.fullmatch(research_id):
             raise ResearchCopilotError(
-                f"Unsupported research_id '{research_id}'. "
-                f"Supported: ['{CANONICAL_RESEARCH_ID}']."
+                "research_id must contain 1-128 letters, numbers, dots, "
+                "underscores, or hyphens."
             )
 
         question = str(request.get("question") or "").strip()

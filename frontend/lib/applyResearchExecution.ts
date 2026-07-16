@@ -111,14 +111,17 @@ export function applyExecutionToExperiments(
   experiments: ResearchExperiment[],
   execution: ResearchExecutionResult
 ): ResearchExperiment[] {
-  return experiments.map((experiment) => {
+  const source = experiments.some((item) => item.id === BASELINE_EXPERIMENT_ID)
+    ? experiments
+    : [buildExecutedBaseline(execution), ...experiments];
+  return source.map((experiment) => {
     if (experiment.id !== BASELINE_EXPERIMENT_ID) {
       return experiment;
     }
     const m = execution.metrics;
     return {
       ...experiment,
-      name: "MA20/60 Baseline Backtest — Executed",
+      name: `${movingAverageLabel(execution)} Baseline Backtest — Executed`,
       status: "Completed",
       startDate: m.start_date ?? experiment.startDate,
       endDate: m.end_date ?? experiment.endDate,
@@ -139,6 +142,59 @@ export function applyExecutionToExperiments(
       notes: `${experiment.notes} Total return ${formatPct(m.total_return)}; trades ${m.trade_count ?? "n/a"}.`,
     };
   });
+}
+
+function movingAverageLabel(execution: ResearchExecutionResult): string {
+  const shortWindow = execution.strategy.short_window;
+  const longWindow = execution.strategy.long_window;
+  return typeof shortWindow === "number" && typeof longWindow === "number"
+    ? `MA${shortWindow}/${longWindow}`
+    : "MA Crossover";
+}
+
+function buildExecutedBaseline(
+  execution: ResearchExecutionResult
+): ResearchExperiment {
+  const symbol = execution.provenance.symbol;
+  const shortWindow = execution.strategy.short_window;
+  const longWindow = execution.strategy.long_window;
+  const transactionCost = execution.strategy.transaction_cost;
+  return {
+    id: BASELINE_EXPERIMENT_ID,
+    researchId: execution.research_id,
+    name: `${movingAverageLabel(execution)} Baseline Backtest`,
+    hypothesis: `Test whether the configured moving-average crossover produces robust historical evidence for ${symbol} after transaction costs.`,
+    status: "Designed",
+    experimentType: "Backtest",
+    datasetOrSymbol: symbol,
+    startDate: execution.metrics.start_date ?? execution.provenance.actual_start,
+    endDate: execution.metrics.end_date ?? execution.provenance.actual_end,
+    benchmark: `${symbol} Buy & Hold`,
+    parameters: [
+      { key: "short_window", value: String(shortWindow ?? "n/a") },
+      { key: "long_window", value: String(longWindow ?? "n/a") },
+      { key: "transaction_cost", value: String(transactionCost ?? "n/a") },
+    ],
+    successCriteria: "Positive risk-adjusted performance with documented drawdown and cost sensitivity.",
+    falsificationCondition: "Evidence is not robust after costs, across time, or under validation checks.",
+    notes: "Generated from the executable research definition and populated only with backend-calculated evidence.",
+    owner: "Research Workspace",
+    createdAt: execution.generated_at,
+    updatedAt: execution.generated_at,
+    resultSummary: "Awaiting execution evidence.",
+    metrics: {
+      sharpe: null,
+      cagr: null,
+      maxDrawdown: null,
+      volatility: null,
+      tradeCount: null,
+      winRate: null,
+      totalTransactionCost: null,
+    },
+    linkedNotebookEntryIds: [],
+    relatedEvidenceIds: [],
+    validationReadiness: "not_ready",
+  };
 }
 
 export function validationStagesFromExecution(

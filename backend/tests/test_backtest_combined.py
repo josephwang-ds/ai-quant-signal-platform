@@ -1,5 +1,6 @@
 """组合信号策略回测 TestClient 测试。"""
 
+import pytest
 from fastapi.testclient import TestClient
 
 from app.main import app
@@ -9,6 +10,7 @@ client = TestClient(app)
 BACKTEST_URL = "/api/backtest"
 
 
+@pytest.mark.live
 def test_combined_conservative_backtest_success() -> None:
     response = client.post(
         BACKTEST_URL,
@@ -37,6 +39,7 @@ def test_combined_conservative_backtest_success() -> None:
     assert first_row["combined_mode"] == "conservative"
 
 
+@pytest.mark.live
 def test_combined_aggressive_backtest_success() -> None:
     response = client.post(
         BACKTEST_URL,

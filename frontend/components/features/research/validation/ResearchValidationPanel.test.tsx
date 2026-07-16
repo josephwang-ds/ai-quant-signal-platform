@@ -241,19 +241,19 @@ const labels: ResearchValidationLabels = {
 };
 
 describe("ResearchValidationPanel", () => {
-  it("shows backend evidence, exact OOS split, and all six stages", () => {
-    render(<ResearchValidationPanel validation={SAMPLE_VALIDATION} labels={labels} />);
+  it("shows reviewer-facing evidence and the exact OOS split without raw stage JSON", () => {
+    render(<ResearchValidationPanel validation={SAMPLE_VALIDATION} labels={labels} language="en" />);
 
     expect(screen.getByText("2023-11-17")).toBeInTheDocument();
     expect(screen.getByText(/IS ends before split date/)).toBeInTheDocument();
-    expect(screen.getAllByText(/evidence returned|OOS evidence is partial/)).toHaveLength(6);
     expect(screen.getAllByText("Incomplete").length).toBeGreaterThan(1);
-    expect(screen.getByText("More OOS observations required.")).toBeInTheDocument();
+    expect(screen.queryByText("More OOS observations required.")).not.toBeInTheDocument();
+    expect(screen.queryByText(/observation_count/)).not.toBeInTheDocument();
   });
 
   it("highlights only the backend-marked canonical sensitivity row", () => {
     const { container } = render(
-      <ResearchValidationPanel validation={SAMPLE_VALIDATION} labels={labels} />
+      <ResearchValidationPanel validation={SAMPLE_VALIDATION} labels={labels} language="en" />
     );
 
     const canonicalRows = container.querySelectorAll("tr.is-canonical");
@@ -264,18 +264,18 @@ describe("ResearchValidationPanel", () => {
   });
 
   it("renders backend cost degradation and data-quality warnings", () => {
-    render(<ResearchValidationPanel validation={SAMPLE_VALIDATION} labels={labels} />);
+    render(<ResearchValidationPanel validation={SAMPLE_VALIDATION} labels={labels} language="en" />);
 
     expect(screen.getAllByText("3.00%").length).toBeGreaterThan(0);
     expect(screen.getByText("One provider warning retained.")).toBeInTheDocument();
     expect(
       screen.getAllByText(/Yahoo Finance via yfinance/).length
     ).toBeGreaterThan(0);
-    expect(screen.getByText("No duplicate dates.")).toBeInTheDocument();
+    expect(screen.getByText("Fatal issues")).toBeInTheDocument();
   });
 
   it("does not render research confidence", () => {
-    render(<ResearchValidationPanel validation={SAMPLE_VALIDATION} labels={labels} />);
+    render(<ResearchValidationPanel validation={SAMPLE_VALIDATION} labels={labels} language="en" />);
     expect(screen.queryByText(/confidence/i)).not.toBeInTheDocument();
   });
 

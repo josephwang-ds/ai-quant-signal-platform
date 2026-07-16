@@ -21,10 +21,7 @@ import LoadingState from "@/components/ui/LoadingState";
 import SectionCard from "@/components/ui/SectionCard";
 import type { TranslationKey } from "@/lib/i18n";
 import { getMockTimelineEvents } from "@/lib/mockNotebookCatalog";
-import {
-  loadMockResearchById,
-  MockResearchError,
-} from "@/lib/mockResearchCatalog";
+import { getResearchRepository } from "@/lib/localResearchRepository";
 import { mergeTimelineEvents } from "@/lib/researchNotebook";
 import {
   isResearchWorkspaceSection,
@@ -151,7 +148,7 @@ export default function ResearchWorkspacePage({
     execution,
     error: executionError,
     reload: reloadExecution,
-  } = useResearchExecution(researchId);
+  } = useResearchExecution(researchId, research?.runConfiguration);
   const validationEvidenceActive =
     activeSection === "validation" ||
     activeSection === "evaluation" ||
@@ -162,7 +159,11 @@ export default function ResearchWorkspacePage({
     validation,
     error: validationError,
     reload: reloadValidation,
-  } = useResearchValidation(researchId, validationEvidenceActive);
+  } = useResearchValidation(
+    researchId,
+    validationEvidenceActive,
+    research?.runConfiguration
+  );
   const validationRunId = validation?.validation_run_id ?? null;
   const {
     enabled: evaluationEnabled,
@@ -272,7 +273,7 @@ export default function ResearchWorkspacePage({
     setLoadStatus("loading");
     setLoadError(null);
     try {
-      const data = await loadMockResearchById(researchId);
+      const data = await getResearchRepository().getById(researchId);
       if (!data) {
         setResearch(null);
         setLoadStatus("not_found");
@@ -280,13 +281,9 @@ export default function ResearchWorkspacePage({
       }
       setResearch(data);
       setLoadStatus("ready");
-    } catch (error) {
-      const message =
-        error instanceof MockResearchError
-          ? error.message
-          : "The research workspace could not be loaded. Please retry.";
+    } catch {
       setResearch(null);
-      setLoadError(message);
+      setLoadError("The research workspace could not be loaded. Please retry.");
       setLoadStatus("error");
     }
   }, [researchId]);
@@ -416,40 +413,37 @@ export default function ResearchWorkspacePage({
           research={displayResearch}
           calculatedMetrics={calculatedMetrics}
           provenanceSlot={provenanceSlot}
+          quickActions={{
+            onRunExperiment: () => {
+              reloadExecution();
+              navigateToSection("experiments");
+            },
+            onOpenValidation: () => navigateToSection("validation"),
+            onGenerateReview: () => navigateToSection("evaluation"),
+          }}
           labels={{
             researchQuestion: tr("researchWsQuestion"),
-            hypothesis: tr("researchWsHypothesis"),
-            researchObjective: tr("researchWsObjective"),
-            currentStage: tr("researchWsCurrentStage"),
-            researchConfidence: tr("researchWsConfidence"),
-            currentRecommendation: tr("researchListRecommendation"),
-            researchSummary: tr("researchWsSummary"),
-            evidenceNarrative: tr("researchWsEvidenceNarrative"),
-            validationSummary: tr("researchWsValidationSummary"),
-            keyStrengths: tr("researchWsKeyStrengths"),
-            knownWeaknesses: tr("researchWsKnownWeaknesses"),
-            openQuestions: tr("researchWsOpenQuestions"),
-            nextActions: tr("researchWsNextActions"),
-            lifecycleTitle: tr("researchWsLifecycleTitle"),
-            lifecycleDescription: tr("researchWsLifecycleDescription"),
-            evidenceTitle: tr("researchWsEvidenceTitle"),
-            evidenceDescription: tr("researchWsEvidenceDescription"),
-            confidence: tr("researchListEvaluationArea"),
-            strategyConfig: tr("researchWsStrategyConfig"),
-            dataRequirements: tr("researchWsDataRequirements"),
-            symbol: tr("researchListSymbol"),
+            owner: tr("researchListOwner"),
             benchmark: tr("researchListBenchmark"),
             strategy: tr("researchListStrategy"),
-            dataStatus: tr("researchListDataStatus"),
-            metricsStatus: tr("researchListMetricsStatus"),
+            created: tr("researchWsCreated"),
+            progressTitle: tr("researchWsProgressTitle"),
+            progressResearch: tr("researchWsProgressResearch"),
+            progressExperiments: tr("researchWsProgressExperiments"),
+            progressEvidence: tr("researchWsProgressEvidence"),
+            progressDecision: tr("researchWsProgressDecision"),
+            quickActionsTitle: tr("researchWsQuickActionsTitle"),
+            runExperiment: tr("researchWsQuickRunExperiment"),
+            openValidation: tr("researchWsQuickOpenValidation"),
+            generateReview: tr("researchWsQuickGenerateReview"),
+            recentExperimentsTitle: tr("researchWsRecentExperiments"),
+            latestEvidenceTitle: tr("researchWsLatestEvidence"),
+            currentDecisionTitle: tr("researchWsCurrentDecision"),
+            confidence: tr("researchListEvaluationArea"),
+            noExperiments: tr("researchWsNoExperiments"),
+            noEvidence: tr("researchWsNoEvidence"),
+            decisionPending: tr("researchWsDecisionPending"),
             calculatedMetricsTitle: tr("researchWsCalculatedMetrics"),
-            metricTotalReturn: tr("researchWsMetricTotalReturn"),
-            metricBenchmarkReturn: tr("researchWsMetricBenchReturn"),
-            metricCagr: tr("researchExpMetricCagr"),
-            metricSharpe: tr("researchExpMetricSharpe"),
-            metricMaxDd: tr("researchExpMetricMaxDD"),
-            metricVol: tr("researchExpMetricVol"),
-            metricTrades: tr("researchExpMetricTrades"),
           }}
         />
       );
@@ -662,9 +656,10 @@ export default function ResearchWorkspacePage({
         return null;
       }
       return (
-        <ResearchValidationPanel
-          validation={validation}
-          labels={{
+          <ResearchValidationPanel
+            validation={validation}
+            language={language}
+            labels={{
             title: tr("researchWsValidationTitle"),
             summary: tr("researchValSummary"),
             status: tr("researchValStatus"),
@@ -777,9 +772,9 @@ export default function ResearchWorkspacePage({
         return null;
       }
       return (
-        <>
           <ResearchEvaluationPanel
             evaluation={evaluation}
+            language={language}
             labels={{
               title: tr("researchWsEvaluationTitle"),
               summary: tr("researchEvalSummary"),
@@ -807,17 +802,6 @@ export default function ResearchWorkspacePage({
               notAvailable: tr("researchEvalNotAvailable"),
             }}
           />
-          <ResearchTimeline
-            events={timelineEvents}
-            language={language}
-            labels={{
-              title: tr("researchTlTitle"),
-              description: tr("researchTlDescription"),
-              sessionNote: tr("researchTlSessionNote"),
-              empty: tr("researchTlEmpty"),
-            }}
-          />
-        </>
       );
     }
 
@@ -968,16 +952,18 @@ export default function ResearchWorkspacePage({
                 recommendation: tr("researchListRecommendation"),
                 confidence: tr("researchListEvaluationArea"),
                 tags: tr("researchWsTags"),
+                benchmark: tr("researchListBenchmark"),
               }}
             />
 
-            <ResearchWorkspaceNavigation
-              researchId={displayResearch.id}
-              activeSection={activeSection}
-              labels={navLabels}
-            />
+            <div className="research-workspace__layout research-workspace__layout--with-sidebar">
+              <ResearchWorkspaceNavigation
+                researchId={displayResearch.id}
+                activeSection={activeSection}
+                labels={navLabels}
+                toolsLabel={tr("researchWsNavTools")}
+              />
 
-            <div className="research-workspace__layout">
               <div className="research-workspace__main">
                 {renderMainSection()}
 
@@ -1002,7 +988,6 @@ export default function ResearchWorkspacePage({
                   runningValidation: tr("researchWsActionValidationRunning"),
                   requestEvaluation: tr("researchWsActionEvaluation"),
                   openCopilot: tr("researchWsActionCopilot"),
-                  exportResearch: tr("researchWsActionExport"),
                   hintNotebook: tr("researchWsActionHintNotebook"),
                   hintExperiment: tr("researchWsActionHintExperiment"),
                   hintValidation: tr("researchWsActionHintValidation"),
@@ -1014,7 +999,6 @@ export default function ResearchWorkspacePage({
                   hintCopilotDisabled: tr(
                     "researchWsActionHintCopilotDisabled"
                   ),
-                  hintExport: tr("researchWsActionHintExport"),
                 }}
                 activeSection={activeSection}
                 onNavigate={navigateToSection}

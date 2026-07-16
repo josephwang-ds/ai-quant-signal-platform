@@ -62,6 +62,10 @@ export default function ResearchCopilotPanel({
   onSampleQuestion,
   onGoToValidation,
 }: Props) {
+  const displayedError =
+    error === "Research Copilot is not configured for this deployment."
+      ? labels.notConfigured
+      : error;
   return (
     <div className="research-copilot">
       <SectionCard>
@@ -117,7 +121,7 @@ export default function ResearchCopilotPanel({
           </SectionCard>
 
           {status === "loading" ? <LoadingState message={labels.askingButton} /> : null}
-          {error ? <ErrorAlert message={error} /> : null}
+          {displayedError ? <ErrorAlert message={displayedError} /> : null}
 
           {result ? (
             <>

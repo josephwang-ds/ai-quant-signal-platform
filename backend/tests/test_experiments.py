@@ -1,5 +1,6 @@
 """Experiments Persistence v1 TestClient 测试。"""
 
+import pytest
 from fastapi.testclient import TestClient
 
 from app.db.repositories.backtest_runs import DatabaseUnavailableError
@@ -177,6 +178,7 @@ def test_database_unavailable_maps_to_503(monkeypatch) -> None:
     assert response.status_code == 503
 
 
+@pytest.mark.live
 def test_backtest_still_works() -> None:
     response = client.post(
         BACKTEST_URL,
@@ -193,6 +195,7 @@ def test_backtest_still_works() -> None:
     assert response.json()["ticker"] == "AAPL"
 
 
+@pytest.mark.live
 def test_market_watch_still_works() -> None:
     response = client.post(
         MARKET_WATCH_URL,
