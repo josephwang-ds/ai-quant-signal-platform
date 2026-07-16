@@ -162,7 +162,8 @@ The Copilot must not:
 - present a mock or canned answer as if it were model-generated when the
   provider is unavailable
 
-Provider API keys remain backend-only (`OPENAI_API_KEY`, `COPILOT_MODEL`).
+Provider API keys remain backend-only (`LLM_API_KEY` / deprecated
+`OPENAI_API_KEY`, plus `LLM_PROVIDER`, `LLM_BASE_URL`, `COPILOT_MODEL`).
 Never expose keys through `NEXT_PUBLIC_*` variables or call OpenAI/Anthropic
 from the frontend. Offline tests use `FakeLlmAdapter`; production without a
 key returns HTTP 503 and the UI shows "Research Copilot is not configured

@@ -83,6 +83,26 @@ Requests are not retried automatically.
 - A request that actually retrieves historical data is the evidence of
   provider availability for that operation.
 
+## Research Copilot LLM (Render)
+
+Configure exactly one OpenAI-compatible Chat Completions provider. Secrets
+belong only on the backend (Render). Never put keys in Vercel `NEXT_PUBLIC_*`.
+
+| Variable | Example |
+|---|---|
+| `LLM_PROVIDER` | `openai` or `deepseek` |
+| `LLM_API_KEY` | provider secret |
+| `LLM_BASE_URL` | `https://api.openai.com/v1` or `https://api.deepseek.com` |
+| `COPILOT_MODEL` | provider model id |
+
+There is no provider failover. Model availability depends on the provider
+account/API version. `OPENAI_API_KEY` remains a temporary deprecated fallback.
+
+`LLM_BASE_URL` must be HTTPS in production (including Render). Loopback and
+`http://` bases are rejected when `RENDER` / `ENVIRONMENT` / `APP_ENV` /
+`NODE_ENV` indicate production. Any local-only insecure override is ignored
+in production and must never be set on Render.
+
 ## Troubleshooting
 
 1. A configuration message in production: verify the Vercel variable is set
@@ -96,3 +116,6 @@ Requests are not retried automatically.
    request. Do not infer live connectivity from the static status endpoint.
 5. Successful `/health` with failed research: investigate the specific
    provider or application request; liveness does not certify dependencies.
+6. Copilot not configured (503): set `LLM_PROVIDER` + `LLM_API_KEY` (or legacy
+   `OPENAI_API_KEY`) on Render and redeploy; confirm `COPILOT_MODEL` is valid
+   for that provider.

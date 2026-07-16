@@ -61,12 +61,36 @@ class LlmPort(Protocol):
 ```
 
 Offline CI injects `FakeLlmAdapter` explicitly through test dependency
-injection. Production uses `OpenAiLlmAdapter` when `OPENAI_API_KEY` is set.
-There is no runtime environment switch that can activate a fake provider in a
-deployed app. Missing `OPENAI_API_KEY` returns HTTP 503.
+injection. Production uses `OpenAiCompatibleLlmAdapter` for exactly one
+configured OpenAI-compatible provider. There is no runtime environment switch
+that can activate a fake provider in a deployed app, and no multi-provider
+failover.
 
-Default model: `gpt-4o-mini` (override with `COPILOT_MODEL`).
+Configuration (backend / Render secrets only — never `NEXT_PUBLIC_*`):
 
+| Variable | Role |
+|---|---|
+| `LLM_PROVIDER` | Allowlisted: `openai` \| `deepseek` |
+| `LLM_API_KEY` | Preferred API key |
+| `LLM_BASE_URL` | Optional HTTPS base URL (trailing slash normalized) |
+| `COPILOT_MODEL` | Model id for the active provider |
+
+Defaults:
+
+- OpenAI → `https://api.openai.com/v1`, `gpt-4o-mini`
+- DeepSeek → `https://api.deepseek.com`, `deepseek-chat`
+
+Endpoint construction: `{LLM_BASE_URL}/chat/completions` (no duplicated
+`/v1` or `/chat/completions` segments).
+
+`OPENAI_API_KEY` remains a temporary deprecated fallback when `LLM_API_KEY`
+is absent. Missing/invalid provider configuration returns HTTP 503.
+
+Structured output: both OpenAI and DeepSeek accept
+`response_format: {"type": "json_object"}`. The Copilot keeps that request
+and still parses/rejects malformed JSON strictly. Citation and recommendation
+safety checks are unchanged. Model availability depends on the provider
+account and current API catalog — set `COPILOT_MODEL` explicitly for demos.
 ## Context assembly
 
 `ResearchContextAssembler` builds bounded `ContextItem` records. Each item

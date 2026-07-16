@@ -191,7 +191,7 @@ Summary of that run:
 | Deployed SPY / Yahoo execution | Verified (1 provider flake then success) |
 | Deployed 600519.SH / AkShare | Failed due to provider/network |
 | Frontend API host + CORS | Verified |
-| Copilot without `OPENAI_API_KEY` | Verified honest 503 |
+| Copilot without `LLM_API_KEY` / `OPENAI_API_KEY` | Verified honest 503 |
 
 Do not treat that report as a continuous SLA. Re-run the scripts when
 investigating incidents.

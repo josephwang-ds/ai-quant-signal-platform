@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import json
 import logging
-import os
 import uuid
 from typing import Any
 
@@ -14,10 +13,16 @@ from app.research_copilot.citations import (
     resolve_selected_citations,
 )
 from app.research_copilot.context_assembler import ResearchContextAssembler
+from app.research_copilot.llm_config import (
+    LlmConfigurationError,
+    resolve_llm_provider_settings,
+)
 from app.research_copilot.llm_port import LlmPort
 from app.research_copilot.llm_response import parse_structured_llm_response
 from app.research_copilot.openai_adapter import (
-    OpenAiLlmAdapter,
+    OpenAiCompatibleLlmAdapter,
+    ProviderAuthenticationError,
+    ProviderMalformedResponseError,
     ProviderTimeoutError,
     ProviderUnavailableError,
 )
@@ -41,13 +46,12 @@ class ResearchCopilotError(Exception):
 
 
 def resolve_llm_adapter() -> LlmPort:
-    api_key = os.getenv("OPENAI_API_KEY", "").strip()
-    if api_key:
-        return OpenAiLlmAdapter(api_key=api_key)
-    raise ResearchCopilotError(
-        "Research Copilot is not configured for this deployment.",
-        status_code=503,
-    )
+    """Resolve the single configured OpenAI-compatible Copilot provider."""
+    try:
+        settings = resolve_llm_provider_settings()
+    except LlmConfigurationError as exc:
+        raise ResearchCopilotError(str(exc), status_code=503) from exc
+    return OpenAiCompatibleLlmAdapter(settings=settings)
 
 
 class ResearchCopilotService:
@@ -145,7 +149,25 @@ class ResearchCopilotService:
                 "Research Copilot timed out while waiting for the language model.",
                 status_code=504,
             ) from exc
+        except ProviderAuthenticationError as exc:
+            raise ResearchCopilotError(
+                "Research Copilot provider authentication failed.",
+                status_code=502,
+            ) from exc
+        except ProviderMalformedResponseError as exc:
+            raise ResearchCopilotError(
+                "Research Copilot provider returned a malformed response.",
+                status_code=502,
+            ) from exc
         except ProviderUnavailableError as exc:
+            message = str(exc).strip() or (
+                "Research Copilot provider is currently unavailable."
+            )
+            if "rate limited" in message.lower():
+                raise ResearchCopilotError(
+                    "Research Copilot provider is rate limited.",
+                    status_code=502,
+                ) from exc
             raise ResearchCopilotError(
                 "Research Copilot provider is currently unavailable.",
                 status_code=502,

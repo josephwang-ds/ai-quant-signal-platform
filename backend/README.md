@@ -134,6 +134,22 @@ Research Copilot docs: `docs/slices/research-copilot.md`.
 Endpoint: `POST /api/v1/research/copilot/query`. Requires `validation_run_id`
 from a prior validation call. Assembles bounded workspace context and calls
 `LlmPort` for interpretation only — no calculations, no Validation
-re-execution, no market-data reads. Configure with `OPENAI_API_KEY` and
-optional `COPILOT_MODEL` (default `gpt-4o-mini`). Offline CI injects
-`FakeLlmAdapter` explicitly in tests; runtime without a key returns HTTP 503.
+re-execution, no market-data reads.
+
+Configure one OpenAI-compatible provider per deployment (no failover):
+
+| Variable | Purpose |
+|---|---|
+| `LLM_PROVIDER` | Allowlisted: `openai` or `deepseek` |
+| `LLM_API_KEY` | Backend-only provider API key (preferred) |
+| `LLM_BASE_URL` | Optional HTTPS Chat Completions base URL |
+| `COPILOT_MODEL` | Model id for the selected provider |
+
+Defaults when unset:
+
+- `openai` → `https://api.openai.com/v1`, model `gpt-4o-mini`
+- `deepseek` → `https://api.deepseek.com`, model `deepseek-chat`
+
+`OPENAI_API_KEY` remains a temporary deprecated fallback when `LLM_API_KEY`
+is absent. Offline CI injects `FakeLlmAdapter` explicitly in tests; runtime
+without a key returns HTTP 503.
