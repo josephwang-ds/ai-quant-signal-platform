@@ -8,9 +8,15 @@ import type {
   ResearchValidationResult,
   ResearchValidationStatus,
 } from "@/types/researchValidation";
+import type { ResearchRunConfiguration } from "@/types/research";
 
-export function useResearchValidation(researchId: string, enabled: boolean) {
-  const requestEnabled = enabled && researchId === CANONICAL_RESEARCH_ID;
+export function useResearchValidation(
+  researchId: string,
+  enabled: boolean,
+  configuration?: ResearchRunConfiguration
+) {
+  const requestEnabled =
+    enabled && (researchId === CANONICAL_RESEARCH_ID || Boolean(configuration));
   const [status, setStatus] = useState<ResearchValidationStatus>("idle");
   const [validation, setValidation] =
     useState<ResearchValidationResult | null>(null);
@@ -38,6 +44,8 @@ export function useResearchValidation(researchId: string, enabled: boolean) {
       try {
         const result = await fetchResearchValidation({
           signal: controller.signal,
+          researchId,
+          configuration,
         });
         if (!controller.signal.aborted) {
           setValidation(result);
@@ -59,7 +67,7 @@ export function useResearchValidation(researchId: string, enabled: boolean) {
     })();
 
     return () => controller.abort();
-  }, [requestEnabled, reloadToken]);
+  }, [configuration, reloadToken, requestEnabled, researchId]);
 
   return {
     enabled: requestEnabled,

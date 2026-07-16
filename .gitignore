@@ -1,4 +1,4 @@
-# 依赖目录
+# Dependencies
 node_modules/
 __pycache__/
 *.py[cod]
@@ -6,42 +6,59 @@ __pycache__/
 venv/
 env/
 
-# 构建产物
+# Build artifacts
 .next/
 out/
 dist/
 build/
 *.egg-info/
 
-# 环境变量
+# Environment files
 .env
 .env.local
+.env.*
 .env.*.local
+!.env.example
+!**/.env.example
 
-# 日志与调试
+# Credentials and local databases (never commit)
+*.pem
+*.key
+*.p12
+*.pfx
+*.sqlite
+*.sqlite3
+*.db
+
+# Logs and debugging
 *.log
 npm-debug.log*
 
-# 系统与 IDE
+# Operating system and IDE files
 .DS_Store
 .idea/
 .vscode/
+.vercel/
+.render/
 *.swp
 
 # TypeScript
 next-env.d.ts
 
-# Python 测试与覆盖率
+# Python tests and coverage
 .pytest_cache/
 .coverage
 htmlcov/
+coverage/
+playwright-report/
+test-results/
 frontend/tsconfig.tsbuildinfo
 
 # Market-data filesystem cache (research execution)
 .cache/
 backend/.cache/
 
-# 求职 / 演示 / Review 准备文档（本地备忘，不提交）
+# Private interview, demo, and review preparation notes
 docs/PROJECT_TRACKER.md
 docs/prep/
 docs/private/

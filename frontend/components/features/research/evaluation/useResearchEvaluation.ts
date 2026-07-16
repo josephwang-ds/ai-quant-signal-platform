@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { CANONICAL_RESEARCH_ID } from "@/lib/canonicalMaCrossover";
 import { getApiUserMessage } from "@/lib/apiRequest";
 import { fetchResearchEvaluation } from "@/lib/researchEvaluationApi";
 import type {
@@ -21,7 +20,7 @@ export function useResearchEvaluation(
   enabled: boolean,
   validationRunId: string | null
 ) {
-  const requestEnabled = enabled && researchId === CANONICAL_RESEARCH_ID;
+  const requestEnabled = enabled;
   const [status, setStatus] = useState<ResearchEvaluationRequestStatus>("idle");
   const [evaluation, setEvaluation] =
     useState<ResearchEvaluationResult | null>(null);
@@ -56,6 +55,7 @@ export function useResearchEvaluation(
       try {
         const result = await fetchResearchEvaluation(validationRunId, {
           signal: controller.signal,
+          researchId,
         });
         if (!controller.signal.aborted) {
           setEvaluation(result);
@@ -77,7 +77,7 @@ export function useResearchEvaluation(
     })();
 
     return () => controller.abort();
-  }, [requestEnabled, validationRunId, reloadToken]);
+  }, [requestEnabled, validationRunId, reloadToken, researchId]);
 
   return {
     enabled: requestEnabled,

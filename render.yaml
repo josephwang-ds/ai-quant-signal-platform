@@ -11,3 +11,16 @@ services:
         value: "3.11.9"
       - key: ALLOWED_ORIGINS
         sync: false
+      # Durable experiment persistence. Store the Supabase transaction-pooler
+      # URI in Render; never commit it to this file.
+      - key: SUPABASE_DB_URL
+        sync: false
+      # Evidence-grounded Copilot. All provider credentials remain backend-only.
+      - key: LLM_PROVIDER
+        value: deepseek
+      - key: LLM_API_KEY
+        sync: false
+      - key: LLM_BASE_URL
+        value: https://api.deepseek.com
+      - key: COPILOT_MODEL
+        value: deepseek-v4-flash

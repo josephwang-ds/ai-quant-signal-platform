@@ -61,7 +61,11 @@ describe("useResearchCopilot", () => {
 
     await waitFor(() => expect(result.current.status).toBe("ready"));
     expect(result.current.result?.citations).toHaveLength(1);
-    expect(fetchMock).toHaveBeenCalledWith("val-abc", "Why is evaluation incomplete?");
+    expect(fetchMock).toHaveBeenCalledWith(
+      "val-abc",
+      "Why is evaluation incomplete?",
+      expect.objectContaining({ researchId: "ma-crossover-spy" })
+    );
   });
 
   it("surfaces provider unavailable without fabricating an answer", async () => {

@@ -87,3 +87,10 @@ describe("workspace navigation model", () => {
     expect(resolveWorkspaceSection(null, null)).toBe("overview");
   });
 });
+
+describe("research progress helpers", () => {
+  it("keeps catalog authenticity constraints intact", () => {
+    expect(MOCK_RESEARCH_DETAILS).toHaveLength(1);
+    expect(MOCK_RESEARCH_DETAILS[0].name).toBe("MA Crossover Research");
+  });
+});

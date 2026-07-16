@@ -567,7 +567,7 @@ def test_canonical_cost_result_exists_outside_fixed_grid(
 @pytest.mark.parametrize(
     "payload, message",
     [
-        ({"research_id": "rs-ma-crossover-001"}, "Unsupported research_id"),
+        ({"research_id": "invalid id / path"}, "research_id must contain"),
         ({"short_window": 60, "long_window": 20}, "short_window must be"),
         ({"transaction_cost": -0.1}, "transaction_cost must be"),
         ({"start_date": "2024-02-30"}, "YYYY-MM-DD"),

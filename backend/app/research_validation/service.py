@@ -22,7 +22,10 @@ from app.research_execution.market_data_port import (
     clip_to_completed_daily_bars,
     utc_now_iso,
 )
-from app.research_execution.service import SAME_ASSET_BENCHMARK_MESSAGE
+from app.research_execution.service import (
+    RESEARCH_ID_PATTERN,
+    SAME_ASSET_BENCHMARK_MESSAGE,
+)
 from app.research_validation.result_store import (
     InMemoryValidationResultStore,
     ValidationResultStore,
@@ -323,10 +326,10 @@ class ResearchValidationService:
         research_id = str(
             request.get("research_id", CANONICAL_RESEARCH_ID) or ""
         ).strip()
-        if research_id != CANONICAL_RESEARCH_ID:
+        if not RESEARCH_ID_PATTERN.fullmatch(research_id):
             raise ResearchValidationError(
-                f"Unsupported research_id '{research_id}'. "
-                f"Supported: ['{CANONICAL_RESEARCH_ID}']."
+                "research_id must contain 1-128 letters, numbers, dots, "
+                "underscores, or hyphens."
             )
 
         symbol = str(request.get("symbol", "SPY") or "").upper().strip()

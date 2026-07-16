@@ -171,15 +171,34 @@ Honest classification: **egress/provider remote disconnect**, not package-missin
 - Render egress + Yahoo can occasionally return empty ticker payloads; retry once is acceptable for smoke, not for guaranteed uptime.
 - AkShare mainland data from Render may be blocked or disconnect; package installed ≠ connectivity.
 - Process `/health` must never be marketed as market-data readiness.
-- Copilot remains disabled until `OPENAI_API_KEY` is configured in deployment secrets.
+- Copilot requires a backend-only provider key in deployment secrets.
 - Browser UX screenshots for Execution → Validation → Copilot remain operator-captured after production redeploy.
+
+## 2026-07-16 deployment follow-up
+
+This operator-run smoke supersedes the pending items above for the currently
+deployed backend revision:
+
+| Check | Result |
+|---|---|
+| `GET /health` | HTTP 200, `status: ok` |
+| `GET /api/database/status` | HTTP 200, configured and connected |
+| Research Execution | HTTP 200 on the single permitted retry; Yahoo returned an empty response on the first attempt |
+| Research Validation | HTTP 200 with a new `validation_run_id` |
+| Research Evaluation | HTTP 200, honestly reported `incomplete` because outstanding evidence remains |
+| Research Copilot | HTTP 200 using `deepseek-v4-flash`, with seven resolved evidence citations |
+
+No credentials or model answer content were captured in this record. The
+test confirms a deployed single-process demo chain; it does not change the
+documented browser-local Research Definition or in-memory ValidationRun
+persistence boundaries.
 
 ## Final Verdict
 
-**Partially verified production research wiring**, with Research Workspace SSR
-**verified after PR-017 merge** and Research Execution invalid-request failure
-**root-caused and fixed in PR-018** (local + contract tests verified;
-deployed backend/frontend confirmation pending PR-018 merge + redeploy).
+**Verified single-browser demo wiring**, including backend health, database
+connectivity, Research Execution, Validation, Evaluation, and evidence-grounded
+DeepSeek Copilot. Durable cross-browser and restart-safe Research lineage remains
+a separate persistence milestone.
 
 | Area | Label |
 |---|---|
@@ -189,7 +208,7 @@ deployed backend/frontend confirmation pending PR-018 merge + redeploy).
 | AkShare 600519.SH execution | Failed due to provider/network |
 | Frontend production wiring | Verified (API/CORS) |
 | Research Workspace SSR route | Verified after PR-017 merge |
-| Research Execution canonical request | Fixed in PR-018; deployed verification pending |
-| Copilot configuration | Verified (absent key / honest 503) |
+| Research Execution canonical request | Verified on 2026-07-16 after one permitted provider retry |
+| Copilot configuration | Verified with `deepseek-v4-flash` and resolved citations |
 | Failure states | Verified |
-| Deployed end-to-end readiness overall | Partially verified |
+| Deployed end-to-end readiness overall | Verified for the documented single-browser demo boundary |

@@ -52,7 +52,7 @@ def test_deepseek_default_base_url() -> None:
     assert settings.chat_completions_url == (
         "https://api.deepseek.com/chat/completions"
     )
-    assert settings.model == "deepseek-chat"
+    assert settings.model == "deepseek-v4-flash"
 
 
 def test_explicit_base_url_and_trailing_slash_normalization() -> None:

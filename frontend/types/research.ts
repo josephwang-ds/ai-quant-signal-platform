@@ -50,6 +50,18 @@ export type ResearchConfigurationDisplay = {
   dataRequirements: string[];
 };
 
+/** Structured inputs for the one supported executable template: MA Crossover. */
+export type ResearchRunConfiguration = {
+  symbol: string;
+  benchmark: string;
+  startDate: string;
+  endDate: string | null;
+  shortWindow: number;
+  longWindow: number;
+  transactionCost: number;
+  riskFreeRate: number;
+};
+
 export type ResearchListItem = {
   id: string;
   name: string;
@@ -81,6 +93,8 @@ export type ResearchDetail = ResearchListItem & {
   openQuestions: string[];
   nextActions: string[];
   evidenceItems: ResearchEvidenceItem[];
+  /** Present when this definition can use the real execution/validation APIs. */
+  runConfiguration?: ResearchRunConfiguration;
 };
 
 export const RESEARCH_LIFECYCLE_STATUSES: ResearchLifecycleStatus[] = [
@@ -116,6 +130,23 @@ export const RESEARCH_WORKSPACE_SECTIONS = [
 ] as const;
 
 export type ResearchWorkspaceSection = (typeof RESEARCH_WORKSPACE_SECTIONS)[number];
+
+/** Primary Research IA sidebar (URLs unchanged; labels map Evidence/Review/Notes). */
+export const RESEARCH_WORKSPACE_PRIMARY_SECTIONS: ResearchWorkspaceSection[] = [
+  "overview",
+  "experiments",
+  "validation",
+  "evaluation",
+  "notebook",
+  "settings",
+];
+
+/** Supporting tools kept for URL compatibility — not the product spine. */
+export const RESEARCH_WORKSPACE_TOOL_SECTIONS: ResearchWorkspaceSection[] = [
+  "copilot",
+  "timeline",
+  "files",
+];
 
 /** 将列表运营状态映射到 Ch3 进度阶段（无显式 currentStage 时的兜底）。 */
 export function mapLifecycleStatusToProgressStage(

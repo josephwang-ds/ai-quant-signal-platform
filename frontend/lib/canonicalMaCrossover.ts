@@ -17,7 +17,7 @@ export const CANONICAL_MA_CROSSOVER: CanonicalResearchPackage = {
     id: CANONICAL_RESEARCH_ID,
     name: "MA Crossover Research",
     researchQuestion:
-      "Does a simple MA20/MA60 crossover outperform SPY buy-and-hold after transaction costs over a long historical period?",
+      "Can MA20/MA60 outperform Buy & Hold over long horizons after transaction costs? (SPY buy-and-hold benchmark)",
     hypothesis:
       "A medium-term moving-average crossover may reduce large drawdowns, but its performance advantage may weaken after transaction costs and during sideways markets.",
     researchObjective:

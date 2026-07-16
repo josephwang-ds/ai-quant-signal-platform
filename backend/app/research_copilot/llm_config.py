@@ -22,9 +22,9 @@ PROVIDER_DEFAULT_BASE_URLS: dict[str, str] = {
 
 PROVIDER_DEFAULT_MODELS: dict[str, str] = {
     "openai": "gpt-4o-mini",
-    # Documented DeepSeek Chat Completions compatibility ID. Operators should
-    # set COPILOT_MODEL to the account's current official model when available.
-    "deepseek": "deepseek-chat",
+    # Current non-thinking model for evidence explanation. Keep this aligned
+    # with DeepSeek's official model lifecycle.
+    "deepseek": "deepseek-v4-flash",
 }
 
 # Both OpenAI and DeepSeek Chat Completions accept response_format=json_object.

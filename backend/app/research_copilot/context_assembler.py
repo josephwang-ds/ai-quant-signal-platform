@@ -8,6 +8,7 @@ from typing import Any
 
 from app.research_copilot.canonical_notebook import (
     CANONICAL_DEFINITION,
+    CANONICAL_RESEARCH_ID,
     NOTEBOOK_ENTRIES,
 )
 from app.research_copilot.citations import summarize_stage
@@ -92,6 +93,26 @@ class ResearchContextAssembler:
     ) -> tuple[dict[str, Any], list[ContextItem]]:
         validation_run_id = validation.get("validation_run_id", "")
         provenance = validation.get("provenance", {})
+        strategy = validation.get("strategy", {})
+        is_canonical = research_id == CANONICAL_RESEARCH_ID
+        research_definition = (
+            {**CANONICAL_DEFINITION, "research_id": research_id}
+            if is_canonical
+            else {
+                "research_id": research_id,
+                "template": "ma_crossover",
+                "symbol": strategy.get("symbol"),
+                "benchmark": strategy.get("benchmark_label")
+                or strategy.get("benchmark"),
+                "short_window": strategy.get("short_window"),
+                "long_window": strategy.get("long_window"),
+                "transaction_cost": strategy.get("transaction_cost"),
+                "scope": (
+                    "Local research definition. Interpret only the stored "
+                    "validation evidence for this run."
+                ),
+            }
+        )
 
         execution_stages = [
             _compact_stage(stage)
@@ -101,10 +122,7 @@ class ResearchContextAssembler:
 
         structured = _sanitize(
             {
-                "research_definition": {
-                    **CANONICAL_DEFINITION,
-                    "research_id": research_id,
-                },
+                "research_definition": research_definition,
                 "execution_evidence": {
                     "source": "validation_stages",
                     "provenance": provenance,
@@ -135,7 +153,7 @@ class ResearchContextAssembler:
                     ),
                     "generated_at": evaluation.get("generated_at"),
                 },
-                "notebook_context": NOTEBOOK_ENTRIES,
+                "notebook_context": NOTEBOOK_ENTRIES if is_canonical else [],
             }
         )
 
@@ -229,7 +247,7 @@ class ResearchContextAssembler:
             "Methodology": "notebook:methodology",
             "Observation": "notebook:observation",
         }
-        for entry in NOTEBOOK_ENTRIES:
+        for entry in NOTEBOOK_ENTRIES if is_canonical else []:
             citation_id = notebook_map.get(entry.get("entry_type", ""))
             if not citation_id:
                 continue

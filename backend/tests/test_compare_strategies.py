@@ -1,5 +1,6 @@
 """策略对比端点 TestClient 测试。"""
 
+import pytest
 from fastapi.testclient import TestClient
 
 from app.main import app
@@ -10,6 +11,7 @@ COMPARE_URL = "/api/backtest/compare-strategies"
 BACKTEST_URL = "/api/backtest"
 
 
+@pytest.mark.live
 def test_compare_strategies_success() -> None:
     response = client.post(
         COMPARE_URL,
@@ -66,6 +68,7 @@ def test_compare_strategies_invalid_windows() -> None:
     assert response.status_code in (400, 422)
 
 
+@pytest.mark.live
 def test_single_backtest_still_works() -> None:
     response = client.post(
         BACKTEST_URL,

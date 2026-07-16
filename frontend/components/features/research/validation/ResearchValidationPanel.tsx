@@ -1,9 +1,9 @@
-import type { DataProvenance, ExecutionMetrics } from "@/types/researchExecution";
+import type { ExecutionMetrics } from "@/types/researchExecution";
 import type {
   ResearchValidationResult,
-  ValidationStage,
   ValidationStageStatus,
 } from "@/types/researchValidation";
+import type { Language } from "@/lib/i18n";
 
 export type ResearchValidationLabels = {
   title: string;
@@ -73,6 +73,7 @@ export type ResearchValidationLabels = {
 type Props = {
   validation: ResearchValidationResult;
   labels: ResearchValidationLabels;
+  language: Language;
 };
 
 function formatNumber(value: number | null | undefined): string {
@@ -89,19 +90,6 @@ function formatPercent(value: number | null | undefined): string {
     : `${(value * 100).toFixed(2)}%`;
 }
 
-function formatValue(value: unknown): string {
-  if (value == null) {
-    return "n/a";
-  }
-  if (typeof value === "boolean") {
-    return value ? "true" : "false";
-  }
-  if (typeof value === "object") {
-    return JSON.stringify(value);
-  }
-  return String(value);
-}
-
 function statusLabel(
   status: ValidationStageStatus,
   labels: ResearchValidationLabels
@@ -116,13 +104,30 @@ function statusTone(status: ValidationStageStatus): string {
   return "neutral";
 }
 
+function localizeBackendText(value: string, language: Language): string {
+  if (language !== "zh") return value;
+  const known: Record<string, string> = {
+    "Yahoo Finance / yfinance is suitable for research and portfolio demos only — not an exchange-grade production feed.":
+      "Yahoo Finance / yfinance 仅适合研究与作品集演示，不属于交易所级生产数据源。",
+    "Provider timeout is enforced via yfinance download(timeout=…).":
+      "数据下载已设置超时保护。",
+    "Yahoo prices use yfinance auto_adjust (auto_adjust).":
+      "Yahoo 行情使用 yfinance 自动复权价格（auto_adjust）。",
+    "The strategy is run once on full history, then valid return rows are sliced at split_date. The first OOS row therefore preserves its full-run position, turnover, and transaction cost against the prior in-sample row.":
+      "策略先在完整历史区间运行，再按切分日期划分有效收益；首个样本外观测会保留与上一样本内观测连续的仓位、换手和交易成本。",
+  };
+  return known[value] ?? value;
+}
+
 function WarningList({
   title,
   items,
+  language,
   tone = "warning",
 }: {
   title: string;
   items: string[];
+  language: Language;
   tone?: "warning" | "danger";
 }) {
   if (items.length === 0) return null;
@@ -131,85 +136,10 @@ function WarningList({
       <strong>{title}</strong>
       <ul>
         {items.map((item, index) => (
-          <li key={`${item}-${index}`}>{item}</li>
+          <li key={`${item}-${index}`}>{localizeBackendText(item, language)}</li>
         ))}
       </ul>
     </div>
-  );
-}
-
-function ProvenanceLine({
-  provenance,
-  generatedAt,
-  labels,
-}: {
-  provenance: DataProvenance | null;
-  generatedAt: string | null;
-  labels: ResearchValidationLabels;
-}) {
-  return (
-    <p className="validation-stage__provenance">
-      <span>
-        {labels.source}: {provenance?.source ?? provenance?.provider ?? labels.notAvailable}
-      </span>
-      <span>
-        {labels.generated}: {generatedAt ?? labels.notAvailable}
-      </span>
-    </p>
-  );
-}
-
-function StageCard({
-  stage,
-  labels,
-}: {
-  stage: ValidationStage;
-  labels: ResearchValidationLabels;
-}) {
-  return (
-    <article className="validation-stage">
-      <div className="validation-stage__heading">
-        <h3>{stage.label}</h3>
-        <span className={`badge badge--${statusTone(stage.status)}`}>
-          {statusLabel(stage.status, labels)}
-        </span>
-      </div>
-      <p className="validation-stage__summary">{stage.summary}</p>
-      <ProvenanceLine
-        provenance={stage.provenance}
-        generatedAt={stage.generated_at}
-        labels={labels}
-      />
-      {Object.keys(stage.evidence).length > 0 ? (
-        <div>
-          <h4>{labels.evidence}</h4>
-          <dl className="validation-evidence__facts">
-            {Object.entries(stage.evidence).map(([key, value]) => (
-              <div key={key}>
-                <dt>{key.replaceAll("_", " ")}</dt>
-                <dd>{formatValue(value)}</dd>
-              </div>
-            ))}
-          </dl>
-        </div>
-      ) : null}
-      {stage.rules.length > 0 ? (
-        <div>
-          <h4>{labels.rules}</h4>
-          <ul className="validation-evidence__list">
-            {stage.rules.map((rule, index) => (
-              <li key={`${rule}-${index}`}>{rule}</li>
-            ))}
-          </ul>
-        </div>
-      ) : null}
-      <WarningList title={labels.warnings} items={stage.warnings} />
-      <WarningList
-        title={labels.blockers}
-        items={stage.blockers}
-        tone="danger"
-      />
-    </article>
   );
 }
 
@@ -234,6 +164,7 @@ const METRIC_ROWS: Array<{
 function OosEvidence({
   validation,
   labels,
+  language,
 }: Props) {
   const oos = validation.oos;
   const metricSets = [
@@ -253,7 +184,7 @@ function OosEvidence({
         <div><dt>{labels.splitDate}</dt><dd>{oos.split_date ?? labels.notAvailable}</dd></div>
         <div><dt>{labels.inSampleRatio}</dt><dd>{formatPercent(oos.in_sample_ratio)}</dd></div>
         <div><dt>{labels.minimumOos}</dt><dd>{formatInteger(oos.minimum_oos_observations)}</dd></div>
-        <div><dt>{labels.boundary}</dt><dd>{oos.boundary_convention ?? labels.notAvailable}</dd></div>
+        <div><dt>{labels.boundary}</dt><dd>{oos.boundary_convention ? localizeBackendText(oos.boundary_convention, language) : labels.notAvailable}</dd></div>
         <div><dt>{labels.inSample} {labels.observations}</dt><dd>{formatInteger(oos.in_sample_observation_count)}</dd></div>
         <div><dt>{labels.outOfSample} {labels.observations}</dt><dd>{formatInteger(oos.out_of_sample_observation_count)}</dd></div>
       </dl>
@@ -273,12 +204,12 @@ function OosEvidence({
           </tbody>
         </table>
       </div>
-      <WarningList title={labels.warnings} items={oos.warnings} />
+      <WarningList title={labels.warnings} items={oos.warnings} language={language} />
     </section>
   );
 }
 
-function ParameterEvidence({ validation, labels }: Props) {
+function ParameterEvidence({ validation, labels, language }: Props) {
   const sensitivity = validation.parameter_sensitivity;
   return (
     <section className="validation-detail" aria-labelledby="validation-parameter-title">
@@ -315,12 +246,12 @@ function ParameterEvidence({ validation, labels }: Props) {
           </tbody>
         </table>
       </div>
-      <WarningList title={labels.warnings} items={sensitivity.warnings} />
+      <WarningList title={labels.warnings} items={sensitivity.warnings} language={language} />
     </section>
   );
 }
 
-function CostEvidence({ validation, labels }: Props) {
+function CostEvidence({ validation, labels, language }: Props) {
   const costs = validation.transaction_cost_sensitivity;
   return (
     <section className="validation-detail" aria-labelledby="validation-cost-title">
@@ -351,12 +282,12 @@ function CostEvidence({ validation, labels }: Props) {
           </tbody>
         </table>
       </div>
-      <WarningList title={labels.warnings} items={costs.warnings} />
+      <WarningList title={labels.warnings} items={costs.warnings} language={language} />
     </section>
   );
 }
 
-function DataQualityEvidence({ validation, labels }: Props) {
+function DataQualityEvidence({ validation, labels, language }: Props) {
   const quality = validation.data_quality;
   const provenance = validation.provenance;
   return (
@@ -370,28 +301,16 @@ function DataQualityEvidence({ validation, labels }: Props) {
         <div><dt>{labels.dateRange}</dt><dd>{provenance.actual_start} → {provenance.actual_end}</dd></div>
         <div><dt>{labels.generated}</dt><dd>{validation.generated_at}</dd></div>
         <div><dt>{labels.cache}</dt><dd>{provenance.cache_hit ? labels.cacheHit : labels.cacheMiss}</dd></div>
-        {Object.entries(quality.informational).map(([key, value]) => (
-          <div key={key}><dt>{key.replaceAll("_", " ")}</dt><dd>{formatValue(value)}</dd></div>
-        ))}
+        <div><dt>{labels.fatalIssues}</dt><dd>{quality.fatal_issues.length}</dd></div>
+        <div><dt>{labels.warnings}</dt><dd>{quality.warnings.length}</dd></div>
       </dl>
-      <WarningList title={labels.fatalIssues} items={quality.fatal_issues} tone="danger" />
-      <WarningList title={labels.warnings} items={quality.warnings} />
-      <div className="validation-table-wrap">
-        <table className="data-table validation-table">
-          <caption>{labels.checks}</caption>
-          <thead><tr><th>{labels.check}</th><th>{labels.severity}</th><th>{labels.status}</th><th>{labels.details}</th></tr></thead>
-          <tbody>
-            {quality.checks.map((check, index) => (
-              <tr key={`${check.name}-${index}`}><td>{check.name}</td><td>{check.severity}</td><td>{check.status}</td><td>{check.summary}</td></tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      <WarningList title={labels.fatalIssues} items={quality.fatal_issues} language={language} tone="danger" />
+      <WarningList title={labels.warnings} items={quality.warnings} language={language} />
     </section>
   );
 }
 
-export default function ResearchValidationPanel({ validation, labels }: Props) {
+export default function ResearchValidationPanel({ validation, labels, language }: Props) {
   return (
     <section className="research-validation" aria-labelledby="research-validation-title">
       <header className="research-validation__header">
@@ -409,16 +328,11 @@ export default function ResearchValidationPanel({ validation, labels }: Props) {
         <div><dt>{labels.source}</dt><dd>{validation.provenance.source || validation.provenance.provider}</dd></div>
         <div><dt>{labels.generated}</dt><dd>{validation.generated_at}</dd></div>
       </dl>
-      <WarningList title={labels.warnings} items={validation.warnings} />
-      <div className="validation-stages">
-        {validation.stages.map((stage) => (
-          <StageCard key={stage.stage} stage={stage} labels={labels} />
-        ))}
-      </div>
-      <OosEvidence validation={validation} labels={labels} />
-      <ParameterEvidence validation={validation} labels={labels} />
-      <CostEvidence validation={validation} labels={labels} />
-      <DataQualityEvidence validation={validation} labels={labels} />
+      <WarningList title={labels.warnings} items={validation.warnings} language={language} />
+      <OosEvidence validation={validation} labels={labels} language={language} />
+      <ParameterEvidence validation={validation} labels={labels} language={language} />
+      <CostEvidence validation={validation} labels={labels} language={language} />
+      <DataQualityEvidence validation={validation} labels={labels} language={language} />
     </section>
   );
 }

@@ -14,7 +14,6 @@ const labels: ResearchActionPanelLabels = {
   runningValidation: "Running Validation…",
   requestEvaluation: "Request Evaluation",
   openCopilot: "Open Research Copilot",
-  exportResearch: "Export Research",
   hintNotebook: "Open research notes.",
   hintExperiment: "Open planned experiments.",
   hintValidation: "Run deterministic validation.",
@@ -22,7 +21,6 @@ const labels: ResearchActionPanelLabels = {
   hintEvaluationDisabled: "Run Validation first.",
   hintCopilot: "Ask grounded questions.",
   hintCopilotDisabled: "Run Validation first.",
-  hintExport: "Export is not available in this release.",
 };
 
 describe("ResearchActionPanel", () => {
@@ -140,28 +138,6 @@ describe("ResearchActionPanel", () => {
 
     expect(onRequestEvaluation).toHaveBeenCalledTimes(1);
     expect(onNavigate).toHaveBeenCalledWith("copilot");
-  });
-
-  it("keeps export disabled with an honest deferred hint", () => {
-    render(
-      <ResearchActionPanel
-        labels={labels}
-        activeSection="overview"
-        onNavigate={vi.fn()}
-        onRunValidation={vi.fn()}
-        onRequestEvaluation={vi.fn()}
-        validationStatus="ready"
-        validationRunId="val-run-1"
-        evaluationStatus="idle"
-      />
-    );
-
-    expect(
-      screen.getByRole("button", { name: "Export Research" })
-    ).toBeDisabled();
-    expect(
-      screen.getByText("Export is not available in this release.")
-    ).toBeInTheDocument();
   });
 
   it("does not invoke Copilot API callbacks when opening Copilot", async () => {

@@ -21,6 +21,7 @@ from __future__ import annotations
 from typing import Any
 
 from app.research_execution.market_data_port import utc_now_iso
+from app.research_execution.service import RESEARCH_ID_PATTERN
 from app.research_validation.result_store import ValidationResultStore
 from app.research_validation.service import CANONICAL_RESEARCH_ID
 
@@ -92,10 +93,10 @@ class ResearchEvaluationService:
         research_id = str(
             request.get("research_id", CANONICAL_RESEARCH_ID) or ""
         ).strip()
-        if research_id != CANONICAL_RESEARCH_ID:
+        if not RESEARCH_ID_PATTERN.fullmatch(research_id):
             raise ResearchEvaluationError(
-                f"Unsupported research_id '{research_id}'. "
-                f"Supported: ['{CANONICAL_RESEARCH_ID}']."
+                "research_id must contain 1-128 letters, numbers, dots, "
+                "underscores, or hyphens."
             )
 
         validation_run_id = str(request.get("validation_run_id") or "").strip()

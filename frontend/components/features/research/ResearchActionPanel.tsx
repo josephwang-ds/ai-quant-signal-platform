@@ -17,7 +17,6 @@ export type ResearchActionPanelLabels = {
   runningValidation: string;
   requestEvaluation: string;
   openCopilot: string;
-  exportResearch: string;
   hintNotebook: string;
   hintExperiment: string;
   hintValidation: string;
@@ -25,7 +24,6 @@ export type ResearchActionPanelLabels = {
   hintEvaluationDisabled: string;
   hintCopilot: string;
   hintCopilotDisabled: string;
-  hintExport: string;
 };
 
 export type ResearchActionPanelProps = {
@@ -106,12 +104,6 @@ export default function ResearchActionPanel({
         : labels.hintCopilotDisabled,
       disabled: !hasValidationEvidence,
       onClick: () => onNavigate("copilot"),
-    },
-    {
-      id: "export",
-      label: labels.exportResearch,
-      hint: labels.hintExport,
-      disabled: true,
     },
   ];
 

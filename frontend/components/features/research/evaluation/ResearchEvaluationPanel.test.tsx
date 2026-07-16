@@ -101,7 +101,7 @@ function buildEvaluation(
 describe("ResearchEvaluationPanel", () => {
   it("shows evaluation status, coverage, and evidence summary from backend evidence", () => {
     render(
-      <ResearchEvaluationPanel evaluation={buildEvaluation()} labels={labels} />
+      <ResearchEvaluationPanel evaluation={buildEvaluation()} labels={labels} language="en" />
     );
 
     expect(screen.getAllByText("Incomplete").length).toBeGreaterThan(0);
@@ -115,7 +115,7 @@ describe("ResearchEvaluationPanel", () => {
 
   it("lists completed, incomplete, outstanding evidence, limitations, and blockers", () => {
     render(
-      <ResearchEvaluationPanel evaluation={buildEvaluation()} labels={labels} />
+      <ResearchEvaluationPanel evaluation={buildEvaluation()} labels={labels} language="en" />
     );
 
     expect(screen.getByText("Benchmark comparison")).toBeInTheDocument();
@@ -130,7 +130,7 @@ describe("ResearchEvaluationPanel", () => {
 
   it("never renders a confidence score, star rating, or buy/sell recommendation", () => {
     render(
-      <ResearchEvaluationPanel evaluation={buildEvaluation()} labels={labels} />
+      <ResearchEvaluationPanel evaluation={buildEvaluation()} labels={labels} language="en" />
     );
 
     expect(screen.queryByText(/confidence score/i)).not.toBeInTheDocument();
@@ -164,6 +164,7 @@ describe("ResearchEvaluationPanel", () => {
           },
         })}
         labels={labels}
+        language="en"
       />
     );
 

@@ -11,17 +11,20 @@ export type WorkspaceNavGroup = {
   items: WorkspaceNavItem[];
 };
 
-/** 顶栏只展示可用模块；开发中/未开始的入口保留在总览页。 */
+/**
+ * Global nav — Research is the product; other modules are supporting tools.
+ * Routes are unchanged.
+ */
 export const WORKSPACE_NAV_GROUPS: WorkspaceNavGroup[] = [
   {
-    id: "research",
-    labelKey: "navGroupResearch",
+    id: "tools",
+    labelKey: "navGroupTools",
     items: [
-      { href: "/market-watch", labelKey: "navMarketWatch" },
       { href: "/strategy-lab", labelKey: "navStrategyLab" },
-      { href: "/paper-trading", labelKey: "navPaperTrading" },
       { href: "/comparison", labelKey: "navComparison" },
       { href: "/robustness", labelKey: "navRobustness" },
+      { href: "/paper-trading", labelKey: "navPaperTrading" },
+      { href: "/market-watch", labelKey: "navMarketWatch" },
     ],
   },
   {
@@ -36,7 +39,7 @@ export const WORKSPACE_NAV_GROUPS: WorkspaceNavGroup[] = [
 
 export function isWorkspaceNavItemActive(pathname: string, href: string): boolean {
   if (href === "/") {
-    return pathname === "/";
+    return pathname === "/" || pathname.startsWith("/research/");
   }
   if (href === "/overview") {
     return pathname === "/overview";

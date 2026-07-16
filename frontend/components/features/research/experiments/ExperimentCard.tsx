@@ -3,6 +3,7 @@ import { formatMetricValue } from "@/lib/researchExperiments";
 import type { ResearchExperiment } from "@/types/experiment";
 import ExperimentStatusBadge from "./ExperimentStatusBadge";
 import ExperimentTypeBadge from "./ExperimentTypeBadge";
+import { benchmarkLabel, ownerLabel, validationReadinessLabel } from "@/lib/researchDisplay";
 
 function formatDate(value: string, language: Language): string {
   const date = new Date(value);
@@ -56,8 +57,8 @@ export default function ExperimentCard({
         <div className="experiment-card__title-block">
           <h3 className="experiment-card__name">{experiment.name}</h3>
           <div className="experiment-card__badges">
-            <ExperimentStatusBadge status={experiment.status} />
-            <ExperimentTypeBadge experimentType={experiment.experimentType} />
+            <ExperimentStatusBadge status={experiment.status} language={language} />
+            <ExperimentTypeBadge experimentType={experiment.experimentType} language={language} />
           </div>
         </div>
         <button
@@ -87,11 +88,11 @@ export default function ExperimentCard({
         </div>
         <div>
           <dt>{labels.benchmark}</dt>
-          <dd>{experiment.benchmark}</dd>
+          <dd>{benchmarkLabel(experiment.benchmark, language)}</dd>
         </div>
         <div>
           <dt>{labels.owner}</dt>
-          <dd>{experiment.owner}</dd>
+          <dd>{ownerLabel(experiment.owner, language)}</dd>
         </div>
         <div>
           <dt>{labels.updated}</dt>
@@ -99,7 +100,7 @@ export default function ExperimentCard({
         </div>
         <div>
           <dt>{labels.readiness}</dt>
-          <dd>{experiment.validationReadiness}</dd>
+          <dd>{validationReadinessLabel(experiment.validationReadiness, language)}</dd>
         </div>
       </dl>
 

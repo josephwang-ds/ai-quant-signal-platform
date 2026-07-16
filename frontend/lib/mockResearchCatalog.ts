@@ -54,6 +54,16 @@ function buildCanonicalDetail(): ResearchDetail {
       ),
       dataRequirements: [...def.dataRequirements],
     },
+    runConfiguration: {
+      symbol: def.symbol,
+      benchmark: def.symbol,
+      startDate: "2018-01-01",
+      endDate: null,
+      shortWindow: 20,
+      longWindow: 60,
+      transactionCost: 0.001,
+      riskFreeRate: 0,
+    },
     hypothesis: def.hypothesis,
     researchObjective: def.researchObjective,
     researchSummary: def.explanatoryText,
@@ -106,6 +116,9 @@ export function getMockResearchDetails(): ResearchDetail[] {
       parameterLines: [...item.configuration.parameterLines],
       dataRequirements: [...item.configuration.dataRequirements],
     },
+    runConfiguration: item.runConfiguration
+      ? { ...item.runConfiguration }
+      : undefined,
   }));
 }
 

@@ -8,9 +8,13 @@ import type {
   ResearchExecutionResult,
   ResearchExecutionStatus,
 } from "@/types/researchExecution";
+import type { ResearchRunConfiguration } from "@/types/research";
 
-export function useResearchExecution(researchId: string) {
-  const enabled = researchId === CANONICAL_RESEARCH_ID;
+export function useResearchExecution(
+  researchId: string,
+  configuration?: ResearchRunConfiguration
+) {
+  const enabled = researchId === CANONICAL_RESEARCH_ID || Boolean(configuration);
   const [status, setStatus] = useState<ResearchExecutionStatus>(
     enabled ? "loading" : "idle"
   );
@@ -36,7 +40,11 @@ export function useResearchExecution(researchId: string) {
 
     void (async () => {
       try {
-        const result = await fetchResearchExecution({ signal: controller.signal });
+        const result = await fetchResearchExecution({
+          signal: controller.signal,
+          researchId,
+          configuration,
+        });
         if (!controller.signal.aborted) {
           setExecution(result);
           setStatus("ready");
@@ -57,7 +65,7 @@ export function useResearchExecution(researchId: string) {
     })();
 
     return () => controller.abort();
-  }, [enabled, reloadToken]);
+  }, [configuration, enabled, reloadToken, researchId]);
 
   return { enabled, status, execution, error, reload };
 }

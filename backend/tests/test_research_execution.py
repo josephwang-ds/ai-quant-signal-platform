@@ -163,8 +163,21 @@ def test_service_success(service: ResearchExecutionService) -> None:
 
 def test_service_rejects_bad_research_id(service: ResearchExecutionService) -> None:
     with pytest.raises(ResearchExecutionError) as exc:
-        service.execute({"research_id": "fictional-pairs"})
+        service.execute({"research_id": "not allowed / path"})
     assert exc.value.status_code == 400
+
+
+def test_service_accepts_local_ma_research_id(
+    service: ResearchExecutionService,
+) -> None:
+    result = service.execute(
+        {
+            "research_id": "research-local-demo",
+            "symbol": "SPY",
+            "benchmark": "SPY",
+        }
+    )
+    assert result["research_id"] == "research-local-demo"
 
 
 def test_api_success_with_fixture(api_client: TestClient) -> None:
