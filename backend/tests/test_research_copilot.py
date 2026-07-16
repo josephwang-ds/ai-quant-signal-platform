@@ -89,6 +89,8 @@ def test_environment_cannot_enable_fake_llm_adapter(
 ) -> None:
     monkeypatch.setenv("COPILOT_ALLOW_FAKE_LLM", "true")
     monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+    monkeypatch.delenv("LLM_API_KEY", raising=False)
+    monkeypatch.delenv("LLM_PROVIDER", raising=False)
     with pytest.raises(ResearchCopilotError) as exc:
         resolve_llm_adapter()
     assert exc.value.status_code == 503
@@ -417,6 +419,8 @@ def test_llm_port_is_injected_not_imported_from_provider_sdk() -> None:
 
 def test_api_not_configured_without_api_key(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+    monkeypatch.delenv("LLM_API_KEY", raising=False)
+    monkeypatch.delenv("LLM_PROVIDER", raising=False)
     monkeypatch.setenv("COPILOT_ALLOW_FAKE_LLM", "true")
     copilot_route.set_research_copilot_service(None)
     app = FastAPI()

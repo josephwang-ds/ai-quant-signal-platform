@@ -23,7 +23,7 @@ describe("research copilot repository policy", () => {
     expect(envExample).not.toMatch(/NEXT_PUBLIC_.*API_KEY/i);
   });
 
-  it("does not import OpenAI or Anthropic SDKs in frontend source", () => {
+  it("does not import OpenAI, Anthropic, or DeepSeek SDKs in frontend source", () => {
     const sourceFiles = walk(FRONTEND_ROOT).filter((file) =>
       /\.(ts|tsx)$/.test(file)
     );
@@ -32,6 +32,9 @@ describe("research copilot repository policy", () => {
       .join("\n");
     expect(combined).not.toMatch(/from ["']openai["']/);
     expect(combined).not.toMatch(/from ["']@anthropic-ai\/sdk["']/);
+    expect(combined).not.toMatch(/api\.openai\.com/);
+    expect(combined).not.toMatch(/api\.deepseek\.com/);
+    expect(combined).not.toMatch(/NEXT_PUBLIC_(OPENAI|LLM|DEEPSEEK)_API_KEY/);
   });
 
   it("does not ship a mock copilot answer presented as generated output", () => {

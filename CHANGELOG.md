@@ -6,6 +6,20 @@ The project intends to follow [Keep a Changelog](https://keepachangelog.com/en/1
 
 ## [Unreleased]
 
+### Added
+
+#### PR-019 — Configurable OpenAI-compatible Copilot providers
+
+- Research Copilot now resolves one OpenAI-compatible Chat Completions
+  provider per deployment via `LLM_PROVIDER`, `LLM_API_KEY`, `LLM_BASE_URL`,
+  and `COPILOT_MODEL` (OpenAI + DeepSeek allowlist; HTTPS base URL validation;
+  no failover).
+- `OpenAiCompatibleLlmAdapter` builds `{base}/chat/completions` safely,
+  preserves structured JSON response requests, and maps auth/rate-limit/
+  malformed provider failures without exposing raw bodies.
+- Temporary deprecated fallback: `OPENAI_API_KEY` still works when
+  `LLM_API_KEY` is absent.
+
 ### Fixed
 
 #### PR-018 — Research Execution request contract and production errors
