@@ -121,8 +121,14 @@ def validate_llm_base_url(base_url: str, *, allow_insecure: bool = False) -> str
     host = (parsed.hostname or "").lower()
     is_loopback = host in {"localhost", "127.0.0.1", "::1"}
 
+    # Production and secure defaults: HTTPS only; never loopback.
+    # Insecure HTTP is limited to loopback and only when explicitly allowed
+    # for development/test (never for remote hosts).
     if parsed.scheme == "https":
-        pass
+        if is_loopback and not allow_insecure:
+            raise LlmConfigurationError(
+                "Research Copilot LLM_BASE_URL must not target localhost in production."
+            )
     elif parsed.scheme == "http" and allow_insecure and is_loopback:
         pass
     else:
@@ -131,14 +137,22 @@ def validate_llm_base_url(base_url: str, *, allow_insecure: bool = False) -> str
             "(http://localhost is allowed only in local development/tests)."
         )
 
-    if is_loopback and not allow_insecure:
-        raise LlmConfigurationError(
-            "Research Copilot LLM_BASE_URL must not target localhost in production."
-        )
-
     # Rebuild without credentials/query/fragment; preserve path for /v1 etc.
     path = parsed.path.rstrip("/") if parsed.path not in {"", "/"} else ""
     return f"{parsed.scheme}://{parsed.netloc}{path}"
+
+
+def is_production_runtime(env: dict[str, str]) -> bool:
+    """Production markers always win over insecure-base-URL overrides."""
+    if env.get("RENDER", "").strip().lower() in {"true", "1"}:
+        return True
+    runtime = (
+        env.get("ENVIRONMENT")
+        or env.get("APP_ENV")
+        or env.get("NODE_ENV")
+        or ""
+    ).strip().lower()
+    return runtime == "production"
 
 
 def _resolve_provider(env: dict[str, str]) -> AllowedProvider:
@@ -180,16 +194,23 @@ def _resolve_base_url(env: dict[str, str], provider: str) -> str:
 def _should_allow_insecure(
     env: dict[str, str], override: bool | None
 ) -> bool:
+    # Production always wins — env flags and explicit overrides cannot relax this.
+    if is_production_runtime(env):
+        return False
+
     if override is not None:
         return override
+
     if env.get("LLM_ALLOW_INSECURE_BASE_URL", "").strip().lower() in {
         "1",
         "true",
         "yes",
     }:
         return True
+
     if env.get("PYTEST_CURRENT_TEST"):
         return True
+
     runtime = (
         env.get("ENVIRONMENT")
         or env.get("APP_ENV")
@@ -198,9 +219,6 @@ def _should_allow_insecure(
     ).strip().lower()
     if runtime in {"development", "dev", "test", "local"}:
         return True
-    if env.get("RENDER", "").strip().lower() in {"true", "1"}:
-        return False
-    if runtime == "production":
-        return False
-    # Default local / unset: allow loopback HTTP for adapter unit tests.
-    return True
+
+    # Unset / unknown non-production runtimes stay secure by default.
+    return False

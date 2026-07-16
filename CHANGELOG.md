@@ -19,6 +19,9 @@ The project intends to follow [Keep a Changelog](https://keepachangelog.com/en/1
   malformed provider failures without exposing raw bodies.
 - Temporary deprecated fallback: `OPENAI_API_KEY` still works when
   `LLM_API_KEY` is absent.
+- Production base-URL hardening: `RENDER` / `ENVIRONMENT|APP_ENV|NODE_ENV=
+  production` always require HTTPS and reject localhost; insecure overrides
+  cannot relax this.
 
 ### Fixed
 

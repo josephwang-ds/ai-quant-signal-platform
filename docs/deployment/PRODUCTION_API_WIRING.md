@@ -98,6 +98,11 @@ belong only on the backend (Render). Never put keys in Vercel `NEXT_PUBLIC_*`.
 There is no provider failover. Model availability depends on the provider
 account/API version. `OPENAI_API_KEY` remains a temporary deprecated fallback.
 
+`LLM_BASE_URL` must be HTTPS in production (including Render). Loopback and
+`http://` bases are rejected when `RENDER` / `ENVIRONMENT` / `APP_ENV` /
+`NODE_ENV` indicate production. Any local-only insecure override is ignored
+in production and must never be set on Render.
+
 ## Troubleshooting
 
 1. A configuration message in production: verify the Vercel variable is set

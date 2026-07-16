@@ -150,8 +150,105 @@ def test_credentials_query_and_fragment_rejected() -> None:
 
 
 def test_localhost_rejected_in_production_mode() -> None:
-    with pytest.raises(LlmConfigurationError, match="localhost"):
+    with pytest.raises(LlmConfigurationError, match="HTTPS|localhost"):
         validate_llm_base_url("http://127.0.0.1:4010/v1", allow_insecure=False)
+
+
+def test_production_ignores_llm_allow_insecure_env_on_render() -> None:
+    with pytest.raises(LlmConfigurationError, match="HTTPS|localhost"):
+        resolve_llm_provider_settings(
+            environ={
+                "RENDER": "true",
+                "LLM_ALLOW_INSECURE_BASE_URL": "true",
+                "LLM_PROVIDER": "openai",
+                "LLM_API_KEY": "sk-test",
+                "LLM_BASE_URL": "http://127.0.0.1:4010/v1",
+            },
+            allow_insecure=None,
+        )
+
+
+def test_production_ignores_explicit_allow_insecure_override() -> None:
+    with pytest.raises(LlmConfigurationError, match="HTTPS|localhost"):
+        resolve_llm_provider_settings(
+            environ={
+                "ENVIRONMENT": "production",
+                "LLM_PROVIDER": "openai",
+                "LLM_API_KEY": "sk-test",
+                "LLM_BASE_URL": "http://localhost:4010/v1",
+            },
+            allow_insecure=True,
+        )
+
+
+def test_app_env_production_rejects_http_localhost() -> None:
+    with pytest.raises(LlmConfigurationError, match="HTTPS|localhost"):
+        resolve_llm_provider_settings(
+            environ={
+                "APP_ENV": "production",
+                "LLM_PROVIDER": "openai",
+                "LLM_API_KEY": "sk-test",
+                "LLM_BASE_URL": "http://127.0.0.1:4010/v1",
+            }
+        )
+
+
+def test_development_allows_http_localhost() -> None:
+    settings = resolve_llm_provider_settings(
+        environ={
+            "ENVIRONMENT": "development",
+            "LLM_PROVIDER": "openai",
+            "LLM_API_KEY": "sk-test",
+            "LLM_BASE_URL": "http://127.0.0.1:4010/v1",
+        }
+    )
+    assert settings.base_url == "http://127.0.0.1:4010/v1"
+    assert settings.chat_completions_url == (
+        "http://127.0.0.1:4010/v1/chat/completions"
+    )
+
+
+def test_pytest_allows_http_localhost() -> None:
+    settings = resolve_llm_provider_settings(
+        environ={
+            "PYTEST_CURRENT_TEST": "test_pytest_allows_http_localhost",
+            "LLM_PROVIDER": "openai",
+            "LLM_API_KEY": "sk-test",
+            "LLM_BASE_URL": "http://localhost:4010/v1",
+        }
+    )
+    assert settings.base_url == "http://localhost:4010/v1"
+
+
+def test_development_rejects_remote_http_host() -> None:
+    with pytest.raises(LlmConfigurationError, match="HTTPS"):
+        resolve_llm_provider_settings(
+            environ={
+                "ENVIRONMENT": "development",
+                "LLM_ALLOW_INSECURE_BASE_URL": "true",
+                "LLM_PROVIDER": "openai",
+                "LLM_API_KEY": "sk-test",
+                "LLM_BASE_URL": "http://api.example.com/v1",
+            },
+            allow_insecure=True,
+        )
+
+
+def test_production_accepts_https_deepseek_url() -> None:
+    settings = resolve_llm_provider_settings(
+        environ={
+            "ENVIRONMENT": "production",
+            "LLM_PROVIDER": "deepseek",
+            "LLM_API_KEY": "sk-deepseek",
+            "LLM_BASE_URL": "https://api.deepseek.com",
+            "COPILOT_MODEL": "deepseek-chat",
+        },
+        allow_insecure=True,
+    )
+    assert settings.base_url == "https://api.deepseek.com"
+    assert settings.chat_completions_url == (
+        "https://api.deepseek.com/chat/completions"
+    )
 
 
 def test_adapter_uses_bearer_auth_model_and_json_object(
