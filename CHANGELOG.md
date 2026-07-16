@@ -8,6 +8,16 @@ The project intends to follow [Keep a Changelog](https://keepachangelog.com/en/1
 
 ### Added
 
+#### PR-020 — Wire Research Workspace actions
+
+- Wired `ResearchActionPanel` to existing Notebook, Experiments, Validation,
+  Evaluation, and Copilot sections via canonical `?tab=` navigation.
+- Run Validation navigates to Validation and reuses the existing
+  `useResearchValidation` reload path without a second hook instance;
+  Evaluation and Copilot enable only after `validation_run_id` exists.
+- Opening Copilot does not submit an LLM request; Export remains honestly
+  disabled. Fixed `isResearchWorkspaceSection` to recognize `copilot`.
+
 #### PR-019 — Configurable OpenAI-compatible Copilot providers
 
 - Research Copilot now resolves one OpenAI-compatible Chat Completions

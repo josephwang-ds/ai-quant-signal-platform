@@ -37,6 +37,7 @@ export function isResearchWorkspaceSection(
     value === "experiments" ||
     value === "validation" ||
     value === "evaluation" ||
+    value === "copilot" ||
     value === "timeline" ||
     value === "files" ||
     value === "settings"

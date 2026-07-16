@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import AppShell from "@/components/layout/AppShell";
 import EvidenceSummary from "@/components/features/research/EvidenceSummary";
 import OverviewSection from "@/components/features/research/OverviewSection";
@@ -51,6 +51,11 @@ import {
 } from "@/lib/applyResearchExecution";
 import { getMockExperiments } from "@/lib/mockExperimentCatalog";
 import { METRIC_NOT_CALCULATED } from "@/lib/researchExperiments";
+import {
+  canRequestEvaluation,
+  shouldReloadEvaluationOnAction,
+  shouldReloadValidationOnAction,
+} from "@/lib/workspaceActionTriggers";
 
 type LoadStatus = "loading" | "ready" | "error" | "not_found";
 
@@ -105,10 +110,22 @@ export default function ResearchWorkspacePage({
   researchId,
 }: ResearchWorkspacePageProps) {
   const { language, setLanguage, tr } = useWorkspaceLanguage();
+  const router = useRouter();
   const searchParams = useSearchParams();
   const activeSection = resolveWorkspaceSection(
     searchParams.get("tab"),
     searchParams.get("section")
+  );
+
+  const navigateToSection = useCallback(
+    (section: ResearchWorkspaceSection) => {
+      const href =
+        section === "overview"
+          ? `/research/${encodeURIComponent(researchId)}`
+          : `/research/${encodeURIComponent(researchId)}?tab=${section}`;
+      router.push(href);
+    },
+    [researchId, router]
   );
 
   const [research, setResearch] = useState<ResearchDetail | null>(null);
@@ -171,6 +188,36 @@ export default function ResearchWorkspacePage({
     activeSection === "copilot",
     validationRunId
   );
+
+  /**
+   * Validation trigger design (PR-020):
+   * - Navigate to Validation first.
+   * - If validation evidence was not yet active, the existing tab hook owns the
+   *   single auto-fetch when the section becomes active.
+   * - If validation evidence was already active (validation/evaluation/copilot),
+   *   call reloadValidation() exactly once to re-run without creating a second hook.
+   */
+  const handleRunValidation = useCallback(() => {
+    navigateToSection("validation");
+    if (shouldReloadValidationOnAction(validationEvidenceActive)) {
+      reloadValidation();
+    }
+  }, [navigateToSection, reloadValidation, validationEvidenceActive]);
+
+  const handleRequestEvaluation = useCallback(() => {
+    if (!canRequestEvaluation(validationRunId)) {
+      return;
+    }
+    navigateToSection("evaluation");
+    if (shouldReloadEvaluationOnAction(validationRunId, activeSection)) {
+      reloadEvaluation();
+    }
+  }, [
+    activeSection,
+    navigateToSection,
+    reloadEvaluation,
+    validationRunId,
+  ]);
 
   const displayResearch = useMemo(() => {
     if (!research) {
@@ -952,10 +999,30 @@ export default function ResearchWorkspacePage({
                   addNotebook: tr("researchWsActionNotebook"),
                   createExperiment: tr("researchWsActionExperiment"),
                   runValidation: tr("researchWsActionValidation"),
+                  runningValidation: tr("researchWsActionValidationRunning"),
                   requestEvaluation: tr("researchWsActionEvaluation"),
+                  openCopilot: tr("researchWsActionCopilot"),
                   exportResearch: tr("researchWsActionExport"),
-                  comingLater: tr("researchWsComingLater"),
+                  hintNotebook: tr("researchWsActionHintNotebook"),
+                  hintExperiment: tr("researchWsActionHintExperiment"),
+                  hintValidation: tr("researchWsActionHintValidation"),
+                  hintEvaluation: tr("researchWsActionHintEvaluation"),
+                  hintEvaluationDisabled: tr(
+                    "researchWsActionHintEvaluationDisabled"
+                  ),
+                  hintCopilot: tr("researchWsActionHintCopilot"),
+                  hintCopilotDisabled: tr(
+                    "researchWsActionHintCopilotDisabled"
+                  ),
+                  hintExport: tr("researchWsActionHintExport"),
                 }}
+                activeSection={activeSection}
+                onNavigate={navigateToSection}
+                onRunValidation={handleRunValidation}
+                onRequestEvaluation={handleRequestEvaluation}
+                validationStatus={validationStatus}
+                validationRunId={validationRunId}
+                evaluationStatus={evaluationStatus}
               />
             </div>
           </div>
