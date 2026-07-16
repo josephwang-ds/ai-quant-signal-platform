@@ -1,39 +1,53 @@
-# Slice: Research Workspace Detail (PR-003)
+# Slice: Research Workspace Detail
 
-Story 2.2. Mock-only detail workspace for one research project.
+Story 2.2. Research workspace for the canonical MA Crossover research project.
 
 ## Delivered
 
 - `/research/[researchId]` workspace route
 - Research list cards open the matching workspace
-- Overview fully implemented (question, hypothesis, objective, stage, confidence, recommendation, summaries, evidence, strengths/weaknesses, open questions, next actions)
-- Reusable `LifecycleProgress` (Ch3 stages)
-- Local section navigation with informative placeholders for non-Overview tabs
-- Right-side action panel (disabled / deferred)
-- Loading, error (`?mockError=1`), and not-found states
-- Shared mock catalog so list and detail stay consistent
+- Overview, Notebook, Experiments, Timeline, Validation, Evaluation, and Copilot tabs
+- Research Execution evidence when the backend is available
+- Local section navigation via canonical `?tab=` / `?section=` routing
+- Right-side action panel wired to existing workflows (PR-020)
+- Loading, error, and not-found states
+
+## Workspace actions (PR-020)
+
+| Action | Behavior |
+|---|---|
+| Add Notebook Entry | Navigate to Notebook (`?tab=notebook`). Does not auto-create an entry. |
+| Create Experiment | Navigate to Experiments (`?tab=experiments`). Does not invent experiments. |
+| Run Validation | Navigate to Validation; first visit lets `useResearchValidation` own the request; already-active evidence sections call `reloadValidation()` once. |
+| Request Evaluation | Enabled only with `validation_run_id`. Navigate to Evaluation; reload only if already on that tab. Never re-runs Validation. |
+| Open Research Copilot | Enabled only with `validation_run_id`. Navigate to Copilot. Does **not** submit a paid LLM request. |
+| Export Research | Disabled. Honest hint: not available in this release. |
+
+Duplicate-request prevention: one Validation/Evaluation hook instance owned by `ResearchWorkspacePage`; action rail never imports API clients.
 
 ## Key paths
 
 ```text
 frontend/app/research/[researchId]/page.tsx
 frontend/components/features/research/ResearchWorkspacePage.tsx
-frontend/components/features/research/{ResearchWorkspaceHeader,ResearchWorkspaceNavigation,OverviewSection,LifecycleProgress,EvidenceSummary,ResearchActionPanel,WorkspacePlaceholder,ResearchWorkspaceSkeleton}.tsx
-frontend/components/ui/{TagList,MetricSummaryCard}.tsx
-frontend/lib/mockResearchCatalog.ts
+frontend/components/features/research/ResearchActionPanel.tsx
+frontend/lib/workspaceActionTriggers.ts
 frontend/lib/researchWorkspace.ts
-frontend/types/research.ts
 ```
 
 ## Demo
 
 | State | How |
 |---|---|
-| Ready | `/research/rs-momentum-001` |
-| Section placeholder | `/research/rs-momentum-001?section=notebook` |
+| Ready | `/research/ma-crossover-spy` |
+| Validation | `/research/ma-crossover-spy?tab=validation` |
+| Evaluation | `/research/ma-crossover-spy?tab=evaluation` (after Validation) |
+| Copilot | `/research/ma-crossover-spy?tab=copilot` (after Validation) |
 | Not found | `/research/does-not-exist` |
-| Error | `/research/rs-momentum-001?mockError=1` |
 
-## Out of scope (deferred)
+## Still deferred
 
-Notebook editing, experiment creation, validation execution, evaluation engine, files, settings forms, backend, auth, AI review, portfolio.
+- Export Research
+- Durable Notebook / Experiment persistence beyond the current presentation/session model
+- Files and Settings forms
+- Auth / multi-tenant workspace boundaries

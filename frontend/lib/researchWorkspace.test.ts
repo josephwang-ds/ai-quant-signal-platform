@@ -83,6 +83,7 @@ describe("workspace navigation model", () => {
     expect(resolveWorkspaceSection("notebook", null)).toBe("notebook");
     expect(resolveWorkspaceSection(null, "notebook")).toBe("notebook");
     expect(resolveWorkspaceSection("timeline", "notebook")).toBe("timeline");
+    expect(resolveWorkspaceSection("copilot", null)).toBe("copilot");
     expect(resolveWorkspaceSection(null, null)).toBe("overview");
   });
 });

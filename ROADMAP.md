@@ -116,6 +116,10 @@ Still deferred beyond PR-001: release automation, Dependabot policy, branch-prot
 - [x] Configurable OpenAI-compatible Copilot providers *(PR-019: `LLM_PROVIDER` /
   `LLM_API_KEY` / `LLM_BASE_URL` / `COPILOT_MODEL`; OpenAI + DeepSeek allowlist;
   HTTPS base URL validation; legacy `OPENAI_API_KEY` fallback; no failover)*.
+- [x] Research Workspace action rail wiring *(PR-020: navigate to existing
+  Notebook/Experiments/Validation/Evaluation/Copilot flows; Validation reload
+  without duplicate hooks; Evaluation/Copilot gated on `validation_run_id`;
+  Copilot open does not auto-call LLM; Export remains deferred)*.
 - Research, Review, Market, and Portfolio agent roles.
 - Event consumption, repository reads, and Application-only mutations.
 - Model/prompt versioning, evidence citations, cost and latency telemetry.
