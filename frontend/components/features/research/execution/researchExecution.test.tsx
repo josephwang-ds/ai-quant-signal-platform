@@ -1,9 +1,8 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 import ProvenanceBanner from "@/components/features/research/execution/ProvenanceBanner";
-import OverviewSection, {
-  type OverviewSectionLabels,
-} from "@/components/features/research/OverviewSection";
+import OverviewSection from "@/components/features/research/OverviewSection";
+import { overviewSectionTestLabels } from "@/components/features/research/overviewSectionTestLabels";
 import ValidationPendingPanel from "@/components/features/research/ValidationPendingPanel";
 import LoadingState from "@/components/ui/LoadingState";
 import {
@@ -81,53 +80,7 @@ const SAMPLE_EXECUTION: ResearchExecutionResult = {
   },
 };
 
-const overviewLabels: OverviewSectionLabels = {
-  briefTitle: "Research Brief",
-  keyResultsTitle: "Key Results",
-  guidedWorkflowTitle: "Guided workflow",
-  conclusionTitle: "Research Conclusion",
-
-  datasetPeriodLabel: "Dataset & period",
-  strategyRuleLabel: "Strategy rule",
-  evidenceStatusLabel: "Evidence",
-  decisionStatusLabel: "Evaluation status",
-
-  evidenceComplete: "Evidence complete",
-  evidenceIncomplete: "Incomplete",
-  evidencePending: "Not started",
-
-  decisionPending: "Decision pending evidence and review.",
-  evaluationCompleted: "Completed",
-  evaluationIncomplete: "Incomplete",
-  evaluationBlocked: "Blocked",
-
-  coverageLabel: "Coverage",
-  keyStrengthsLabel: "Key strengths",
-  limitationLabel: "Known weaknesses",
-  nextActionLabel: "Next actions",
-
-  strategyTotalReturnLabel: "Strategy total return",
-  benchmarkTotalReturnLabel: "Benchmark total return",
-  maxDrawdownLabel: "Maximum drawdown",
-  oosSharpeLabel: "Out-of-sample Sharpe ratio",
-
-  keyResultsUnavailable: "Run the research to calculate historical evidence.",
-  oosSharpeUnavailable:
-    "Run validation to calculate out-of-sample Sharpe ratio.",
-
-  stepRunResearch: "Run Research",
-  stepValidateEvidence: "Validate evidence",
-  stepReviewEvaluation: "Review evaluation",
-  stepAskCopilot: "Ask Copilot",
-
-  ctaRunResearch: "Run Research",
-  ctaResearchLoading: "Research is running…",
-  ctaRetryResearch: "Retry research",
-
-  ctaRunValidation: "Run Validation",
-  ctaRequestEvaluation: "Request Evaluation",
-  ctaAskCopilot: "Ask Copilot",
-};
+const overviewLabels = overviewSectionTestLabels;
 
 describe("PR-008B research execution UI", () => {
   it("shows loading copy while waiting for backend evidence", () => {
@@ -230,7 +183,7 @@ describe("PR-008B research execution UI", () => {
     expect(screen.getByText("42.0%")).toBeInTheDocument();
     expect(screen.getByText("90.0%")).toBeInTheDocument();
     expect(screen.getByText("-22.0%")).toBeInTheDocument();
-    expect(screen.getByText(overviewLabels.oosSharpeUnavailable)).toBeInTheDocument();
+    expect(screen.getByText(overviewLabels.keyResults.oosSharpeUnavailable)).toBeInTheDocument();
     expect(screen.queryByText(/Research Confidence:\s*\d/i)).not.toBeInTheDocument();
     expect(research.confidenceScore).toBeNull();
   });

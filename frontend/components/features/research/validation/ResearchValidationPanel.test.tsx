@@ -247,6 +247,19 @@ const labels: ResearchValidationLabels = {
 };
 
 describe("ResearchValidationPanel", () => {
+  it("shows concise summary before collapsed detailed evidence", () => {
+    const { container } = render(
+      <ResearchValidationPanel validation={SAMPLE_VALIDATION} labels={labels} language="en" />
+    );
+
+    expect(container.querySelector(".validation-concise-summary")).toBeTruthy();
+    const disclosures = container.querySelectorAll(".validation-evidence-disclosure");
+    expect(disclosures.length).toBeGreaterThan(0);
+    disclosures.forEach((node) => {
+      expect((node as HTMLDetailsElement).open).toBe(false);
+    });
+  });
+
   it("shows reviewer-facing evidence and the exact OOS split without raw stage JSON", () => {
     render(<ResearchValidationPanel validation={SAMPLE_VALIDATION} labels={labels} language="en" />);
 

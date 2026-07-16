@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import LifecycleProgress from "@/components/features/research/LifecycleProgress";
 import ResearchWorkspaceNavigation from "@/components/features/research/ResearchWorkspaceNavigation";
 import OverviewSection from "@/components/features/research/OverviewSection";
+import { overviewSectionTestLabels } from "@/components/features/research/overviewSectionTestLabels";
 import {
   CANONICAL_RESEARCH_ID,
   getMockResearchById,
@@ -70,51 +71,7 @@ describe("OverviewSection", () => {
         onRunValidation={() => void 0}
         onRequestEvaluation={() => void 0}
         onAskCopilot={() => void 0}
-        labels={{
-          briefTitle: "Research Brief",
-          keyResultsTitle: "Key Results",
-          guidedWorkflowTitle: "Guided workflow",
-          conclusionTitle: "Research Conclusion",
-
-          datasetPeriodLabel: "Dataset & period",
-          strategyRuleLabel: "Strategy rule",
-          evidenceStatusLabel: "Evidence",
-          decisionStatusLabel: "Evaluation status",
-
-          evidenceComplete: "Evidence complete",
-          evidenceIncomplete: "Incomplete",
-          evidencePending: "Not started",
-
-          decisionPending: "Decision pending evidence and review.",
-          evaluationCompleted: "Completed",
-          evaluationIncomplete: "Incomplete",
-          evaluationBlocked: "Blocked",
-
-          coverageLabel: "Coverage",
-          keyStrengthsLabel: "Key strengths",
-          limitationLabel: "Known weaknesses",
-          nextActionLabel: "Next actions",
-
-          strategyTotalReturnLabel: "Strategy total return",
-          benchmarkTotalReturnLabel: "Benchmark total return",
-          maxDrawdownLabel: "Maximum drawdown",
-          oosSharpeLabel: "Out-of-sample Sharpe ratio",
-
-          keyResultsUnavailable: "Run the research to calculate historical evidence.",
-          oosSharpeUnavailable: "Run validation to calculate out-of-sample Sharpe ratio.",
-
-          stepRunResearch: "Run Research",
-          stepValidateEvidence: "Validate evidence",
-          stepReviewEvaluation: "Review evaluation",
-          stepAskCopilot: "Ask Copilot",
-
-          ctaRunResearch: "Run Research",
-          ctaResearchLoading: "Research is running…",
-          ctaRetryResearch: "Retry research",
-          ctaRunValidation: "Run Validation",
-          ctaRequestEvaluation: "Request Evaluation",
-          ctaAskCopilot: "Ask Copilot",
-        }}
+        labels={overviewSectionTestLabels}
       />
     );
 

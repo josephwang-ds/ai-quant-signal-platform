@@ -171,6 +171,11 @@ export default function ResearchListPage() {
     symbol: tr("researchListSymbol"),
     strategy: tr("researchListStrategy"),
     evidenceStatus: tr("researchListEvidenceStatus"),
+    nextStep: tr("researchListNextStep"),
+    nextStepRunResearch: tr("researchListNextStepRunResearch"),
+    nextStepValidate: tr("researchListNextStepValidate"),
+    nextStepEvaluate: tr("researchListNextStepEvaluate"),
+    nextStepReview: tr("researchListNextStepReview"),
     more: tr("researchListMore"),
   };
 

@@ -12,6 +12,7 @@ import {
   researchStatusLabel,
   strategyLabel,
 } from "@/lib/researchDisplay";
+import { deriveResearchListNextStep } from "@/lib/researchWorkflow";
 import type { ResearchListItem } from "@/types/research";
 
 function formatUpdated(value: string, language: Language): string {
@@ -37,6 +38,11 @@ export type ResearchCardProps = {
     symbol: string;
     strategy: string;
     evidenceStatus: string;
+    nextStep: string;
+    nextStepRunResearch: string;
+    nextStepValidate: string;
+    nextStepEvaluate: string;
+    nextStepReview: string;
     more: string;
   };
   onArchive: (id: string) => void;
@@ -52,6 +58,17 @@ export default function ResearchCard({
   labels,
   onArchive,
 }: ResearchCardProps) {
+  const nextStep = deriveResearchListNextStep(
+    item.integrity.validationStatus,
+    item.integrity.evaluationStatus,
+    {
+      runResearch: labels.nextStepRunResearch,
+      validate: labels.nextStepValidate,
+      evaluate: labels.nextStepEvaluate,
+      review: labels.nextStepReview,
+    }
+  );
+
   return (
     <article className="research-card research-card--slim">
       <header className="research-card__header">
@@ -98,6 +115,10 @@ export default function ResearchCard({
         <div className="research-card__meta-item research-card__meta-item--wide">
           <dt>{labels.evidenceStatus}</dt>
           <dd>{evidenceStatusLabel(item.integrity.validationStatus, language)}</dd>
+        </div>
+        <div className="research-card__meta-item research-card__meta-item--wide">
+          <dt>{labels.nextStep}</dt>
+          <dd>{nextStep}</dd>
         </div>
       </dl>
 

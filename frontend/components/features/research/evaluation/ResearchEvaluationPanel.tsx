@@ -3,6 +3,7 @@ import type {
   ResearchEvaluationResult,
 } from "@/types/researchEvaluation";
 import type { Language } from "@/lib/i18n";
+import { formatResearchTimestamp } from "@/lib/researchDisplay";
 
 /**
  * Enterprise governance dashboard for PR-010 evaluation evidence.
@@ -36,6 +37,10 @@ export type ResearchEvaluationLabels = {
   outstandingEvidenceTitle: string;
   limitationsTitle: string;
   blockersTitle: string;
+  decisionReadinessTitle: string;
+  keyFindingsTitle: string;
+  nextGovernanceActionTitle: string;
+  detailsTitle: string;
   none: string;
   notAvailable: string;
 };
@@ -140,6 +145,12 @@ export default function ResearchEvaluationPanel({
 }: Props) {
   const coverage = evaluation.evidence_coverage;
   const provenance = evaluation.provenance;
+  const keyFinding = evaluation.evidence_summary.find((item) => item.status === "completed");
+  const nextGovernanceAction =
+    evaluation.blockers[0] ??
+    evaluation.outstanding_evidence[0] ??
+    evaluation.limitations[0] ??
+    null;
 
   return (
     <section
@@ -164,18 +175,80 @@ export default function ResearchEvaluationPanel({
           <dd>{statusLabel(evaluation.evaluation_status, labels)}</dd>
         </div>
         <div>
-          <dt>{labels.source}</dt>
-          <dd>
-            {(provenance.market_data_provenance?.["source"] as string) ??
-              (provenance.market_data_provenance?.["provider"] as string) ??
-              labels.notAvailable}
-          </dd>
+          <dt>{labels.decisionReadinessTitle}</dt>
+          <dd>{statusLabel(evaluation.evaluation_status, labels)}</dd>
+        </div>
+        <div>
+          <dt>{labels.coveragePercentage}</dt>
+          <dd>{coverage.coverage_percentage}%</dd>
         </div>
         <div>
           <dt>{labels.generated}</dt>
-          <dd>{evaluation.generated_at}</dd>
+          <dd>{formatResearchTimestamp(evaluation.generated_at, language)}</dd>
         </div>
       </dl>
+
+      {keyFinding ? (
+        <section className="evaluation-review-summary" aria-label={labels.keyFindingsTitle}>
+          <h3>{labels.keyFindingsTitle}</h3>
+          <p className="section-meta">
+            {localizeEvaluationText(keyFinding.label, language)}:{" "}
+            {localizeEvaluationText(keyFinding.summary, language)}
+          </p>
+        </section>
+      ) : null}
+
+      <div className="evaluation-list-grid">
+        <EvidenceList
+          title={labels.completedEvidenceTitle}
+          items={evaluation.completed_stages}
+          emptyLabel={labels.none}
+          language={language}
+        />
+        <EvidenceList
+          title={labels.outstandingEvidenceTitle}
+          items={evaluation.outstanding_evidence}
+          emptyLabel={labels.none}
+          tone="warning"
+          language={language}
+        />
+        <EvidenceList
+          title={labels.blockersTitle}
+          items={evaluation.blockers}
+          emptyLabel={labels.none}
+          tone="danger"
+          language={language}
+        />
+        <EvidenceList
+          title={labels.limitationsTitle}
+          items={evaluation.limitations}
+          emptyLabel={labels.none}
+          language={language}
+        />
+      </div>
+
+      {nextGovernanceAction ? (
+        <section className="evaluation-review-next" aria-label={labels.nextGovernanceActionTitle}>
+          <h3>{labels.nextGovernanceActionTitle}</h3>
+          <p className="section-meta">
+            {localizeEvaluationText(nextGovernanceAction, language)}
+          </p>
+        </section>
+      ) : null}
+
+      <details className="validation-evidence-disclosure">
+        <summary>{labels.detailsTitle}</summary>
+
+        <dl className="validation-evidence__facts validation-evidence__facts--summary">
+          <div>
+            <dt>{labels.source}</dt>
+            <dd>
+              {(provenance.market_data_provenance?.["source"] as string) ??
+                (provenance.market_data_provenance?.["provider"] as string) ??
+                labels.notAvailable}
+            </dd>
+          </div>
+        </dl>
 
       <section
         className="evaluation-coverage-card"
@@ -243,41 +316,14 @@ export default function ResearchEvaluationPanel({
         </div>
       </section>
 
-      <div className="evaluation-list-grid">
-        <EvidenceList
-          title={labels.completedEvidenceTitle}
-          items={evaluation.completed_stages}
-          emptyLabel={labels.none}
-          language={language}
-        />
-        <EvidenceList
-          title={labels.incompleteEvidenceTitle}
-          items={evaluation.incomplete_stages}
-          emptyLabel={labels.none}
-          tone="warning"
-          language={language}
-        />
-        <EvidenceList
-          title={labels.outstandingEvidenceTitle}
-          items={evaluation.outstanding_evidence}
-          emptyLabel={labels.none}
-          language={language}
-        />
-        <EvidenceList
-          title={labels.limitationsTitle}
-          items={evaluation.limitations}
-          emptyLabel={labels.none}
-          language={language}
-        />
-      </div>
-
       <EvidenceList
-        title={labels.blockersTitle}
-        items={evaluation.blockers}
+        title={labels.incompleteEvidenceTitle}
+        items={evaluation.incomplete_stages}
         emptyLabel={labels.none}
-        tone="danger"
+        tone="warning"
         language={language}
       />
+      </details>
     </section>
   );
 }
