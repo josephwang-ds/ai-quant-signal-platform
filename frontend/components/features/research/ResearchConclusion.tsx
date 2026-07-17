@@ -56,12 +56,7 @@ export default function ResearchConclusion({
   labels,
 }: ResearchConclusionProps) {
   if (!evaluationReady || !evaluation) {
-    return (
-      <section className="overview-block overview-conclusion" aria-label={labels.title}>
-        <h3 className="overview-block__title">{labels.title}</h3>
-        <p className="section-meta">{labels.notRequested}</p>
-      </section>
-    );
+    return null;
   }
 
   const statusLabel =

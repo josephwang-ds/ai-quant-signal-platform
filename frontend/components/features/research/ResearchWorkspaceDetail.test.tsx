@@ -49,6 +49,7 @@ describe("ResearchWorkspaceNavigation", () => {
       "href",
       `/research/${CANONICAL_RESEARCH_ID}?tab=validation`
     );
+    expect(screen.queryByRole("link", { name: "Review" })).not.toBeInTheDocument();
   });
 });
 

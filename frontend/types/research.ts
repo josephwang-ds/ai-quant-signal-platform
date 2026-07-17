@@ -131,12 +131,11 @@ export const RESEARCH_WORKSPACE_SECTIONS = [
 
 export type ResearchWorkspaceSection = (typeof RESEARCH_WORKSPACE_SECTIONS)[number];
 
-/** Primary Research IA sidebar (URLs unchanged; labels map Evidence/Review/Notes). */
+/** Primary Research IA sidebar (Evidence merges validation + evaluation content). */
 export const RESEARCH_WORKSPACE_PRIMARY_SECTIONS: ResearchWorkspaceSection[] = [
   "overview",
   "experiments",
   "validation",
-  "evaluation",
   "notebook",
   "settings",
 ];

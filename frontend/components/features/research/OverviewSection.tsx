@@ -112,6 +112,22 @@ export default function OverviewSection({
 
   return (
     <div className="overview-narrative">
+      <ResearchConclusion
+        language={language}
+        evaluation={evaluation}
+        evaluationReady={evaluationReady(evaluationStatus, evaluation)}
+        labels={labels.conclusion}
+      />
+
+      <section className="overview-block" aria-label={labels.keyResultsTitle}>
+        <h3 className="overview-block__title">{labels.keyResultsTitle}</h3>
+        <KeyResultsSummary
+          execution={executionReady(executionStatus, execution) ? execution : null}
+          validation={validationReady(validationStatus, validation) ? validation : null}
+          labels={labels.keyResults}
+        />
+      </section>
+
       <section className="overview-block" aria-label={labels.briefTitle}>
         <h3 className="overview-block__title">{labels.briefTitle}</h3>
         <ResearchBrief
@@ -124,22 +140,6 @@ export default function OverviewSection({
           showIdentity={false}
         />
       </section>
-
-      <section className="overview-block" aria-label={labels.keyResultsTitle}>
-        <h3 className="overview-block__title">{labels.keyResultsTitle}</h3>
-        <KeyResultsSummary
-          execution={executionReady(executionStatus, execution) ? execution : null}
-          validation={validationReady(validationStatus, validation) ? validation : null}
-          labels={labels.keyResults}
-        />
-      </section>
-
-      <ResearchConclusion
-        language={language}
-        evaluation={evaluation}
-        evaluationReady={evaluationReady(evaluationStatus, evaluation)}
-        labels={labels.conclusion}
-      />
 
       <GuidedResearchFlow
         stepStates={stepStates}

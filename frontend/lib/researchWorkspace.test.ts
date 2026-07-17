@@ -86,6 +86,11 @@ describe("workspace navigation model", () => {
     expect(resolveWorkspaceSection("copilot", null)).toBe("copilot");
     expect(resolveWorkspaceSection(null, null)).toBe("overview");
   });
+
+  it("maps ?tab=evaluation onto the Evidence (validation) section", () => {
+    expect(resolveWorkspaceSection("evaluation", null)).toBe("validation");
+    expect(resolveWorkspaceSection(null, "evaluation")).toBe("validation");
+  });
 });
 
 describe("research progress helpers", () => {

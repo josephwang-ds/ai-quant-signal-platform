@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import AppShell from "@/components/layout/AppShell";
 import OverviewSection from "@/components/features/research/OverviewSection";
@@ -173,6 +173,7 @@ export default function ResearchWorkspacePage({
   }, [validationRunId, validationStatus]);
 
   const evaluationRequestActive =
+    activeSection === "validation" ||
     activeSection === "evaluation" ||
     activeSection === "copilot" ||
     evaluationUnlocked;
@@ -226,7 +227,7 @@ export default function ResearchWorkspacePage({
     if (!canRequestEvaluation(validationRunId)) {
       return;
     }
-    navigateToSection("evaluation");
+    navigateToSection("validation");
     if (shouldReloadEvaluationOnAction(validationRunId, activeSection)) {
       reloadEvaluation();
     }
@@ -690,20 +691,101 @@ export default function ResearchWorkspacePage({
       );
     }
 
-    if (activeSection === "validation") {
-      if (!validationEnabled) {
+    function renderEvaluationBlock(): ReactNode {
+      if (!evaluationEnabled) {
         return (
+          <ErrorAlert
+            title={tr("researchEvalUnavailableTitle")}
+            message={tr("researchEvalUnavailableDescription")}
+          />
+        );
+      }
+      if (evaluationStatus === "awaiting_validation") {
+        return (
+          <div className="research-execution-error">
+            <ErrorAlert
+              title={tr("researchEvalAwaitingValidationTitle")}
+              message={tr("researchEvalAwaitingValidationDescription")}
+            />
+            <Link
+              href={`/research/${encodeURIComponent(researchId)}?tab=validation`}
+              className="btn btn--primary"
+            >
+              {tr("researchEvalGoToValidation")}
+            </Link>
+          </div>
+        );
+      }
+      if (evaluationStatus === "loading") {
+        return <LoadingState message={tr("researchEvalLoading")} />;
+      }
+      if (evaluationStatus === "error") {
+        return (
+          <div className="research-execution-error">
+            <ErrorAlert
+              title={tr("researchEvalUnavailableTitle")}
+              message={evaluationError ?? tr("researchEvalUnavailableDescription")}
+            />
+            <Button primary onClick={reloadEvaluation}>
+              {tr("researchEvalRetry")}
+            </Button>
+          </div>
+        );
+      }
+      if (evaluationStatus !== "ready" || !evaluation) {
+        return null;
+      }
+      return (
+        <ResearchEvaluationPanel
+          evaluation={evaluation}
+          language={language}
+          labels={{
+            title: tr("researchWsEvaluationTitle"),
+            summary: tr("researchEvalSummary"),
+            status: tr("researchEvalStatus"),
+            completed: tr("researchEvalCompleted"),
+            incomplete: tr("researchEvalIncomplete"),
+            blocked: tr("researchEvalBlocked"),
+            source: tr("researchEvalSource"),
+            generated: tr("researchEvalGenerated"),
+            coverageTitle: tr("researchEvalCoverageTitle"),
+            implementedStages: tr("researchEvalImplementedStages"),
+            completedStagesCount: tr("researchEvalCompletedStagesCount"),
+            coveragePercentage: tr("researchEvalCoveragePercentage"),
+            coverageDisclaimer: tr("researchEvalCoverageDisclaimer"),
+            evidenceSummaryTitle: tr("researchEvalEvidenceSummaryTitle"),
+            stageColumn: tr("researchEvalStageColumn"),
+            statusColumn: tr("researchEvalStatusColumn"),
+            summaryColumn: tr("researchEvalSummaryColumn"),
+            completedEvidenceTitle: tr("researchEvalCompletedEvidenceTitle"),
+            incompleteEvidenceTitle: tr("researchEvalIncompleteEvidenceTitle"),
+            outstandingEvidenceTitle: tr("researchEvalOutstandingEvidenceTitle"),
+            limitationsTitle: tr("researchEvalLimitationsTitle"),
+            blockersTitle: tr("researchEvalBlockersTitle"),
+            decisionReadinessTitle: tr("researchEvalDecisionReadiness"),
+            keyFindingsTitle: tr("researchEvalKeyFindings"),
+            nextGovernanceActionTitle: tr("researchEvalNextGovernanceAction"),
+            detailsTitle: tr("researchEvalDetailsTitle"),
+            none: tr("researchEvalNone"),
+            notAvailable: tr("researchEvalNotAvailable"),
+          }}
+        />
+      );
+    }
+
+    if (activeSection === "validation") {
+      let validationBlock: ReactNode = null;
+      if (!validationEnabled) {
+        validationBlock = (
           <ErrorAlert
             title={tr("researchValUnavailableTitle")}
             message={tr("researchValUnavailableDescription")}
           />
         );
-      }
-      if (validationStatus === "loading") {
-        return <LoadingState message={tr("researchValLoading")} />;
-      }
-      if (validationStatus === "error") {
-        return (
+      } else if (validationStatus === "loading") {
+        validationBlock = <LoadingState message={tr("researchValLoading")} />;
+      } else if (validationStatus === "error") {
+        validationBlock = (
           <div className="research-execution-error">
             <ErrorAlert
               title={tr("researchValUnavailableTitle")}
@@ -714,11 +796,8 @@ export default function ResearchWorkspacePage({
             </Button>
           </div>
         );
-      }
-      if (validationStatus !== "ready" || !validation) {
-        return null;
-      }
-      return (
+      } else if (validationStatus === "ready" && validation) {
+        validationBlock = (
           <ResearchValidationPanel
             validation={validation}
             language={language}
@@ -788,89 +867,19 @@ export default function ResearchWorkspacePage({
             notAvailable: tr("researchValNotAvailable"),
           }}
           />
+        );
+      }
+
+      return (
+        <>
+          {validationBlock}
+          {renderEvaluationBlock()}
+        </>
       );
     }
 
     if (activeSection === "evaluation") {
-      if (!evaluationEnabled) {
-        return (
-          <ErrorAlert
-            title={tr("researchEvalUnavailableTitle")}
-            message={tr("researchEvalUnavailableDescription")}
-          />
-        );
-      }
-      if (evaluationStatus === "awaiting_validation") {
-        return (
-          <div className="research-execution-error">
-            <ErrorAlert
-              title={tr("researchEvalAwaitingValidationTitle")}
-              message={tr("researchEvalAwaitingValidationDescription")}
-            />
-            <Link
-              href={`/research/${encodeURIComponent(researchId)}?tab=validation`}
-              className="btn btn--primary"
-            >
-              {tr("researchEvalGoToValidation")}
-            </Link>
-          </div>
-        );
-      }
-      if (evaluationStatus === "loading") {
-        return <LoadingState message={tr("researchEvalLoading")} />;
-      }
-      if (evaluationStatus === "error") {
-        return (
-          <div className="research-execution-error">
-            <ErrorAlert
-              title={tr("researchEvalUnavailableTitle")}
-              message={evaluationError ?? tr("researchEvalUnavailableDescription")}
-            />
-            <Button primary onClick={reloadEvaluation}>
-              {tr("researchEvalRetry")}
-            </Button>
-          </div>
-        );
-      }
-      if (evaluationStatus !== "ready" || !evaluation) {
-        return null;
-      }
-      return (
-          <ResearchEvaluationPanel
-            evaluation={evaluation}
-            language={language}
-            labels={{
-              title: tr("researchWsEvaluationTitle"),
-              summary: tr("researchEvalSummary"),
-              status: tr("researchEvalStatus"),
-              completed: tr("researchEvalCompleted"),
-              incomplete: tr("researchEvalIncomplete"),
-              blocked: tr("researchEvalBlocked"),
-              source: tr("researchEvalSource"),
-              generated: tr("researchEvalGenerated"),
-              coverageTitle: tr("researchEvalCoverageTitle"),
-              implementedStages: tr("researchEvalImplementedStages"),
-              completedStagesCount: tr("researchEvalCompletedStagesCount"),
-              coveragePercentage: tr("researchEvalCoveragePercentage"),
-              coverageDisclaimer: tr("researchEvalCoverageDisclaimer"),
-              evidenceSummaryTitle: tr("researchEvalEvidenceSummaryTitle"),
-              stageColumn: tr("researchEvalStageColumn"),
-              statusColumn: tr("researchEvalStatusColumn"),
-              summaryColumn: tr("researchEvalSummaryColumn"),
-              completedEvidenceTitle: tr("researchEvalCompletedEvidenceTitle"),
-              incompleteEvidenceTitle: tr("researchEvalIncompleteEvidenceTitle"),
-              outstandingEvidenceTitle: tr("researchEvalOutstandingEvidenceTitle"),
-              limitationsTitle: tr("researchEvalLimitationsTitle"),
-              blockersTitle: tr("researchEvalBlockersTitle"),
-              decisionReadinessTitle: tr("researchEvalDecisionReadiness"),
-              keyFindingsTitle: tr("researchEvalKeyFindings"),
-              nextGovernanceActionTitle: tr("researchEvalNextGovernanceAction"),
-              detailsTitle: tr("researchEvalDetailsTitle"),
-              none: tr("researchEvalNone"),
-              notAvailable: tr("researchEvalNotAvailable"),
-            }}
-          />
-      );
+      return renderEvaluationBlock();
     }
 
     if (activeSection === "copilot") {
@@ -883,82 +892,9 @@ export default function ResearchWorkspacePage({
         );
       }
 
-      const evaluationNode = (() => {
-        if (!evaluationEnabled) return null;
-        if (evaluationStatus === "awaiting_validation") {
-          return (
-            <div className="research-execution-error">
-              <ErrorAlert
-                title={tr("researchEvalAwaitingValidationTitle")}
-                message={tr("researchEvalAwaitingValidationDescription")}
-              />
-              <Link
-                href={`/research/${encodeURIComponent(researchId)}?tab=validation`}
-                className="btn btn--primary"
-              >
-                {tr("researchEvalGoToValidation")}
-              </Link>
-            </div>
-          );
-        }
-        if (evaluationStatus === "loading") {
-          return <LoadingState message={tr("researchEvalLoading")} />;
-        }
-        if (evaluationStatus === "error") {
-          return (
-            <div className="research-execution-error">
-              <ErrorAlert
-                title={tr("researchEvalUnavailableTitle")}
-                message={evaluationError ?? tr("researchEvalUnavailableDescription")}
-              />
-              <Button primary onClick={reloadEvaluation}>
-                {tr("researchEvalRetry")}
-              </Button>
-            </div>
-          );
-        }
-        if (evaluationStatus !== "ready" || !evaluation) return null;
-        return (
-          <ResearchEvaluationPanel
-            evaluation={evaluation}
-            language={language}
-            labels={{
-              title: tr("researchWsEvaluationTitle"),
-              summary: tr("researchEvalSummary"),
-              status: tr("researchEvalStatus"),
-              completed: tr("researchEvalCompleted"),
-              incomplete: tr("researchEvalIncomplete"),
-              blocked: tr("researchEvalBlocked"),
-              source: tr("researchEvalSource"),
-              generated: tr("researchEvalGenerated"),
-              coverageTitle: tr("researchEvalCoverageTitle"),
-              implementedStages: tr("researchEvalImplementedStages"),
-              completedStagesCount: tr("researchEvalCompletedStagesCount"),
-              coveragePercentage: tr("researchEvalCoveragePercentage"),
-              coverageDisclaimer: tr("researchEvalCoverageDisclaimer"),
-              evidenceSummaryTitle: tr("researchEvalEvidenceSummaryTitle"),
-              stageColumn: tr("researchEvalStageColumn"),
-              statusColumn: tr("researchEvalStatusColumn"),
-              summaryColumn: tr("researchEvalSummaryColumn"),
-              completedEvidenceTitle: tr("researchEvalCompletedEvidenceTitle"),
-              incompleteEvidenceTitle: tr("researchEvalIncompleteEvidenceTitle"),
-              outstandingEvidenceTitle: tr("researchEvalOutstandingEvidenceTitle"),
-              limitationsTitle: tr("researchEvalLimitationsTitle"),
-              blockersTitle: tr("researchEvalBlockersTitle"),
-              decisionReadinessTitle: tr("researchEvalDecisionReadiness"),
-              keyFindingsTitle: tr("researchEvalKeyFindings"),
-              nextGovernanceActionTitle: tr("researchEvalNextGovernanceAction"),
-              detailsTitle: tr("researchEvalDetailsTitle"),
-              none: tr("researchEvalNone"),
-              notAvailable: tr("researchEvalNotAvailable"),
-            }}
-          />
-        );
-      })();
-
       return (
         <div className="research-review-copilot">
-          {evaluationNode}
+          {renderEvaluationBlock()}
           <ResearchCopilotPanel
             labels={{
               title: tr("researchCopilotTitle"),
@@ -1124,25 +1060,6 @@ export default function ResearchWorkspacePage({
                     }
                   >
                     {tr("researchWsNavValidation")}
-                  </Link>
-                  <Link
-                    href={`/research/${encodeURIComponent(
-                      displayResearch.id
-                    )}?tab=evaluation`}
-                    className={`research-workspace__primary-tab${
-                      activeSection === "evaluation" ||
-                      activeSection === "copilot"
-                        ? " is-active"
-                        : ""
-                    }`}
-                    aria-current={
-                      activeSection === "evaluation" ||
-                      activeSection === "copilot"
-                        ? "page"
-                        : undefined
-                    }
-                  >
-                    {tr("researchWsNavEvaluation")}
                   </Link>
                 </div>
 
