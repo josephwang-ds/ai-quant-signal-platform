@@ -38,7 +38,9 @@ export default function ResearchWorkspaceNavigation({
       <ul className="research-workspace-nav__list">
         {RESEARCH_WORKSPACE_PRIMARY_SECTIONS.map((section) => {
           const href = sectionHref(researchId, section);
-          const isActive = section === activeSection;
+          const isActive =
+            section === activeSection ||
+            (section === "validation" && activeSection === "evaluation");
           return (
             <li key={section}>
               <Link

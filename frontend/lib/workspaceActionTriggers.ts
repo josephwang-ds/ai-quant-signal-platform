@@ -17,7 +17,11 @@ export function shouldReloadEvaluationOnAction(
   validationRunId: string | null,
   activeSection: string
 ): boolean {
-  return Boolean(validationRunId) && activeSection === "evaluation";
+  // Evidence tab owns validation + evaluation; evaluation URL still maps here.
+  return (
+    Boolean(validationRunId) &&
+    (activeSection === "validation" || activeSection === "evaluation")
+  );
 }
 
 export function canRequestEvaluation(validationRunId: string | null): boolean {

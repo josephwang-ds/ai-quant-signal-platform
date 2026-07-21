@@ -29,53 +29,46 @@ describe("LocalResearchRepository", () => {
     expect(list.some((item) => item.id === CANONICAL_RESEARCH_ID)).toBe(true);
   });
 
-  it("creates user research in localStorage", async () => {
+  it("creates research-first user research without run configuration", async () => {
     const repo = new LocalResearchRepository();
     const created = await repo.create({
-      name: "Configurable MA Study",
-      researchQuestion: "Does MA10/50 improve drawdown on QQQ?",
-      symbol: "QQQ",
-      benchmark: "QQQ",
-      startDate: "2020-01-01",
-      endDate: "2025-12-31",
-      shortWindow: 10,
-      longWindow: 50,
-      transactionCost: 0.002,
-      tags: ["draft", "qqq"],
+      name: "Trend Following Study",
+      researchQuestion:
+        "Can moving average strategies consistently outperform Buy & Hold after transaction costs?",
+      hypothesis:
+        "Medium-term trend rules may reduce drawdowns, but any edge may weaken after costs and in sideways markets.",
+      tags: ["trend-following", "draft"],
       owner: "Analyst",
     });
 
     expect(created.id).toMatch(/^research-/);
+    expect(created.status).toBe("Draft");
+    expect(created.experimentCount).toBe(0);
+    expect(created.hypothesis).toContain("Medium-term trend rules");
+    expect(created.evidenceSummary).toBe("No calculated evidence yet.");
+    expect(created.runConfiguration).toBeUndefined();
+    expect(created.configuration.strategyName).toBe("Not configured");
+
     const list = await repo.list();
     expect(list.some((item) => item.id === created.id)).toBe(true);
     expect(list.find((item) => item.id === created.id)?.name).toBe(
-      "Configurable MA Study"
+      "Trend Following Study"
     );
-    expect((await repo.getById(created.id))?.runConfiguration).toMatchObject({
-      symbol: "QQQ",
-      shortWindow: 10,
-      longWindow: 50,
-      transactionCost: 0.002,
-    });
+    expect(list.find((item) => item.id === created.id)?.evidenceSummary).toBe(
+      "No calculated evidence yet."
+    );
   });
 
-  it("rejects invalid executable definitions before persistence", async () => {
+  it("rejects create without hypothesis", async () => {
     const repo = new LocalResearchRepository();
     await expect(
       repo.create({
-        name: "Invalid windows",
-        researchQuestion: "Will this run?",
-        symbol: "SPY",
-        benchmark: "SPY",
-        startDate: "2024-01-01",
-        endDate: "2025-01-01",
-        shortWindow: 60,
-        longWindow: 20,
-        transactionCost: 0.001,
+        name: "Incomplete",
+        researchQuestion: "Will this persist?",
+        hypothesis: "   ",
         tags: [],
-        owner: "Analyst",
       })
-    ).rejects.toThrow("Long MA window");
+    ).rejects.toThrow("Hypothesis is required.");
   });
 
   it("hides demo research on archive and restores via includeDemoResearch", async () => {

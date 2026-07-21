@@ -31,9 +31,13 @@ const labels: ResearchEvaluationLabels = {
   summaryColumn: "Summary",
   completedEvidenceTitle: "Completed evidence",
   incompleteEvidenceTitle: "Incomplete evidence",
-  outstandingEvidenceTitle: "Outstanding evidence",
+  outstandingEvidenceTitle: "Still missing",
   limitationsTitle: "Limitations",
   blockersTitle: "Blockers",
+  decisionReadinessTitle: "Ready to decide?",
+  keyFindingsTitle: "Key findings",
+  nextGovernanceActionTitle: "What to do next",
+  detailsTitle: "Evaluation details",
   none: "None",
   notAvailable: "n/a",
 };
@@ -99,18 +103,27 @@ function buildEvaluation(
 }
 
 describe("ResearchEvaluationPanel", () => {
+  it("shows review summary before collapsed evaluation details", () => {
+    const { container } = render(
+      <ResearchEvaluationPanel evaluation={buildEvaluation()} labels={labels} language="en" />
+    );
+
+    expect(screen.getByText("Key findings")).toBeInTheDocument();
+    expect(
+      screen.getByText("Full-history deterministic MA-crossover evidence was calculated.")
+    ).toBeInTheDocument();
+    const details = container.querySelector("details.validation-evidence-disclosure");
+    expect(details).toBeTruthy();
+    expect((details as HTMLDetailsElement).open).toBe(false);
+  });
+
   it("shows evaluation status, coverage, and evidence summary from backend evidence", () => {
     render(
       <ResearchEvaluationPanel evaluation={buildEvaluation()} labels={labels} language="en" />
     );
 
     expect(screen.getAllByText("Incomplete").length).toBeGreaterThan(0);
-    expect(screen.getByText("6")).toBeInTheDocument();
-    expect(screen.getByText("5")).toBeInTheDocument();
-    expect(screen.getByText("83.33%")).toBeInTheDocument();
-    expect(
-      screen.getByText("Full-history deterministic MA-crossover evidence was calculated.")
-    ).toBeInTheDocument();
+    expect(screen.getAllByText("83.33%").length).toBeGreaterThan(0);
   });
 
   it("lists completed, incomplete, outstanding evidence, limitations, and blockers", () => {
@@ -122,10 +135,10 @@ describe("ResearchEvaluationPanel", () => {
     expect(screen.getByText("Monte Carlo simulation")).toBeInTheDocument();
     expect(screen.getByText("Stress testing is not implemented.")).toBeInTheDocument();
     expect(
-      screen.getByText(
+      screen.getAllByText(
         "Insufficient OOS history: need at least 252 valid return rows; got 150."
-      )
-    ).toBeInTheDocument();
+      ).length
+    ).toBeGreaterThan(0);
   });
 
   it("never renders a confidence score, star rating, or buy/sell recommendation", () => {
@@ -170,8 +183,8 @@ describe("ResearchEvaluationPanel", () => {
 
     expect(screen.getAllByText("Blocked").length).toBeGreaterThan(0);
     expect(
-      screen.getByText("Provider unavailable: provider unavailable")
-    ).toBeInTheDocument();
+      screen.getAllByText("Provider unavailable: provider unavailable").length
+    ).toBeGreaterThan(0);
     expect(screen.queryByText(/failed strategy/i)).not.toBeInTheDocument();
   });
 

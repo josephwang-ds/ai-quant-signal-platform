@@ -98,7 +98,7 @@ export function parameterLineLabel(value: string, language: Language) {
 
 export function researchNameLabel(id: string, value: string, language: Language) {
   return language === "zh" && id === CANONICAL_RESEARCH_ID
-    ? "均线交叉研究"
+    ? "趋势跟踪研究"
     : value;
 }
 
@@ -108,6 +108,45 @@ export function researchQuestionLabel(
   language: Language
 ) {
   return language === "zh" && id === CANONICAL_RESEARCH_ID
-    ? "在计入交易成本后，MA20/MA60 能否长期跑赢 SPY 买入并持有基准？"
+    ? "均线策略在计入交易成本后，能否持续跑赢买入并持有？"
     : value;
+}
+
+export function formatResearchTimestamp(value: string, language: Language): string {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return new Intl.DateTimeFormat(language === "zh" ? "zh-CN" : "en-US", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(date);
+}
+
+export function localizeEvidenceNote(value: string, language: Language): string {
+  if (language !== "zh") return value;
+  const known: Record<string, string> = {
+    "Yahoo Finance / yfinance is suitable for research and portfolio demos only — not an exchange-grade production feed.":
+      "Yahoo Finance / yfinance 为研究级数据源，不是交易所级行情。",
+    "Provider timeout is enforced via yfinance download(timeout=…).":
+      "数据下载已启用超时保护。",
+    "Yahoo prices use yfinance auto_adjust (auto_adjust).":
+      "价格使用 yfinance 自动复权口径。",
+    "The strategy is run once on full history, then valid return rows are sliced at split_date. The first OOS row therefore preserves its full-run position, turnover, and transaction cost against the prior in-sample row.":
+      "策略先在完整历史区间运行，再按切分日期划分有效收益；首个样本外观测保留与上一样本内观测连续的仓位、换手和交易成本。",
+  };
+  if (known[value]) return known[value];
+
+  const cutoff = value.match(
+    /^Open-ended request clipped to completed daily bars only \(exclusive cutoff (\d{4}-\d{2}-\d{2}) America\/New_York\)\.$/
+  );
+  if (cutoff) {
+    return `已自动排除尚未收盘的当日行情，数据截止 ${cutoff[1]}（纽约市场日界线）。`;
+  }
+
+  const dropped = value.match(
+    /^Dropped (\d+) incomplete Yahoo Finance bar\(s\) with missing OHLC before validation\.$/
+  );
+  if (dropped) {
+    return `验证前已排除 ${dropped[1]} 条 OHLC 不完整的 Yahoo Finance 记录。`;
+  }
+  return value;
 }

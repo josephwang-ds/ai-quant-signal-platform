@@ -44,11 +44,16 @@ export function isResearchWorkspaceSection(
   );
 }
 
-/** 解析 ?tab= 或 ?section=（向后兼容 PR-003）。 */
+/** 解析 ?tab= 或 ?section=（向后兼容 PR-003）。
+ *  ?tab=evaluation 归一到 validation（Evidence 合并标签）。
+ */
 export function resolveWorkspaceSection(
   tabParam: string | null,
   sectionParam: string | null
 ): import("@/types/research").ResearchWorkspaceSection {
   const candidate = tabParam ?? sectionParam;
+  if (candidate === "evaluation") {
+    return "validation";
+  }
   return isResearchWorkspaceSection(candidate) ? candidate : "overview";
 }

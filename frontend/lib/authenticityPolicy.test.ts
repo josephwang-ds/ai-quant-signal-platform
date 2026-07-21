@@ -48,11 +48,11 @@ function collectFrontendFixtureFiles(root: string): string[] {
 }
 
 describe("PR-008A authenticity — canonical research", () => {
-  it("publishes exactly one MA Crossover research project", () => {
+  it("publishes exactly one Trend Following research project", () => {
     const list = getMockResearchProjects();
     expect(list).toHaveLength(1);
     expect(list[0].id).toBe(CANONICAL_RESEARCH_ID);
-    expect(list[0].name).toBe("MA Crossover Research");
+    expect(list[0].name).toBe("Trend Following Study");
     expect(list[0].configuration.symbol).toBe("SPY");
     expect(list[0].configuration.benchmark).toBe("SPY Buy & Hold");
     expect(list[0].status).toBe("Data Integration");
@@ -141,7 +141,7 @@ describe("PR-008A authenticity — prohibited fictional titles", () => {
     }
     expect(hits).toEqual([]);
     expect(MOCK_RESEARCH_DETAILS.map((item) => item.name)).toEqual([
-      "MA Crossover Research",
+      "Trend Following Study",
     ]);
   });
 });

@@ -74,6 +74,8 @@ export type ResearchListItem = {
   createdAt: string;
   updatedAt: string;
   experimentCount: number;
+  /** Honest evidence copy for Hub cards — never invent calculated results. */
+  evidenceSummary: string;
   lastValidation: string;
   currentRecommendation: string;
   integrity: ResearchIntegrityDisplay;
@@ -131,12 +133,11 @@ export const RESEARCH_WORKSPACE_SECTIONS = [
 
 export type ResearchWorkspaceSection = (typeof RESEARCH_WORKSPACE_SECTIONS)[number];
 
-/** Primary Research IA sidebar (URLs unchanged; labels map Evidence/Review/Notes). */
+/** Primary Research IA sidebar (Evidence merges validation + evaluation content). */
 export const RESEARCH_WORKSPACE_PRIMARY_SECTIONS: ResearchWorkspaceSection[] = [
   "overview",
   "experiments",
   "validation",
-  "evaluation",
   "notebook",
   "settings",
 ];
@@ -184,6 +185,7 @@ export function toResearchListItem(detail: ResearchDetail): ResearchListItem {
     createdAt: detail.createdAt,
     updatedAt: detail.updatedAt,
     experimentCount: detail.experimentCount,
+    evidenceSummary: detail.evidenceSummary,
     lastValidation: detail.lastValidation,
     currentRecommendation: detail.currentRecommendation,
     integrity: { ...detail.integrity },

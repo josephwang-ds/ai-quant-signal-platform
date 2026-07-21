@@ -6,7 +6,6 @@ import AppShell from "@/components/layout/AppShell";
 import NewResearchModal from "@/components/features/research/NewResearchModal";
 import ResearchCard from "@/components/features/research/ResearchCard";
 import ResearchListSkeleton from "@/components/features/research/ResearchListSkeleton";
-import ResearchWorkspaceSummary from "@/components/features/research/ResearchWorkspaceSummary";
 import Button from "@/components/ui/Button";
 import EmptyState from "@/components/ui/EmptyState";
 import ErrorAlert from "@/components/ui/ErrorAlert";
@@ -17,8 +16,6 @@ import type { CreateResearchInput } from "@/lib/researchRepository";
 import {
   DEFAULT_RESEARCH_LIST_FILTERS,
   filterAndSortResearchList,
-  getUniqueResearchOwners,
-  getUniqueResearchTags,
   type ResearchListFilters,
 } from "@/lib/researchListFilters";
 import { useWorkspaceLanguage } from "@/lib/useWorkspaceLanguage";
@@ -29,7 +26,7 @@ import {
 import { useResearchExecution } from "@/components/features/research/execution/useResearchExecution";
 import { applyExecutionToListItem } from "@/lib/applyResearchExecution";
 import { CANONICAL_RESEARCH_ID } from "@/lib/canonicalMaCrossover";
-import { ownerLabel, researchStatusLabel } from "@/lib/researchDisplay";
+import { researchStatusLabel } from "@/lib/researchDisplay";
 
 type LoadStatus = "loading" | "ready" | "error";
 
@@ -43,7 +40,7 @@ function filtersAreActive(filters: ResearchListFilters): boolean {
 }
 
 /**
- * Research Workspace home — Research-first list (Sprint 1 IA).
+ * Research Hub — research-question list (not ticker/strategy file manager).
  * Persistence: ResearchRepository → LocalResearchRepository (localStorage).
  */
 export default function ResearchListPage() {
@@ -51,12 +48,6 @@ export default function ResearchListPage() {
   const router = useRouter();
   const repository = useMemo(() => getResearchRepository(), []);
   const [items, setItems] = useState<ResearchListItem[]>([]);
-  const [summary, setSummary] = useState({
-    total: 0,
-    defined: 0,
-    evidenceAvailable: 0,
-    reviewOrArchived: 0,
-  });
   const [filters, setFilters] = useState<ResearchListFilters>(
     DEFAULT_RESEARCH_LIST_FILTERS
   );
@@ -74,21 +65,11 @@ export default function ResearchListPage() {
     setLoadStatus("loading");
     setLoadError(null);
     try {
-      const [data, nextSummary] = await Promise.all([
-        repository.list(),
-        repository.getSummary(),
-      ]);
+      const data = await repository.list();
       setItems(data);
-      setSummary(nextSummary);
       setLoadStatus("ready");
     } catch {
       setItems([]);
-      setSummary({
-        total: 0,
-        defined: 0,
-        evidenceAvailable: 0,
-        reviewOrArchived: 0,
-      });
       setLoadError("The research list could not be loaded. Please retry.");
       setLoadStatus("error");
     }
@@ -98,8 +79,6 @@ export default function ResearchListPage() {
     void loadList();
   }, [loadList, reloadToken]);
 
-  const owners = useMemo(() => getUniqueResearchOwners(items), [items]);
-  const tags = useMemo(() => getUniqueResearchTags(items), [items]);
   const displayedItems = useMemo(() => {
     if (executionStatus !== "ready" || !execution) {
       return items;
@@ -164,13 +143,10 @@ export default function ResearchListPage() {
   }
 
   const cardLabels = {
-    openWorkspace: tr("researchListOpenWorkspace"),
-    archive: tr("researchListArchive"),
+    question: tr("researchListQuestionLabel"),
     experiments: tr("researchListExperimentCount"),
-    updated: tr("researchListUpdated"),
-    symbol: tr("researchListSymbol"),
-    strategy: tr("researchListStrategy"),
-    evidenceStatus: tr("researchListEvidenceStatus"),
+    latestEvidence: tr("researchListLatestEvidence"),
+    archive: tr("researchListArchive"),
     more: tr("researchListMore"),
   };
 
@@ -204,24 +180,8 @@ export default function ResearchListPage() {
           </Button>
         </header>
 
-        {loadStatus === "ready" || loadStatus === "loading" ? (
-          <ResearchWorkspaceSummary
-            total={summary.total}
-            defined={summary.defined}
-            evidenceAvailable={summary.evidenceAvailable}
-            reviewOrArchived={summary.reviewOrArchived}
-            labels={{
-              research: tr("researchListKpiResearch"),
-              ariaLabel: tr("researchListSummaryAria"),
-              defined: tr("researchListKpiDefined"),
-              evidenceAvailable: tr("researchListKpiEvidenceAvailable"),
-              reviewOrArchived: tr("researchListKpiReviewArchived"),
-            }}
-          />
-        ) : null}
-
         {showToolbar ? (
-          <div className="research-list-toolbar" role="search">
+          <div className="research-list-toolbar research-list-toolbar--slim" role="search">
             <div className="form-field research-list-toolbar__search">
               <label className="form-label" htmlFor="research-search">
                 {tr("researchListSearch")}
@@ -263,53 +223,13 @@ export default function ResearchListPage() {
             </div>
 
             <div className="form-field">
-              <label className="form-label" htmlFor="research-owner">
-                {tr("researchListFilterOwner")}
-              </label>
-              <select
-                id="research-owner"
-                className="form-select"
-                value={filters.owner}
-                disabled={loadStatus === "loading" || owners.length === 0}
-                onChange={(event) => updateFilter("owner", event.target.value)}
-              >
-                <option value="all">{tr("researchListFilterAll")}</option>
-                {owners.map((owner) => (
-                  <option key={owner} value={owner}>
-                    {ownerLabel(owner, language)}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div className="form-field">
-              <label className="form-label" htmlFor="research-tag">
-                {tr("researchListFilterTag")}
-              </label>
-              <select
-                id="research-tag"
-                className="form-select"
-                value={filters.tag}
-                disabled={loadStatus === "loading" || tags.length === 0}
-                onChange={(event) => updateFilter("tag", event.target.value)}
-              >
-                <option value="all">{tr("researchListFilterAll")}</option>
-                {tags.map((tag) => (
-                  <option key={tag} value={tag}>
-                    {tag}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div className="form-field">
               <label className="form-label" htmlFor="research-sort">
                 {tr("researchListSort")}
               </label>
               <select
                 id="research-sort"
                 className="form-select"
-                value={filters.sort}
+                value={filters.sort === "confidence" ? "updated" : filters.sort}
                 disabled={loadStatus === "loading"}
                 onChange={(event) =>
                   updateFilter(
@@ -321,9 +241,6 @@ export default function ResearchListPage() {
                 <option value="updated">{tr("researchListSortUpdated")}</option>
                 <option value="created">{tr("researchListSortCreated")}</option>
                 <option value="name">{tr("researchListSortName")}</option>
-                <option value="confidence">
-                  {tr("researchListSortConfidence")}
-                </option>
               </select>
             </div>
           </div>
@@ -391,7 +308,7 @@ export default function ResearchListPage() {
               ) : null}
 
               {visible.length > 0 ? (
-                <div className="research-list-grid">
+                <div className="research-list-grid research-list-grid--projects">
                   {visible.map((item) => (
                     <ResearchCard
                       key={item.id}
@@ -418,24 +335,14 @@ export default function ResearchListPage() {
           localNote: tr("researchListModalLocalNote"),
           name: tr("researchListModalName"),
           question: tr("researchListModalQuestion"),
-          symbol: tr("researchListSymbol"),
-          startDate: tr("researchExpComposerStart"),
-          endDate: tr("researchExpComposerEnd"),
-          shortWindow: tr("researchValShortWindow"),
-          longWindow: tr("researchValLongWindow"),
-          transactionCost: tr("researchValTransactionCost"),
+          hypothesis: tr("researchListModalHypothesis"),
           tags: tr("researchWsTags"),
           tagsHint: tr("researchListModalTagsHint"),
-          owner: tr("researchListOwner"),
           create: tr("researchListModalCreate"),
           cancel: tr("researchListModalCancel"),
           errorName: tr("researchListModalNameRequired"),
           errorQuestion: tr("researchListModalQuestionRequired"),
-          errorSymbol: tr("researchListModalSymbolRequired"),
-          errorShortWindow: tr("researchListModalShortInvalid"),
-          errorLongWindow: tr("researchListModalLongInvalid"),
-          errorDateRange: tr("researchListModalDateInvalid"),
-          errorTransactionCost: tr("researchListModalCostInvalid"),
+          errorHypothesis: tr("researchListModalHypothesisRequired"),
         }}
       />
     </AppShell>

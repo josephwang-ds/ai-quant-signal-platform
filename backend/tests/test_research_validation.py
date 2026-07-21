@@ -377,6 +377,26 @@ def test_data_quality_keeps_provider_warning_nonfatal(
     assert not any(check["status"] == "failed" for check in quality["checks"])
 
 
+def test_data_quality_treats_provider_methodology_as_non_blocking(
+    fixture_adapter: FixtureMarketDataAdapter,
+) -> None:
+    note = (
+        "Yahoo Finance / yfinance is suitable for research and portfolio demos "
+        "only — not an exchange-grade production feed."
+    )
+    adapter = CountingAdapter(fixture_adapter, warnings=[note])
+    result = ResearchValidationService(adapter).execute(
+        {"end_date": "2021-01-01"}
+    )
+    quality = result["data_quality"]
+    assert quality["status"] == "completed"
+    assert quality["warnings"] == []
+    assert quality["informational"]["notes"] == [note]
+    assert result["validation_status"] == "completed"
+    assert result["evidence_complete"] is True
+    assert note not in result["warnings"]
+
+
 def test_data_quality_completes_without_nonfatal_limitations(
     fixture_adapter: FixtureMarketDataAdapter,
 ) -> None:

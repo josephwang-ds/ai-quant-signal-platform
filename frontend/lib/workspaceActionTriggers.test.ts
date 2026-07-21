@@ -17,14 +17,16 @@ describe("workspace action triggers", () => {
   it("blocks Evaluation without validation_run_id", () => {
     expect(canRequestEvaluation(null)).toBe(false);
     expect(shouldReloadEvaluationOnAction(null, "evaluation")).toBe(false);
+    expect(shouldReloadEvaluationOnAction(null, "validation")).toBe(false);
   });
 
-  it("navigates to Evaluation without reload on first open", () => {
+  it("navigates to Evidence without reload when not already on Evidence", () => {
     expect(canRequestEvaluation("val-1")).toBe(true);
-    expect(shouldReloadEvaluationOnAction("val-1", "validation")).toBe(false);
+    expect(shouldReloadEvaluationOnAction("val-1", "overview")).toBe(false);
   });
 
-  it("reloads Evaluation only when already on the Evaluation tab", () => {
+  it("reloads Evaluation when already on Evidence (validation) tab", () => {
+    expect(shouldReloadEvaluationOnAction("val-1", "validation")).toBe(true);
     expect(shouldReloadEvaluationOnAction("val-1", "evaluation")).toBe(true);
   });
 });

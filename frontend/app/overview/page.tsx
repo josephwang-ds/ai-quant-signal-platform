@@ -44,6 +44,10 @@ export default function OverviewPage() {
     }
   }
 
+  const upcomingModules = WORKSPACE_MODULES.filter(
+    (module) => module.status === "planned" || module.status === "comingLater"
+  );
+
   return (
     <AppShell language={language} onLanguageChange={setLanguage}>
       <SectionCard>
@@ -83,43 +87,89 @@ export default function OverviewPage() {
         </Link>
       </SectionCard>
 
-      {MODULE_CATEGORIES.map((category) => (
-        <SectionCard key={category.id}>
-          <SectionHeader title={tr(category.titleKey)} />
-          <div className="workspace-modules">
-            {category.moduleIds.map((moduleId) => {
-              const module = WORKSPACE_MODULES.find((item) => item.id === moduleId);
-              if (!module) {
-                return null;
-              }
-              const statusKey = moduleStatusLabelKey(module.status);
-              const showStatus = shouldShowModuleStatusBadge(module.status);
-              return (
-                <article key={module.id} className="module-card">
-                  <div className="module-card__header">
-                    <h3 className="module-card__title">{tr(module.titleKey)}</h3>
-                    {showStatus ? (
-                      <StatusBadge
-                        label={tr(statusKey)}
-                        variant={moduleStatusBadgeVariant(module.status)}
-                      />
-                    ) : null}
-                  </div>
-                  <p className="module-card__desc">{tr(module.overviewDescKey)}</p>
-                  <Link href={module.href} className="module-card__link">
-                    {tr("openModule")} →
-                  </Link>
-                  {module.legacyAnchor ? (
-                    <Link href={`/legacy#${module.legacyAnchor}`} className="module-card__link">
-                      {tr("openLegacyDemo")} →
+      {MODULE_CATEGORIES.map((category) => {
+        const activeModules = category.moduleIds
+          .map((moduleId) => WORKSPACE_MODULES.find((item) => item.id === moduleId))
+          .filter(
+            (module): module is (typeof WORKSPACE_MODULES)[number] =>
+              module != null && module.status === "active"
+          );
+        if (activeModules.length === 0) {
+          return null;
+        }
+        return (
+          <SectionCard key={category.id}>
+            <SectionHeader title={tr(category.titleKey)} />
+            <div className="workspace-modules">
+              {activeModules.map((module) => {
+                const statusKey = moduleStatusLabelKey(module.status);
+                const showStatus = shouldShowModuleStatusBadge(module.status);
+                return (
+                  <article key={module.id} className="module-card">
+                    <div className="module-card__header">
+                      <h3 className="module-card__title">{tr(module.titleKey)}</h3>
+                      {showStatus ? (
+                        <StatusBadge
+                          label={tr(statusKey)}
+                          variant={moduleStatusBadgeVariant(module.status)}
+                        />
+                      ) : null}
+                    </div>
+                    <p className="module-card__desc">{tr(module.overviewDescKey)}</p>
+                    <Link href={module.href} className="module-card__link">
+                      {tr("openModule")} →
                     </Link>
-                  ) : null}
-                </article>
-              );
-            })}
-          </div>
-        </SectionCard>
-      ))}
+                    {module.legacyAnchor ? (
+                      <Link href={`/legacy#${module.legacyAnchor}`} className="module-card__link">
+                        {tr("openLegacyDemo")} →
+                      </Link>
+                    ) : null}
+                  </article>
+                );
+              })}
+            </div>
+          </SectionCard>
+        );
+      })}
+
+      {upcomingModules.length > 0 ? (
+          <SectionCard>
+            <details className="overview-coming-soon">
+              <summary>{tr("comingSoonTitle")}</summary>
+              <div className="workspace-modules">
+                {upcomingModules.map((module) => {
+                  const statusKey = moduleStatusLabelKey(module.status);
+                  const showStatus = shouldShowModuleStatusBadge(module.status);
+                  return (
+                    <article key={module.id} className="module-card">
+                      <div className="module-card__header">
+                        <h3 className="module-card__title">{tr(module.titleKey)}</h3>
+                        {showStatus ? (
+                          <StatusBadge
+                            label={tr(statusKey)}
+                            variant={moduleStatusBadgeVariant(module.status)}
+                          />
+                        ) : null}
+                      </div>
+                      <p className="module-card__desc">{tr(module.overviewDescKey)}</p>
+                      <Link href={module.href} className="module-card__link">
+                        {tr("openModule")} →
+                      </Link>
+                      {module.legacyAnchor ? (
+                        <Link
+                          href={`/legacy#${module.legacyAnchor}`}
+                          className="module-card__link"
+                        >
+                          {tr("openLegacyDemo")} →
+                        </Link>
+                      ) : null}
+                    </article>
+                  );
+                })}
+              </div>
+            </details>
+          </SectionCard>
+        ) : null}
 
       <SectionCard>
         <SectionHeader title={tr("categorySystemNotes")} />

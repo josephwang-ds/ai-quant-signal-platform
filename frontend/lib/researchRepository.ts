@@ -5,18 +5,13 @@
 
 import type { ResearchDetail, ResearchListItem, ResearchLifecycleStatus } from "@/types/research";
 
+/** Research-first create — experiments / run config are added inside the research later. */
 export type CreateResearchInput = {
   name: string;
   researchQuestion: string;
-  symbol: string;
-  benchmark: string;
-  startDate: string;
-  endDate: string;
-  shortWindow: number;
-  longWindow: number;
-  transactionCost: number;
+  hypothesis: string;
   tags: string[];
-  owner: string;
+  owner?: string;
 };
 
 export type ResearchWorkspaceSnapshot = {

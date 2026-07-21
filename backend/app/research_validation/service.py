@@ -96,6 +96,25 @@ def _deduplicate(items: list[str]) -> list[str]:
     return list(dict.fromkeys(item for item in items if item))
 
 
+NON_BLOCKING_PROVIDER_NOTE_PREFIXES = (
+    "Yahoo Finance / yfinance is suitable for research and portfolio demos only",
+    "Provider timeout is enforced via yfinance download",
+    "Yahoo prices use yfinance auto_adjust",
+    "Open-ended request clipped to completed daily bars only",
+    "Dropped ",
+    "AKShare is a free community data source suitable for research demos only",
+    "Mainland A-share prices use ",
+    "Using deterministic local fixture",
+)
+
+
+def _is_non_blocking_provider_note(message: str) -> bool:
+    """Separate methodology/provenance notes from evidence-quality failures."""
+    if message.startswith("Dropped "):
+        return "incomplete" in message and "bar" in message
+    return message.startswith(NON_BLOCKING_PROVIDER_NOTE_PREFIXES)
+
+
 def _stage(
     *,
     name: str,
@@ -282,9 +301,10 @@ class ResearchValidationService:
             else "completed"
         )
         evidence_complete = validation_status == "completed"
+        # Top-level warnings are actionable validation limitations only.
+        # Provider methodology notes remain available under data_quality.informational.
         warnings = _deduplicate(
-            list(market.warnings)
-            + list(baseline.warnings)
+            list(baseline.warnings)
             + [warning for stage in stages for warning in stage["warnings"]]
         )
         result = {
@@ -1039,7 +1059,23 @@ class ResearchValidationService:
                     },
                 }
             )
+        methodology_notes: list[str] = []
         for index, warning in enumerate(provider_warnings, start=1):
+            if _is_non_blocking_provider_note(warning):
+                methodology_notes.append(warning)
+                checks.append(
+                    {
+                        "name": f"Provider note {index}",
+                        "severity": "info",
+                        "status": "passed",
+                        "summary": warning,
+                        "evidence": {
+                            "provider": provenance.get("provider"),
+                            "source": provenance.get("source"),
+                        },
+                    }
+                )
+                continue
             limitations.append(warning)
             checks.append(
                 {
@@ -1057,9 +1093,6 @@ class ResearchValidationService:
             check
             for check in checks
             if check["severity"] == "fatal" and check["status"] == "failed"
-        ]
-        warning_checks = [
-            check for check in checks if check["severity"] == "warning"
         ]
         status = (
             "failed"
@@ -1084,6 +1117,7 @@ class ResearchValidationService:
                 "cache_hit": provenance.get("cache_hit"),
                 "cache_stale": provenance.get("cache_stale"),
                 "retrieved_at": provenance.get("retrieved_at"),
+                "notes": _deduplicate(methodology_notes),
             },
             "checks": checks,
         }
@@ -1093,7 +1127,8 @@ class ResearchValidationService:
             status=status,
             summary=(
                 f"Data-quality review found {len(fatal_failures)} fatal issues "
-                f"and {len(payload['warnings'])} non-fatal limitations."
+                f"and {len(payload['warnings'])} non-fatal limitations; "
+                f"{len(methodology_notes)} methodology notes are informational."
             ),
             evidence={
                 "checks": checks,
@@ -1101,8 +1136,8 @@ class ResearchValidationService:
             },
             rules=[
                 "Fatal checks determine failure.",
-                "Warnings and documented limitations determine incomplete status.",
-                "Provider warnings never become fatal failures.",
+                "Material warnings and documented limitations determine incomplete status.",
+                "Provider methodology notes are informational and do not block completeness.",
                 "Weekday continuity is approximate without an exchange calendar.",
             ],
             warnings=payload["warnings"],

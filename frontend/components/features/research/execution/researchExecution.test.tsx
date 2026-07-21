@@ -2,6 +2,7 @@ import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 import ProvenanceBanner from "@/components/features/research/execution/ProvenanceBanner";
 import OverviewSection from "@/components/features/research/OverviewSection";
+import { overviewSectionTestLabels } from "@/components/features/research/overviewSectionTestLabels";
 import ValidationPendingPanel from "@/components/features/research/ValidationPendingPanel";
 import LoadingState from "@/components/ui/LoadingState";
 import {
@@ -79,30 +80,7 @@ const SAMPLE_EXECUTION: ResearchExecutionResult = {
   },
 };
 
-const overviewLabels = {
-  researchQuestion: "Research question",
-  owner: "Owner",
-  benchmark: "Benchmark",
-  strategy: "Strategy",
-  created: "Created",
-  progressTitle: "Research Progress",
-  progressResearch: "Research",
-  progressExperiments: "Experiments",
-  progressEvidence: "Evidence",
-  progressDecision: "Decision",
-  quickActionsTitle: "Quick Actions",
-  runExperiment: "Run Experiment",
-  openValidation: "Open Validation",
-  generateReview: "Generate Review",
-  recentExperimentsTitle: "Recent Experiments",
-  latestEvidenceTitle: "Latest Evidence",
-  currentDecisionTitle: "Current Decision",
-  confidence: "Evaluation",
-  noExperiments: "No experiments",
-  noEvidence: "No evidence",
-  decisionPending: "Decision pending",
-  calculatedMetricsTitle: "Calculated backtest metrics",
-};
+const overviewLabels = overviewSectionTestLabels;
 
 describe("PR-008B research execution UI", () => {
   it("shows loading copy while waiting for backend evidence", () => {
@@ -171,16 +149,14 @@ describe("PR-008B research execution UI", () => {
 
     render(
       <OverviewSection
+        language="en"
         research={research}
-        calculatedMetrics={{
-          totalReturn: "42.0%",
-          benchmarkReturn: "90.0%",
-          cagr: "5.0%",
-          sharpe: "0.55",
-          maxDrawdown: "-22.0%",
-          volatility: "15.0%",
-          tradeCount: "12",
-        }}
+        executionStatus="ready"
+        execution={SAMPLE_EXECUTION}
+        validationStatus="idle"
+        validation={null}
+        evaluationStatus="idle"
+        evaluation={null}
         provenanceSlot={
           <ProvenanceBanner
             provenance={SAMPLE_EXECUTION.provenance}
@@ -196,14 +172,18 @@ describe("PR-008B research execution UI", () => {
             }}
           />
         }
+        onRunResearch={() => void 0}
+        onRunValidation={() => void 0}
+        onRequestEvaluation={() => void 0}
+        onAskCopilot={() => void 0}
         labels={overviewLabels}
       />
     );
 
-    expect(
-      screen.getByText(/Calculated backtest metrics available in Experiments/i)
-    ).toBeInTheDocument();
-    expect(screen.queryByText("42.0%")).not.toBeInTheDocument();
+    expect(screen.getByText("42.0%")).toBeInTheDocument();
+    expect(screen.getByText("90.0%")).toBeInTheDocument();
+    expect(screen.getByText("-22.0%")).toBeInTheDocument();
+    expect(screen.getByText(overviewLabels.keyResults.oosSharpeUnavailable)).toBeInTheDocument();
     expect(screen.queryByText(/Research Confidence:\s*\d/i)).not.toBeInTheDocument();
     expect(research.confidenceScore).toBeNull();
   });

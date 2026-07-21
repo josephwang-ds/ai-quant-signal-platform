@@ -160,7 +160,12 @@ const SAMPLE_VALIDATION: ResearchValidationResult = {
     status: "completed",
     fatal_issues: [],
     warnings: ["One provider warning retained."],
-    informational: { duplicate_dates: 0 },
+    informational: {
+      duplicate_dates: 0,
+      notes: [
+        "Yahoo prices use yfinance auto_adjust (auto_adjust).",
+      ],
+    },
     checks: [
       {
         name: "Unique dates",
@@ -190,6 +195,7 @@ const labels: ResearchValidationLabels = {
   generated: "Generated",
   rules: "Rules",
   warnings: "Warnings",
+  dataNotes: "Data notes",
   blockers: "Blockers",
   evidence: "Evidence",
   oosTitle: "Out-of-sample validation",
@@ -241,6 +247,19 @@ const labels: ResearchValidationLabels = {
 };
 
 describe("ResearchValidationPanel", () => {
+  it("shows concise summary before collapsed detailed evidence", () => {
+    const { container } = render(
+      <ResearchValidationPanel validation={SAMPLE_VALIDATION} labels={labels} language="en" />
+    );
+
+    expect(container.querySelector(".validation-concise-summary")).toBeTruthy();
+    const disclosures = container.querySelectorAll(".validation-evidence-disclosure");
+    expect(disclosures.length).toBeGreaterThan(0);
+    disclosures.forEach((node) => {
+      expect((node as HTMLDetailsElement).open).toBe(false);
+    });
+  });
+
   it("shows reviewer-facing evidence and the exact OOS split without raw stage JSON", () => {
     render(<ResearchValidationPanel validation={SAMPLE_VALIDATION} labels={labels} language="en" />);
 

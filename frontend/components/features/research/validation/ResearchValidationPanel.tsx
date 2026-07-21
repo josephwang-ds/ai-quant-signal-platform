@@ -4,6 +4,10 @@ import type {
   ValidationStageStatus,
 } from "@/types/researchValidation";
 import type { Language } from "@/lib/i18n";
+import {
+  formatResearchTimestamp,
+  localizeEvidenceNote,
+} from "@/lib/researchDisplay";
 
 export type ResearchValidationLabels = {
   title: string;
@@ -20,6 +24,7 @@ export type ResearchValidationLabels = {
   generated: string;
   rules: string;
   warnings: string;
+  dataNotes: string;
   blockers: string;
   evidence: string;
   oosTitle: string;
@@ -104,43 +109,50 @@ function statusTone(status: ValidationStageStatus): string {
   return "neutral";
 }
 
-function localizeBackendText(value: string, language: Language): string {
-  if (language !== "zh") return value;
-  const known: Record<string, string> = {
-    "Yahoo Finance / yfinance is suitable for research and portfolio demos only — not an exchange-grade production feed.":
-      "Yahoo Finance / yfinance 仅适合研究与作品集演示，不属于交易所级生产数据源。",
-    "Provider timeout is enforced via yfinance download(timeout=…).":
-      "数据下载已设置超时保护。",
-    "Yahoo prices use yfinance auto_adjust (auto_adjust).":
-      "Yahoo 行情使用 yfinance 自动复权价格（auto_adjust）。",
-    "The strategy is run once on full history, then valid return rows are sliced at split_date. The first OOS row therefore preserves its full-run position, turnover, and transaction cost against the prior in-sample row.":
-      "策略先在完整历史区间运行，再按切分日期划分有效收益；首个样本外观测会保留与上一样本内观测连续的仓位、换手和交易成本。",
-  };
-  return known[value] ?? value;
-}
-
-function WarningList({
+function MessageList({
   title,
   items,
   language,
-  tone = "warning",
+  tone = "review",
 }: {
   title: string;
   items: string[];
   language: Language;
-  tone?: "warning" | "danger";
+  tone?: "note" | "review" | "danger";
 }) {
   if (items.length === 0) return null;
+  if (tone !== "danger") {
+    return (
+      <details className={`validation-evidence__disclosure validation-evidence__disclosure--${tone}`}>
+        <summary>
+          <span>{title}</span>
+          <span className="validation-evidence__count">{items.length}</span>
+        </summary>
+        <ul>
+          {items.map((item, index) => (
+            <li key={`${item}-${index}`}>{localizeEvidenceNote(item, language)}</li>
+          ))}
+        </ul>
+      </details>
+    );
+  }
   return (
-    <div className={`validation-evidence__messages validation-evidence__messages--${tone}`}>
+    <div className="validation-evidence__messages validation-evidence__messages--danger">
       <strong>{title}</strong>
       <ul>
         {items.map((item, index) => (
-          <li key={`${item}-${index}`}>{localizeBackendText(item, language)}</li>
+          <li key={`${item}-${index}`}>{localizeEvidenceNote(item, language)}</li>
         ))}
       </ul>
     </div>
   );
+}
+
+function dataQualityNotes(validation: ResearchValidationResult): string[] {
+  const notes = validation.data_quality.informational.notes;
+  return Array.isArray(notes)
+    ? notes.filter((note): note is string => typeof note === "string")
+    : [];
 }
 
 const METRIC_ROWS: Array<{
@@ -184,7 +196,7 @@ function OosEvidence({
         <div><dt>{labels.splitDate}</dt><dd>{oos.split_date ?? labels.notAvailable}</dd></div>
         <div><dt>{labels.inSampleRatio}</dt><dd>{formatPercent(oos.in_sample_ratio)}</dd></div>
         <div><dt>{labels.minimumOos}</dt><dd>{formatInteger(oos.minimum_oos_observations)}</dd></div>
-        <div><dt>{labels.boundary}</dt><dd>{oos.boundary_convention ? localizeBackendText(oos.boundary_convention, language) : labels.notAvailable}</dd></div>
+        <div><dt>{labels.boundary}</dt><dd>{oos.boundary_convention ? localizeEvidenceNote(oos.boundary_convention, language) : labels.notAvailable}</dd></div>
         <div><dt>{labels.inSample} {labels.observations}</dt><dd>{formatInteger(oos.in_sample_observation_count)}</dd></div>
         <div><dt>{labels.outOfSample} {labels.observations}</dt><dd>{formatInteger(oos.out_of_sample_observation_count)}</dd></div>
       </dl>
@@ -204,7 +216,7 @@ function OosEvidence({
           </tbody>
         </table>
       </div>
-      <WarningList title={labels.warnings} items={oos.warnings} language={language} />
+      <MessageList title={labels.warnings} items={oos.warnings} language={language} />
     </section>
   );
 }
@@ -246,7 +258,7 @@ function ParameterEvidence({ validation, labels, language }: Props) {
           </tbody>
         </table>
       </div>
-      <WarningList title={labels.warnings} items={sensitivity.warnings} language={language} />
+      <MessageList title={labels.warnings} items={sensitivity.warnings} language={language} />
     </section>
   );
 }
@@ -282,7 +294,7 @@ function CostEvidence({ validation, labels, language }: Props) {
           </tbody>
         </table>
       </div>
-      <WarningList title={labels.warnings} items={costs.warnings} language={language} />
+      <MessageList title={labels.warnings} items={costs.warnings} language={language} />
     </section>
   );
 }
@@ -290,6 +302,7 @@ function CostEvidence({ validation, labels, language }: Props) {
 function DataQualityEvidence({ validation, labels, language }: Props) {
   const quality = validation.data_quality;
   const provenance = validation.provenance;
+  const notes = dataQualityNotes(validation);
   return (
     <section className="validation-detail" aria-labelledby="validation-quality-title">
       <div className="validation-detail__heading">
@@ -299,13 +312,15 @@ function DataQualityEvidence({ validation, labels, language }: Props) {
       <dl className="validation-evidence__facts">
         <div><dt>{labels.provider}</dt><dd>{provenance.source || provenance.provider}</dd></div>
         <div><dt>{labels.dateRange}</dt><dd>{provenance.actual_start} → {provenance.actual_end}</dd></div>
-        <div><dt>{labels.generated}</dt><dd>{validation.generated_at}</dd></div>
+        <div><dt>{labels.generated}</dt><dd>{formatResearchTimestamp(validation.generated_at, language)}</dd></div>
         <div><dt>{labels.cache}</dt><dd>{provenance.cache_hit ? labels.cacheHit : labels.cacheMiss}</dd></div>
         <div><dt>{labels.fatalIssues}</dt><dd>{quality.fatal_issues.length}</dd></div>
         <div><dt>{labels.warnings}</dt><dd>{quality.warnings.length}</dd></div>
+        <div><dt>{labels.dataNotes}</dt><dd>{notes.length}</dd></div>
       </dl>
-      <WarningList title={labels.fatalIssues} items={quality.fatal_issues} language={language} tone="danger" />
-      <WarningList title={labels.warnings} items={quality.warnings} language={language} />
+      <MessageList title={labels.fatalIssues} items={quality.fatal_issues} language={language} tone="danger" />
+      <MessageList title={labels.warnings} items={quality.warnings} language={language} />
+      <MessageList title={labels.dataNotes} items={notes} language={language} tone="note" />
     </section>
   );
 }
@@ -326,13 +341,94 @@ export default function ResearchValidationPanel({ validation, labels, language }
         <div><dt>{labels.status}</dt><dd>{statusLabel(validation.validation_status, labels)}</dd></div>
         <div><dt>{labels.evidenceComplete}</dt><dd>{validation.evidence_complete ? labels.yes : labels.no}</dd></div>
         <div><dt>{labels.source}</dt><dd>{validation.provenance.source || validation.provenance.provider}</dd></div>
-        <div><dt>{labels.generated}</dt><dd>{validation.generated_at}</dd></div>
+        <div><dt>{labels.generated}</dt><dd>{formatResearchTimestamp(validation.generated_at, language)}</dd></div>
       </dl>
-      <WarningList title={labels.warnings} items={validation.warnings} language={language} />
-      <OosEvidence validation={validation} labels={labels} language={language} />
-      <ParameterEvidence validation={validation} labels={labels} language={language} />
-      <CostEvidence validation={validation} labels={labels} language={language} />
-      <DataQualityEvidence validation={validation} labels={labels} language={language} />
+
+      <section className="validation-concise-summary" aria-label={labels.summary}>
+        <div className="validation-concise-summary__grid">
+          <div className="validation-concise-summary__item">
+            <div className="validation-concise-summary__header">
+              <h3 className="validation-concise-summary__title">{labels.oosTitle}</h3>
+              <span className={`badge badge--${statusTone(validation.oos.status)}`}>
+                {statusLabel(validation.oos.status, labels)}
+              </span>
+            </div>
+            <p className="section-meta">
+              {labels.sharpe}:{" "}
+              {formatNumber(validation.oos.out_of_sample_metrics?.sharpe_ratio)}
+            </p>
+          </div>
+
+          <div className="validation-concise-summary__item">
+            <div className="validation-concise-summary__header">
+              <h3 className="validation-concise-summary__title">{labels.parameterTitle}</h3>
+              <span className={`badge badge--${statusTone(validation.parameter_sensitivity.status)}`}>
+                {statusLabel(validation.parameter_sensitivity.status, labels)}
+              </span>
+            </div>
+            <p className="section-meta">
+              {labels.medianSharpe}:{" "}
+              {formatNumber(validation.parameter_sensitivity.median_sharpe)}
+            </p>
+          </div>
+
+          <div className="validation-concise-summary__item">
+            <div className="validation-concise-summary__header">
+              <h3 className="validation-concise-summary__title">{labels.costTitle}</h3>
+              <span className={`badge badge--${statusTone(validation.transaction_cost_sensitivity.status)}`}>
+                {statusLabel(validation.transaction_cost_sensitivity.status, labels)}
+              </span>
+            </div>
+            <p className="section-meta">
+              {labels.canonicalCost}:{" "}
+              {formatPercent(validation.transaction_cost_sensitivity.canonical_cost)}
+            </p>
+          </div>
+
+          <div className="validation-concise-summary__item">
+            <div className="validation-concise-summary__header">
+              <h3 className="validation-concise-summary__title">{labels.dataQualityTitle}</h3>
+              <span className={`badge badge--${statusTone(validation.data_quality.status)}`}>
+                {statusLabel(validation.data_quality.status, labels)}
+              </span>
+            </div>
+            <p className="section-meta">
+              {labels.fatalIssues}: {validation.data_quality.fatal_issues.length}
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <details className="validation-evidence-disclosure" aria-label={labels.oosTitle}>
+        <summary>
+          {labels.oosTitle} <span className={`badge badge--${statusTone(validation.oos.status)}`}>{statusLabel(validation.oos.status, labels)}</span>
+        </summary>
+        <OosEvidence validation={validation} labels={labels} language={language} />
+      </details>
+
+      <details className="validation-evidence-disclosure" aria-label={labels.parameterTitle}>
+        <summary>
+          {labels.parameterTitle}{" "}
+          <span className={`badge badge--${statusTone(validation.parameter_sensitivity.status)}`}>{statusLabel(validation.parameter_sensitivity.status, labels)}</span>
+        </summary>
+        <ParameterEvidence validation={validation} labels={labels} language={language} />
+      </details>
+
+      <details className="validation-evidence-disclosure" aria-label={labels.costTitle}>
+        <summary>
+          {labels.costTitle}{" "}
+          <span className={`badge badge--${statusTone(validation.transaction_cost_sensitivity.status)}`}>{statusLabel(validation.transaction_cost_sensitivity.status, labels)}</span>
+        </summary>
+        <CostEvidence validation={validation} labels={labels} language={language} />
+      </details>
+
+      <details className="validation-evidence-disclosure" aria-label={labels.dataQualityTitle}>
+        <summary>
+          {labels.dataQualityTitle}{" "}
+          <span className={`badge badge--${statusTone(validation.data_quality.status)}`}>{statusLabel(validation.data_quality.status, labels)}</span>
+        </summary>
+        <DataQualityEvidence validation={validation} labels={labels} language={language} />
+      </details>
     </section>
   );
 }

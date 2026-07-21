@@ -6,6 +6,10 @@ import Button from "@/components/ui/Button";
 import StatusBadge, { researchLifecycleVariant } from "@/components/ui/StatusBadge";
 import type { Language } from "@/lib/i18n";
 import {
+  buildResearchProtocolParts,
+  formatResearchProtocolLine,
+} from "@/lib/researchProtocol";
+import {
   benchmarkLabel,
   ownerLabel,
   researchNameLabel,
@@ -54,6 +58,11 @@ export default function ResearchWorkspaceHeader({
   const menuId = useId();
   const [menuOpen, setMenuOpen] = useState(false);
 
+  const protocol = formatResearchProtocolLine(
+    buildResearchProtocolParts(research, null, language),
+    language
+  );
+
   return (
     <header className="research-workspace-header">
       <div className="research-workspace-header__top">
@@ -89,6 +98,9 @@ export default function ResearchWorkspaceHeader({
           <p className="research-workspace-header__question">
             {researchQuestionLabel(research.id, research.researchQuestion, language)}
           </p>
+          {protocol ? (
+            <p className="research-workspace-header__protocol">{protocol}</p>
+          ) : null}
         </div>
         <StatusBadge
           label={researchStatusLabel(research.status, language)}
