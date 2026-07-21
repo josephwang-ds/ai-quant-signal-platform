@@ -1,3 +1,4 @@
+import StatusBadge from "@/components/ui/StatusBadge";
 import type { ExecutionMetrics } from "@/types/researchExecution";
 import type {
   ResearchValidationResult,
@@ -8,6 +9,9 @@ import {
   formatResearchTimestamp,
   localizeEvidenceNote,
 } from "@/lib/researchDisplay";
+import { canonicalStatusVariant } from "@/lib/researchStatusBadge";
+import ResearchCenterHeader from "@/components/features/research/ux/ResearchCenterHeader";
+import ResearchKeyValueList from "@/components/features/research/ux/ResearchKeyValueList";
 
 export type ResearchValidationLabels = {
   title: string;
@@ -102,11 +106,19 @@ function statusLabel(
   return labels[status];
 }
 
-function statusTone(status: ValidationStageStatus): string {
-  if (status === "completed") return "success";
-  if (status === "failed") return "danger";
-  if (status === "incomplete") return "warning";
-  return "neutral";
+function StageBadge({
+  status,
+  labels,
+}: {
+  status: ValidationStageStatus;
+  labels: ResearchValidationLabels;
+}) {
+  return (
+    <StatusBadge
+      label={statusLabel(status, labels)}
+      variant={canonicalStatusVariant(status)}
+    />
+  );
 }
 
 function MessageList({
@@ -188,9 +200,7 @@ function OosEvidence({
     <section className="validation-detail" aria-labelledby="validation-oos-title">
       <div className="validation-detail__heading">
         <h3 id="validation-oos-title">{labels.oosTitle}</h3>
-        <span className={`badge badge--${statusTone(oos.status)}`}>
-          {statusLabel(oos.status, labels)}
-        </span>
+        <StageBadge status={oos.status} labels={labels} />
       </div>
       <dl className="validation-evidence__facts">
         <div><dt>{labels.splitDate}</dt><dd>{oos.split_date ?? labels.notAvailable}</dd></div>
@@ -227,7 +237,7 @@ function ParameterEvidence({ validation, labels, language }: Props) {
     <section className="validation-detail" aria-labelledby="validation-parameter-title">
       <div className="validation-detail__heading">
         <h3 id="validation-parameter-title">{labels.parameterTitle}</h3>
-        <span className={`badge badge--${statusTone(sensitivity.status)}`}>{statusLabel(sensitivity.status, labels)}</span>
+        <StageBadge status={sensitivity.status} labels={labels} />
       </div>
       <dl className="validation-evidence__facts">
         <div><dt>{labels.validCombinations}</dt><dd>{formatInteger(sensitivity.valid_combination_count)}</dd></div>
@@ -245,7 +255,12 @@ function ParameterEvidence({ validation, labels, language }: Props) {
           <tbody>
             {sensitivity.results.map((result, index) => (
               <tr className={result.is_canonical ? "is-canonical" : undefined} key={`${result.short_window}-${result.long_window}-${index}`}>
-                <td>{formatInteger(result.short_window)} {result.is_canonical ? <span className="badge badge--info">{labels.canonical}</span> : null}</td>
+                <td>
+                  {formatInteger(result.short_window)}{" "}
+                  {result.is_canonical ? (
+                    <StatusBadge label={labels.canonical} variant="info" />
+                  ) : null}
+                </td>
                 <td className="num">{formatInteger(result.long_window)}</td>
                 <td className="num">{formatPercent(result.total_return)}</td>
                 <td className="num">{formatPercent(result.cagr)}</td>
@@ -269,7 +284,7 @@ function CostEvidence({ validation, labels, language }: Props) {
     <section className="validation-detail" aria-labelledby="validation-cost-title">
       <div className="validation-detail__heading">
         <h3 id="validation-cost-title">{labels.costTitle}</h3>
-        <span className={`badge badge--${statusTone(costs.status)}`}>{statusLabel(costs.status, labels)}</span>
+        <StageBadge status={costs.status} labels={labels} />
       </div>
       <p className="validation-detail__note">{labels.canonicalCost}: {formatPercent(costs.canonical_cost)}</p>
       <div className="validation-table-wrap">
@@ -307,7 +322,7 @@ function DataQualityEvidence({ validation, labels, language }: Props) {
     <section className="validation-detail" aria-labelledby="validation-quality-title">
       <div className="validation-detail__heading">
         <h3 id="validation-quality-title">{labels.dataQualityTitle}</h3>
-        <span className={`badge badge--${statusTone(quality.status)}`}>{statusLabel(quality.status, labels)}</span>
+        <StageBadge status={quality.status} labels={labels} />
       </div>
       <dl className="validation-evidence__facts">
         <div><dt>{labels.provider}</dt><dd>{provenance.source || provenance.provider}</dd></div>
@@ -327,31 +342,51 @@ function DataQualityEvidence({ validation, labels, language }: Props) {
 
 export default function ResearchValidationPanel({ validation, labels, language }: Props) {
   return (
-    <section className="research-validation" aria-labelledby="research-validation-title">
-      <header className="research-validation__header">
-        <div>
-          <h2 id="research-validation-title">{labels.title}</h2>
-          <p>{labels.summary}</p>
-        </div>
-        <span className={`badge badge--${statusTone(validation.validation_status)}`}>
-          {statusLabel(validation.validation_status, labels)}
-        </span>
-      </header>
-      <dl className="validation-evidence__facts validation-evidence__facts--summary">
-        <div><dt>{labels.status}</dt><dd>{statusLabel(validation.validation_status, labels)}</dd></div>
-        <div><dt>{labels.evidenceComplete}</dt><dd>{validation.evidence_complete ? labels.yes : labels.no}</dd></div>
-        <div><dt>{labels.source}</dt><dd>{validation.provenance.source || validation.provenance.provider}</dd></div>
-        <div><dt>{labels.generated}</dt><dd>{formatResearchTimestamp(validation.generated_at, language)}</dd></div>
-      </dl>
+    <section
+      className="research-center research-validation"
+      aria-labelledby="research-validation-title"
+    >
+      <ResearchCenterHeader
+        titleId="research-validation-title"
+        title={labels.title}
+        description={labels.summary}
+      />
+      <div className="research-validation__status">
+        <StageBadge status={validation.validation_status} labels={labels} />
+      </div>
+      <ResearchKeyValueList
+        items={[
+          {
+            id: "status",
+            label: labels.status,
+            value: statusLabel(validation.validation_status, labels),
+          },
+          {
+            id: "complete",
+            label: labels.evidenceComplete,
+            value: validation.evidence_complete ? labels.yes : labels.no,
+          },
+          {
+            id: "source",
+            label: labels.source,
+            value: validation.provenance.source || validation.provenance.provider,
+          },
+          {
+            id: "generated",
+            label: labels.generated,
+            value: formatResearchTimestamp(validation.generated_at, language),
+          },
+        ]}
+      />
+
+      <hr className="overview-divider" />
 
       <section className="validation-concise-summary" aria-label={labels.summary}>
         <div className="validation-concise-summary__grid">
           <div className="validation-concise-summary__item">
             <div className="validation-concise-summary__header">
               <h3 className="validation-concise-summary__title">{labels.oosTitle}</h3>
-              <span className={`badge badge--${statusTone(validation.oos.status)}`}>
-                {statusLabel(validation.oos.status, labels)}
-              </span>
+              <StageBadge status={validation.oos.status} labels={labels} />
             </div>
             <p className="section-meta">
               {labels.sharpe}:{" "}
@@ -362,9 +397,7 @@ export default function ResearchValidationPanel({ validation, labels, language }
           <div className="validation-concise-summary__item">
             <div className="validation-concise-summary__header">
               <h3 className="validation-concise-summary__title">{labels.parameterTitle}</h3>
-              <span className={`badge badge--${statusTone(validation.parameter_sensitivity.status)}`}>
-                {statusLabel(validation.parameter_sensitivity.status, labels)}
-              </span>
+              <StageBadge status={validation.parameter_sensitivity.status} labels={labels} />
             </div>
             <p className="section-meta">
               {labels.medianSharpe}:{" "}
@@ -375,9 +408,7 @@ export default function ResearchValidationPanel({ validation, labels, language }
           <div className="validation-concise-summary__item">
             <div className="validation-concise-summary__header">
               <h3 className="validation-concise-summary__title">{labels.costTitle}</h3>
-              <span className={`badge badge--${statusTone(validation.transaction_cost_sensitivity.status)}`}>
-                {statusLabel(validation.transaction_cost_sensitivity.status, labels)}
-              </span>
+              <StageBadge status={validation.transaction_cost_sensitivity.status} labels={labels} />
             </div>
             <p className="section-meta">
               {labels.canonicalCost}:{" "}
@@ -388,9 +419,7 @@ export default function ResearchValidationPanel({ validation, labels, language }
           <div className="validation-concise-summary__item">
             <div className="validation-concise-summary__header">
               <h3 className="validation-concise-summary__title">{labels.dataQualityTitle}</h3>
-              <span className={`badge badge--${statusTone(validation.data_quality.status)}`}>
-                {statusLabel(validation.data_quality.status, labels)}
-              </span>
+              <StageBadge status={validation.data_quality.status} labels={labels} />
             </div>
             <p className="section-meta">
               {labels.fatalIssues}: {validation.data_quality.fatal_issues.length}
@@ -401,7 +430,7 @@ export default function ResearchValidationPanel({ validation, labels, language }
 
       <details className="validation-evidence-disclosure" aria-label={labels.oosTitle}>
         <summary>
-          {labels.oosTitle} <span className={`badge badge--${statusTone(validation.oos.status)}`}>{statusLabel(validation.oos.status, labels)}</span>
+          {labels.oosTitle} <StageBadge status={validation.oos.status} labels={labels} />
         </summary>
         <OosEvidence validation={validation} labels={labels} language={language} />
       </details>
@@ -409,7 +438,7 @@ export default function ResearchValidationPanel({ validation, labels, language }
       <details className="validation-evidence-disclosure" aria-label={labels.parameterTitle}>
         <summary>
           {labels.parameterTitle}{" "}
-          <span className={`badge badge--${statusTone(validation.parameter_sensitivity.status)}`}>{statusLabel(validation.parameter_sensitivity.status, labels)}</span>
+          <StageBadge status={validation.parameter_sensitivity.status} labels={labels} />
         </summary>
         <ParameterEvidence validation={validation} labels={labels} language={language} />
       </details>
@@ -417,7 +446,7 @@ export default function ResearchValidationPanel({ validation, labels, language }
       <details className="validation-evidence-disclosure" aria-label={labels.costTitle}>
         <summary>
           {labels.costTitle}{" "}
-          <span className={`badge badge--${statusTone(validation.transaction_cost_sensitivity.status)}`}>{statusLabel(validation.transaction_cost_sensitivity.status, labels)}</span>
+          <StageBadge status={validation.transaction_cost_sensitivity.status} labels={labels} />
         </summary>
         <CostEvidence validation={validation} labels={labels} language={language} />
       </details>
@@ -425,7 +454,7 @@ export default function ResearchValidationPanel({ validation, labels, language }
       <details className="validation-evidence-disclosure" aria-label={labels.dataQualityTitle}>
         <summary>
           {labels.dataQualityTitle}{" "}
-          <span className={`badge badge--${statusTone(validation.data_quality.status)}`}>{statusLabel(validation.data_quality.status, labels)}</span>
+          <StageBadge status={validation.data_quality.status} labels={labels} />
         </summary>
         <DataQualityEvidence validation={validation} labels={labels} language={language} />
       </details>

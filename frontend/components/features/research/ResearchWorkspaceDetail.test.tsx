@@ -10,11 +10,15 @@ import {
 } from "@/lib/mockResearchCatalog";
 
 const navLabels = {
-  overview: "Overview",
+  overview: "Research",
   notebook: "Notes",
-  experiments: "Experiments",
-  validation: "Evidence",
-  evaluation: "Review",
+  experiments: "Experiment",
+  validation: "Validation",
+  evaluation: "Validation",
+  robustness: "Robustness",
+  paper: "Paper Trading",
+  decision: "Decision",
+  archive: "Archive",
   copilot: "Copilot",
   timeline: "Timeline",
   files: "Files",
@@ -45,10 +49,15 @@ describe("ResearchWorkspaceNavigation", () => {
       "href",
       `/research/${CANONICAL_RESEARCH_ID}?tab=notebook`
     );
-    expect(screen.getByRole("link", { name: "Evidence" })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: "Validation" })).toHaveAttribute(
       "href",
       `/research/${CANONICAL_RESEARCH_ID}?tab=validation`
     );
+    expect(screen.getByRole("link", { name: "Paper Trading" })).toHaveAttribute(
+      "href",
+      `/research/${CANONICAL_RESEARCH_ID}?tab=paper`
+    );
+    // Evaluation tab is folded into Validation — no separate "Review" link.
     expect(screen.queryByRole("link", { name: "Review" })).not.toBeInTheDocument();
   });
 });
@@ -70,15 +79,17 @@ describe("OverviewSection", () => {
         evaluation={null}
         onRunResearch={() => void 0}
         onRunValidation={() => void 0}
-        onRequestEvaluation={() => void 0}
-        onAskCopilot={() => void 0}
+        onOpenSection={() => void 0}
         labels={overviewSectionTestLabels}
       />
     );
 
-    expect(screen.getByText("Research Brief")).toBeInTheDocument();
+    expect(screen.getByText("Continue")).toBeInTheDocument();
     expect(
       screen.getByText("Run the research to calculate historical evidence.")
     ).toBeInTheDocument();
+    expect(screen.getByRole("status")).toHaveTextContent(
+      "Run the research to calculate historical evidence."
+    );
   });
 });

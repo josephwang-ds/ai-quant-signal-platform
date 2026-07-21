@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { Language } from "@/lib/i18n";
 import { t } from "@/lib/i18n";
+import { CANONICAL_RESEARCH_ID } from "@/lib/canonicalMaCrossover";
 import {
   WORKSPACE_NAV_GROUPS,
   isWorkspaceNavGroupActive,
@@ -16,52 +17,50 @@ type TopNavProps = {
 
 export default function TopNav({ language }: TopNavProps) {
   const pathname = usePathname();
+  const currentResearchHref = `/research/${encodeURIComponent(CANONICAL_RESEARCH_ID)}`;
+  const secondaryActive = WORKSPACE_NAV_GROUPS.some((group) =>
+    isWorkspaceNavGroupActive(pathname, group)
+  );
 
   return (
-    <nav className="dashboard-nav" aria-label="Workspace modules">
+    <nav className="dashboard-nav" aria-label={t(language, "navAriaPrimary")}>
       <Link
         href="/"
-        className={
-          pathname === "/" || pathname.startsWith("/research/")
-            ? "is-active"
-            : undefined
-        }
+        className={pathname === "/" ? "is-active" : undefined}
       >
         {t(language, "navResearchWorkspace")}
       </Link>
       <Link
-        href="/overview"
-        className={pathname === "/overview" ? "is-active" : undefined}
+        href={currentResearchHref}
+        className={pathname.startsWith("/research/") ? "is-active" : undefined}
       >
-        {t(language, "navOverview")}
+        {t(language, "navCurrentResearch")}
       </Link>
 
-      {WORKSPACE_NAV_GROUPS.map((group) => {
-        const groupActive = isWorkspaceNavGroupActive(pathname, group);
-        return (
-          <details
-            key={group.id}
-            className={`dashboard-nav-group${groupActive ? " is-group-active" : ""}`}
-            open={groupActive || undefined}
-          >
-            <summary>{t(language, group.labelKey)}</summary>
-            <div className="dashboard-nav-group__menu" role="menu">
-              {group.items.map((item) => (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  role="menuitem"
-                  className={
-                    isWorkspaceNavItemActive(pathname, item.href) ? "is-active" : undefined
-                  }
-                >
-                  {t(language, item.labelKey)}
-                </Link>
-              ))}
-            </div>
-          </details>
-        );
-      })}
+      <details
+        className={`dashboard-nav-group dashboard-nav-group--secondary${
+          secondaryActive ? " is-group-active" : ""
+        }`}
+        open={secondaryActive || undefined}
+      >
+        <summary>{t(language, "navGroupSecondary")}</summary>
+        <div className="dashboard-nav-group__menu" role="menu">
+          {WORKSPACE_NAV_GROUPS.flatMap((group) =>
+            group.items.map((item) => (
+              <Link
+                key={item.href}
+                href={item.href}
+                role="menuitem"
+                className={
+                  isWorkspaceNavItemActive(pathname, item.href) ? "is-active" : undefined
+                }
+              >
+                {t(language, item.labelKey)}
+              </Link>
+            ))
+          )}
+        </div>
+      </details>
     </nav>
   );
 }

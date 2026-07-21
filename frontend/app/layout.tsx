@@ -1,11 +1,8 @@
 import "./globals.css";
-import type { Metadata } from "next";
 import { plexMono, plexSans } from "@/lib/fonts";
+import { rootMetadata } from "@/lib/productIdentity";
 
-export const metadata: Metadata = {
-  title: "AI Quant Signal Platform",
-  description: "Quant research showcase for portfolio and research demonstration.",
-};
+export const metadata = rootMetadata;
 
 export default function RootLayout({
   children,

@@ -174,8 +174,7 @@ describe("PR-008B research execution UI", () => {
         }
         onRunResearch={() => void 0}
         onRunValidation={() => void 0}
-        onRequestEvaluation={() => void 0}
-        onAskCopilot={() => void 0}
+        onOpenSection={() => void 0}
         labels={overviewLabels}
       />
     );

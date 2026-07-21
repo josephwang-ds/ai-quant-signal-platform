@@ -125,6 +125,10 @@ export const RESEARCH_WORKSPACE_SECTIONS = [
   "experiments",
   "validation",
   "evaluation",
+  "robustness",
+  "paper",
+  "decision",
+  "archive",
   "copilot",
   "timeline",
   "files",
@@ -133,20 +137,27 @@ export const RESEARCH_WORKSPACE_SECTIONS = [
 
 export type ResearchWorkspaceSection = (typeof RESEARCH_WORKSPACE_SECTIONS)[number];
 
-/** Primary Research IA sidebar (Evidence merges validation + evaluation content). */
+/**
+ * Research lifecycle spine (PR-025):
+ * Research → Experiment → Validation → Robustness → Paper Trading → Decision → Archive
+ */
 export const RESEARCH_WORKSPACE_PRIMARY_SECTIONS: ResearchWorkspaceSection[] = [
   "overview",
   "experiments",
   "validation",
-  "notebook",
-  "settings",
+  "robustness",
+  "paper",
+  "decision",
+  "archive",
 ];
 
 /** Supporting tools kept for URL compatibility — not the product spine. */
 export const RESEARCH_WORKSPACE_TOOL_SECTIONS: ResearchWorkspaceSection[] = [
+  "notebook",
   "copilot",
   "timeline",
   "files",
+  "settings",
 ];
 
 /** 将列表运营状态映射到 Ch3 进度阶段（无显式 currentStage 时的兜底）。 */

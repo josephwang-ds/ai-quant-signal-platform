@@ -1,56 +1,60 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import AppShell from "@/components/layout/AppShell";
 import NewResearchModal from "@/components/features/research/NewResearchModal";
-import ResearchCard from "@/components/features/research/ResearchCard";
-import ResearchListSkeleton from "@/components/features/research/ResearchListSkeleton";
+import GuidedEntryPanel from "@/components/features/research/GuidedEntryPanel";
+import ResearchGlyph from "@/components/features/research/ResearchGlyph";
 import Button from "@/components/ui/Button";
 import EmptyState from "@/components/ui/EmptyState";
 import ErrorAlert from "@/components/ui/ErrorAlert";
 import LoadingState from "@/components/ui/LoadingState";
 import SectionCard from "@/components/ui/SectionCard";
+import StatusBadge, { researchLifecycleVariant } from "@/components/ui/StatusBadge";
 import { getResearchRepository } from "@/lib/localResearchRepository";
 import type { CreateResearchInput } from "@/lib/researchRepository";
-import {
-  DEFAULT_RESEARCH_LIST_FILTERS,
-  filterAndSortResearchList,
-  type ResearchListFilters,
-} from "@/lib/researchListFilters";
 import { useWorkspaceLanguage } from "@/lib/useWorkspaceLanguage";
-import {
-  RESEARCH_LIFECYCLE_STATUSES,
-  type ResearchListItem,
-} from "@/types/research";
+import type { ResearchListItem } from "@/types/research";
 import { useResearchExecution } from "@/components/features/research/execution/useResearchExecution";
 import { applyExecutionToListItem } from "@/lib/applyResearchExecution";
 import { CANONICAL_RESEARCH_ID } from "@/lib/canonicalMaCrossover";
-import { researchStatusLabel } from "@/lib/researchDisplay";
+import {
+  researchNameLabel,
+  researchStatusLabel,
+} from "@/lib/researchDisplay";
+import {
+  getCurrentLibraryStage,
+  getLibraryLifecycleProgress,
+  getLibraryRecentActivity,
+  LIBRARY_LIFECYCLE_STAGES,
+  selectContinueResearch,
+  type LibraryLifecycleStageId,
+} from "@/lib/researchLibrary";
+import type { Language } from "@/lib/i18n";
 
 type LoadStatus = "loading" | "ready" | "error";
 
-function filtersAreActive(filters: ResearchListFilters): boolean {
-  return (
-    filters.query.trim() !== "" ||
-    filters.status !== "all" ||
-    filters.owner !== "all" ||
-    filters.tag !== "all"
-  );
+function formatUpdatedAt(value: string, language: Language): string | null {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return null;
+  return date.toLocaleDateString(language === "zh" ? "zh-CN" : "en-US", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  });
 }
 
 /**
- * Research Hub — research-question list (not ticker/strategy file manager).
- * Persistence: ResearchRepository → LocalResearchRepository (localStorage).
+ * Research Library — workspace homepage for research projects.
+ * Reuses existing repository research only; never fabricates projects or activity.
  */
 export default function ResearchListPage() {
   const { language, setLanguage, tr } = useWorkspaceLanguage();
   const router = useRouter();
   const repository = useMemo(() => getResearchRepository(), []);
   const [items, setItems] = useState<ResearchListItem[]>([]);
-  const [filters, setFilters] = useState<ResearchListFilters>(
-    DEFAULT_RESEARCH_LIST_FILTERS
-  );
   const [loadStatus, setLoadStatus] = useState<LoadStatus>("loading");
   const [loadError, setLoadError] = useState<string | null>(null);
   const [reloadToken, setReloadToken] = useState(0);
@@ -89,24 +93,37 @@ export default function ResearchListPage() {
         : item
     );
   }, [items, executionStatus, execution]);
-  const visible = useMemo(
-    () => filterAndSortResearchList(displayedItems, filters),
-    [displayedItems, filters]
+
+  const continueResearch = useMemo(
+    () => selectContinueResearch(displayedItems),
+    [displayedItems]
   );
 
-  function updateFilter<K extends keyof ResearchListFilters>(
-    key: K,
-    value: ResearchListFilters[K]
-  ) {
-    setFilters((prev) => ({ ...prev, [key]: value }));
-  }
+  const lifecycleProgress = useMemo(
+    () =>
+      continueResearch
+        ? getLibraryLifecycleProgress(continueResearch.status)
+        : { completed: [] as LibraryLifecycleStageId[], current: null },
+    [continueResearch]
+  );
+
+  const recentActivity = useMemo(
+    () => getLibraryRecentActivity(continueResearch?.id ?? null),
+    [continueResearch]
+  );
+
+  const stageLabels: Record<LibraryLifecycleStageId, string> = {
+    research: tr("researchLibraryStageResearch"),
+    experiment: tr("researchLibraryStageExperiment"),
+    validation: tr("researchLibraryStageValidation"),
+    robustness: tr("researchLibraryStageRobustness"),
+    paper: tr("researchLibraryStagePaper"),
+    decision: tr("researchLibraryStageDecision"),
+    archive: tr("researchLibraryStageArchive"),
+  };
 
   function handleRetry() {
     setReloadToken((token) => token + 1);
-  }
-
-  function handleClearFilters() {
-    setFilters(DEFAULT_RESEARCH_LIST_FILTERS);
   }
 
   function handleNewResearch() {
@@ -130,170 +147,163 @@ export default function ResearchListPage() {
     }
   }
 
-  async function handleArchive(id: string) {
-    await repository.archive(id);
-    setActionNotice(tr("researchListArchived"));
-    setReloadToken((token) => token + 1);
-  }
-
   async function handleLoadDemo() {
     await repository.includeDemoResearch();
     setActionNotice(tr("researchListDemoLoaded"));
     setReloadToken((token) => token + 1);
   }
 
-  const cardLabels = {
-    question: tr("researchListQuestionLabel"),
-    experiments: tr("researchListExperimentCount"),
-    latestEvidence: tr("researchListLatestEvidence"),
-    archive: tr("researchListArchive"),
-    more: tr("researchListMore"),
-  };
-
-  const showToolbar = loadStatus !== "error";
-  const isFilterEmpty =
-    loadStatus === "ready" && visible.length === 0 && filtersAreActive(filters);
-  const isCatalogEmpty =
-    loadStatus === "ready" && items.length === 0 && !filtersAreActive(filters);
+  const isCatalogEmpty = loadStatus === "ready" && displayedItems.length === 0;
 
   return (
     <AppShell language={language} onLanguageChange={setLanguage}>
       <SectionCard>
-        <header className="research-list-header">
-          <div className="research-list-header__copy">
-            <p className="research-list-header__eyebrow">
-              {tr("researchListEyebrow")}
+        <header className="research-library__header">
+          <div>
+            <p className="research-library__eyebrow">
+              {tr("researchLibraryEyebrow")}
             </p>
-            <h1 className="research-list-header__title">
-              {tr("researchListTitle")}
+            <h1 className="research-library__title">
+              {tr("researchLibraryTitle")}
             </h1>
-            <p className="research-list-header__subtitle">
-              {tr("researchListSubtitle")}
+            <p className="research-library__subtitle">
+              {tr("researchLibrarySubtitle")}
             </p>
           </div>
-          <Button
-            primary
-            onClick={handleNewResearch}
-            disabled={loadStatus === "loading"}
-          >
-            {tr("researchListNewResearch")}
-          </Button>
         </header>
-
-        {showToolbar ? (
-          <div className="research-list-toolbar research-list-toolbar--slim" role="search">
-            <div className="form-field research-list-toolbar__search">
-              <label className="form-label" htmlFor="research-search">
-                {tr("researchListSearch")}
-              </label>
-              <input
-                id="research-search"
-                className="form-input"
-                type="search"
-                value={filters.query}
-                placeholder={tr("researchListSearchPlaceholder")}
-                onChange={(event) => updateFilter("query", event.target.value)}
-                disabled={loadStatus === "loading"}
-              />
-            </div>
-
-            <div className="form-field">
-              <label className="form-label" htmlFor="research-status">
-                {tr("researchListFilterStatus")}
-              </label>
-              <select
-                id="research-status"
-                className="form-select"
-                value={filters.status}
-                disabled={loadStatus === "loading"}
-                onChange={(event) =>
-                  updateFilter(
-                    "status",
-                    event.target.value as ResearchListFilters["status"]
-                  )
-                }
-              >
-                <option value="all">{tr("researchListFilterAll")}</option>
-                {RESEARCH_LIFECYCLE_STATUSES.map((status) => (
-                  <option key={status} value={status}>
-                    {researchStatusLabel(status, language)}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div className="form-field">
-              <label className="form-label" htmlFor="research-sort">
-                {tr("researchListSort")}
-              </label>
-              <select
-                id="research-sort"
-                className="form-select"
-                value={filters.sort === "confidence" ? "updated" : filters.sort}
-                disabled={loadStatus === "loading"}
-                onChange={(event) =>
-                  updateFilter(
-                    "sort",
-                    event.target.value as ResearchListFilters["sort"]
-                  )
-                }
-              >
-                <option value="updated">{tr("researchListSortUpdated")}</option>
-                <option value="created">{tr("researchListSortCreated")}</option>
-                <option value="name">{tr("researchListSortName")}</option>
-              </select>
-            </div>
-          </div>
-        ) : null}
 
         {actionNotice ? <p className="section-meta">{actionNotice}</p> : null}
 
-        <div
-          className="research-list-body"
-          aria-busy={loadStatus === "loading"}
-          aria-live="polite"
-        >
-          {loadStatus === "loading" ? (
-            <div className="research-list-loading">
-              <LoadingState message={tr("researchListLoading")} />
-              <ResearchListSkeleton />
-            </div>
-          ) : null}
+        {loadStatus === "loading" ? (
+          <div className="research-library__loading" aria-busy="true">
+            <LoadingState message={tr("researchListLoading")} />
+          </div>
+        ) : null}
 
-          {loadStatus === "error" && loadError ? (
-            <div className="research-list-error">
-              <ErrorAlert
-                title={tr("researchListErrorTitle")}
-                message={loadError}
-              />
-              <Button primary onClick={handleRetry}>
-                {tr("researchListRetry")}
-              </Button>
-            </div>
-          ) : null}
+        {loadStatus === "error" && loadError ? (
+          <div className="research-library__error research-library__fade-in">
+            <ErrorAlert
+              title={tr("researchListErrorTitle")}
+              message={loadError}
+            />
+            <Button primary onClick={handleRetry}>
+              {tr("researchListRetry")}
+            </Button>
+          </div>
+        ) : null}
 
-          {loadStatus === "ready" ? (
-            <>
-              <p className="research-list-count section-meta">
-                {visible.length} {tr("researchListResultCount")}
+        {loadStatus === "ready" ? (
+          <div className="research-library research-library__fade-in">
+            <GuidedEntryPanel
+              title={tr("guidedEntryTitle")}
+              items={[
+                {
+                  id: "library",
+                  href: "#research-library-projects",
+                  label: tr("guidedEntryExploreLibrary"),
+                  description: tr("guidedEntryExploreLibraryDesc"),
+                },
+                {
+                  id: "sample",
+                  href: `/research/${encodeURIComponent(CANONICAL_RESEARCH_ID)}`,
+                  label: tr("guidedEntryContinueSample"),
+                  description: tr("guidedEntryContinueSampleDesc"),
+                },
+                {
+                  id: "validation",
+                  href: `/research/${encodeURIComponent(CANONICAL_RESEARCH_ID)}?tab=validation`,
+                  label: tr("guidedEntryReviewValidation"),
+                  description: tr("guidedEntryReviewValidationDesc"),
+                },
+                {
+                  id: "strategy-lab",
+                  href: "/strategy-lab",
+                  label: tr("guidedEntryOpenStrategyLab"),
+                  description: tr("guidedEntryOpenStrategyLabDesc"),
+                },
+              ]}
+            />
+
+            <hr className="overview-divider" />
+
+            <section
+              className="research-library__band"
+              aria-label={tr("demoSampleTitle")}
+            >
+              <p className="overview-caption">
+                <ResearchGlyph name="support" />
+                <span>{tr("demoSampleTitle")}</span>
               </p>
+              <p className="research-library__sample-note">
+                {tr("demoSampleBody")}
+              </p>
+            </section>
 
-              {isFilterEmpty ? (
-                <EmptyState
-                  title={tr("researchListEmptyFilterTitle")}
-                  description={tr("researchListEmptyFilterDescription")}
-                  action={
-                    <Button onClick={handleClearFilters}>
-                      {tr("researchListClearFilters")}
-                    </Button>
-                  }
-                />
-              ) : null}
+            <hr className="overview-divider" />
+
+            {/* 1. Continue Research */}
+            <section
+              className="research-library__band"
+              aria-label={tr("researchLibraryContinueTitle")}
+            >
+              <p className="overview-caption">
+                <ResearchGlyph name="action" />
+                <span>{tr("researchLibraryContinueTitle")}</span>
+              </p>
+              {continueResearch ? (
+                <div className="research-library__continue">
+                  <div className="research-library__continue-copy">
+                    <h2 className="research-library__continue-name">
+                      {researchNameLabel(
+                        continueResearch.id,
+                        continueResearch.name,
+                        language
+                      )}
+                    </h2>
+                    <p className="research-library__continue-meta">
+                      {tr("researchLibraryCurrentStage")}:{" "}
+                      {
+                        stageLabels[
+                          getCurrentLibraryStage(continueResearch.status)
+                        ]
+                      }
+                    </p>
+                    {formatUpdatedAt(continueResearch.updatedAt, language) ? (
+                      <p className="research-library__continue-meta">
+                        {tr("researchLibraryLastUpdated")}:{" "}
+                        {formatUpdatedAt(continueResearch.updatedAt, language)}
+                      </p>
+                    ) : null}
+                  </div>
+                  <Link
+                    href={`/research/${encodeURIComponent(continueResearch.id)}`}
+                    className="btn btn--primary"
+                  >
+                    {tr("researchLibraryContinueButton")}
+                  </Link>
+                </div>
+              ) : (
+                <EmptyState description={tr("researchLibraryContinueEmpty")} />
+              )}
+            </section>
+
+            <hr className="overview-divider" />
+
+            {/* 2. Research Projects */}
+            <section
+              id="research-library-projects"
+              className="research-library__band"
+              aria-label={tr("researchLibraryProjectsTitle")}
+            >
+              <p className="overview-caption">
+                <ResearchGlyph name="progress" />
+                <span>{tr("researchLibraryProjectsTitle")}</span>
+              </p>
 
               {isCatalogEmpty ? (
                 <EmptyState
-                  title={tr("researchListEmptyTitle")}
-                  description={tr("researchListEmptyDescription")}
+                  title={tr("researchLibraryEmptyTitle")}
+                  description={tr("researchLibraryEmptyDescription")}
                   action={
                     <div className="research-list-empty-actions">
                       <Button primary onClick={handleNewResearch}>
@@ -305,24 +315,163 @@ export default function ResearchListPage() {
                     </div>
                   }
                 />
-              ) : null}
+              ) : (
+                <ul className="research-library__project-list">
+                  {displayedItems.map((item) => {
+                    const stage = getCurrentLibraryStage(item.status);
+                    return (
+                      <li key={item.id}>
+                        <Link
+                          href={`/research/${encodeURIComponent(item.id)}`}
+                          className="research-library__project-card"
+                        >
+                          <div className="research-library__project-main">
+                            <h3 className="research-library__project-title">
+                              {researchNameLabel(item.id, item.name, language)}
+                            </h3>
+                            <p className="research-library__project-strategy">
+                              {item.configuration.strategyName}
+                            </p>
+                            <p className="research-library__project-stage">
+                              {tr("researchLibraryCurrentStage")}:{" "}
+                              {stageLabels[stage]}
+                            </p>
+                          </div>
+                          <StatusBadge
+                            label={researchStatusLabel(item.status, language)}
+                            variant={researchLifecycleVariant(item.status)}
+                          />
+                        </Link>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </section>
 
-              {visible.length > 0 ? (
-                <div className="research-list-grid research-list-grid--projects">
-                  {visible.map((item) => (
-                    <ResearchCard
-                      key={item.id}
-                      item={item}
-                      language={language}
-                      labels={cardLabels}
-                      onArchive={(id) => void handleArchive(id)}
-                    />
-                  ))}
-                </div>
+            <hr className="overview-divider" />
+
+            {/* 3. Research Lifecycle */}
+            <section
+              className="research-library__band"
+              aria-label={tr("researchLibraryLifecycleTitle")}
+            >
+              <p className="overview-caption">
+                <ResearchGlyph name="decision" />
+                <span>{tr("researchLibraryLifecycleTitle")}</span>
+              </p>
+              <ol className="research-library__lifecycle">
+                {LIBRARY_LIFECYCLE_STAGES.map((stage) => {
+                  const completed = lifecycleProgress.completed.includes(stage);
+                  return (
+                    <li
+                      key={stage}
+                      className={`research-library__lifecycle-step${
+                        completed
+                          ? " research-library__lifecycle-step--completed"
+                          : ""
+                      }`}
+                    >
+                      <span className="research-library__lifecycle-label">
+                        {stageLabels[stage]}
+                      </span>
+                    </li>
+                  );
+                })}
+              </ol>
+              {!continueResearch ? (
+                <EmptyState description={tr("researchLibraryLifecycleEmpty")} />
               ) : null}
-            </>
-          ) : null}
-        </div>
+            </section>
+
+            <hr className="overview-divider" />
+
+            {/* 4. Recent Activity */}
+            <section
+              className="research-library__band"
+              aria-label={tr("researchLibraryActivityTitle")}
+            >
+              <p className="overview-caption">
+                <ResearchGlyph name="evidence" />
+                <span>{tr("researchLibraryActivityTitle")}</span>
+              </p>
+              {recentActivity.length === 0 ? (
+                <EmptyState description={tr("researchLibraryActivityEmpty")} />
+              ) : (
+                <ul className="research-library__activity">
+                  {recentActivity.map((event) => (
+                    <li key={event.id} className="research-library__activity-row">
+                      <span className="research-library__activity-title">
+                        {event.title}
+                      </span>
+                      <span className="research-library__activity-summary">
+                        {event.summary}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </section>
+
+            <hr className="overview-divider" />
+
+            {/* 5. Quick Actions */}
+            <section
+              className="research-library__band research-library__band--actions"
+              aria-label={tr("researchLibraryActionsTitle")}
+            >
+              <p className="overview-caption">
+                <ResearchGlyph name="action" />
+                <span>{tr("researchLibraryActionsTitle")}</span>
+              </p>
+              <ul className="research-library__actions">
+                <li>
+                  <button
+                    type="button"
+                    className="research-library__action"
+                    onClick={handleNewResearch}
+                  >
+                    {tr("researchLibraryActionNew")}
+                  </button>
+                </li>
+                <li>
+                  <Link href="/comparison" className="research-library__action">
+                    {tr("researchLibraryActionCompare")}
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/strategy-lab" className="research-library__action">
+                    {tr("researchLibraryActionStrategyLab")}
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    href={
+                      continueResearch
+                        ? `/research/${encodeURIComponent(continueResearch.id)}?tab=robustness`
+                        : "/"
+                    }
+                    className="research-library__action"
+                  >
+                    {tr("researchLibraryActionRobustness")}
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    href={
+                      continueResearch
+                        ? `/research/${encodeURIComponent(continueResearch.id)}?tab=paper`
+                        : "/"
+                    }
+                    className="research-library__action"
+                  >
+                    {tr("researchLibraryActionPaper")}
+                  </Link>
+                </li>
+              </ul>
+            </section>
+          </div>
+        ) : null}
       </SectionCard>
 
       <NewResearchModal

@@ -23,7 +23,7 @@ function sectionHref(researchId: string, section: ResearchWorkspaceSection): str
     : `/research/${encodeURIComponent(researchId)}?tab=${section}`;
 }
 
-/** Research-local left navigation — Overview first; tools remain URL-compatible. */
+/** Research-local left navigation — lifecycle spine first; tools remain URL-compatible. */
 export default function ResearchWorkspaceNavigation({
   researchId,
   activeSection,

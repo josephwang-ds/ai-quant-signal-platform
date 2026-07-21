@@ -65,13 +65,17 @@ describe("lifecycle progress helpers", () => {
 });
 
 describe("workspace navigation model", () => {
-  it("exposes the nine local sections", () => {
+  it("exposes the lifecycle workspace sections", () => {
     expect(RESEARCH_WORKSPACE_SECTIONS).toEqual([
       "overview",
       "notebook",
       "experiments",
       "validation",
       "evaluation",
+      "robustness",
+      "paper",
+      "decision",
+      "archive",
       "copilot",
       "timeline",
       "files",

@@ -5,6 +5,12 @@ import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
 import type { Language } from "@/lib/i18n";
 import { t } from "@/lib/i18n";
+import {
+  PRODUCT_COPYRIGHT,
+  PRODUCT_REPO_URL,
+  PRODUCT_VERSION,
+} from "@/lib/productIdentity";
+import DemoBanner from "./DemoBanner";
 import LanguageToggle from "./LanguageToggle";
 import PageHero from "./PageHero";
 import SideNav from "./SideNav";
@@ -36,11 +42,25 @@ export default function AppShell({
       </aside>
 
       <main className="workspace-main">
+        <DemoBanner language={language} />
         {isHome ? <PageHero language={language} /> : null}
         <div className="workspace-content">{children}</div>
-        <footer className="dashboard-footer">
-          {t(language, "footerLine1")} {t(language, "footerLine2")}{" "}
-          {t(language, "footerLine3")}
+        <footer className="workspace-footer">
+          <p className="workspace-footer__identity">
+            {t(language, "appTitle")} · v{PRODUCT_VERSION}
+          </p>
+          <p className="workspace-footer__legal">
+            {PRODUCT_COPYRIGHT} · {t(language, "footerLicense")}
+          </p>
+          <p className="workspace-footer__disclaimer">
+            {t(language, "footerLine1")} {t(language, "footerLine2")}{" "}
+            {t(language, "footerLine3")}
+          </p>
+          <p className="workspace-footer__repo">
+            <a href={PRODUCT_REPO_URL} target="_blank" rel="noreferrer">
+              {t(language, "footerRepository")}
+            </a>
+          </p>
         </footer>
       </main>
     </div>
