@@ -1,8 +1,9 @@
 /**
- * Canonical MA Crossover research — single source of truth for Research List,
+ * Canonical Trend Following research — single source of truth for Research List,
  * Detail, Notebook, Experiments, Validation, Evaluation, and Timeline.
  *
- * Do not invent market-derived metrics here. See docs/data/AUTHENTICITY_POLICY.md.
+ * Executable protocol remains SPY MA20/60. Do not invent market-derived metrics here.
+ * See docs/data/AUTHENTICITY_POLICY.md.
  */
 
 import type { CanonicalResearchPackage } from "@/types/canonicalResearch";
@@ -15,13 +16,13 @@ const DEFINITION_DOCUMENTED_AT = "2026-07-14T04:00:00.000Z";
 export const CANONICAL_MA_CROSSOVER: CanonicalResearchPackage = {
   definition: {
     id: CANONICAL_RESEARCH_ID,
-    name: "MA Crossover Research",
+    name: "Trend Following Study",
     researchQuestion:
-      "Can MA20/MA60 outperform Buy & Hold over long horizons after transaction costs? (SPY buy-and-hold benchmark)",
+      "Can moving average strategies consistently outperform Buy & Hold after transaction costs?",
     hypothesis:
       "A medium-term moving-average crossover may reduce large drawdowns, but its performance advantage may weaken after transaction costs and during sideways markets.",
     researchObjective:
-      "Define a reproducible MA20/MA60 protocol on SPY versus buy-and-hold, then obtain calculated evidence from the Research Execution Engine — never invent results in the UI.",
+      "Study whether trend-following MA rules beat buy-and-hold after costs, using a reproducible SPY MA20/MA60 protocol and only backend-calculated evidence.",
     strategyName: "Moving Average Crossover",
     symbol: "SPY",
     benchmark: "SPY Buy & Hold",
@@ -211,7 +212,7 @@ export const CANONICAL_MA_CROSSOVER: CanonicalResearchPackage = {
       id: "tl-ma-defined",
       title: "Research Definition Created",
       summary:
-        "Canonical MA Crossover Research defined for the public Research Workspace.",
+        "Canonical Trend Following Study defined for the public Research Hub.",
       kind: "stage_change",
       occurredAt: DEFINITION_DOCUMENTED_AT,
     },

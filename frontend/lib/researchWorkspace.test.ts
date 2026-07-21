@@ -15,7 +15,7 @@ describe("mock research catalog", () => {
   it("exposes exactly one canonical research project", () => {
     expect(MOCK_RESEARCH_DETAILS).toHaveLength(1);
     expect(MOCK_RESEARCH_DETAILS[0].id).toBe(CANONICAL_RESEARCH_ID);
-    expect(MOCK_RESEARCH_DETAILS[0].name).toBe("MA Crossover Research");
+    expect(MOCK_RESEARCH_DETAILS[0].name).toBe("Trend Following Study");
   });
 
   it("keeps list and detail projections consistent by id", () => {
@@ -96,6 +96,6 @@ describe("workspace navigation model", () => {
 describe("research progress helpers", () => {
   it("keeps catalog authenticity constraints intact", () => {
     expect(MOCK_RESEARCH_DETAILS).toHaveLength(1);
-    expect(MOCK_RESEARCH_DETAILS[0].name).toBe("MA Crossover Research");
+    expect(MOCK_RESEARCH_DETAILS[0].name).toBe("Trend Following Study");
   });
 });

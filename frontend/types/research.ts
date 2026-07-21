@@ -74,6 +74,8 @@ export type ResearchListItem = {
   createdAt: string;
   updatedAt: string;
   experimentCount: number;
+  /** Honest evidence copy for Hub cards — never invent calculated results. */
+  evidenceSummary: string;
   lastValidation: string;
   currentRecommendation: string;
   integrity: ResearchIntegrityDisplay;
@@ -183,6 +185,7 @@ export function toResearchListItem(detail: ResearchDetail): ResearchListItem {
     createdAt: detail.createdAt,
     updatedAt: detail.updatedAt,
     experimentCount: detail.experimentCount,
+    evidenceSummary: detail.evidenceSummary,
     lastValidation: detail.lastValidation,
     currentRecommendation: detail.currentRecommendation,
     integrity: { ...detail.integrity },

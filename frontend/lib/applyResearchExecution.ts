@@ -27,6 +27,8 @@ export function applyExecutionToListItem(
     lastValidation: "Historical backtest + benchmark comparison completed (engine)",
     currentRecommendation:
       "Review calculated historical evidence. Evaluation remains unavailable.",
+    evidenceSummary:
+      "Historical backtest and benchmark comparison are populated from the Research Execution Engine. OOS, sensitivity, cost grid, stress, and evaluation remain pending.",
     updatedAt: execution.generated_at,
     integrity: {
       ...item.integrity,

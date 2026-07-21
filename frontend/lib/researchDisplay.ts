@@ -98,7 +98,7 @@ export function parameterLineLabel(value: string, language: Language) {
 
 export function researchNameLabel(id: string, value: string, language: Language) {
   return language === "zh" && id === CANONICAL_RESEARCH_ID
-    ? "均线交叉研究"
+    ? "趋势跟踪研究"
     : value;
 }
 
@@ -108,7 +108,7 @@ export function researchQuestionLabel(
   language: Language
 ) {
   return language === "zh" && id === CANONICAL_RESEARCH_ID
-    ? "在计入交易成本后，MA20/MA60 能否长期跑赢 SPY 买入并持有基准？"
+    ? "均线策略在计入交易成本后，能否持续跑赢买入并持有？"
     : value;
 }
 

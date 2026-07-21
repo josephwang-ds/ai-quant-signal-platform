@@ -9,7 +9,9 @@ This policy governs static demo metadata versus calculated evidence.
 
 ## Canonical reference research
 
-**MA Crossover Research** (`ma-crossover-spy`)
+**Trend Following Study** (`ma-crossover-spy`)
+
+Executable reference protocol remains SPY MA20/MA60 vs buy-and-hold.
 
 | Field | Value |
 | --- | --- |
