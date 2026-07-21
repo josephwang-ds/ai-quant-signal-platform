@@ -4,6 +4,7 @@ import type {
 } from "@/types/researchEvaluation";
 import type { Language } from "@/lib/i18n";
 import { formatResearchTimestamp } from "@/lib/researchDisplay";
+import ResearchGlyph from "@/components/features/research/ResearchGlyph";
 
 /**
  * Enterprise governance dashboard for PR-010 evaluation evidence.
@@ -34,9 +35,15 @@ export type ResearchEvaluationLabels = {
   summaryColumn: string;
   completedEvidenceTitle: string;
   incompleteEvidenceTitle: string;
-  outstandingEvidenceTitle: string;
+  nextMilestonesTitle: string;
   limitationsTitle: string;
   blockersTitle: string;
+  noBlockersTitle: string;
+  noBlockersDescription: string;
+  limitationGroupEvidence: string;
+  limitationGroupValidation: string;
+  limitationGroupRobustness: string;
+  limitationGroupDeployment: string;
   decisionReadinessTitle: string;
   keyFindingsTitle: string;
   nextGovernanceActionTitle: string;
@@ -50,6 +57,8 @@ type Props = {
   labels: ResearchEvaluationLabels;
   language: Language;
 };
+
+type LimitationGroup = "evidence" | "validation" | "robustness" | "deployment";
 
 function localizeEvaluationText(value: string, language: Language): string {
   if (language !== "zh") return value;
@@ -103,37 +112,185 @@ function statusLabel(
   return status;
 }
 
-function EvidenceList({
+function classifyLimitation(text: string): LimitationGroup {
+  const lower = text.toLowerCase();
+  if (
+    lower.includes("stress test") ||
+    lower.includes("regime analysis") ||
+    lower.includes("walk-forward") ||
+    lower.includes("monte carlo")
+  ) {
+    return "robustness";
+  }
+  if (
+    lower.includes("paper trading") ||
+    lower.includes("not been published") ||
+    lower.includes("published")
+  ) {
+    return "deployment";
+  }
+  if (
+    lower.includes("data quality") ||
+    lower.includes("out-of-sample") ||
+    lower.includes("oos") ||
+    lower.includes("parameter") ||
+    lower.includes("transaction cost") ||
+    lower.includes("validation")
+  ) {
+    return "validation";
+  }
+  return "evidence";
+}
+
+function groupLimitations(
+  items: string[]
+): Partial<Record<LimitationGroup, string[]>> {
+  const groups: Partial<Record<LimitationGroup, string[]>> = {};
+  for (const item of items) {
+    const group = classifyLimitation(item);
+    if (!groups[group]) groups[group] = [];
+    groups[group]!.push(item);
+  }
+  return groups;
+}
+
+function CompletedChecklist({
   title,
   items,
-  emptyLabel,
-  tone,
   language,
 }: {
   title: string;
   items: string[];
-  emptyLabel: string;
-  tone?: "warning" | "danger";
   language: Language;
 }) {
+  if (items.length === 0) return null;
   return (
-    <section className="evaluation-list-card" aria-label={title}>
-      <h3>{title}</h3>
-      {items.length === 0 ? (
-        <p className="section-meta">{emptyLabel}</p>
-      ) : (
-        <ul
-          className={
-            tone
-              ? `validation-evidence__list evaluation-list--${tone}`
-              : "validation-evidence__list"
-          }
-        >
-          {items.map((item, index) => (
-            <li key={`${item}-${index}`}>{localizeEvaluationText(item, language)}</li>
+    <section className="eval-tier eval-tier--completed" aria-label={title}>
+      <h3 className="eval-tier__title">
+        <ResearchGlyph name="evidence" />
+        <span>{title}</span>
+      </h3>
+      <ul className="eval-checklist eval-checklist--done">
+        {items.map((item) => (
+          <li key={item} className="eval-checklist__item">
+            <span className="eval-checklist__icon eval-checklist__icon--done" aria-hidden="true">
+              ✓
+            </span>
+            <span>{localizeEvaluationText(item, language)}</span>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
+function MilestoneChecklist({
+  title,
+  items,
+  language,
+}: {
+  title: string;
+  items: string[];
+  language: Language;
+}) {
+  if (items.length === 0) return null;
+  return (
+    <section className="eval-tier eval-tier--milestones" aria-label={title}>
+      <h3 className="eval-tier__title">
+        <ResearchGlyph name="progress" />
+        <span>{title}</span>
+      </h3>
+      <ul className="eval-checklist eval-checklist--pending">
+        {items.map((item, i) => (
+          <li key={`${item}-${i}`} className="eval-checklist__item">
+            <span className="badge badge--outline eval-checklist__badge">
+              {localizeEvaluationText(item, language)}
+            </span>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
+function BlockerPanel({
+  title,
+  noBlockersTitle,
+  noBlockersDescription,
+  items,
+  language,
+}: {
+  title: string;
+  noBlockersTitle: string;
+  noBlockersDescription: string;
+  items: string[];
+  language: Language;
+}) {
+  const hasBlockers = items.length > 0;
+  return (
+    <aside
+      className={`eval-blockers${hasBlockers ? " eval-blockers--active" : ""}`}
+      aria-label={title}
+    >
+      <h3 className="eval-blockers__title">
+        <ResearchGlyph name="blocker" />
+        <span>{hasBlockers ? title : noBlockersTitle}</span>
+      </h3>
+      {hasBlockers ? (
+        <ul className="eval-blockers__list">
+          {items.map((item, i) => (
+            <li key={`${item}-${i}`} className="eval-blockers__item">
+              {localizeEvaluationText(item, language)}
+            </li>
           ))}
         </ul>
+      ) : (
+        <div className="eval-blockers__empty-state">
+          <p className="eval-blockers__empty">{noBlockersDescription}</p>
+        </div>
       )}
+    </aside>
+  );
+}
+
+function GroupedLimitations({
+  title,
+  groups,
+  groupLabels,
+  language,
+}: {
+  title: string;
+  groups: Partial<Record<LimitationGroup, string[]>>;
+  groupLabels: Record<LimitationGroup, string>;
+  language: Language;
+}) {
+  const orderedGroups: LimitationGroup[] = [
+    "evidence",
+    "validation",
+    "robustness",
+    "deployment",
+  ];
+  const nonEmpty = orderedGroups.filter((g) => (groups[g]?.length ?? 0) > 0);
+  if (nonEmpty.length === 0) return null;
+
+  return (
+    <section className="eval-tier eval-tier--limitations" aria-label={title}>
+      <h3 className="eval-tier__title">
+        <ResearchGlyph name="limitation" />
+        <span>{title}</span>
+      </h3>
+      <div className="eval-limitation-groups">
+        {nonEmpty.map((group) => (
+          <div key={group} className="eval-limitation-group">
+            <h4 className="eval-limitation-group__label">{groupLabels[group]}</h4>
+            <ul className="eval-limitation-group__list">
+              {groups[group]!.map((item, i) => (
+                <li key={`${item}-${i}`}>{localizeEvaluationText(item, language)}</li>
+              ))}
+            </ul>
+          </div>
+        ))}
+      </div>
     </section>
   );
 }
@@ -146,11 +303,7 @@ export default function ResearchEvaluationPanel({
   const coverage = evaluation.evidence_coverage;
   const provenance = evaluation.provenance;
   const keyFinding = evaluation.evidence_summary.find((item) => item.status === "completed");
-  const nextGovernanceAction =
-    evaluation.blockers[0] ??
-    evaluation.outstanding_evidence[0] ??
-    evaluation.limitations[0] ??
-    null;
+  const limitationGroups = groupLimitations(evaluation.limitations);
 
   return (
     <section
@@ -171,22 +324,32 @@ export default function ResearchEvaluationPanel({
 
       <dl className="validation-evidence__facts validation-evidence__facts--summary">
         <div>
-          <dt>{labels.status}</dt>
-          <dd>{statusLabel(evaluation.evaluation_status, labels)}</dd>
-        </div>
-        <div>
-          <dt>{labels.decisionReadinessTitle}</dt>
-          <dd>{statusLabel(evaluation.evaluation_status, labels)}</dd>
-        </div>
-        <div>
           <dt>{labels.coveragePercentage}</dt>
           <dd>{coverage.coverage_percentage}%</dd>
+        </div>
+        <div>
+          <dt>{labels.completedStagesCount}</dt>
+          <dd>
+            {coverage.completed_stage_count} / {coverage.implemented_stage_count}
+          </dd>
         </div>
         <div>
           <dt>{labels.generated}</dt>
           <dd>{formatResearchTimestamp(evaluation.generated_at, language)}</dd>
         </div>
       </dl>
+
+      <div
+        className="evaluation-coverage-bar evaluation-coverage-bar--inline"
+        role="img"
+        aria-label={`${coverage.coverage_percentage}%`}
+      >
+        <div
+          className="evaluation-coverage-bar__fill"
+          style={{ width: `${Math.min(100, Math.max(0, coverage.coverage_percentage))}%` }}
+        />
+      </div>
+      <p className="eval-coverage-note">{labels.coverageDisclaimer}</p>
 
       {keyFinding ? (
         <section className="evaluation-review-summary" aria-label={labels.keyFindingsTitle}>
@@ -198,43 +361,39 @@ export default function ResearchEvaluationPanel({
         </section>
       ) : null}
 
-      <div className="evaluation-list-grid">
-        <EvidenceList
-          title={labels.completedEvidenceTitle}
-          items={evaluation.completed_stages}
-          emptyLabel={labels.none}
-          language={language}
-        />
-        <EvidenceList
-          title={labels.outstandingEvidenceTitle}
-          items={evaluation.outstanding_evidence}
-          emptyLabel={labels.none}
-          tone="warning"
-          language={language}
-        />
-        <EvidenceList
+      <div className="eval-body">
+        <div className="eval-body__main">
+          <CompletedChecklist
+            title={labels.completedEvidenceTitle}
+            items={evaluation.completed_stages}
+            language={language}
+          />
+          <MilestoneChecklist
+            title={labels.nextMilestonesTitle}
+            items={evaluation.outstanding_evidence}
+            language={language}
+          />
+          <GroupedLimitations
+            title={labels.limitationsTitle}
+            groups={limitationGroups}
+            groupLabels={{
+              evidence: labels.limitationGroupEvidence,
+              validation: labels.limitationGroupValidation,
+              robustness: labels.limitationGroupRobustness,
+              deployment: labels.limitationGroupDeployment,
+            }}
+            language={language}
+          />
+        </div>
+
+        <BlockerPanel
           title={labels.blockersTitle}
+          noBlockersTitle={labels.noBlockersTitle}
+          noBlockersDescription={labels.noBlockersDescription}
           items={evaluation.blockers}
-          emptyLabel={labels.none}
-          tone="danger"
-          language={language}
-        />
-        <EvidenceList
-          title={labels.limitationsTitle}
-          items={evaluation.limitations}
-          emptyLabel={labels.none}
           language={language}
         />
       </div>
-
-      {nextGovernanceAction ? (
-        <section className="evaluation-review-next" aria-label={labels.nextGovernanceActionTitle}>
-          <h3>{labels.nextGovernanceActionTitle}</h3>
-          <p className="section-meta">
-            {localizeEvaluationText(nextGovernanceAction, language)}
-          </p>
-        </section>
-      ) : null}
 
       <details className="validation-evidence-disclosure">
         <summary>{labels.detailsTitle}</summary>
@@ -250,79 +409,68 @@ export default function ResearchEvaluationPanel({
           </div>
         </dl>
 
-      <section
-        className="evaluation-coverage-card"
-        aria-labelledby="research-evaluation-coverage-title"
-      >
-        <h3 id="research-evaluation-coverage-title">{labels.coverageTitle}</h3>
-        <dl className="validation-evidence__facts">
-          <div>
-            <dt>{labels.implementedStages}</dt>
-            <dd>{coverage.implemented_stage_count}</dd>
-          </div>
-          <div>
-            <dt>{labels.completedStagesCount}</dt>
-            <dd>{coverage.completed_stage_count}</dd>
-          </div>
-          <div>
-            <dt>{labels.coveragePercentage}</dt>
-            <dd>{coverage.coverage_percentage}%</dd>
-          </div>
-        </dl>
-        <div
-          className="evaluation-coverage-bar"
-          role="img"
-          aria-label={`${coverage.coverage_percentage}%`}
+        <section
+          className="evaluation-coverage-card"
+          aria-labelledby="research-evaluation-coverage-title"
         >
-          <div
-            className="evaluation-coverage-bar__fill"
-            style={{ width: `${Math.min(100, Math.max(0, coverage.coverage_percentage))}%` }}
-          />
-        </div>
-        <p className="validation-detail__note">{labels.coverageDisclaimer}</p>
-      </section>
+          <h3 id="research-evaluation-coverage-title">{labels.coverageTitle}</h3>
+          <dl className="validation-evidence__facts">
+            <div>
+              <dt>{labels.implementedStages}</dt>
+              <dd>{coverage.implemented_stage_count}</dd>
+            </div>
+            <div>
+              <dt>{labels.completedStagesCount}</dt>
+              <dd>{coverage.completed_stage_count}</dd>
+            </div>
+            <div>
+              <dt>{labels.coveragePercentage}</dt>
+              <dd>{coverage.coverage_percentage}%</dd>
+            </div>
+          </dl>
+        </section>
 
-      <section
-        className="evaluation-evidence-summary"
-        aria-labelledby="research-evaluation-summary-title"
-      >
-        <h3 id="research-evaluation-summary-title">
-          {labels.evidenceSummaryTitle}
-        </h3>
-        <div className="validation-table-wrap">
-          <table className="data-table validation-table">
-            <caption>{labels.evidenceSummaryTitle}</caption>
-            <thead>
-              <tr>
-                <th>{labels.stageColumn}</th>
-                <th>{labels.statusColumn}</th>
-                <th>{labels.summaryColumn}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {evaluation.evidence_summary.map((item) => (
-                <tr key={item.stage}>
-                  <th scope="row">{localizeEvaluationText(item.label, language)}</th>
-                  <td>
-                    <span className={`badge badge--${statusTone(item.status)}`}>
-                      {statusLabel(item.status, labels)}
-                    </span>
-                  </td>
-                  <td>{localizeEvaluationText(item.summary, language)}</td>
+        <section
+          className="evaluation-evidence-summary"
+          aria-labelledby="research-evaluation-summary-title"
+        >
+          <h3 id="research-evaluation-summary-title">
+            {labels.evidenceSummaryTitle}
+          </h3>
+          <div className="validation-table-wrap">
+            <table className="data-table validation-table">
+              <caption>{labels.evidenceSummaryTitle}</caption>
+              <thead>
+                <tr>
+                  <th>{labels.stageColumn}</th>
+                  <th>{labels.statusColumn}</th>
+                  <th>{labels.summaryColumn}</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </section>
+              </thead>
+              <tbody>
+                {evaluation.evidence_summary.map((item) => (
+                  <tr key={item.stage}>
+                    <th scope="row">{localizeEvaluationText(item.label, language)}</th>
+                    <td>
+                      <span className={`badge badge--${statusTone(item.status)}`}>
+                        {statusLabel(item.status, labels)}
+                      </span>
+                    </td>
+                    <td>{localizeEvaluationText(item.summary, language)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
 
-      <EvidenceList
-        title={labels.incompleteEvidenceTitle}
-        items={evaluation.incomplete_stages}
-        emptyLabel={labels.none}
-        tone="warning"
-        language={language}
-      />
+        {evaluation.incomplete_stages.length > 0 ? (
+          <MilestoneChecklist
+            title={labels.incompleteEvidenceTitle}
+            items={evaluation.incomplete_stages}
+            language={language}
+          />
+        ) : null}
       </details>
     </section>
   );

@@ -4,19 +4,16 @@ import Link from "next/link";
 import { useId, useState } from "react";
 import Button from "@/components/ui/Button";
 import StatusBadge, { researchLifecycleVariant } from "@/components/ui/StatusBadge";
+import { deriveExperimentLabel } from "@/components/features/research/ResearchSummaryRail";
 import type { Language } from "@/lib/i18n";
 import {
-  buildResearchProtocolParts,
-  formatResearchProtocolLine,
-} from "@/lib/researchProtocol";
-import {
   benchmarkLabel,
-  ownerLabel,
   researchNameLabel,
   researchQuestionLabel,
   researchStatusLabel,
 } from "@/lib/researchDisplay";
 import type { ResearchDetail } from "@/types/research";
+import type { ResearchExecutionResult } from "@/types/researchExecution";
 
 function formatDate(value: string, language: Language): string {
   const date = new Date(value);
@@ -41,35 +38,40 @@ export type ResearchWorkspaceHeaderLabels = {
   confidence: string;
   tags: string;
   benchmark: string;
+  experiment: string;
+  experimentNotConfigured: string;
 };
 
 export type ResearchWorkspaceHeaderProps = {
   research: ResearchDetail;
   language: Language;
   labels: ResearchWorkspaceHeaderLabels;
+  execution?: ResearchExecutionResult | null;
 };
 
-/** Research Workspace hero — identity and lifecycle, not metric dump. */
+/** Compact research hero — title, question, status, thin metadata. */
 export default function ResearchWorkspaceHeader({
   research,
   language,
   labels,
+  execution = null,
 }: ResearchWorkspaceHeaderProps) {
   const menuId = useId();
   const [menuOpen, setMenuOpen] = useState(false);
-
-  const protocol = formatResearchProtocolLine(
-    buildResearchProtocolParts(research, null, language),
-    language
+  const experiment = deriveExperimentLabel(
+    research,
+    execution,
+    language,
+    labels.experimentNotConfigured
   );
 
   return (
-    <header className="research-workspace-header">
-      <div className="research-workspace-header__top">
-        <Link href="/" className="research-workspace-header__back">
+    <header className="research-hero">
+      <div className="research-hero__chrome">
+        <Link href="/" className="research-hero__back">
           ← {labels.back}
         </Link>
-        <div className="research-workspace-header__menu">
+        <div className="research-hero__menu">
           <Button
             className="btn--ghost"
             aria-expanded={menuOpen}
@@ -81,7 +83,7 @@ export default function ResearchWorkspaceHeader({
           {menuOpen ? (
             <div
               id={menuId}
-              className="research-workspace-header__menu-panel"
+              className="research-hero__menu-panel"
               role="menu"
             >
               <p className="section-meta">{labels.moreActionsHint}</p>
@@ -90,42 +92,37 @@ export default function ResearchWorkspaceHeader({
         </div>
       </div>
 
-      <div className="research-workspace-header__title-row">
-        <div>
-          <h1 className="research-workspace-header__name">
-            {researchNameLabel(research.id, research.name, language)}
-          </h1>
-          <p className="research-workspace-header__question">
+      <div className="research-hero__body">
+        <div className="research-hero__identity">
+          <div className="research-hero__title-row">
+            <h1 className="research-hero__title">
+              {researchNameLabel(research.id, research.name, language)}
+            </h1>
+            <StatusBadge
+              label={researchStatusLabel(research.status, language)}
+              variant={researchLifecycleVariant(research.status)}
+            />
+          </div>
+          <p className="research-hero__question">
             {researchQuestionLabel(research.id, research.researchQuestion, language)}
           </p>
-          {protocol ? (
-            <p className="research-workspace-header__protocol">{protocol}</p>
-          ) : null}
         </div>
-        <StatusBadge
-          label={researchStatusLabel(research.status, language)}
-          variant={researchLifecycleVariant(research.status)}
-        />
-      </div>
 
-      <dl className="research-workspace-header__meta">
-        <div>
-          <dt>{labels.owner}</dt>
-          <dd>{ownerLabel(research.owner, language)}</dd>
-        </div>
-        <div>
-          <dt>{labels.benchmark}</dt>
-          <dd>{benchmarkLabel(research.configuration.benchmark, language)}</dd>
-        </div>
-        <div>
-          <dt>{labels.created}</dt>
-          <dd>{formatDate(research.createdAt, language)}</dd>
-        </div>
-        <div>
-          <dt>{labels.updated}</dt>
-          <dd>{formatDate(research.updatedAt, language)}</dd>
-        </div>
-      </dl>
+        <dl className="research-hero__meta">
+          <div>
+            <dt>{labels.updated}</dt>
+            <dd>{formatDate(research.updatedAt, language)}</dd>
+          </div>
+          <div>
+            <dt>{labels.benchmark}</dt>
+            <dd>{benchmarkLabel(research.configuration.benchmark, language)}</dd>
+          </div>
+          <div>
+            <dt>{labels.experiment}</dt>
+            <dd>{experiment}</dd>
+          </div>
+        </dl>
+      </div>
     </header>
   );
 }

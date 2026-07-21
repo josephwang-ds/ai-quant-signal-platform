@@ -24,6 +24,7 @@ export type ResearchConclusionProps = {
   evaluation: ResearchEvaluationResult | null;
   evaluationReady: boolean;
   labels: ResearchConclusionLabels;
+  showTitle?: boolean;
 };
 
 function statusBadgeTone(status: EvaluationStatus): "success" | "warning" | "danger" {
@@ -54,6 +55,7 @@ export default function ResearchConclusion({
   evaluation,
   evaluationReady,
   labels,
+  showTitle = true,
 }: ResearchConclusionProps) {
   if (!evaluationReady || !evaluation) {
     return null;
@@ -92,38 +94,48 @@ export default function ResearchConclusion({
   const coverage = evaluation.evidence_coverage?.coverage_percentage ?? null;
 
   return (
-    <section className="overview-block overview-conclusion" aria-label={labels.title}>
-      <h3 className="overview-block__title">{labels.title}</h3>
-
-      <div className="overview-conclusion__status">
+    <section
+      className={`overview-conclusion overview-conclusion--${statusBadgeTone(evaluation.evaluation_status)}`}
+      aria-label={labels.title}
+    >
+      <header className="overview-conclusion__header">
+        {showTitle ? (
+          <h3 className="overview-conclusion__eyebrow">{labels.title}</h3>
+        ) : (
+          <span className="overview-conclusion__eyebrow-spacer" />
+        )}
         <StatusBadge
           label={statusLabel}
           variant={statusBadgeTone(evaluation.evaluation_status)}
         />
-        {coverage !== null ? (
-          <span className="section-meta">
-            {labels.coverageLabel}: {coverage}%
-          </span>
-        ) : null}
-      </div>
+      </header>
 
       <div className="overview-conclusion__items">
         {strongestEvidence ? (
-          <p className="section-meta">
-            <strong>{labels.keyStrengthsLabel}:</strong> {strongestEvidence}
+          <p className="overview-conclusion__finding">
+            <span className="overview-conclusion__finding-label">{labels.keyStrengthsLabel}</span>
+            {strongestEvidence}
           </p>
         ) : null}
         {mostImportantLimitation ? (
-          <p className="section-meta">
-            <strong>{labels.limitationLabel}:</strong> {mostImportantLimitation}
+          <p className="overview-conclusion__finding overview-conclusion__finding--secondary">
+            <span className="overview-conclusion__finding-label">{labels.limitationLabel}</span>
+            {mostImportantLimitation}
           </p>
         ) : null}
         {nextRequiredAction ? (
-          <p className="section-meta">
-            <strong>{labels.nextActionLabel}:</strong> {nextRequiredAction}
+          <p className="overview-conclusion__finding overview-conclusion__finding--secondary">
+            <span className="overview-conclusion__finding-label">{labels.nextActionLabel}</span>
+            {nextRequiredAction}
           </p>
         ) : null}
       </div>
+
+      {coverage !== null ? (
+        <p className="overview-conclusion__coverage section-meta">
+          {labels.coverageLabel}: {coverage}%
+        </p>
+      ) : null}
     </section>
   );
 }

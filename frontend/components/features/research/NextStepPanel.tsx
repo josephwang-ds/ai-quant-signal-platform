@@ -1,7 +1,9 @@
 "use client";
 
-import Button from "@/components/ui/Button";
+import ResearchNextAction from "@/components/features/research/ux/ResearchNextAction";
 import type { WorkflowStepId } from "@/lib/researchWorkflow";
+import { workflowStepToSection } from "@/lib/researchWorkflow";
+import type { ResearchWorkspaceSection } from "@/types/research";
 
 export type NextStepPanelLabels = {
   title: string;
@@ -13,12 +15,21 @@ export type NextStepPanelLabels = {
   validateTitle: string;
   validateDescription: string;
   validateCta: string;
-  evaluateTitle: string;
-  evaluateDescription: string;
-  evaluateCta: string;
-  copilotTitle: string;
-  copilotDescription: string;
-  copilotCta: string;
+  openExperimentTitle: string;
+  openExperimentDescription: string;
+  openExperimentCta: string;
+  openRobustnessTitle: string;
+  openRobustnessDescription: string;
+  openRobustnessCta: string;
+  openPaperTitle: string;
+  openPaperDescription: string;
+  openPaperCta: string;
+  openDecisionTitle: string;
+  openDecisionDescription: string;
+  openDecisionCta: string;
+  openArchiveTitle: string;
+  openArchiveDescription: string;
+  openArchiveCta: string;
 };
 
 export type NextStepPanelProps = {
@@ -28,8 +39,7 @@ export type NextStepPanelProps = {
   labels: NextStepPanelLabels;
   onRunResearch: () => void;
   onRunValidation: () => void;
-  onRequestEvaluation: () => void;
-  onAskCopilot: () => void;
+  onOpenSection: (section: ResearchWorkspaceSection) => void;
 };
 
 export default function NextStepPanel({
@@ -39,8 +49,7 @@ export default function NextStepPanel({
   labels,
   onRunResearch,
   onRunValidation,
-  onRequestEvaluation,
-  onAskCopilot,
+  onOpenSection,
 }: NextStepPanelProps) {
   const content = (() => {
     if (step === "research") {
@@ -63,30 +72,54 @@ export default function NextStepPanel({
         onClick: onRunValidation,
       };
     }
-    if (step === "evaluation") {
+    if (step === "experiment") {
       return {
-        title: labels.evaluateTitle,
-        description: labels.evaluateDescription,
-        cta: labels.evaluateCta,
-        onClick: onRequestEvaluation,
+        title: labels.openExperimentTitle,
+        description: labels.openExperimentDescription,
+        cta: labels.openExperimentCta,
+        onClick: () => onOpenSection(workflowStepToSection("experiment")),
+      };
+    }
+    if (step === "robustness") {
+      return {
+        title: labels.openRobustnessTitle,
+        description: labels.openRobustnessDescription,
+        cta: labels.openRobustnessCta,
+        onClick: () => onOpenSection(workflowStepToSection("robustness")),
+      };
+    }
+    if (step === "paper") {
+      return {
+        title: labels.openPaperTitle,
+        description: labels.openPaperDescription,
+        cta: labels.openPaperCta,
+        onClick: () => onOpenSection(workflowStepToSection("paper")),
+      };
+    }
+    if (step === "decision") {
+      return {
+        title: labels.openDecisionTitle,
+        description: labels.openDecisionDescription,
+        cta: labels.openDecisionCta,
+        onClick: () => onOpenSection(workflowStepToSection("decision")),
       };
     }
     return {
-      title: labels.copilotTitle,
-      description: labels.copilotDescription,
-      cta: labels.copilotCta,
-      onClick: onAskCopilot,
+      title: labels.openArchiveTitle,
+      description: labels.openArchiveDescription,
+      cta: labels.openArchiveCta,
+      onClick: () => onOpenSection(workflowStepToSection("archive")),
     };
   })();
 
   return (
-    <aside className="next-step-panel" aria-label={labels.title}>
-      <p className="next-step-panel__eyebrow">{labels.title}</p>
-      <h3 className="next-step-panel__title">{content.title}</h3>
-      <p className="next-step-panel__description section-meta">{content.description}</p>
-      <Button primary disabled={disabled} onClick={content.onClick}>
-        {content.cta}
-      </Button>
-    </aside>
+    <ResearchNextAction
+      eyebrow={labels.title}
+      title={content.title}
+      description={content.description}
+      cta={content.cta}
+      onClick={content.onClick}
+      disabled={disabled}
+    />
   );
 }

@@ -1,3 +1,4 @@
+import ResearchKeyValueList from "@/components/features/research/ux/ResearchKeyValueList";
 import type { ReactNode } from "react";
 import GuidedResearchFlow, {
   type GuidedResearchFlowLabels,
@@ -8,12 +9,12 @@ import KeyResultsSummary, {
 import NextStepPanel, {
   type NextStepPanelLabels,
 } from "@/components/features/research/NextStepPanel";
-import ResearchBrief, {
-  type ResearchBriefLabels,
-} from "@/components/features/research/ResearchBrief";
 import ResearchConclusion, {
   type ResearchConclusionLabels,
 } from "@/components/features/research/ResearchConclusion";
+import ResearchGlyph, {
+  type ResearchGlyphName,
+} from "@/components/features/research/ResearchGlyph";
 import type { Language } from "@/lib/i18n";
 import {
   derivePrimaryWorkflowStep,
@@ -23,7 +24,7 @@ import {
   executionReady,
   validationReady,
 } from "@/lib/researchWorkflow";
-import type { ResearchDetail } from "@/types/research";
+import type { ResearchDetail, ResearchWorkspaceSection } from "@/types/research";
 import type { ResearchExecutionResult, ResearchExecutionStatus } from "@/types/researchExecution";
 import type {
   ResearchEvaluationResult,
@@ -32,15 +33,27 @@ import type {
 import type { ResearchValidationResult, ResearchValidationStatus } from "@/types/researchValidation";
 
 export type OverviewSectionLabels = {
-  briefTitle: string;
   keyResultsTitle: string;
   guidedWorkflowTitle: string;
   conclusionTitle: string;
   evidencePreviewTitle: string;
-  brief: ResearchBriefLabels;
+  primaryActionCaption: string;
+  progressCaption: string;
+  validationCaption: string;
+  decisionCaption: string;
+  supportCaption: string;
   keyResults: KeyResultsSummaryLabels;
   guidedFlow: GuidedResearchFlowLabels;
   nextStep: NextStepPanelLabels;
+  validationStatus: string;
+  decisionStatus: string;
+  validationComplete: string;
+  validationIncomplete: string;
+  validationPending: string;
+  decisionPending: string;
+  evaluationCompleted: string;
+  evaluationIncomplete: string;
+  evaluationBlocked: string;
   conclusion: ResearchConclusionLabels;
 };
 
@@ -55,11 +68,25 @@ export type OverviewSectionProps = {
   evaluation: ResearchEvaluationResult | null;
   onRunResearch: () => void;
   onRunValidation: () => void;
-  onRequestEvaluation: () => void;
-  onAskCopilot: () => void;
+  onOpenSection: (section: ResearchWorkspaceSection) => void;
   labels: OverviewSectionLabels;
   provenanceSlot?: ReactNode;
 };
+
+function SectionCaption({
+  glyph,
+  children,
+}: {
+  glyph: ResearchGlyphName;
+  children: ReactNode;
+}) {
+  return (
+    <p className="overview-caption">
+      <ResearchGlyph name={glyph} />
+      <span>{children}</span>
+    </p>
+  );
+}
 
 export default function OverviewSection({
   language,
@@ -72,8 +99,7 @@ export default function OverviewSection({
   evaluation,
   onRunResearch,
   onRunValidation,
-  onRequestEvaluation,
-  onAskCopilot,
+  onOpenSection,
   labels,
   provenanceSlot = null,
 }: OverviewSectionProps) {
@@ -84,88 +110,110 @@ export default function OverviewSection({
     validation,
     evaluationStatus,
     evaluation,
+    researchStatus: research.status,
   };
 
   const primaryStep = derivePrimaryWorkflowStep(workflowInput);
   const stepStates = deriveWorkflowStepStates(workflowInput);
   const primaryAction = deriveWorkflowPrimaryAction(workflowInput);
 
-  const evidenceComplete = Boolean(validation?.evidence_complete);
-  const evidenceStatusValue = validationReady(validationStatus, validation)
-    ? evidenceComplete
-      ? labels.brief.evidenceComplete
-      : labels.brief.evidenceIncomplete
-    : labels.brief.evidencePending;
+  const validationComplete = Boolean(validation?.evidence_complete);
+  const validationStatusValue = validationReady(validationStatus, validation)
+    ? validationComplete
+      ? labels.validationComplete
+      : labels.validationIncomplete
+    : labels.validationPending;
 
   const decisionStatusValue = (() => {
     if (!evaluationReady(evaluationStatus, evaluation) || !evaluation) {
-      return labels.brief.decisionPending;
+      return labels.decisionPending;
     }
     if (evaluation.evaluation_status === "completed") {
-      return labels.brief.evaluationCompleted;
+      return labels.evaluationCompleted;
     }
     if (evaluation.evaluation_status === "blocked") {
-      return labels.brief.evaluationBlocked;
+      return labels.evaluationBlocked;
     }
-    return labels.brief.evaluationIncomplete;
+    return labels.evaluationIncomplete;
   })();
 
-  return (
-    <div className="overview-narrative">
-      <ResearchConclusion
-        language={language}
-        evaluation={evaluation}
-        evaluationReady={evaluationReady(evaluationStatus, evaluation)}
-        labels={labels.conclusion}
-      />
+  const showDecision = evaluationReady(evaluationStatus, evaluation);
 
-      <section className="overview-block" aria-label={labels.keyResultsTitle}>
-        <h3 className="overview-block__title">{labels.keyResultsTitle}</h3>
+  return (
+    <div className="overview-narrative" data-research-id={research.id}>
+      <section className="overview-band overview-band--action" aria-label={labels.primaryActionCaption}>
+        <SectionCaption glyph="action">{labels.primaryActionCaption}</SectionCaption>
+        <NextStepPanel
+          step={primaryAction.step}
+          disabled={primaryAction.disabled}
+          executionFailed={executionStatus === "error"}
+          labels={labels.nextStep}
+          onRunResearch={onRunResearch}
+          onRunValidation={onRunValidation}
+          onOpenSection={onOpenSection}
+        />
+      </section>
+
+      <section className="overview-band overview-band--progress" aria-label={labels.progressCaption}>
+        <SectionCaption glyph="progress">{labels.progressCaption}</SectionCaption>
+        <GuidedResearchFlow
+          stepStates={stepStates}
+          primaryStep={primaryStep}
+          labels={{
+            ...labels.guidedFlow,
+            title: "",
+          }}
+        />
+      </section>
+
+      <hr className="overview-divider" />
+
+      <section className="overview-band overview-band--evidence" aria-label={labels.validationCaption}>
+        <SectionCaption glyph="evidence">{labels.validationCaption}</SectionCaption>
         <KeyResultsSummary
           execution={executionReady(executionStatus, execution) ? execution : null}
           validation={validationReady(validationStatus, validation) ? validation : null}
           labels={labels.keyResults}
         />
-      </section>
-
-      <section className="overview-block" aria-label={labels.briefTitle}>
-        <h3 className="overview-block__title">{labels.briefTitle}</h3>
-        <ResearchBrief
-          research={research}
-          language={language}
-          execution={executionReady(executionStatus, execution) ? execution : null}
-          evidenceStatusValue={evidenceStatusValue}
-          decisionStatusValue={decisionStatusValue}
-          labels={labels.brief}
-          showIdentity={false}
+        <ResearchKeyValueList
+          items={[
+            {
+              id: "validation",
+              label: labels.validationStatus,
+              value: validationStatusValue,
+            },
+            {
+              id: "decision",
+              label: labels.decisionStatus,
+              value: decisionStatusValue,
+            },
+          ]}
         />
       </section>
 
-      <GuidedResearchFlow
-        stepStates={stepStates}
-        primaryStep={primaryStep}
-        labels={{
-          ...labels.guidedFlow,
-          title: labels.guidedWorkflowTitle,
-        }}
-      />
-
-      <NextStepPanel
-        step={primaryAction.step}
-        disabled={primaryAction.disabled}
-        executionFailed={executionStatus === "error"}
-        labels={labels.nextStep}
-        onRunResearch={onRunResearch}
-        onRunValidation={onRunValidation}
-        onRequestEvaluation={onRequestEvaluation}
-        onAskCopilot={onAskCopilot}
-      />
+      {showDecision ? (
+        <>
+          <hr className="overview-divider" />
+          <section className="overview-band overview-band--decision" aria-label={labels.decisionCaption}>
+            <SectionCaption glyph="decision">{labels.decisionCaption}</SectionCaption>
+            <ResearchConclusion
+              language={language}
+              evaluation={evaluation}
+              evaluationReady={showDecision}
+              labels={labels.conclusion}
+            />
+          </section>
+        </>
+      ) : null}
 
       {provenanceSlot ? (
-        <details className="overview-evidence-preview">
-          <summary>{labels.evidencePreviewTitle}</summary>
-          <div className="overview-provenance">{provenanceSlot}</div>
-        </details>
+        <>
+          <hr className="overview-divider" />
+          <section className="overview-band overview-band--support" aria-label={labels.supportCaption}>
+            <SectionCaption glyph="progress">{labels.supportCaption}</SectionCaption>
+            {provenanceSlot}
+          </section>
+        </>
       ) : null}
     </div>
   );

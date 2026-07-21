@@ -3,6 +3,7 @@ import {
   derivePrimaryWorkflowStep,
   deriveWorkflowPrimaryAction,
   deriveWorkflowStepStates,
+  WORKFLOW_STEP_ORDER,
 } from "@/lib/researchWorkflow";
 
 const execution = {
@@ -16,6 +17,18 @@ const validation = {
 } as never;
 
 describe("researchWorkflow", () => {
+  it("exposes the seven-stage product spine", () => {
+    expect([...WORKFLOW_STEP_ORDER]).toEqual([
+      "research",
+      "experiment",
+      "validation",
+      "robustness",
+      "paper",
+      "decision",
+      "archive",
+    ]);
+  });
+
   it("requires execution before validation", () => {
     const step = derivePrimaryWorkflowStep({
       executionStatus: "idle",
@@ -28,7 +41,7 @@ describe("researchWorkflow", () => {
     expect(step).toBe("research");
   });
 
-  it("requires validation before evaluation", () => {
+  it("moves to validation after execution", () => {
     const step = derivePrimaryWorkflowStep({
       executionStatus: "ready",
       execution,
@@ -40,7 +53,22 @@ describe("researchWorkflow", () => {
     expect(step).toBe("validation");
   });
 
-  it("moves to copilot only after evaluation is ready", () => {
+  it("marks experiment completed once execution exists", () => {
+    const states = deriveWorkflowStepStates({
+      executionStatus: "ready",
+      execution,
+      validationStatus: "idle",
+      validation: null,
+      evaluationStatus: "idle",
+      evaluation: null,
+    });
+    expect(states.research).toBe("completed");
+    expect(states.experiment).toBe("completed");
+    expect(states.validation).toBe("current");
+    expect(states.robustness).toBe("unavailable");
+  });
+
+  it("moves to robustness after validation summary is ready", () => {
     const step = derivePrimaryWorkflowStep({
       executionStatus: "ready",
       execution,
@@ -49,7 +77,7 @@ describe("researchWorkflow", () => {
       evaluationStatus: "ready",
       evaluation: { evaluation_status: "completed" } as never,
     });
-    expect(step).toBe("copilot");
+    expect(step).toBe("robustness");
   });
 
   it("marks only one primary action at a time", () => {
@@ -65,7 +93,7 @@ describe("researchWorkflow", () => {
     expect(action.disabled).toBe(false);
   });
 
-  it("keeps future steps unavailable until dependencies exist", () => {
+  it("keeps later stages unavailable until dependencies exist", () => {
     const states = deriveWorkflowStepStates({
       executionStatus: "idle",
       execution: null,
@@ -75,7 +103,9 @@ describe("researchWorkflow", () => {
       evaluation: null,
     });
     expect(states.validation).toBe("unavailable");
-    expect(states.evaluation).toBe("unavailable");
-    expect(states.copilot).toBe("unavailable");
+    expect(states.robustness).toBe("unavailable");
+    expect(states.paper).toBe("unavailable");
+    expect(states.decision).toBe("unavailable");
+    expect(states.archive).toBe("unavailable");
   });
 });

@@ -8,6 +8,7 @@ import OverviewSection from "@/components/features/research/OverviewSection";
 import ResearchNotebook from "@/components/features/research/notebook/ResearchNotebook";
 import ResearchExperiments from "@/components/features/research/experiments/ResearchExperiments";
 import ResearchTimeline from "@/components/features/research/ResearchTimeline";
+import ResearchSummaryRail from "@/components/features/research/ResearchSummaryRail";
 import ResearchWorkspaceHeader from "@/components/features/research/ResearchWorkspaceHeader";
 import ResearchWorkspaceSkeleton from "@/components/features/research/ResearchWorkspaceSkeleton";
 import WorkspacePlaceholder from "@/components/features/research/WorkspacePlaceholder";
@@ -24,6 +25,7 @@ import {
   isResearchWorkspaceSection,
   resolveWorkspaceSection,
 } from "@/lib/researchWorkspace";
+import { derivePrimaryWorkflowStep } from "@/lib/researchWorkflow";
 import { useWorkspaceLanguage } from "@/lib/useWorkspaceLanguage";
 import type { ResearchExperiment } from "@/types/experiment";
 import type { NotebookEntry, ResearchTimelineEvent } from "@/types/notebook";
@@ -37,6 +39,12 @@ import ResearchValidationPanel from "@/components/features/research/validation/R
 import { useResearchValidation } from "@/components/features/research/validation/useResearchValidation";
 import ResearchEvaluationPanel from "@/components/features/research/evaluation/ResearchEvaluationPanel";
 import { useResearchEvaluation } from "@/components/features/research/evaluation/useResearchEvaluation";
+import ResearchRobustnessCenter from "@/components/features/research/robustness/ResearchRobustnessCenter";
+import ResearchPaperTradingCenter from "@/components/features/research/paper/ResearchPaperTradingCenter";
+import ResearchDecisionCenter from "@/components/features/research/decision/ResearchDecisionCenter";
+import { buildPaperTradingLabels } from "@/components/features/paper-trading/PaperTradingPage";
+import { buildDecisionCenterLabels } from "@/lib/decisionCenterLabels";
+import { buildRobustnessCenterLabels } from "@/lib/robustnessCenterLabels";
 import ResearchCopilotPanel from "@/components/features/research/copilot/ResearchCopilotPanel";
 import { useResearchCopilot } from "@/components/features/research/copilot/useResearchCopilot";
 import {
@@ -68,10 +76,22 @@ const PLACEHOLDER_COPY: Record<
     | "experiments"
     | "validation"
     | "evaluation"
+    | "robustness"
+    | "paper"
+    | "decision"
     | "copilot"
   >,
   PlaceholderCopy
 > = {
+  archive: {
+    titleKey: "researchWsArchiveTitle",
+    summaryKey: "researchWsArchiveSummary",
+    capabilityKeys: [
+      "researchWsArchiveCap1",
+      "researchWsArchiveCap2",
+      "researchWsArchiveCap3",
+    ],
+  },
   files: {
     titleKey: "researchWsFilesTitle",
     summaryKey: "researchWsFilesSummary",
@@ -153,7 +173,11 @@ export default function ResearchWorkspacePage({
     reload: reloadExecution,
   } = useResearchExecution(researchId, research?.runConfiguration);
   const validationEvidenceActive =
-    activeSection === "validation" || validationUnlocked;
+    activeSection === "validation" ||
+    activeSection === "robustness" ||
+    activeSection === "paper" ||
+    activeSection === "decision" ||
+    validationUnlocked;
   const {
     enabled: validationEnabled,
     status: validationStatus,
@@ -175,6 +199,9 @@ export default function ResearchWorkspacePage({
   const evaluationRequestActive =
     activeSection === "validation" ||
     activeSection === "evaluation" ||
+    activeSection === "robustness" ||
+    activeSection === "paper" ||
+    activeSection === "decision" ||
     activeSection === "copilot" ||
     evaluationUnlocked;
   const {
@@ -247,6 +274,36 @@ export default function ResearchWorkspacePage({
     }
     return research;
   }, [research, executionEnabled, executionStatus, execution]);
+
+  const summaryNextMilestone = useMemo(() => {
+    if (evaluationStatus === "ready" && evaluation) {
+      if (evaluation.blockers[0]) return evaluation.blockers[0];
+      if (evaluation.outstanding_evidence[0]) return evaluation.outstanding_evidence[0];
+    }
+    const step = derivePrimaryWorkflowStep({
+      executionStatus,
+      execution,
+      validationStatus,
+      validation,
+      evaluationStatus,
+      evaluation,
+    });
+    if (step === "research") return tr("researchWsNextStepRunResearchTitle");
+    if (step === "validation") return tr("researchWsNextStepValidateTitle");
+    if (step === "robustness") return tr("researchWsNextStepOpenRobustnessTitle");
+    if (step === "paper") return tr("researchWsNextStepOpenPaperTitle");
+    if (step === "decision") return tr("researchWsNextStepOpenDecisionTitle");
+    if (step === "archive") return tr("researchWsNextStepOpenArchiveTitle");
+    return tr("researchWsNextStepOpenExperimentTitle");
+  }, [
+    evaluation,
+    evaluationStatus,
+    execution,
+    executionStatus,
+    tr,
+    validation,
+    validationStatus,
+  ]);
 
   const executedExperiments = useMemo(() => {
     if (!executionEnabled || executionStatus !== "ready" || !execution) {
@@ -343,6 +400,10 @@ export default function ResearchWorkspacePage({
       experiments: tr("researchWsNavExperiments"),
       validation: tr("researchWsNavValidation"),
       evaluation: tr("researchWsNavEvaluation"),
+      robustness: tr("researchWsNavRobustness"),
+      paper: tr("researchWsNavPaper"),
+      decision: tr("researchWsNavDecision"),
+      archive: tr("researchWsNavArchive"),
       copilot: tr("researchWsNavCopilot"),
       timeline: tr("researchWsNavTimeline"),
       files: tr("researchWsNavFiles"),
@@ -439,44 +500,45 @@ export default function ResearchWorkspacePage({
           evaluation={evaluation}
           onRunResearch={reloadExecution}
           onRunValidation={handleRunValidation}
-          onRequestEvaluation={handleRequestEvaluation}
-          onAskCopilot={() => navigateToSection("copilot")}
+          onOpenSection={navigateToSection}
           labels={{
-            briefTitle: tr("researchWsSummary"),
             keyResultsTitle: tr("researchWsCalculatedMetrics"),
             guidedWorkflowTitle: tr("researchWsGuidedWorkflowTitle"),
             conclusionTitle: tr("researchWsCurrentDecision"),
             evidencePreviewTitle: tr("researchWsEvidencePreview"),
-            brief: {
-              owner: tr("researchListOwner"),
-              updated: tr("researchListUpdated"),
-              evidenceStatus: tr("researchValEvidence"),
-              decisionStatus: tr("researchEvalStatus"),
-              evidenceComplete: tr("researchValEvidenceComplete"),
-              evidenceIncomplete: tr("researchValIncomplete"),
-              evidencePending: tr("researchWsValidationNotStarted"),
-              decisionPending: tr("researchWsDecisionPending"),
-              evaluationCompleted: tr("researchEvalCompleted"),
-              evaluationIncomplete: tr("researchEvalIncomplete"),
-              evaluationBlocked: tr("researchEvalBlocked"),
-            },
+            primaryActionCaption: tr("researchWsBandAction"),
+            progressCaption: tr("researchWsBandProgress"),
+            validationCaption: tr("researchWsBandValidation"),
+            decisionCaption: tr("researchWsBandDecision"),
+            supportCaption: tr("researchWsBandSupport"),
+            validationStatus: tr("researchWsNavValidation"),
+            decisionStatus: tr("researchWsNavDecision"),
+            validationComplete: tr("researchValEvidenceComplete"),
+            validationIncomplete: tr("researchValIncomplete"),
+            validationPending: tr("researchWsValidationNotStarted"),
+            decisionPending: tr("researchWsDecisionPending"),
+            evaluationCompleted: tr("researchEvalCompleted"),
+            evaluationIncomplete: tr("researchEvalIncomplete"),
+            evaluationBlocked: tr("researchEvalBlocked"),
             keyResults: {
               strategyTotalReturn: `${tr("researchListStrategy")} ${tr("researchWsMetricTotalReturn")}`,
               benchmarkTotalReturn: tr("researchWsMetricBenchReturn"),
               maxDrawdown: tr("researchValMaxDrawdown"),
               oosSharpe: `${tr("researchValOutOfSample")} ${tr("researchValSharpe")}`,
               unavailable: tr("researchWsKeyResultsUnavailable"),
+              unavailableTitle: tr("researchWsKeyResultsUnavailableTitle"),
               oosSharpeUnavailable: tr("researchWsOosSharpeUnavailable"),
             },
             guidedFlow: {
               title: tr("researchWsGuidedWorkflowTitle"),
-              stepRunResearch: tr("researchWsStepRunResearch"),
-              stepValidateEvidence: tr("researchWsStepValidateEvidence"),
-              stepReviewEvaluation: tr("researchWsStepReviewEvaluation"),
-              stepAskCopilot: tr("researchWsStepAskCopilot"),
-              unavailableAfterExecution: tr("researchWsGuidedUnavailableAfterExecution"),
-              unavailableAfterValidation: tr("researchWsGuidedUnavailableAfterValidation"),
-              unavailableAfterEvaluation: tr("researchWsGuidedUnavailableAfterEvaluation"),
+              stepResearch: tr("researchWsNavOverview"),
+              stepExperiment: tr("researchWsNavExperiments"),
+              stepValidation: tr("researchWsNavValidation"),
+              stepRobustness: tr("researchWsNavRobustness"),
+              stepPaper: tr("researchWsNavPaper"),
+              stepDecision: tr("researchWsNavDecision"),
+              stepArchive: tr("researchWsNavArchive"),
+              unavailableUntilPrior: tr("researchWsGuidedUnavailableUntilPrior"),
               loading: tr("researchWsGuidedLoading"),
               failed: tr("researchWsGuidedFailed"),
             },
@@ -490,12 +552,27 @@ export default function ResearchWorkspacePage({
               validateTitle: tr("researchWsNextStepValidateTitle"),
               validateDescription: tr("researchWsNextStepValidateDescription"),
               validateCta: tr("researchWsNextStepValidateCta"),
-              evaluateTitle: tr("researchWsNextStepEvaluateTitle"),
-              evaluateDescription: tr("researchWsNextStepEvaluateDescription"),
-              evaluateCta: tr("researchWsNextStepEvaluateCta"),
-              copilotTitle: tr("researchWsNextStepCopilotTitle"),
-              copilotDescription: tr("researchWsNextStepCopilotDescription"),
-              copilotCta: tr("researchWsNextStepCopilotCta"),
+              openExperimentTitle: tr("researchWsNextStepOpenExperimentTitle"),
+              openExperimentDescription: tr(
+                "researchWsNextStepOpenExperimentDescription"
+              ),
+              openExperimentCta: tr("researchWsNextStepOpenExperimentCta"),
+              openRobustnessTitle: tr("researchWsNextStepOpenRobustnessTitle"),
+              openRobustnessDescription: tr(
+                "researchWsNextStepOpenRobustnessDescription"
+              ),
+              openRobustnessCta: tr("researchWsNextStepOpenRobustnessCta"),
+              openPaperTitle: tr("researchWsNextStepOpenPaperTitle"),
+              openPaperDescription: tr("researchWsNextStepOpenPaperDescription"),
+              openPaperCta: tr("researchWsNextStepOpenPaperCta"),
+              openDecisionTitle: tr("researchWsNextStepOpenDecisionTitle"),
+              openDecisionDescription: tr(
+                "researchWsNextStepOpenDecisionDescription"
+              ),
+              openDecisionCta: tr("researchWsNextStepOpenDecisionCta"),
+              openArchiveTitle: tr("researchWsNextStepOpenArchiveTitle"),
+              openArchiveDescription: tr("researchWsNextStepOpenArchiveDescription"),
+              openArchiveCta: tr("researchWsNextStepOpenArchiveCta"),
             },
             conclusion: {
               title: tr("researchWsCurrentDecision"),
@@ -759,9 +836,15 @@ export default function ResearchWorkspacePage({
             summaryColumn: tr("researchEvalSummaryColumn"),
             completedEvidenceTitle: tr("researchEvalCompletedEvidenceTitle"),
             incompleteEvidenceTitle: tr("researchEvalIncompleteEvidenceTitle"),
-            outstandingEvidenceTitle: tr("researchEvalOutstandingEvidenceTitle"),
+            nextMilestonesTitle: tr("researchEvalNextMilestonesTitle"),
             limitationsTitle: tr("researchEvalLimitationsTitle"),
             blockersTitle: tr("researchEvalBlockersTitle"),
+            noBlockersTitle: tr("researchEvalNoBlockersTitle"),
+            noBlockersDescription: tr("researchEvalNoBlockersDescription"),
+            limitationGroupEvidence: tr("researchEvalLimitationGroupEvidence"),
+            limitationGroupValidation: tr("researchEvalLimitationGroupValidation"),
+            limitationGroupRobustness: tr("researchEvalLimitationGroupRobustness"),
+            limitationGroupDeployment: tr("researchEvalLimitationGroupDeployment"),
             decisionReadinessTitle: tr("researchEvalDecisionReadiness"),
             keyFindingsTitle: tr("researchEvalKeyFindings"),
             nextGovernanceActionTitle: tr("researchEvalNextGovernanceAction"),
@@ -882,6 +965,46 @@ export default function ResearchWorkspacePage({
       return renderEvaluationBlock();
     }
 
+    if (activeSection === "robustness") {
+      const evaluationReadyForRobustness =
+        evaluationStatus === "ready" ? evaluation : null;
+      const validationReadyForRobustness =
+        validationStatus === "ready" ? validation : null;
+
+      return (
+        <ResearchRobustnessCenter
+          validation={validationReadyForRobustness}
+          evaluation={evaluationReadyForRobustness}
+          labels={buildRobustnessCenterLabels(tr)}
+          onContinue={() => navigateToSection("paper")}
+        />
+      );
+    }
+
+    if (activeSection === "paper" && research) {
+      return (
+        <ResearchPaperTradingCenter
+          research={research}
+          validation={validationStatus === "ready" ? validation : null}
+          evaluation={evaluationStatus === "ready" ? evaluation : null}
+          labels={buildPaperTradingLabels(tr)}
+          onContinue={() => navigateToSection("decision")}
+        />
+      );
+    }
+
+    if (activeSection === "decision" && research) {
+      return (
+        <ResearchDecisionCenter
+          research={research}
+          validation={validationStatus === "ready" ? validation : null}
+          evaluation={evaluationStatus === "ready" ? evaluation : null}
+          labels={buildDecisionCenterLabels(tr)}
+          onContinue={() => navigateToSection("archive")}
+        />
+      );
+    }
+
     if (activeSection === "copilot") {
       if (!copilotEnabled) {
         return (
@@ -973,6 +1096,8 @@ export default function ResearchWorkspacePage({
           summary={tr(copy.summaryKey)}
           plannedCapabilities={copy.capabilityKeys.map((key) => tr(key))}
           deferredNote={tr("researchWsDeferredNote")}
+          emptyTitle={tr("researchWsDeferredEmptyTitle")}
+          capabilitiesCaption={tr("researchWsPlannedCapabilities")}
         />
       );
     }
@@ -1016,6 +1141,7 @@ export default function ResearchWorkspacePage({
             <ResearchWorkspaceHeader
               research={displayResearch}
               language={language}
+              execution={executionStatus === "ready" ? execution : null}
               labels={{
                 back: tr("researchWsBackToList"),
                 moreActions: tr("researchWsMoreActions"),
@@ -1027,95 +1153,172 @@ export default function ResearchWorkspacePage({
                 confidence: tr("researchListEvaluationArea"),
                 tags: tr("researchWsTags"),
                 benchmark: tr("researchListBenchmark"),
+                experiment: tr("researchWsHeroExperiment"),
+                experimentNotConfigured: tr("researchWsExperimentNotConfigured"),
               }}
             />
 
-            <div className="research-workspace__main">
-              <div
-                className="research-workspace__section-switcher"
-                role="navigation"
-                aria-label="Research workspace sections"
-              >
-                <div className="research-workspace__primary-tabs">
-                  <Link
-                    href={`/research/${encodeURIComponent(displayResearch.id)}`}
-                    className={`research-workspace__primary-tab${
-                      activeSection === "overview" ? " is-active" : ""
-                    }`}
-                    aria-current={
-                      activeSection === "overview" ? "page" : undefined
-                    }
-                  >
-                    {tr("researchWsNavOverview")}
-                  </Link>
-                  <Link
-                    href={`/research/${encodeURIComponent(
-                      displayResearch.id
-                    )}?tab=validation`}
-                    className={`research-workspace__primary-tab${
-                      activeSection === "validation" ? " is-active" : ""
-                    }`}
-                    aria-current={
-                      activeSection === "validation" ? "page" : undefined
-                    }
-                  >
-                    {tr("researchWsNavValidation")}
-                  </Link>
+            <div className="research-workspace__layout">
+              <div className="research-workspace__main">
+                <div
+                  className="research-workspace__section-switcher"
+                  role="navigation"
+                  aria-label="Research workspace sections"
+                >
+                  <div className="research-workspace__primary-tabs">
+                    <Link
+                      href={`/research/${encodeURIComponent(displayResearch.id)}`}
+                      className={`research-workspace__primary-tab${
+                        activeSection === "overview" ? " is-active" : ""
+                      }`}
+                      aria-current={
+                        activeSection === "overview" ? "page" : undefined
+                      }
+                    >
+                      {tr("researchWsNavOverview")}
+                    </Link>
+                    <Link
+                      href={`/research/${encodeURIComponent(
+                        displayResearch.id
+                      )}?tab=experiments`}
+                      className={`research-workspace__primary-tab${
+                        activeSection === "experiments" ? " is-active" : ""
+                      }`}
+                      aria-current={
+                        activeSection === "experiments" ? "page" : undefined
+                      }
+                    >
+                      {tr("researchWsNavExperiments")}
+                    </Link>
+                    <Link
+                      href={`/research/${encodeURIComponent(
+                        displayResearch.id
+                      )}?tab=validation`}
+                      className={`research-workspace__primary-tab${
+                        activeSection === "validation" ? " is-active" : ""
+                      }`}
+                      aria-current={
+                        activeSection === "validation" ? "page" : undefined
+                      }
+                    >
+                      {tr("researchWsNavValidation")}
+                    </Link>
+                    <Link
+                      href={`/research/${encodeURIComponent(
+                        displayResearch.id
+                      )}?tab=robustness`}
+                      className={`research-workspace__primary-tab${
+                        activeSection === "robustness" ? " is-active" : ""
+                      }`}
+                      aria-current={
+                        activeSection === "robustness" ? "page" : undefined
+                      }
+                    >
+                      {tr("researchWsNavRobustness")}
+                    </Link>
+                    <Link
+                      href={`/research/${encodeURIComponent(
+                        displayResearch.id
+                      )}?tab=paper`}
+                      className={`research-workspace__primary-tab${
+                        activeSection === "paper" ? " is-active" : ""
+                      }`}
+                      aria-current={
+                        activeSection === "paper" ? "page" : undefined
+                      }
+                    >
+                      {tr("researchWsNavPaper")}
+                    </Link>
+                    <Link
+                      href={`/research/${encodeURIComponent(
+                        displayResearch.id
+                      )}?tab=decision`}
+                      className={`research-workspace__primary-tab${
+                        activeSection === "decision" ? " is-active" : ""
+                      }`}
+                      aria-current={
+                        activeSection === "decision" ? "page" : undefined
+                      }
+                    >
+                      {tr("researchWsNavDecision")}
+                    </Link>
+                    <Link
+                      href={`/research/${encodeURIComponent(
+                        displayResearch.id
+                      )}?tab=archive`}
+                      className={`research-workspace__primary-tab${
+                        activeSection === "archive" ? " is-active" : ""
+                      }`}
+                      aria-current={
+                        activeSection === "archive" ? "page" : undefined
+                      }
+                    >
+                      {tr("researchWsNavArchive")}
+                    </Link>
+                  </div>
+
+                  <details className="research-workspace__more-menu">
+                    <summary>{tr("researchListMore")}</summary>
+                    <ul className="research-workspace__more-menu-list">
+                      <li>
+                        <Link
+                          href={`/research/${encodeURIComponent(
+                            displayResearch.id
+                          )}?tab=notebook`}
+                        >
+                          {tr("researchWsNavNotebook")}
+                        </Link>
+                      </li>
+                      <li>
+                        <Link
+                          href={`/research/${encodeURIComponent(
+                            displayResearch.id
+                          )}?tab=timeline`}
+                        >
+                          {tr("researchWsNavTimeline")}
+                        </Link>
+                      </li>
+                      <li>
+                        <Link
+                          href={`/research/${encodeURIComponent(
+                            displayResearch.id
+                          )}?tab=files`}
+                        >
+                          {tr("researchWsNavFiles")}
+                        </Link>
+                      </li>
+                      <li>
+                        <Link
+                          href={`/research/${encodeURIComponent(
+                            displayResearch.id
+                          )}?tab=settings`}
+                        >
+                          {tr("researchWsNavSettings")}
+                        </Link>
+                      </li>
+                    </ul>
+                  </details>
                 </div>
 
-                <details className="research-workspace__more-menu">
-                  <summary>{tr("researchListMore")}</summary>
-                  <ul className="research-workspace__more-menu-list">
-                    <li>
-                      <Link
-                        href={`/research/${encodeURIComponent(
-                          displayResearch.id
-                        )}?tab=experiments`}
-                      >
-                        {tr("researchWsNavExperiments")}
-                      </Link>
-                    </li>
-                    <li>
-                      <Link
-                        href={`/research/${encodeURIComponent(
-                          displayResearch.id
-                        )}?tab=notebook`}
-                      >
-                        {tr("researchWsNavNotebook")}
-                      </Link>
-                    </li>
-                    <li>
-                      <Link
-                        href={`/research/${encodeURIComponent(
-                          displayResearch.id
-                        )}?tab=timeline`}
-                      >
-                        {tr("researchWsNavTimeline")}
-                      </Link>
-                    </li>
-                    <li>
-                      <Link
-                        href={`/research/${encodeURIComponent(
-                          displayResearch.id
-                        )}?tab=files`}
-                      >
-                        {tr("researchWsNavFiles")}
-                      </Link>
-                    </li>
-                    <li>
-                      <Link
-                        href={`/research/${encodeURIComponent(
-                          displayResearch.id
-                        )}?tab=settings`}
-                      >
-                        {tr("researchWsNavSettings")}
-                      </Link>
-                    </li>
-                  </ul>
-                </details>
+                {renderMainSection()}
               </div>
 
-              {renderMainSection()}
+              <ResearchSummaryRail
+                research={displayResearch}
+                language={language}
+                execution={executionStatus === "ready" ? execution : null}
+                nextMilestone={summaryNextMilestone}
+                labels={{
+                  title: tr("researchSummaryTitle"),
+                  status: tr("researchSummaryStatus"),
+                  nextMilestone: tr("researchSummaryNextMilestone"),
+                  experiment: tr("researchWsHeroExperiment"),
+                  benchmark: tr("researchListBenchmark"),
+                  updated: tr("researchListUpdated"),
+                  noMilestone: tr("researchSummaryNoMilestone"),
+                  experimentNotConfigured: tr("researchWsExperimentNotConfigured"),
+                }}
+              />
             </div>
           </div>
         ) : null}

@@ -1,5 +1,4 @@
-"use client";
-
+import EmptyState from "@/components/ui/EmptyState";
 import MetricSummaryCard from "@/components/ui/MetricSummaryCard";
 import type { ResearchExecutionResult } from "@/types/researchExecution";
 import type { ResearchValidationResult } from "@/types/researchValidation";
@@ -10,6 +9,7 @@ export type KeyResultsSummaryLabels = {
   maxDrawdown: string;
   oosSharpe: string;
   unavailable: string;
+  unavailableTitle: string;
   oosSharpeUnavailable: string;
 };
 
@@ -35,7 +35,12 @@ export default function KeyResultsSummary({
   labels,
 }: KeyResultsSummaryProps) {
   if (!execution) {
-    return <p className="section-meta">{labels.unavailable}</p>;
+    return (
+      <EmptyState
+        title={labels.unavailableTitle}
+        description={labels.unavailable}
+      />
+    );
   }
 
   const oosSharpe = validation?.oos?.out_of_sample_metrics?.sharpe_ratio ?? null;

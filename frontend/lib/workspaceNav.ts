@@ -1,3 +1,9 @@
+/**
+ * Global nav — Research Library is the entry; tools are secondary.
+ * Lifecycle stages live inside the research workspace, not as global top items.
+ * Routes remain reachable for backward compatibility.
+ */
+
 import type { TranslationKey } from "@/lib/i18n";
 
 export type WorkspaceNavItem = {
@@ -11,10 +17,6 @@ export type WorkspaceNavGroup = {
   items: WorkspaceNavItem[];
 };
 
-/**
- * Global nav — Research is the product; other modules are supporting tools.
- * Routes are unchanged.
- */
 export const WORKSPACE_NAV_GROUPS: WorkspaceNavGroup[] = [
   {
     id: "tools",
@@ -22,24 +24,23 @@ export const WORKSPACE_NAV_GROUPS: WorkspaceNavGroup[] = [
     items: [
       { href: "/strategy-lab", labelKey: "navStrategyLab" },
       { href: "/comparison", labelKey: "navComparison" },
-      { href: "/robustness", labelKey: "navRobustness" },
-      { href: "/paper-trading", labelKey: "navPaperTrading" },
       { href: "/market-watch", labelKey: "navMarketWatch" },
     ],
   },
   {
-    id: "archive",
-    labelKey: "navGroupArchive",
+    id: "supporting",
+    labelKey: "navGroupSupporting",
     items: [
       { href: "/data-center", labelKey: "navDataCenter" },
       { href: "/experiments", labelKey: "navExperiments" },
+      { href: "/overview", labelKey: "navModuleDirectory" },
     ],
   },
 ];
 
 export function isWorkspaceNavItemActive(pathname: string, href: string): boolean {
   if (href === "/") {
-    return pathname === "/" || pathname.startsWith("/research/");
+    return pathname === "/";
   }
   if (href === "/overview") {
     return pathname === "/overview";
