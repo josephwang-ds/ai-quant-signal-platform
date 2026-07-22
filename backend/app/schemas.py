@@ -207,6 +207,31 @@ class BacktestRequest(BaseModel):
         return self
 
 
+class RiskReviewRequest(BacktestRequest):
+    """Risk review request — backtest params plus live risk dials."""
+
+    drawdown_mode: str = "current"
+    risk_profile: str = "aggressive"
+
+    @field_validator("drawdown_mode")
+    @classmethod
+    def validate_drawdown_mode(cls, value: str) -> str:
+        cleaned = value.strip().lower()
+        if cleaned not in {"current", "historical"}:
+            raise ValueError('drawdown_mode must be "current" or "historical"')
+        return cleaned
+
+    @field_validator("risk_profile")
+    @classmethod
+    def validate_risk_profile(cls, value: str) -> str:
+        cleaned = value.strip().lower()
+        if cleaned not in {"conservative", "moderate", "aggressive"}:
+            raise ValueError(
+                'risk_profile must be "conservative", "moderate", or "aggressive"'
+            )
+        return cleaned
+
+
 class StrategyComparisonRequest(BaseModel):
     """多策略横向对比请求体。"""
 
@@ -273,13 +298,21 @@ class ModelComparisonRequest(BaseModel):
     ticker: str
     start_date: str = "2020-01-01"
     end_date: Optional[str] = None
-    split_date: str
+    split_date: Optional[str] = None
     transaction_cost: float = 0.001
     short_window: int = 20
     long_window: int = 60
     momentum_window: int = 60
     data_source: str = "auto"
     models: Optional[list[str]] = None
+    n_folds: Optional[int] = None
+    scheme: str = "expanding"
+    # When models is set, cnn/lstm/rl come from that list; include_lstm only applies if models is None.
+    include_lstm: bool = True
+    tune: bool = False
+    preprocessing: str = "none"
+    pca_components: Optional[int] = None
+    select_k: Optional[int] = None
 
     @field_validator("ticker")
     @classmethod
@@ -293,6 +326,35 @@ class ModelComparisonRequest(BaseModel):
     @classmethod
     def validate_data_source(cls, value: str) -> str:
         return normalize_request_data_source(value)
+
+    @field_validator("preprocessing")
+    @classmethod
+    def validate_preprocessing(cls, value: str) -> str:
+        cleaned = value.strip().lower()
+        allowed = {"none", "pca", "select_kbest", "l1_select"}
+        if cleaned not in allowed:
+            raise ValueError(
+                'preprocessing must be "none", "pca", "select_kbest", or "l1_select"'
+            )
+        return cleaned
+
+    @field_validator("pca_components")
+    @classmethod
+    def validate_pca_components(cls, value: Optional[int]) -> Optional[int]:
+        if value is None:
+            return None
+        if value < 1:
+            raise ValueError("pca_components must be >= 1")
+        return value
+
+    @field_validator("select_k")
+    @classmethod
+    def validate_select_k(cls, value: Optional[int]) -> Optional[int]:
+        if value is None:
+            return None
+        if value < 1:
+            raise ValueError("select_k must be >= 1")
+        return value
 
     @field_validator("short_window")
     @classmethod
@@ -332,23 +394,46 @@ class ModelComparisonRequest(BaseModel):
             raise ValueError("models must be a non-empty list when provided")
         return cleaned
 
+    @field_validator("n_folds")
+    @classmethod
+    def validate_n_folds(cls, value: Optional[int]) -> Optional[int]:
+        if value is None:
+            return None
+        if value < 2:
+            raise ValueError("n_folds must be >= 2 when provided")
+        return value
+
+    @field_validator("scheme")
+    @classmethod
+    def validate_scheme(cls, value: str) -> str:
+        cleaned = value.strip().lower()
+        if cleaned not in {"expanding", "rolling"}:
+            raise ValueError('scheme must be "expanding" or "rolling"')
+        return cleaned
+
     @model_validator(mode="after")
     def validate_dates_and_windows(self) -> "ModelComparisonRequest":
         if self.long_window <= self.short_window:
             raise ValueError("long_window must be > short_window")
 
         start = self.start_date.strip()
-        split = self.split_date.strip()
-        if not split:
-            raise ValueError("split_date must not be empty")
-        if split <= start:
-            raise ValueError("split_date must be after start_date")
-
         self.start_date = start
-        self.split_date = split
+
+        split_raw = self.split_date.strip() if self.split_date else ""
+        if self.n_folds is None:
+            if not split_raw:
+                raise ValueError("split_date is required when n_folds is not provided")
+            if split_raw <= start:
+                raise ValueError("split_date must be after start_date")
+            self.split_date = split_raw
+        else:
+            if split_raw and split_raw <= start:
+                raise ValueError("split_date must be after start_date")
+            self.split_date = split_raw or None
+
         if self.end_date:
             end = self.end_date.strip()
-            if end and end <= split:
+            if end and self.split_date and end <= self.split_date:
                 raise ValueError("end_date must be after split_date when provided")
             self.end_date = end or None
         return self

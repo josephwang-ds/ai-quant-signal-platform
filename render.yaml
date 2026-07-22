@@ -24,3 +24,6 @@ services:
         value: https://api.deepseek.com
       - key: COPILOT_MODEL
         value: deepseek-v4-flash
+      # Company news for AI Insights (backend-only — never NEXT_PUBLIC_*).
+      - key: FINNHUB_API_KEY
+        sync: false

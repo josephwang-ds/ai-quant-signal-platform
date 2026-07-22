@@ -141,7 +141,7 @@ export type ResearchWorkspaceSection = (typeof RESEARCH_WORKSPACE_SECTIONS)[numb
  * Research lifecycle spine (PR-025):
  * Research → Experiment → Validation → Robustness → Paper Trading → Decision → Archive
  */
-export const RESEARCH_WORKSPACE_PRIMARY_SECTIONS: ResearchWorkspaceSection[] = [
+export const RESEARCH_WORKSPACE_PRIMARY_SECTIONS = [
   "overview",
   "experiments",
   "validation",
@@ -149,16 +149,22 @@ export const RESEARCH_WORKSPACE_PRIMARY_SECTIONS: ResearchWorkspaceSection[] = [
   "paper",
   "decision",
   "archive",
-];
+] as const satisfies readonly ResearchWorkspaceSection[];
+
+export type ResearchWorkspacePrimarySection =
+  (typeof RESEARCH_WORKSPACE_PRIMARY_SECTIONS)[number];
 
 /** Supporting tools kept for URL compatibility — not the product spine. */
-export const RESEARCH_WORKSPACE_TOOL_SECTIONS: ResearchWorkspaceSection[] = [
+export const RESEARCH_WORKSPACE_TOOL_SECTIONS = [
   "notebook",
   "copilot",
   "timeline",
   "files",
   "settings",
-];
+] as const satisfies readonly ResearchWorkspaceSection[];
+
+export type ResearchWorkspaceToolSection =
+  (typeof RESEARCH_WORKSPACE_TOOL_SECTIONS)[number];
 
 /** 将列表运营状态映射到 Ch3 进度阶段（无显式 currentStage 时的兜底）。 */
 export function mapLifecycleStatusToProgressStage(

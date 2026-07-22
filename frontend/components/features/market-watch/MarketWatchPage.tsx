@@ -1,6 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
+import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import AppShell from "@/components/layout/AppShell";
 import Button from "@/components/ui/Button";
@@ -253,6 +254,19 @@ export default function MarketWatchPage() {
       <SectionCard>
         <SectionHeader title={tr("marketWatch")} description={tr("marketWatchPageDesc")} />
         <p className="section-meta">{tr("marketWatchSignalNote")}</p>
+      </SectionCard>
+
+      <SectionCard>
+        <SectionHeader
+          title={tr("aiInsightsPageTitle")}
+          description={tr("aiInsightsPageDesc")}
+        />
+        <p className="section-meta">{tr("newsSentimentDisclaimerFull")}</p>
+        <p>
+          <Link className="module-card__link" href="/ai-insights">
+            {tr("newsSentimentRun")} →
+          </Link>
+        </p>
       </SectionCard>
 
       <SectionCard id="market-watch">

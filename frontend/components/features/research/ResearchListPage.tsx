@@ -5,7 +5,6 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import AppShell from "@/components/layout/AppShell";
 import NewResearchModal from "@/components/features/research/NewResearchModal";
-import GuidedEntryPanel from "@/components/features/research/GuidedEntryPanel";
 import ResearchGlyph from "@/components/features/research/ResearchGlyph";
 import Button from "@/components/ui/Button";
 import EmptyState from "@/components/ui/EmptyState";
@@ -26,9 +25,7 @@ import {
 } from "@/lib/researchDisplay";
 import {
   getCurrentLibraryStage,
-  getLibraryLifecycleProgress,
   getLibraryRecentActivity,
-  LIBRARY_LIFECYCLE_STAGES,
   selectContinueResearch,
   type LibraryLifecycleStageId,
 } from "@/lib/researchLibrary";
@@ -84,10 +81,12 @@ export default function ResearchListPage() {
   }, [loadList, reloadToken]);
 
   const displayedItems = useMemo(() => {
+    // Hide archived research from the landing (continue, projects, empty state).
+    const visible = items.filter((item) => item.status !== "Archived");
     if (executionStatus !== "ready" || !execution) {
-      return items;
+      return visible;
     }
-    return items.map((item) =>
+    return visible.map((item) =>
       item.id === CANONICAL_RESEARCH_ID
         ? applyExecutionToListItem(item, execution)
         : item
@@ -97,14 +96,6 @@ export default function ResearchListPage() {
   const continueResearch = useMemo(
     () => selectContinueResearch(displayedItems),
     [displayedItems]
-  );
-
-  const lifecycleProgress = useMemo(
-    () =>
-      continueResearch
-        ? getLibraryLifecycleProgress(continueResearch.status)
-        : { completed: [] as LibraryLifecycleStageId[], current: null },
-    [continueResearch]
   );
 
   const recentActivity = useMemo(
@@ -194,53 +185,6 @@ export default function ResearchListPage() {
 
         {loadStatus === "ready" ? (
           <div className="research-library research-library__fade-in">
-            <GuidedEntryPanel
-              title={tr("guidedEntryTitle")}
-              items={[
-                {
-                  id: "library",
-                  href: "#research-library-projects",
-                  label: tr("guidedEntryExploreLibrary"),
-                  description: tr("guidedEntryExploreLibraryDesc"),
-                },
-                {
-                  id: "sample",
-                  href: `/research/${encodeURIComponent(CANONICAL_RESEARCH_ID)}`,
-                  label: tr("guidedEntryContinueSample"),
-                  description: tr("guidedEntryContinueSampleDesc"),
-                },
-                {
-                  id: "validation",
-                  href: `/research/${encodeURIComponent(CANONICAL_RESEARCH_ID)}?tab=validation`,
-                  label: tr("guidedEntryReviewValidation"),
-                  description: tr("guidedEntryReviewValidationDesc"),
-                },
-                {
-                  id: "strategy-lab",
-                  href: "/strategy-lab",
-                  label: tr("guidedEntryOpenStrategyLab"),
-                  description: tr("guidedEntryOpenStrategyLabDesc"),
-                },
-              ]}
-            />
-
-            <hr className="overview-divider" />
-
-            <section
-              className="research-library__band"
-              aria-label={tr("demoSampleTitle")}
-            >
-              <p className="overview-caption">
-                <ResearchGlyph name="support" />
-                <span>{tr("demoSampleTitle")}</span>
-              </p>
-              <p className="research-library__sample-note">
-                {tr("demoSampleBody")}
-              </p>
-            </section>
-
-            <hr className="overview-divider" />
-
             {/* 1. Continue Research */}
             <section
               className="research-library__band"
@@ -329,9 +273,13 @@ export default function ResearchListPage() {
                             <h3 className="research-library__project-title">
                               {researchNameLabel(item.id, item.name, language)}
                             </h3>
-                            <p className="research-library__project-strategy">
-                              {item.configuration.strategyName}
-                            </p>
+                            {item.configuration.strategyName &&
+                            item.configuration.strategyName !== "Not configured" &&
+                            item.configuration.strategyName !== "未配置" ? (
+                              <p className="research-library__project-strategy">
+                                {item.configuration.strategyName}
+                              </p>
+                            ) : null}
                             <p className="research-library__project-stage">
                               {tr("researchLibraryCurrentStage")}:{" "}
                               {stageLabels[stage]}
@@ -347,41 +295,6 @@ export default function ResearchListPage() {
                   })}
                 </ul>
               )}
-            </section>
-
-            <hr className="overview-divider" />
-
-            {/* 3. Research Lifecycle */}
-            <section
-              className="research-library__band"
-              aria-label={tr("researchLibraryLifecycleTitle")}
-            >
-              <p className="overview-caption">
-                <ResearchGlyph name="decision" />
-                <span>{tr("researchLibraryLifecycleTitle")}</span>
-              </p>
-              <ol className="research-library__lifecycle">
-                {LIBRARY_LIFECYCLE_STAGES.map((stage) => {
-                  const completed = lifecycleProgress.completed.includes(stage);
-                  return (
-                    <li
-                      key={stage}
-                      className={`research-library__lifecycle-step${
-                        completed
-                          ? " research-library__lifecycle-step--completed"
-                          : ""
-                      }`}
-                    >
-                      <span className="research-library__lifecycle-label">
-                        {stageLabels[stage]}
-                      </span>
-                    </li>
-                  );
-                })}
-              </ol>
-              {!continueResearch ? (
-                <EmptyState description={tr("researchLibraryLifecycleEmpty")} />
-              ) : null}
             </section>
 
             <hr className="overview-divider" />

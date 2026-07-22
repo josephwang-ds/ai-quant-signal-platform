@@ -23,6 +23,7 @@ import EmptyState from "@/components/ui/EmptyState";
 import MetricSummaryCard from "@/components/ui/MetricSummaryCard";
 import type {
   ModelComparisonEquityRow,
+  ModelComparisonFold,
   ModelComparisonResponse,
   ModelComparisonResult,
 } from "@/lib/api";
@@ -78,6 +79,14 @@ type ChartLabels = {
   kindMl: string;
   kindRule: string;
   na: string;
+  foldStabilityTitle: string;
+  foldStabilityEmpty: string;
+  foldStabilityYSharpe: string;
+  foldStabilityYAccuracy: string;
+  foldIndexLabel: string;
+  offlineBadge: string;
+  offlineBadgeWithDate: string;
+  offlineTooltip: string;
 };
 
 type ModelComparisonChartsProps = {
@@ -97,6 +106,46 @@ function findByLabel(
 ): ModelComparisonResult | undefined {
   if (!label) return undefined;
   return results.find((row) => row.label === label);
+}
+
+function isOfflineArtifactRow(row: ModelComparisonResult): boolean {
+  return (
+    row.source === "offline_artifact" ||
+    row.strategy === "lstm" ||
+    row.strategy === "cnn" ||
+    row.strategy === "rl"
+  );
+}
+
+function offlineBadgeText(
+  row: ModelComparisonResult,
+  labels: Pick<ChartLabels, "offlineBadge" | "offlineBadgeWithDate">
+): string {
+  const trainedAt = row.trained_at?.trim();
+  if (!trainedAt) return labels.offlineBadge;
+  const date = trainedAt.slice(0, 10);
+  return labels.offlineBadgeWithDate.replace("{date}", date);
+}
+
+function OfflineBadge({
+  row,
+  labels,
+}: {
+  row: ModelComparisonResult;
+  labels: Pick<
+    ChartLabels,
+    "offlineBadge" | "offlineBadgeWithDate" | "offlineTooltip"
+  >;
+}) {
+  if (!isOfflineArtifactRow(row)) return null;
+  return (
+    <span
+      className="model-comparison-offline-badge"
+      title={labels.offlineTooltip}
+    >
+      {offlineBadgeText(row, labels)}
+    </span>
+  );
 }
 
 function buildChampionBanner(
@@ -126,6 +175,8 @@ function EquityOverlayChart({
   subtitle,
   emptyMessage,
   language,
+  offlineByLabel,
+  offlineTooltip,
 }: {
   rows: ModelComparisonEquityRow[];
   series: string[];
@@ -133,6 +184,8 @@ function EquityOverlayChart({
   subtitle: string;
   emptyMessage: string;
   language: Language;
+  offlineByLabel: Record<string, string>;
+  offlineTooltip: string;
 }) {
   if (rows.length === 0 || series.length === 0) {
     return <EmptyState message={emptyMessage} />;
@@ -142,6 +195,16 @@ function EquityOverlayChart({
     <div className="chart-panel">
       <h3 className="chart-panel__title">{title}</h3>
       <p className="chart-caption">{subtitle}</p>
+      {Object.keys(offlineByLabel).length > 0 ? (
+        <p className="chart-caption model-comparison-offline-note" title={offlineTooltip}>
+          {Object.entries(offlineByLabel)
+            .map(
+              ([label, badge]) =>
+                `${translateComparisonLabel(language, label)} · ${badge}`
+            )
+            .join(" · ")}
+        </p>
+      ) : null}
       <div className="chart-panel__container chart-panel__container--md">
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={rows} margin={{ top: 8, right: 16, left: 0, bottom: 8 }}>
@@ -162,7 +225,14 @@ function EquityOverlayChart({
                 typeof value === "number" ? value.toFixed(3) : value
               }
             />
-            <Legend wrapperStyle={{ fontSize: "0.875rem", color: CHART_TICK_FILL }} />
+            <Legend
+              wrapperStyle={{ fontSize: "0.875rem", color: CHART_TICK_FILL }}
+              formatter={(value) => {
+                const name = translateComparisonLabel(language, String(value));
+                const badge = offlineByLabel[String(value)];
+                return badge ? `${name} (${badge})` : name;
+              }}
+            />
             {series.map((label, index) => {
               const isBuyHold = label === BUY_HOLD_LABEL;
               return (
@@ -170,7 +240,7 @@ function EquityOverlayChart({
                   key={label}
                   type="monotone"
                   dataKey={label}
-                  name={translateComparisonLabel(language, label)}
+                  name={label}
                   stroke={
                     isBuyHold
                       ? CHART_COLORS.benchmark
@@ -496,6 +566,122 @@ function FeatureImportanceCharts({
   );
 }
 
+function FoldStabilityChart({
+  folds,
+  language,
+  labels,
+}: {
+  folds: ModelComparisonFold[];
+  language: Language;
+  labels: ChartLabels;
+}) {
+  const [metric, setMetric] = useState<"sharpe" | "accuracy">("sharpe");
+
+  const activeFolds = folds.filter(
+    (fold) => !fold.skipped && fold.per_model.length > 0
+  );
+  const seriesLabels = Array.from(
+    new Set(activeFolds.flatMap((fold) => fold.per_model.map((item) => item.label)))
+  );
+
+  const rows = activeFolds.map((fold) => {
+    const row: Record<string, string | number> = {
+      fold: fold.index + 1,
+    };
+    for (const item of fold.per_model) {
+      const value =
+        metric === "sharpe" ? item.sharpe_ratio : item.directional_accuracy;
+      if (value != null && Number.isFinite(value)) {
+        row[item.label] = value;
+      }
+    }
+    return row;
+  });
+
+  if (rows.length === 0 || seriesLabels.length === 0) {
+    return <EmptyState message={labels.foldStabilityEmpty} />;
+  }
+
+  return (
+    <div className="chart-panel">
+      <div className="model-comparison-rank-header">
+        <h3 className="chart-panel__title">{labels.foldStabilityTitle}</h3>
+        <div className="model-comparison-view-toggle" role="group">
+          <button
+            type="button"
+            className={`model-comparison-view-toggle__btn${
+              metric === "sharpe" ? " is-active" : ""
+            }`}
+            aria-pressed={metric === "sharpe"}
+            onClick={() => setMetric("sharpe")}
+          >
+            {labels.foldStabilityYSharpe}
+          </button>
+          <button
+            type="button"
+            className={`model-comparison-view-toggle__btn${
+              metric === "accuracy" ? " is-active" : ""
+            }`}
+            aria-pressed={metric === "accuracy"}
+            onClick={() => setMetric("accuracy")}
+          >
+            {labels.foldStabilityYAccuracy}
+          </button>
+        </div>
+      </div>
+      <div className="chart-panel__container chart-panel__container--md">
+        <ResponsiveContainer width="100%" height="100%">
+          <LineChart data={rows} margin={{ top: 8, right: 16, left: 0, bottom: 8 }}>
+            <CartesianGrid stroke={CHART_GRID_STROKE} strokeDasharray="3 3" />
+            <XAxis
+              dataKey="fold"
+              tick={{ fill: CHART_TICK_FILL, fontSize: CHART_TICK_FONT_SIZE }}
+              allowDecimals={false}
+              label={{
+                value: labels.foldIndexLabel,
+                position: "insideBottom",
+                offset: -2,
+                fill: CHART_TICK_FILL,
+                fontSize: CHART_TICK_FONT_SIZE,
+              }}
+            />
+            <YAxis
+              tick={{ fill: CHART_TICK_FILL, fontSize: CHART_TICK_FONT_SIZE }}
+              width={48}
+            />
+            <Tooltip
+              {...CHART_TOOLTIP_STYLE}
+              labelFormatter={(value) => `${labels.foldIndexLabel} ${value}`}
+              formatter={(value: number, name: string) => [
+                metric === "accuracy"
+                  ? formatMetricPercent(value)
+                  : formatMetricSharpe(value),
+                translateComparisonLabel(language, name),
+              ]}
+            />
+            <Legend
+              wrapperStyle={{ fontSize: "0.875rem", color: CHART_TICK_FILL }}
+              formatter={(value) => translateComparisonLabel(language, String(value))}
+            />
+            {seriesLabels.map((label, index) => (
+              <Line
+                key={label}
+                type="monotone"
+                dataKey={label}
+                name={label}
+                stroke={CHART_COMPARE_LINES[index % CHART_COMPARE_LINES.length]}
+                strokeWidth={2}
+                dot={{ r: 3 }}
+                connectNulls
+              />
+            ))}
+          </LineChart>
+        </ResponsiveContainer>
+      </div>
+    </div>
+  );
+}
+
 export default function ModelComparisonCharts({
   result,
   language,
@@ -511,6 +697,11 @@ export default function ModelComparisonCharts({
 
   const equityRows = result.equity_curve_rows ?? [];
   const equityLabels = result.equity_curve_labels ?? [];
+  const isWalkForward = result.mode === "walk_forward";
+  const folds = result.folds ?? [];
+  const equitySubtitle = isWalkForward
+    ? `${result.oos_start ?? result.test_start} – ${result.oos_end ?? result.test_end}`
+    : `${result.test_start} – ${result.test_end}`;
 
   const scatterPoints: ScatterPoint[] = result.results.flatMap((row) => {
     const dd = drawdownOf(row);
@@ -534,7 +725,9 @@ export default function ModelComparisonCharts({
     .sort((a, b) => (b.metrics.sharpe_ratio ?? 0) - (a.metrics.sharpe_ratio ?? 0))
     .map((row, index) => ({
       label: row.label,
-      displayLabel: translateComparisonLabel(language, row.label),
+      displayLabel: `${translateComparisonLabel(language, row.label)}${
+        isOfflineArtifactRow(row) ? ` · ${offlineBadgeText(row, labels)}` : ""
+      }`,
       value: row.metrics.sharpe_ratio ?? 0,
       isBest: index === 0,
     }));
@@ -544,7 +737,9 @@ export default function ModelComparisonCharts({
     .sort((a, b) => (b.metrics.total_return ?? 0) - (a.metrics.total_return ?? 0))
     .map((row, index) => ({
       label: row.label,
-      displayLabel: translateComparisonLabel(language, row.label),
+      displayLabel: `${translateComparisonLabel(language, row.label)}${
+        isOfflineArtifactRow(row) ? ` · ${offlineBadgeText(row, labels)}` : ""
+      }`,
       value: (row.metrics.total_return ?? 0) * 100,
       isBest: index === 0,
     }));
@@ -554,7 +749,9 @@ export default function ModelComparisonCharts({
     .sort((a, b) => Math.abs(drawdownOf(a) ?? 0) - Math.abs(drawdownOf(b) ?? 0))
     .map((row, index) => ({
       label: row.label,
-      displayLabel: translateComparisonLabel(language, row.label),
+      displayLabel: `${translateComparisonLabel(language, row.label)}${
+        isOfflineArtifactRow(row) ? ` · ${offlineBadgeText(row, labels)}` : ""
+      }`,
       value: Math.abs(drawdownOf(row) ?? 0) * 100,
       isBest: index === 0,
     }));
@@ -578,6 +775,12 @@ export default function ModelComparisonCharts({
 
   const mlRows = result.results.filter((row) => row.kind === "ml");
   const banner = buildChampionBanner(result, language, labels);
+  const offlineByLabel: Record<string, string> = {};
+  for (const row of result.results) {
+    if (isOfflineArtifactRow(row)) {
+      offlineByLabel[row.label] = offlineBadgeText(row, labels);
+    }
+  }
 
   return (
     <div className="model-comparison-charts">
@@ -609,6 +812,11 @@ export default function ModelComparisonCharts({
                   : labels.na
               }
             />
+            {isOfflineArtifactRow(champion) ? (
+              <div className="model-comparison-champion__offline">
+                <OfflineBadge row={champion} labels={labels} />
+              </div>
+            ) : null}
           </div>
         ) : null}
       </div>
@@ -617,10 +825,16 @@ export default function ModelComparisonCharts({
         rows={equityRows}
         series={equityLabels}
         title={labels.equityTitle}
-        subtitle={`${result.test_start} – ${result.test_end}`}
+        subtitle={equitySubtitle}
         emptyMessage={labels.equityEmpty}
         language={language}
+        offlineByLabel={offlineByLabel}
+        offlineTooltip={labels.offlineTooltip}
       />
+
+      {isWalkForward ? (
+        <FoldStabilityChart folds={folds} language={language} labels={labels} />
+      ) : null}
 
       <RiskReturnScatter points={scatterPoints} labels={labels} />
 

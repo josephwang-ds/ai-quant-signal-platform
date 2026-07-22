@@ -56,11 +56,9 @@ export default function OverviewTab({
         onOpenSection={navigateToSection}
         labels={{
           keyResultsTitle: tr("researchWsCalculatedMetrics"),
-          guidedWorkflowTitle: tr("researchWsGuidedWorkflowTitle"),
           conclusionTitle: tr("researchWsCurrentDecision"),
           evidencePreviewTitle: tr("researchWsEvidencePreview"),
           primaryActionCaption: tr("researchWsBandAction"),
-          progressCaption: tr("researchWsBandProgress"),
           validationCaption: tr("researchWsBandValidation"),
           decisionCaption: tr("researchWsBandDecision"),
           supportCaption: tr("researchWsBandSupport"),
@@ -81,19 +79,6 @@ export default function OverviewTab({
             unavailable: tr("researchWsKeyResultsUnavailable"),
             unavailableTitle: tr("researchWsKeyResultsUnavailableTitle"),
             oosSharpeUnavailable: tr("researchWsOosSharpeUnavailable"),
-          },
-          guidedFlow: {
-            title: tr("researchWsGuidedWorkflowTitle"),
-            stepResearch: tr("researchWsNavOverview"),
-            stepExperiment: tr("researchWsNavExperiments"),
-            stepValidation: tr("researchWsNavValidation"),
-            stepRobustness: tr("researchWsNavRobustness"),
-            stepPaper: tr("researchWsNavPaper"),
-            stepDecision: tr("researchWsNavDecision"),
-            stepArchive: tr("researchWsNavArchive"),
-            unavailableUntilPrior: tr("researchWsGuidedUnavailableUntilPrior"),
-            loading: tr("researchWsGuidedLoading"),
-            failed: tr("researchWsGuidedFailed"),
           },
           nextStep: {
             title: tr("researchWsNextStepTitle"),

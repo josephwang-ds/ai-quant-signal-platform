@@ -1,8 +1,11 @@
 import { describe, expect, it } from "vitest";
 import {
+  derivePrimaryTabProgress,
   derivePrimaryWorkflowStep,
   deriveWorkflowPrimaryAction,
   deriveWorkflowStepStates,
+  sectionToWorkflowStep,
+  workflowStepToSection,
   WORKFLOW_STEP_ORDER,
 } from "@/lib/researchWorkflow";
 
@@ -27,6 +30,12 @@ describe("researchWorkflow", () => {
       "decision",
       "archive",
     ]);
+  });
+
+  it("maps primary tabs to workflow steps bidirectionally", () => {
+    for (const step of WORKFLOW_STEP_ORDER) {
+      expect(sectionToWorkflowStep(workflowStepToSection(step))).toBe(step);
+    }
   });
 
   it("requires execution before validation", () => {
@@ -66,6 +75,9 @@ describe("researchWorkflow", () => {
     expect(states.experiment).toBe("completed");
     expect(states.validation).toBe("current");
     expect(states.robustness).toBe("unavailable");
+    expect(derivePrimaryTabProgress(states.research)).toBe("completed");
+    expect(derivePrimaryTabProgress(states.validation)).toBe("current");
+    expect(derivePrimaryTabProgress(states.robustness)).toBe("locked");
   });
 
   it("moves to robustness after validation summary is ready", () => {

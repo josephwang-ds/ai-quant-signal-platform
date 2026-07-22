@@ -7,7 +7,12 @@ import ErrorAlert from "@/components/ui/ErrorAlert";
 import LoadingState from "@/components/ui/LoadingState";
 import SectionCard from "@/components/ui/SectionCard";
 import SectionHeader from "@/components/ui/SectionHeader";
-import { runRiskReview, type RiskReviewResponse } from "@/lib/api";
+import {
+  runRiskReview,
+  type RiskDrawdownMode,
+  type RiskProfileName,
+  type RiskReviewResponse,
+} from "@/lib/api";
 import { getApiDisplayMessage } from "@/lib/apiRequest";
 import {
   translateAllowedAction,
@@ -45,6 +50,18 @@ const COMPONENT_LABEL_KEYS: Record<ComponentKey, "riskComponentDrawdown" | "risk
   signal_conflict: "riskComponentSignalConflict",
 };
 
+const RISK_PROFILE_OPTIONS: Array<{
+  value: RiskProfileName;
+  labelKey:
+    | "riskProfileConservative"
+    | "riskProfileModerate"
+    | "riskProfileAggressive";
+}> = [
+  { value: "conservative", labelKey: "riskProfileConservative" },
+  { value: "moderate", labelKey: "riskProfileModerate" },
+  { value: "aggressive", labelKey: "riskProfileAggressive" },
+];
+
 /**
  * Risk Review：参数表单 → POST /api/v1/risk/review → 渲染五档评估。
  * 指标与等级均来自后端；前端不计算、不编造。
@@ -62,6 +79,10 @@ export default function RiskGateReview() {
   const [transactionCost, setTransactionCost] = useState(
     String(DEFAULT_TRANSACTION_COST)
   );
+  const [drawdownMode, setDrawdownMode] =
+    useState<RiskDrawdownMode>("current");
+  const [riskProfile, setRiskProfile] =
+    useState<RiskProfileName>("aggressive");
   const [result, setResult] = useState<RiskReviewResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -118,6 +139,8 @@ export default function RiskGateReview() {
         momentum_window: parsedMomentumWindow,
         combined_mode: combinedMode,
         transaction_cost: parsedTransactionCost,
+        drawdown_mode: drawdownMode,
+        risk_profile: riskProfile,
       });
       setResult(response);
     } catch (err) {
@@ -128,6 +151,16 @@ export default function RiskGateReview() {
   }
 
   const riskLevel = result?.risk.risk_level ?? null;
+  const drawdownModeLabel =
+    result?.drawdown_mode === "historical"
+      ? tr("riskDrawdownModeHistorical")
+      : tr("riskDrawdownModeCurrent");
+  const riskProfileLabel =
+    result?.risk_profile === "conservative"
+      ? tr("riskProfileConservative")
+      : result?.risk_profile === "moderate"
+        ? tr("riskProfileModerate")
+        : tr("riskProfileAggressive");
 
   return (
     <SectionCard>
@@ -253,6 +286,47 @@ export default function RiskGateReview() {
             onChange={(e) => setTransactionCost(e.target.value)}
           />
         </label>
+
+        <label className="form-field">
+          <span className="form-label">{tr("riskDrawdownMode")}</span>
+          <select
+            className="form-select"
+            value={drawdownMode}
+            onChange={(e) =>
+              setDrawdownMode(e.target.value as RiskDrawdownMode)
+            }
+          >
+            <option value="current">{tr("riskDrawdownModeCurrent")}</option>
+            <option value="historical">
+              {tr("riskDrawdownModeHistorical")}
+            </option>
+          </select>
+        </label>
+      </div>
+
+      <p className="risk-review-drawdown-hint">{tr("riskDrawdownModeHint")}</p>
+
+      <div
+        className="risk-review-profile"
+        role="group"
+        aria-label={tr("riskProfilePreference")}
+      >
+        <span className="form-label">{tr("riskProfilePreference")}</span>
+        <div className="model-comparison-view-toggle">
+          {RISK_PROFILE_OPTIONS.map((option) => (
+            <button
+              key={option.value}
+              type="button"
+              className={`model-comparison-view-toggle__btn${
+                riskProfile === option.value ? " is-active" : ""
+              }`}
+              aria-pressed={riskProfile === option.value}
+              onClick={() => setRiskProfile(option.value)}
+            >
+              {tr(option.labelKey)}
+            </button>
+          ))}
+        </div>
       </div>
 
       <Button onClick={handleSubmit} disabled={loading}>
@@ -270,6 +344,11 @@ export default function RiskGateReview() {
 
       {result && riskLevel !== null && (
         <>
+          <p className="risk-review-lens">
+            {tr("riskReviewLensMode")}: {drawdownModeLabel} ·{" "}
+            {tr("riskReviewLensProfile")}: {riskProfileLabel}
+          </p>
+
           <div
             className={`risk-review-hero risk-review-hero--level-${riskLevel}`}
             role="status"

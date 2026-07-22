@@ -1,6 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import LifecycleProgress from "@/components/features/research/LifecycleProgress";
+import ResearchPrimaryTabs from "@/components/features/research/ResearchPrimaryTabs";
 import ResearchWorkspaceNavigation from "@/components/features/research/ResearchWorkspaceNavigation";
 import OverviewSection from "@/components/features/research/OverviewSection";
 import { overviewSectionTestLabels } from "@/components/features/research/overviewSectionTestLabels";
@@ -8,6 +9,7 @@ import {
   CANONICAL_RESEARCH_ID,
   getMockResearchById,
 } from "@/lib/mockResearchCatalog";
+import { deriveWorkflowStepStates } from "@/lib/researchWorkflow";
 
 const navLabels = {
   overview: "Research",
@@ -25,12 +27,57 @@ const navLabels = {
   settings: "Settings",
 };
 
+const primaryTabLabels = {
+  overview: "Research",
+  experiments: "Experiment",
+  validation: "Validation",
+  robustness: "Robustness",
+  paper: "Paper Trading",
+  decision: "Decision",
+  archive: "Archive",
+  progressCompleted: "Completed",
+  progressCurrent: "Current",
+  progressLocked: "Locked",
+};
+
 describe("LifecycleProgress", () => {
   it("renders current-state labels for the active stage", () => {
     render(<LifecycleProgress currentStage="Synthesizing" />);
 
     expect(screen.getByText("Synthesizing")).toBeInTheDocument();
     expect(screen.getAllByText("Current")).toHaveLength(1);
+  });
+});
+
+describe("ResearchPrimaryTabs", () => {
+  it("shows completed, current, and locked progress on primary tabs", () => {
+    const stepStates = deriveWorkflowStepStates({
+      executionStatus: "ready",
+      execution: { research_id: CANONICAL_RESEARCH_ID } as never,
+      validationStatus: "idle",
+      validation: null,
+      evaluationStatus: "idle",
+      evaluation: null,
+    });
+
+    render(
+      <ResearchPrimaryTabs
+        researchId={CANONICAL_RESEARCH_ID}
+        activeSection="overview"
+        stepStates={stepStates}
+        labels={primaryTabLabels}
+      />
+    );
+
+    expect(
+      screen.getByRole("link", { name: "Research, Completed" })
+    ).toHaveAttribute("data-progress", "completed");
+    expect(
+      screen.getByRole("link", { name: "Validation, Current" })
+    ).toHaveAttribute("data-progress", "current");
+    expect(
+      screen.getByRole("link", { name: "Robustness, Locked" })
+    ).toHaveAttribute("data-progress", "locked");
   });
 });
 
@@ -91,5 +138,8 @@ describe("OverviewSection", () => {
     expect(screen.getByRole("status")).toHaveTextContent(
       "Run the research to calculate historical evidence."
     );
+    // Progress lives on the primary tab bar — not duplicated in Overview.
+    expect(screen.queryByText("Progress")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Guided workflow")).not.toBeInTheDocument();
   });
 });
