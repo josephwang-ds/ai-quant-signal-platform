@@ -7,6 +7,7 @@ import AppShell from "@/components/layout/AppShell";
 import ResearchSummaryRail from "@/components/features/research/ResearchSummaryRail";
 import ResearchWorkspaceHeader from "@/components/features/research/ResearchWorkspaceHeader";
 import ResearchWorkspaceSkeleton from "@/components/features/research/ResearchWorkspaceSkeleton";
+import ResearchPrimaryTabs from "@/components/features/research/ResearchPrimaryTabs";
 import ResearchWorkspaceMainSection from "@/components/features/research/workspace-tabs/ResearchWorkspaceMainSection";
 import Button from "@/components/ui/Button";
 import EmptyState from "@/components/ui/EmptyState";
@@ -17,7 +18,10 @@ import { getMockTimelineEvents } from "@/lib/mockNotebookCatalog";
 import { getResearchRepository } from "@/lib/localResearchRepository";
 import { mergeTimelineEvents } from "@/lib/researchNotebook";
 import { resolveWorkspaceSection } from "@/lib/researchWorkspace";
-import { derivePrimaryWorkflowStep } from "@/lib/researchWorkflow";
+import {
+  derivePrimaryWorkflowStep,
+  deriveWorkflowStepStates,
+} from "@/lib/researchWorkflow";
 import { useWorkspaceLanguage } from "@/lib/useWorkspaceLanguage";
 import type { ResearchExperiment } from "@/types/experiment";
 import type { NotebookEntry, ResearchTimelineEvent } from "@/types/notebook";
@@ -200,19 +204,38 @@ export default function ResearchWorkspacePage({
     return research;
   }, [research, executionEnabled, executionStatus, execution]);
 
-  const summaryNextMilestone = useMemo(() => {
-    if (evaluationStatus === "ready" && evaluation) {
-      if (evaluation.blockers[0]) return evaluation.blockers[0];
-      if (evaluation.outstanding_evidence[0]) return evaluation.outstanding_evidence[0];
-    }
-    const step = derivePrimaryWorkflowStep({
+  const workflowInput = useMemo(
+    () => ({
       executionStatus,
       execution,
       validationStatus,
       validation,
       evaluationStatus,
       evaluation,
-    });
+      researchStatus: displayResearch?.status,
+    }),
+    [
+      displayResearch?.status,
+      evaluation,
+      evaluationStatus,
+      execution,
+      executionStatus,
+      validation,
+      validationStatus,
+    ]
+  );
+
+  const workflowStepStates = useMemo(
+    () => deriveWorkflowStepStates(workflowInput),
+    [workflowInput]
+  );
+
+  const summaryNextMilestone = useMemo(() => {
+    if (evaluationStatus === "ready" && evaluation) {
+      if (evaluation.blockers[0]) return evaluation.blockers[0];
+      if (evaluation.outstanding_evidence[0]) return evaluation.outstanding_evidence[0];
+    }
+    const step = derivePrimaryWorkflowStep(workflowInput);
     if (step === "research") return tr("researchWsNextStepRunResearchTitle");
     if (step === "validation") return tr("researchWsNextStepValidateTitle");
     if (step === "robustness") return tr("researchWsNextStepOpenRobustnessTitle");
@@ -220,15 +243,7 @@ export default function ResearchWorkspacePage({
     if (step === "decision") return tr("researchWsNextStepOpenDecisionTitle");
     if (step === "archive") return tr("researchWsNextStepOpenArchiveTitle");
     return tr("researchWsNextStepOpenExperimentTitle");
-  }, [
-    evaluation,
-    evaluationStatus,
-    execution,
-    executionStatus,
-    tr,
-    validation,
-    validationStatus,
-  ]);
+  }, [evaluation, evaluationStatus, tr, workflowInput]);
 
   const executedExperiments = useMemo(() => {
     if (!executionEnabled || executionStatus !== "ready" || !execution) {
@@ -402,97 +417,23 @@ export default function ResearchWorkspacePage({
                   role="navigation"
                   aria-label="Research workspace sections"
                 >
-                  <div className="research-workspace__primary-tabs">
-                    <Link
-                      href={`/research/${encodeURIComponent(displayResearch.id)}`}
-                      className={`research-workspace__primary-tab${
-                        activeSection === "overview" ? " is-active" : ""
-                      }`}
-                      aria-current={
-                        activeSection === "overview" ? "page" : undefined
-                      }
-                    >
-                      {tr("researchWsNavOverview")}
-                    </Link>
-                    <Link
-                      href={`/research/${encodeURIComponent(
-                        displayResearch.id
-                      )}?tab=experiments`}
-                      className={`research-workspace__primary-tab${
-                        activeSection === "experiments" ? " is-active" : ""
-                      }`}
-                      aria-current={
-                        activeSection === "experiments" ? "page" : undefined
-                      }
-                    >
-                      {tr("researchWsNavExperiments")}
-                    </Link>
-                    <Link
-                      href={`/research/${encodeURIComponent(
-                        displayResearch.id
-                      )}?tab=validation`}
-                      className={`research-workspace__primary-tab${
-                        activeSection === "validation" ? " is-active" : ""
-                      }`}
-                      aria-current={
-                        activeSection === "validation" ? "page" : undefined
-                      }
-                    >
-                      {tr("researchWsNavValidation")}
-                    </Link>
-                    <Link
-                      href={`/research/${encodeURIComponent(
-                        displayResearch.id
-                      )}?tab=robustness`}
-                      className={`research-workspace__primary-tab${
-                        activeSection === "robustness" ? " is-active" : ""
-                      }`}
-                      aria-current={
-                        activeSection === "robustness" ? "page" : undefined
-                      }
-                    >
-                      {tr("researchWsNavRobustness")}
-                    </Link>
-                    <Link
-                      href={`/research/${encodeURIComponent(
-                        displayResearch.id
-                      )}?tab=paper`}
-                      className={`research-workspace__primary-tab${
-                        activeSection === "paper" ? " is-active" : ""
-                      }`}
-                      aria-current={
-                        activeSection === "paper" ? "page" : undefined
-                      }
-                    >
-                      {tr("researchWsNavPaper")}
-                    </Link>
-                    <Link
-                      href={`/research/${encodeURIComponent(
-                        displayResearch.id
-                      )}?tab=decision`}
-                      className={`research-workspace__primary-tab${
-                        activeSection === "decision" ? " is-active" : ""
-                      }`}
-                      aria-current={
-                        activeSection === "decision" ? "page" : undefined
-                      }
-                    >
-                      {tr("researchWsNavDecision")}
-                    </Link>
-                    <Link
-                      href={`/research/${encodeURIComponent(
-                        displayResearch.id
-                      )}?tab=archive`}
-                      className={`research-workspace__primary-tab${
-                        activeSection === "archive" ? " is-active" : ""
-                      }`}
-                      aria-current={
-                        activeSection === "archive" ? "page" : undefined
-                      }
-                    >
-                      {tr("researchWsNavArchive")}
-                    </Link>
-                  </div>
+                  <ResearchPrimaryTabs
+                    researchId={displayResearch.id}
+                    activeSection={activeSection}
+                    stepStates={workflowStepStates}
+                    labels={{
+                      overview: tr("researchWsNavOverview"),
+                      experiments: tr("researchWsNavExperiments"),
+                      validation: tr("researchWsNavValidation"),
+                      robustness: tr("researchWsNavRobustness"),
+                      paper: tr("researchWsNavPaper"),
+                      decision: tr("researchWsNavDecision"),
+                      archive: tr("researchWsNavArchive"),
+                      progressCompleted: tr("researchWsTabCompleted"),
+                      progressCurrent: tr("researchWsTabCurrent"),
+                      progressLocked: tr("researchWsTabLocked"),
+                    }}
+                  />
 
                   <details className="research-workspace__more-menu">
                     <summary>{tr("researchListMore")}</summary>

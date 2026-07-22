@@ -33,10 +33,13 @@ import { useWorkspaceLanguage } from "@/lib/useWorkspaceLanguage";
 const DEFAULT_TICKER = "SPY";
 const DEFAULT_START_DATE = "2020-01-01";
 const DEFAULT_SPLIT_DATE = "2022-01-01";
+const DEFAULT_N_FOLDS = 4;
 const DEFAULT_SHORT_WINDOW = 20;
 const DEFAULT_LONG_WINDOW = 60;
 const DEFAULT_MOMENTUM_WINDOW = 60;
 const DEFAULT_TRANSACTION_COST = 0.001;
+
+type ComparisonMode = "single_split" | "walk_forward";
 
 const MODEL_OPTIONS: Array<{ id: string; labelKey: TranslationKey }> = [
   { id: "logistic", labelKey: "modelOptionLogistic" },
@@ -70,7 +73,10 @@ export default function ModelComparisonPage() {
   const [ticker, setTicker] = useState(DEFAULT_TICKER);
   const [startDate, setStartDate] = useState(DEFAULT_START_DATE);
   const [endDate, setEndDate] = useState("");
+  const [comparisonMode, setComparisonMode] =
+    useState<ComparisonMode>("single_split");
   const [splitDate, setSplitDate] = useState(DEFAULT_SPLIT_DATE);
+  const [nFolds, setNFolds] = useState(DEFAULT_N_FOLDS);
   const [shortWindow, setShortWindow] = useState(DEFAULT_SHORT_WINDOW);
   const [longWindow, setLongWindow] = useState(DEFAULT_LONG_WINDOW);
   const [momentumWindow, setMomentumWindow] = useState(DEFAULT_MOMENTUM_WINDOW);
@@ -97,13 +103,19 @@ export default function ModelComparisonPage() {
     const parsedLongWindow = Number(longWindow);
     const parsedMomentumWindow = Number(momentumWindow);
     const parsedTransactionCost = Number(transactionCost);
+    const parsedNFolds = Number(nFolds);
+    const isWalkForward = comparisonMode === "walk_forward";
 
     if (!normalizedTicker) {
       setError(tr("tickerEmpty"));
       return;
     }
-    if (!splitDate) {
+    if (!isWalkForward && !splitDate) {
       setError(tr("modelComparisonSplitRequired"));
+      return;
+    }
+    if (isWalkForward && (!Number.isFinite(parsedNFolds) || parsedNFolds < 2)) {
+      setError(tr("modelComparisonNFoldsInvalid"));
       return;
     }
     if (parsedShortWindow >= parsedLongWindow) {
@@ -136,12 +148,14 @@ export default function ModelComparisonPage() {
         ticker: normalizedTicker,
         start_date: startDate,
         end_date: endDate || undefined,
-        split_date: splitDate,
         transaction_cost: parsedTransactionCost,
         short_window: parsedShortWindow,
         long_window: parsedLongWindow,
         momentum_window: parsedMomentumWindow,
         models: selectedModels,
+        ...(isWalkForward
+          ? { n_folds: parsedNFolds, scheme: "expanding" as const }
+          : { split_date: splitDate }),
       });
       setResult(response);
       setResultsView("charts");
@@ -151,6 +165,10 @@ export default function ModelComparisonPage() {
       setLoading(false);
     }
   }
+
+  const resultIsWalkForward = result?.mode === "walk_forward";
+  const oosStart = result?.oos_start ?? result?.test_start;
+  const oosEnd = result?.oos_end ?? result?.test_end;
 
   return (
     <SectionCard>
@@ -164,6 +182,32 @@ export default function ModelComparisonPage() {
         <li>{tr("modelComparisonDisclaimer2")}</li>
         <li>{tr("modelComparisonDisclaimer3")}</li>
       </ul>
+
+      <div className="model-comparison-mode" role="group" aria-label={tr("modelComparisonMode")}>
+        <span className="form-label">{tr("modelComparisonMode")}</span>
+        <div className="model-comparison-view-toggle">
+          <button
+            type="button"
+            className={`model-comparison-view-toggle__btn${
+              comparisonMode === "single_split" ? " is-active" : ""
+            }`}
+            aria-pressed={comparisonMode === "single_split"}
+            onClick={() => setComparisonMode("single_split")}
+          >
+            {tr("modelComparisonModeSingleSplit")}
+          </button>
+          <button
+            type="button"
+            className={`model-comparison-view-toggle__btn${
+              comparisonMode === "walk_forward" ? " is-active" : ""
+            }`}
+            aria-pressed={comparisonMode === "walk_forward"}
+            onClick={() => setComparisonMode("walk_forward")}
+          >
+            {tr("modelComparisonModeWalkForward")}
+          </button>
+        </div>
+      </div>
 
       <div className="form-grid">
         <label className="form-field">
@@ -197,15 +241,29 @@ export default function ModelComparisonPage() {
           />
         </label>
 
-        <label className="form-field">
-          <span className="form-label">{tr("modelComparisonSplitDate")}</span>
-          <input
-            className="form-input"
-            type="date"
-            value={splitDate}
-            onChange={(e) => setSplitDate(e.target.value)}
-          />
-        </label>
+        {comparisonMode === "single_split" ? (
+          <label className="form-field">
+            <span className="form-label">{tr("modelComparisonSplitDate")}</span>
+            <input
+              className="form-input"
+              type="date"
+              value={splitDate}
+              onChange={(e) => setSplitDate(e.target.value)}
+            />
+          </label>
+        ) : (
+          <label className="form-field">
+            <span className="form-label">{tr("modelComparisonNFolds")}</span>
+            <input
+              className="form-input"
+              type="number"
+              min={2}
+              max={12}
+              value={nFolds}
+              onChange={(e) => setNFolds(Number(e.target.value))}
+            />
+          </label>
+        )}
 
         <label className="form-field">
           <span className="form-label">{tr("shortWindow")}</span>
@@ -290,10 +348,16 @@ export default function ModelComparisonPage() {
         <>
           <p className="model-comparison-window" role="status">
             <strong>{tr("modelComparisonEvalWindow")}:</strong>{" "}
-            {result.test_start} – {result.test_end}
+            {oosStart} – {oosEnd}
             <span className="model-comparison-window__note">
               {" "}
-              · {tr("modelComparisonSameOosNote")}
+              ·{" "}
+              {resultIsWalkForward
+                ? tr("modelComparisonWalkForwardOosNote").replace(
+                    "{n}",
+                    String(result.n_folds ?? result.folds?.length ?? nFolds)
+                  )
+                : tr("modelComparisonSameOosNote")}
             </span>
           </p>
 
@@ -394,6 +458,14 @@ export default function ModelComparisonPage() {
                 kindMl: tr("modelComparisonKindMl"),
                 kindRule: tr("modelComparisonKindRule"),
                 na: tr("na"),
+                foldStabilityTitle: tr("modelComparisonFoldStabilityTitle"),
+                foldStabilityEmpty: tr("modelComparisonFoldStabilityEmpty"),
+                foldStabilityYSharpe: tr("modelComparisonFoldStabilitySharpe"),
+                foldStabilityYAccuracy: tr("modelComparisonFoldStabilityAccuracy"),
+                foldIndexLabel: tr("modelComparisonFoldIndex"),
+                offlineBadge: tr("modelComparisonOfflineBadge"),
+                offlineBadgeWithDate: tr("modelComparisonOfflineBadgeWithDate"),
+                offlineTooltip: tr("modelComparisonOfflineTooltip"),
               }}
             />
           ) : (
@@ -426,6 +498,19 @@ export default function ModelComparisonPage() {
                       {summaryMark(row, result.summary, "best_sharpe")}
                       {summaryMark(row, result.summary, "lowest_drawdown")}
                       {summaryMark(row, result.summary, "fewest_trades")}
+                      {row.source === "offline_artifact" || row.strategy === "lstm" ? (
+                        <span
+                          className="model-comparison-offline-badge"
+                          title={tr("modelComparisonOfflineTooltip")}
+                        >
+                          {row.trained_at
+                            ? tr("modelComparisonOfflineBadgeWithDate").replace(
+                                "{date}",
+                                row.trained_at.slice(0, 10)
+                              )
+                            : tr("modelComparisonOfflineBadge")}
+                        </span>
+                      ) : null}
                     </td>
                     <td>
                       {row.kind === "ml"

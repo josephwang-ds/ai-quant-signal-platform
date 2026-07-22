@@ -392,6 +392,9 @@ export type ModelComparisonResult = {
   directional_accuracy?: number;
   directional_accuracy_note?: string;
   feature_importance?: Record<string, number>;
+  /** Present for offline LSTM artifact rows. */
+  source?: "offline_artifact" | string;
+  trained_at?: string;
 };
 
 export type ModelComparisonSummary = {
@@ -406,16 +409,41 @@ export type ModelComparisonEquityRow = {
   [label: string]: string | number;
 };
 
+export type ModelComparisonFoldPerModel = {
+  label: string;
+  strategy?: string;
+  directional_accuracy: number | null;
+  sharpe_ratio: number | null;
+};
+
+export type ModelComparisonFold = {
+  index: number;
+  train_start: string | null;
+  train_end: string | null;
+  test_start: string;
+  test_end: string;
+  skipped?: boolean;
+  skip_reason?: string | null;
+  per_model: ModelComparisonFoldPerModel[];
+};
+
 export type ModelComparisonResponse = {
   ticker?: string;
   start_date?: string;
   end_date?: string | null;
   data_source?: string;
-  split_date: string;
-  n_train: number;
-  n_test: number;
+  /** Present for single-split mode; omitted for walk-forward. */
+  split_date?: string;
+  n_train?: number;
+  n_test?: number;
   test_start: string;
   test_end: string;
+  mode?: "walk_forward";
+  n_folds?: number;
+  scheme?: "expanding" | "rolling" | string;
+  folds?: ModelComparisonFold[];
+  oos_start?: string;
+  oos_end?: string;
   results: ModelComparisonResult[];
   summary: ModelComparisonSummary;
   interpretation: string[];
@@ -427,16 +455,22 @@ export type RunModelComparisonParams = {
   ticker: string;
   start_date: string;
   end_date?: string | null;
-  split_date: string;
+  /** Required for single-split; omit when using walk-forward (`n_folds`). */
+  split_date?: string;
   transaction_cost: number;
   short_window: number;
   long_window: number;
   momentum_window: number;
   models?: string[];
+  n_folds?: number | null;
+  scheme?: "expanding" | "rolling";
+  /** When true (default), attach compatible offline LSTM artifact if present. */
+  include_lstm?: boolean;
 };
 
 /**
  * 调用后端 POST /api/v1/models/compare：时序切分下对比规则策略与 ML 模型。
+ * 传入 ``n_folds`` 时走 walk-forward；否则走单切分（需 ``split_date``）。
  */
 export async function runModelComparison(
   params: RunModelComparisonParams
@@ -444,7 +478,6 @@ export async function runModelComparison(
   const body: Record<string, unknown> = withPreferredDataSource({
     ticker: params.ticker,
     start_date: params.start_date,
-    split_date: params.split_date,
     transaction_cost: params.transaction_cost,
     short_window: params.short_window,
     long_window: params.long_window,
@@ -459,6 +492,18 @@ export async function runModelComparison(
     body.models = params.models;
   }
 
+  if (params.n_folds != null) {
+    body.n_folds = params.n_folds;
+    if (params.scheme) {
+      body.scheme = params.scheme;
+    }
+  } else if (params.split_date) {
+    body.split_date = params.split_date;
+  }
+  if (params.include_lstm === false) {
+    body.include_lstm = false;
+  }
+
   return requestJson<ModelComparisonResponse>(
     "api/v1/models/compare",
     {
@@ -471,7 +516,13 @@ export async function runModelComparison(
   );
 }
 
-export type RunRiskReviewParams = RunBacktestParams;
+export type RiskDrawdownMode = "current" | "historical";
+export type RiskProfileName = "conservative" | "moderate" | "aggressive";
+
+export type RunRiskReviewParams = RunBacktestParams & {
+  drawdown_mode?: RiskDrawdownMode;
+  risk_profile?: RiskProfileName;
+};
 
 export type RiskReviewAssessment = {
   risk_level: number;
@@ -487,6 +538,8 @@ export type RiskReviewResponse = {
   start_date: string;
   end_date: string | null;
   data_source: string;
+  drawdown_mode: RiskDrawdownMode;
+  risk_profile: RiskProfileName;
   metrics: Record<string, number | null>;
   risk: RiskReviewAssessment;
 };
@@ -502,6 +555,8 @@ export async function runRiskReview(
     start_date: params.start_date,
     strategy: params.strategy,
     transaction_cost: params.transaction_cost,
+    drawdown_mode: params.drawdown_mode ?? "current",
+    risk_profile: params.risk_profile ?? "aggressive",
   });
 
   if (params.strategy === "ma_crossover") {

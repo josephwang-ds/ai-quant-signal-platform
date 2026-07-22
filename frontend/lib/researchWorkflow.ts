@@ -250,3 +250,38 @@ export function workflowStepToSection(
   if (step === "decision") return "decision";
   return "archive";
 }
+
+/** Map primary workspace tab → spine step. */
+export function sectionToWorkflowStep(
+  section:
+    | "overview"
+    | "experiments"
+    | "validation"
+    | "evaluation"
+    | "robustness"
+    | "paper"
+    | "decision"
+    | "archive"
+): WorkflowStepId {
+  if (section === "overview") return "research";
+  if (section === "experiments") return "experiment";
+  if (section === "validation" || section === "evaluation") return "validation";
+  if (section === "robustness") return "robustness";
+  if (section === "paper") return "paper";
+  if (section === "decision") return "decision";
+  return "archive";
+}
+
+/** Visual progress chip for primary tabs (tab bar doubles as lifecycle indicator). */
+export type PrimaryTabProgress = "completed" | "current" | "locked" | "open";
+
+export function derivePrimaryTabProgress(
+  state: WorkflowStepState
+): PrimaryTabProgress {
+  if (state === "unavailable") return "locked";
+  if (state === "completed") return "completed";
+  if (state === "current" || state === "loading" || state === "failed") {
+    return "current";
+  }
+  return "open";
+}

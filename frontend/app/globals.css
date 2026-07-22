@@ -4177,7 +4177,9 @@ th.num,
 }
 
 .research-workspace__primary-tab {
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
   padding: 0.55rem 0.75rem;
   color: var(--text-muted);
   font-size: var(--font-sm);
@@ -4187,7 +4189,8 @@ th.num,
   border-radius: 0;
   transition:
     color var(--duration-fast, 160ms) var(--ease-out, ease),
-    border-color var(--duration-fast, 160ms) var(--ease-out, ease);
+    border-color var(--duration-fast, 160ms) var(--ease-out, ease),
+    opacity var(--duration-fast, 160ms) var(--ease-out, ease);
 }
 
 .research-workspace__primary-tab:hover {
@@ -4204,6 +4207,48 @@ th.num,
   color: var(--text-primary);
   font-weight: 600;
   border-bottom-color: var(--accent, #0d6e6e);
+}
+
+.research-workspace__primary-tab--current:not(.is-active) {
+  color: var(--text-primary);
+  font-weight: 600;
+  border-bottom-color: color-mix(in srgb, var(--accent, #0d6e6e) 45%, transparent);
+}
+
+.research-workspace__primary-tab--completed {
+  color: var(--text-secondary);
+}
+
+.research-workspace__primary-tab--completed .research-workspace__primary-tab-glyph {
+  color: var(--accent, #0d6e6e);
+  font-weight: 700;
+}
+
+.research-workspace__primary-tab--locked {
+  color: var(--text-muted);
+  opacity: 0.62;
+}
+
+.research-workspace__primary-tab--locked:hover {
+  color: var(--text-secondary);
+  opacity: 0.85;
+}
+
+.research-workspace__primary-tab-glyph {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 0.75rem;
+  font-size: 0.72rem;
+  line-height: 1;
+}
+
+.research-workspace__primary-tab-lock {
+  display: block;
+}
+
+.research-workspace__primary-tab-label {
+  line-height: 1.2;
 }
 
 .research-workspace__more-menu summary {
@@ -5936,6 +5981,27 @@ th.num,
 }
 
 /* Risk Review — five-level assessment */
+.risk-review-profile {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  margin: 0 0 1rem;
+}
+
+.risk-review-drawdown-hint {
+  margin: -0.35rem 0 0.85rem;
+  font-size: var(--font-sm);
+  color: var(--text-secondary);
+  line-height: 1.4;
+}
+
+.risk-review-lens {
+  margin: 1.25rem 0 0.65rem;
+  font-size: var(--font-sm);
+  color: var(--text-secondary);
+  line-height: 1.4;
+}
+
 .risk-review-hero {
   margin-top: 1.25rem;
   padding: 1.25rem 1.5rem;
@@ -6080,6 +6146,14 @@ th.num,
   border: none;
 }
 
+.model-comparison-mode {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.55rem 0.85rem;
+  margin: 0.75rem 0 0.25rem;
+}
+
 .model-comparison-models__grid {
   display: flex;
   flex-wrap: wrap;
@@ -6105,6 +6179,29 @@ th.num,
 
 .model-comparison-window__note {
   color: var(--text-muted);
+}
+
+.model-comparison-offline-badge {
+  display: inline-block;
+  margin-left: 0.4rem;
+  padding: 0.1rem 0.4rem;
+  border: 1px solid var(--border-subtle);
+  border-radius: 999px;
+  font-size: 0.6875rem;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  color: var(--text-muted);
+  background: var(--bg-card-elevated);
+  vertical-align: middle;
+  cursor: help;
+}
+
+.model-comparison-offline-note {
+  margin-top: -0.15rem;
+}
+
+.model-comparison-champion__offline {
+  grid-column: 1 / -1;
 }
 
 .model-comparison-section-title {

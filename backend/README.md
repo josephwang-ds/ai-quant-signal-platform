@@ -68,6 +68,39 @@ database connectivity. `/api/data-sources/status` reports configured and
 install-time provider capability, not live connectivity. See the
 [production wiring runbook](../docs/deployment/PRODUCTION_API_WIRING.md).
 
+## Offline LSTM (artifact only)
+
+LSTM for Compare Models is **trained offline**. Results are committed as JSON
+under `app/models/artifacts/`. The production / Render runtime does **not**
+install `torch` and does **not** run LSTM inference.
+
+Install the offline tooling locally:
+
+```bash
+pip install -r requirements-dev.txt   # includes torch>=2.2
+```
+
+Train and write an artifact (from `backend/`):
+
+```bash
+PYTHONPATH=. python scripts/train_lstm.py \
+  --ticker SPY \
+  --start-date 2020-01-01 \
+  --split-date 2022-01-01 \
+  --seq-len 20 \
+  --epochs 40 \
+  --out app/models/artifacts/lstm_SPY.json
+```
+
+This writes:
+
+- `app/models/artifacts/lstm_SPY.json` — OOS metrics + equity curve (commit this)
+- `app/models/artifacts/lstm_SPY.pt` — weights for reproduction (optional)
+
+Leakage guards match other models: `FEATURE_COLUMNS` only, chronological split,
+scaler fit on train only, train/test embargo, validation carved from the train
+tail (never from test).
+
 ## Tests
 
 ```bash

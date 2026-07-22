@@ -4,6 +4,12 @@ import {
   RESEARCH_WORKSPACE_TOOL_SECTIONS,
   type ResearchWorkspaceSection,
 } from "@/types/research";
+import {
+  derivePrimaryTabProgress,
+  sectionToWorkflowStep,
+  type WorkflowStepId,
+  type WorkflowStepState,
+} from "@/lib/researchWorkflow";
 
 export type ResearchWorkspaceNavigationLabels = Record<
   ResearchWorkspaceSection,
@@ -15,6 +21,8 @@ export type ResearchWorkspaceNavigationProps = {
   activeSection: ResearchWorkspaceSection;
   labels: ResearchWorkspaceNavigationLabels;
   toolsLabel?: string;
+  /** When provided, primary tabs also show lifecycle progress (completed / current / locked). */
+  stepStates?: Record<WorkflowStepId, WorkflowStepState>;
 };
 
 function sectionHref(researchId: string, section: ResearchWorkspaceSection): string {
@@ -23,12 +31,23 @@ function sectionHref(researchId: string, section: ResearchWorkspaceSection): str
     : `/research/${encodeURIComponent(researchId)}?tab=${section}`;
 }
 
+function isPrimaryActive(
+  section: ResearchWorkspaceSection,
+  activeSection: ResearchWorkspaceSection
+): boolean {
+  return (
+    section === activeSection ||
+    (section === "validation" && activeSection === "evaluation")
+  );
+}
+
 /** Research-local left navigation — lifecycle spine first; tools remain URL-compatible. */
 export default function ResearchWorkspaceNavigation({
   researchId,
   activeSection,
   labels,
   toolsLabel = "Tools",
+  stepStates,
 }: ResearchWorkspaceNavigationProps) {
   return (
     <nav
@@ -38,18 +57,30 @@ export default function ResearchWorkspaceNavigation({
       <ul className="research-workspace-nav__list">
         {RESEARCH_WORKSPACE_PRIMARY_SECTIONS.map((section) => {
           const href = sectionHref(researchId, section);
-          const isActive =
-            section === activeSection ||
-            (section === "validation" && activeSection === "evaluation");
+          const isActive = isPrimaryActive(section, activeSection);
+          const progress = stepStates
+            ? derivePrimaryTabProgress(stepStates[sectionToWorkflowStep(section)])
+            : null;
           return (
             <li key={section}>
               <Link
                 href={href}
-                className={`research-workspace-nav__item${
-                  isActive ? " is-active" : ""
-                }`}
+                className={[
+                  "research-workspace-nav__item",
+                  isActive ? "is-active" : "",
+                  progress ? `research-workspace-nav__item--${progress}` : "",
+                ]
+                  .filter(Boolean)
+                  .join(" ")}
                 aria-current={isActive ? "page" : undefined}
+                data-progress={progress ?? undefined}
               >
+                {progress === "completed" ? (
+                  <span aria-hidden="true">✓ </span>
+                ) : null}
+                {progress === "locked" ? (
+                  <span aria-hidden="true">⊘ </span>
+                ) : null}
                 {labels[section]}
               </Link>
             </li>

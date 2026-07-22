@@ -2,11 +2,9 @@ import type { OverviewSectionLabels } from "@/components/features/research/Overv
 
 export const overviewSectionTestLabels: OverviewSectionLabels = {
   keyResultsTitle: "Key Results",
-  guidedWorkflowTitle: "Guided workflow",
   conclusionTitle: "Research Conclusion",
   evidencePreviewTitle: "Validation preview",
   primaryActionCaption: "Continue",
-  progressCaption: "Progress",
   validationCaption: "Validation",
   decisionCaption: "Decision",
   supportCaption: "Provenance",
@@ -27,19 +25,6 @@ export const overviewSectionTestLabels: OverviewSectionLabels = {
     unavailable: "Run the research to calculate historical evidence.",
     unavailableTitle: "Key results not available yet",
     oosSharpeUnavailable: "Run validation to calculate out-of-sample Sharpe ratio.",
-  },
-  guidedFlow: {
-    title: "Guided workflow",
-    stepResearch: "Research",
-    stepExperiment: "Experiment",
-    stepValidation: "Validation",
-    stepRobustness: "Robustness",
-    stepPaper: "Paper Trading",
-    stepDecision: "Decision",
-    stepArchive: "Archive",
-    unavailableUntilPrior: "Complete prior stages first.",
-    loading: "In progress…",
-    failed: "Needs attention",
   },
   nextStep: {
     title: "Next step",

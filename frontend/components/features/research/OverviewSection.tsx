@@ -1,8 +1,5 @@
 import ResearchKeyValueList from "@/components/features/research/ux/ResearchKeyValueList";
 import type { ReactNode } from "react";
-import GuidedResearchFlow, {
-  type GuidedResearchFlowLabels,
-} from "@/components/features/research/GuidedResearchFlow";
 import KeyResultsSummary, {
   type KeyResultsSummaryLabels,
 } from "@/components/features/research/KeyResultsSummary";
@@ -17,9 +14,7 @@ import ResearchGlyph, {
 } from "@/components/features/research/ResearchGlyph";
 import type { Language } from "@/lib/i18n";
 import {
-  derivePrimaryWorkflowStep,
   deriveWorkflowPrimaryAction,
-  deriveWorkflowStepStates,
   evaluationReady,
   executionReady,
   validationReady,
@@ -34,16 +29,13 @@ import type { ResearchValidationResult, ResearchValidationStatus } from "@/types
 
 export type OverviewSectionLabels = {
   keyResultsTitle: string;
-  guidedWorkflowTitle: string;
   conclusionTitle: string;
   evidencePreviewTitle: string;
   primaryActionCaption: string;
-  progressCaption: string;
   validationCaption: string;
   decisionCaption: string;
   supportCaption: string;
   keyResults: KeyResultsSummaryLabels;
-  guidedFlow: GuidedResearchFlowLabels;
   nextStep: NextStepPanelLabels;
   validationStatus: string;
   decisionStatus: string;
@@ -113,8 +105,6 @@ export default function OverviewSection({
     researchStatus: research.status,
   };
 
-  const primaryStep = derivePrimaryWorkflowStep(workflowInput);
-  const stepStates = deriveWorkflowStepStates(workflowInput);
   const primaryAction = deriveWorkflowPrimaryAction(workflowInput);
 
   const validationComplete = Boolean(validation?.evidence_complete);
@@ -151,18 +141,6 @@ export default function OverviewSection({
           onRunResearch={onRunResearch}
           onRunValidation={onRunValidation}
           onOpenSection={onOpenSection}
-        />
-      </section>
-
-      <section className="overview-band overview-band--progress" aria-label={labels.progressCaption}>
-        <SectionCaption glyph="progress">{labels.progressCaption}</SectionCaption>
-        <GuidedResearchFlow
-          stepStates={stepStates}
-          primaryStep={primaryStep}
-          labels={{
-            ...labels.guidedFlow,
-            title: "",
-          }}
         />
       </section>
 
