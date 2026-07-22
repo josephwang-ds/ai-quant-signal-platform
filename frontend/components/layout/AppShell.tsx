@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import type { ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import type { Language } from "@/lib/i18n";
 import { t } from "@/lib/i18n";
 import {
@@ -14,12 +14,15 @@ import DemoBanner from "./DemoBanner";
 import LanguageToggle from "./LanguageToggle";
 import PageHero from "./PageHero";
 import SideNav from "./SideNav";
+import TopNav from "./TopNav";
 
 type AppShellProps = {
   language: Language;
   onLanguageChange: (language: Language) => void;
   children: ReactNode;
 };
+
+const MOBILE_NAV_MQ = "(max-width: 767px)";
 
 export default function AppShell({
   language,
@@ -28,14 +31,74 @@ export default function AppShell({
 }: AppShellProps) {
   const pathname = usePathname();
   const isHome = pathname === "/";
+  const [navOpen, setNavOpen] = useState(false);
+  const [isMobileNav, setIsMobileNav] = useState(false);
+
+  useEffect(() => {
+    const media = window.matchMedia(MOBILE_NAV_MQ);
+    const sync = () => setIsMobileNav(media.matches);
+    sync();
+    media.addEventListener("change", sync);
+    return () => media.removeEventListener("change", sync);
+  }, []);
+
+  useEffect(() => {
+    setNavOpen(false);
+  }, [pathname]);
+
+  useEffect(() => {
+    if (!isMobileNav) setNavOpen(false);
+  }, [isMobileNav]);
+
+  useEffect(() => {
+    if (!navOpen) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setNavOpen(false);
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [navOpen]);
+
+  useEffect(() => {
+    if (!navOpen) return;
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = previous;
+    };
+  }, [navOpen]);
+
+  const drawerHidden = isMobileNav && !navOpen;
 
   return (
-    <div className="workspace-shell">
-      <aside className="workspace-sidebar">
-        <Link href="/" className="workspace-brand">
-          {t(language, "appTitleShort")}
+    <div className={`workspace-shell${navOpen ? " is-nav-open" : ""}`}>
+      <TopNav
+        language={language}
+        onLanguageChange={onLanguageChange}
+        navOpen={navOpen}
+        onToggleNav={() => setNavOpen((open) => !open)}
+      />
+
+      {navOpen ? (
+        <button
+          type="button"
+          className="workspace-nav-overlay"
+          aria-label={t(language, "navCloseMenu")}
+          onClick={() => setNavOpen(false)}
+        />
+      ) : null}
+
+      <aside
+        id="workspace-sidebar"
+        className="workspace-sidebar"
+        aria-hidden={drawerHidden || undefined}
+        {...(drawerHidden ? ({ inert: true } as { inert: boolean }) : {})}
+      >
+        <Link href="/overview" className="workspace-brand">
+          <span className="workspace-brand__name">{t(language, "appTitleShort")}</span>
+          <span className="workspace-brand__version">v{PRODUCT_VERSION}</span>
         </Link>
-        <SideNav language={language} />
+        <SideNav language={language} onNavigate={() => setNavOpen(false)} />
         <div className="workspace-sidebar__footer">
           <LanguageToggle language={language} onLanguageChange={onLanguageChange} />
         </div>

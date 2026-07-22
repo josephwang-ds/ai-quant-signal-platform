@@ -33,21 +33,31 @@ export function formatScore(value: number): string {
 }
 
 export function formatMetricPercent(value: number | null | undefined): string {
-  if (value == null) {
+  if (value == null || Number.isNaN(value)) {
     return "N/A";
   }
   return `${(value * 100).toFixed(2)}%`;
 }
 
+/** Percentage points without a % suffix (for prose templates). */
+export function formatMetricPercentPoints(
+  value: number | null | undefined
+): string {
+  if (value == null || Number.isNaN(value)) {
+    return "N/A";
+  }
+  return (value * 100).toFixed(2);
+}
+
 export function formatMetricSharpe(value: number | null | undefined): string {
-  if (value == null) {
+  if (value == null || Number.isNaN(value)) {
     return "N/A";
   }
   return value.toFixed(2);
 }
 
 export function formatMetricTrades(value: number | null | undefined): string {
-  if (value == null) {
+  if (value == null || Number.isNaN(value)) {
     return "N/A";
   }
   return Math.round(value).toString();
@@ -56,7 +66,7 @@ export function formatMetricTrades(value: number | null | undefined): string {
 export type MetricTone = "default" | "positive" | "negative" | "accent";
 
 export function getReturnTone(value: number | null | undefined): MetricTone {
-  if (value == null) {
+  if (value == null || Number.isNaN(value)) {
     return "default";
   }
   if (value > 0) {
@@ -69,14 +79,14 @@ export function getReturnTone(value: number | null | undefined): MetricTone {
 }
 
 export function getDrawdownTone(value: number | null | undefined): MetricTone {
-  if (value == null) {
+  if (value == null || Number.isNaN(value)) {
     return "default";
   }
   return "negative";
 }
 
 export function getSharpeTone(value: number | null | undefined): MetricTone {
-  if (value == null) {
+  if (value == null || Number.isNaN(value)) {
     return "default";
   }
   if (value >= 0.5) {

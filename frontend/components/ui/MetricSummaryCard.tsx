@@ -1,8 +1,10 @@
+import type { MetricTone } from "@/lib/formatters";
+
 type MetricSummaryCardProps = {
   label: string;
   value: string;
   description?: string;
-  tone?: "default" | "emphasis";
+  tone?: MetricTone | "emphasis";
 };
 
 /**
@@ -15,14 +17,25 @@ export default function MetricSummaryCard({
   description,
   tone = "default",
 }: MetricSummaryCardProps) {
+  const valueToneClass =
+    tone === "positive"
+      ? "metric-summary-card__value--positive"
+      : tone === "negative"
+        ? "metric-summary-card__value--negative"
+        : tone === "accent"
+          ? "metric-summary-card__value--accent"
+          : "";
+
+  const cardClass = `metric-summary-card${
+    tone === "emphasis" ? " metric-summary-card--emphasis" : ""
+  }`;
+
   return (
-    <div
-      className={`metric-summary-card${
-        tone === "emphasis" ? " metric-summary-card--emphasis" : ""
-      }`}
-    >
+    <div className={cardClass}>
       <p className="metric-summary-card__label">{label}</p>
-      <p className="metric-summary-card__value">{value}</p>
+      <p className={`metric-summary-card__value ${valueToneClass}`.trim()}>
+        {value}
+      </p>
       {description ? (
         <p className="metric-summary-card__description">{description}</p>
       ) : null}

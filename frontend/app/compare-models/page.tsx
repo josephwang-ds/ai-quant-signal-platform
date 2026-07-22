@@ -1,15 +1,15 @@
 "use client";
 
 import AppShell from "@/components/layout/AppShell";
-import DecisionRoomPanel from "@/components/features/decision-room/DecisionRoomPanel";
+import ModelComparisonPage from "@/components/features/comparison/ModelComparisonPage";
 import { useWorkspaceLanguage } from "@/lib/useWorkspaceLanguage";
 
-export default function DecisionRoomPage() {
+export default function CompareModelsRoutePage() {
   const { language, setLanguage } = useWorkspaceLanguage();
 
   return (
     <AppShell language={language} onLanguageChange={setLanguage}>
-      <DecisionRoomPanel />
+      <ModelComparisonPage />
     </AppShell>
   );
 }

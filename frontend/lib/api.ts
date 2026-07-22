@@ -21,6 +21,7 @@ import { getDataSourcePreference } from "@/lib/dataSourcePreference";
 import type { MarketDataSource } from "@/lib/dataSourcePreference";
 import { buildApiUrl } from "@/lib/apiConfig";
 import {
+  API_REQUEST_TIMEOUT_MS,
   API_STATUS_TIMEOUT_MS,
   requestJson,
 } from "@/lib/apiRequest";
@@ -364,6 +365,172 @@ export async function runStrategyComparison(
   }
 
   return response.json() as Promise<StrategyComparisonResponse>;
+}
+
+export type ModelComparisonKind = "ml" | "rule";
+
+export type ModelComparisonMetrics = {
+  total_return: number | null;
+  benchmark_return?: number | null;
+  cagr?: number | null;
+  volatility?: number | null;
+  sharpe_ratio: number | null;
+  max_drawdown: number | null;
+  strategy_max_drawdown?: number | null;
+  number_of_trades: number | null;
+  transaction_cost_total?: number | null;
+  win_rate?: number | null;
+};
+
+export type ModelComparisonResult = {
+  label: string;
+  kind: ModelComparisonKind;
+  strategy: string;
+  metrics: ModelComparisonMetrics;
+  test_start?: string;
+  test_end?: string;
+  directional_accuracy?: number;
+  directional_accuracy_note?: string;
+  feature_importance?: Record<string, number>;
+};
+
+export type ModelComparisonSummary = {
+  best_total_return: string | null;
+  best_sharpe: string | null;
+  lowest_drawdown: string | null;
+  fewest_trades: string | null;
+};
+
+export type ModelComparisonEquityRow = {
+  date: string;
+  [label: string]: string | number;
+};
+
+export type ModelComparisonResponse = {
+  ticker?: string;
+  start_date?: string;
+  end_date?: string | null;
+  data_source?: string;
+  split_date: string;
+  n_train: number;
+  n_test: number;
+  test_start: string;
+  test_end: string;
+  results: ModelComparisonResult[];
+  summary: ModelComparisonSummary;
+  interpretation: string[];
+  equity_curve_labels?: string[];
+  equity_curve_rows?: ModelComparisonEquityRow[];
+};
+
+export type RunModelComparisonParams = {
+  ticker: string;
+  start_date: string;
+  end_date?: string | null;
+  split_date: string;
+  transaction_cost: number;
+  short_window: number;
+  long_window: number;
+  momentum_window: number;
+  models?: string[];
+};
+
+/**
+ * 调用后端 POST /api/v1/models/compare：时序切分下对比规则策略与 ML 模型。
+ */
+export async function runModelComparison(
+  params: RunModelComparisonParams
+): Promise<ModelComparisonResponse> {
+  const body: Record<string, unknown> = withPreferredDataSource({
+    ticker: params.ticker,
+    start_date: params.start_date,
+    split_date: params.split_date,
+    transaction_cost: params.transaction_cost,
+    short_window: params.short_window,
+    long_window: params.long_window,
+    momentum_window: params.momentum_window,
+  });
+
+  const trimmedEndDate = params.end_date?.trim();
+  if (trimmedEndDate) {
+    body.end_date = trimmedEndDate;
+  }
+  if (params.models && params.models.length > 0) {
+    body.models = params.models;
+  }
+
+  return requestJson<ModelComparisonResponse>(
+    "api/v1/models/compare",
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      cache: "no-store",
+      body: JSON.stringify(body),
+    },
+    { timeoutMs: API_REQUEST_TIMEOUT_MS }
+  );
+}
+
+export type RunRiskReviewParams = RunBacktestParams;
+
+export type RiskReviewAssessment = {
+  risk_level: number;
+  risk_label: string;
+  allowed_action: string;
+  risk_reasons: string[];
+  component_levels: Record<string, number>;
+};
+
+export type RiskReviewResponse = {
+  ticker: string;
+  strategy: string;
+  start_date: string;
+  end_date: string | null;
+  data_source: string;
+  metrics: Record<string, number | null>;
+  risk: RiskReviewAssessment;
+};
+
+/**
+ * 调用后端 POST /api/v1/risk/review：回测指标 → 五档风控评估。
+ */
+export async function runRiskReview(
+  params: RunRiskReviewParams
+): Promise<RiskReviewResponse> {
+  const body: Record<string, unknown> = withPreferredDataSource({
+    ticker: params.ticker,
+    start_date: params.start_date,
+    strategy: params.strategy,
+    transaction_cost: params.transaction_cost,
+  });
+
+  if (params.strategy === "ma_crossover") {
+    body.short_window = params.short_window;
+    body.long_window = params.long_window;
+  } else if (params.strategy === "momentum") {
+    body.momentum_window = params.momentum_window;
+  } else if (params.strategy === "combined_signal") {
+    body.short_window = params.short_window;
+    body.long_window = params.long_window;
+    body.momentum_window = params.momentum_window;
+    body.combined_mode = params.combined_mode;
+  }
+
+  const trimmedEndDate = params.end_date?.trim();
+  if (trimmedEndDate) {
+    body.end_date = trimmedEndDate;
+  }
+
+  return requestJson<RiskReviewResponse>(
+    "api/v1/risk/review",
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      cache: "no-store",
+      body: JSON.stringify(body),
+    },
+    { timeoutMs: API_REQUEST_TIMEOUT_MS }
+  );
 }
 
 export type RunBacktestSensitivityParams = {

@@ -1,12 +1,16 @@
 import type { Language } from "@/lib/i18n";
 import type { BacktestResponse, CombinedMode } from "@/types/market";
+import {
+  formatMetricPercent,
+  formatMetricPercentPoints,
+} from "@/lib/formatters";
 
 function formatPercentValue(value: number): string {
-  return `${(value * 100).toFixed(2)}%`;
+  return formatMetricPercent(value);
 }
 
 function formatPercentagePoints(diff: number): string {
-  return `${(diff * 100).toFixed(2)}`;
+  return formatMetricPercentPoints(diff);
 }
 
 const STRATEGY_INTRO = {

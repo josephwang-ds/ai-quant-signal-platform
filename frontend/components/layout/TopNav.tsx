@@ -1,66 +1,54 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
 import type { Language } from "@/lib/i18n";
 import { t } from "@/lib/i18n";
-import { CANONICAL_RESEARCH_ID } from "@/lib/canonicalMaCrossover";
-import {
-  WORKSPACE_NAV_GROUPS,
-  isWorkspaceNavGroupActive,
-  isWorkspaceNavItemActive,
-} from "@/lib/workspaceNav";
+import { PRODUCT_VERSION } from "@/lib/productIdentity";
+import LanguageToggle from "./LanguageToggle";
 
 type TopNavProps = {
   language: Language;
+  onLanguageChange: (language: Language) => void;
+  navOpen: boolean;
+  onToggleNav: () => void;
 };
 
-export default function TopNav({ language }: TopNavProps) {
-  const pathname = usePathname();
-  const currentResearchHref = `/research/${encodeURIComponent(CANONICAL_RESEARCH_ID)}`;
-  const secondaryActive = WORKSPACE_NAV_GROUPS.some((group) =>
-    isWorkspaceNavGroupActive(pathname, group)
-  );
-
+/**
+ * Mobile top bar — brand + menu toggle. Desktop navigation stays in SideNav.
+ */
+export default function TopNav({
+  language,
+  onLanguageChange,
+  navOpen,
+  onToggleNav,
+}: TopNavProps) {
   return (
-    <nav className="dashboard-nav" aria-label={t(language, "navAriaPrimary")}>
-      <Link
-        href="/"
-        className={pathname === "/" ? "is-active" : undefined}
+    <header className="workspace-topbar">
+      <button
+        type="button"
+        className="workspace-topbar__menu"
+        aria-expanded={navOpen}
+        aria-controls="workspace-sidebar"
+        onClick={onToggleNav}
       >
-        {t(language, "navResearchWorkspace")}
-      </Link>
-      <Link
-        href={currentResearchHref}
-        className={pathname.startsWith("/research/") ? "is-active" : undefined}
-      >
-        {t(language, "navCurrentResearch")}
+        <span className="workspace-topbar__menu-icon" aria-hidden="true">
+          <span />
+          <span />
+          <span />
+        </span>
+        <span className="workspace-topbar__menu-label">
+          {t(language, navOpen ? "navCloseMenu" : "navOpenMenu")}
+        </span>
+      </button>
+
+      <Link href="/overview" className="workspace-brand workspace-brand--compact">
+        <span className="workspace-brand__name">{t(language, "appTitleShort")}</span>
+        <span className="workspace-brand__version">v{PRODUCT_VERSION}</span>
       </Link>
 
-      <details
-        className={`dashboard-nav-group dashboard-nav-group--secondary${
-          secondaryActive ? " is-group-active" : ""
-        }`}
-        open={secondaryActive || undefined}
-      >
-        <summary>{t(language, "navGroupSecondary")}</summary>
-        <div className="dashboard-nav-group__menu" role="menu">
-          {WORKSPACE_NAV_GROUPS.flatMap((group) =>
-            group.items.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                role="menuitem"
-                className={
-                  isWorkspaceNavItemActive(pathname, item.href) ? "is-active" : undefined
-                }
-              >
-                {t(language, item.labelKey)}
-              </Link>
-            ))
-          )}
-        </div>
-      </details>
-    </nav>
+      <div className="workspace-topbar__actions">
+        <LanguageToggle language={language} onLanguageChange={onLanguageChange} />
+      </div>
+    </header>
   );
 }

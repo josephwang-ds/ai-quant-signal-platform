@@ -1,30 +1,22 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import AppShell from "@/components/layout/AppShell";
-import OverviewSection from "@/components/features/research/OverviewSection";
-import ResearchNotebook from "@/components/features/research/notebook/ResearchNotebook";
-import ResearchExperiments from "@/components/features/research/experiments/ResearchExperiments";
-import ResearchTimeline from "@/components/features/research/ResearchTimeline";
 import ResearchSummaryRail from "@/components/features/research/ResearchSummaryRail";
 import ResearchWorkspaceHeader from "@/components/features/research/ResearchWorkspaceHeader";
 import ResearchWorkspaceSkeleton from "@/components/features/research/ResearchWorkspaceSkeleton";
-import WorkspacePlaceholder from "@/components/features/research/WorkspacePlaceholder";
+import ResearchWorkspaceMainSection from "@/components/features/research/workspace-tabs/ResearchWorkspaceMainSection";
 import Button from "@/components/ui/Button";
 import EmptyState from "@/components/ui/EmptyState";
 import ErrorAlert from "@/components/ui/ErrorAlert";
 import LoadingState from "@/components/ui/LoadingState";
 import SectionCard from "@/components/ui/SectionCard";
-import type { TranslationKey } from "@/lib/i18n";
 import { getMockTimelineEvents } from "@/lib/mockNotebookCatalog";
 import { getResearchRepository } from "@/lib/localResearchRepository";
 import { mergeTimelineEvents } from "@/lib/researchNotebook";
-import {
-  isResearchWorkspaceSection,
-  resolveWorkspaceSection,
-} from "@/lib/researchWorkspace";
+import { resolveWorkspaceSection } from "@/lib/researchWorkspace";
 import { derivePrimaryWorkflowStep } from "@/lib/researchWorkflow";
 import { useWorkspaceLanguage } from "@/lib/useWorkspaceLanguage";
 import type { ResearchExperiment } from "@/types/experiment";
@@ -33,19 +25,9 @@ import type {
   ResearchDetail,
   ResearchWorkspaceSection,
 } from "@/types/research";
-import ProvenanceBanner from "@/components/features/research/execution/ProvenanceBanner";
 import { useResearchExecution } from "@/components/features/research/execution/useResearchExecution";
-import ResearchValidationPanel from "@/components/features/research/validation/ResearchValidationPanel";
 import { useResearchValidation } from "@/components/features/research/validation/useResearchValidation";
-import ResearchEvaluationPanel from "@/components/features/research/evaluation/ResearchEvaluationPanel";
 import { useResearchEvaluation } from "@/components/features/research/evaluation/useResearchEvaluation";
-import ResearchRobustnessCenter from "@/components/features/research/robustness/ResearchRobustnessCenter";
-import ResearchPaperTradingCenter from "@/components/features/research/paper/ResearchPaperTradingCenter";
-import ResearchDecisionCenter from "@/components/features/research/decision/ResearchDecisionCenter";
-import { buildPaperTradingLabels } from "@/components/features/paper-trading/PaperTradingPage";
-import { buildDecisionCenterLabels } from "@/lib/decisionCenterLabels";
-import { buildRobustnessCenterLabels } from "@/lib/robustnessCenterLabels";
-import ResearchCopilotPanel from "@/components/features/research/copilot/ResearchCopilotPanel";
 import { useResearchCopilot } from "@/components/features/research/copilot/useResearchCopilot";
 import {
   applyExecutionToExperiments,
@@ -54,6 +36,11 @@ import {
 import { getMockExperiments } from "@/lib/mockExperimentCatalog";
 import { METRIC_NOT_CALCULATED } from "@/lib/researchExperiments";
 import {
+  formatMetricPercent,
+  formatMetricSharpe,
+  formatMetricTrades,
+} from "@/lib/formatters";
+import {
   canRequestEvaluation,
   shouldReloadEvaluationOnAction,
   shouldReloadValidationOnAction,
@@ -61,64 +48,13 @@ import {
 
 type LoadStatus = "loading" | "ready" | "error" | "not_found";
 
-type PlaceholderCopy = {
-  titleKey: TranslationKey;
-  summaryKey: TranslationKey;
-  capabilityKeys: TranslationKey[];
-};
-
-const PLACEHOLDER_COPY: Record<
-  Exclude<
-    ResearchWorkspaceSection,
-    | "overview"
-    | "notebook"
-    | "timeline"
-    | "experiments"
-    | "validation"
-    | "evaluation"
-    | "robustness"
-    | "paper"
-    | "decision"
-    | "copilot"
-  >,
-  PlaceholderCopy
-> = {
-  archive: {
-    titleKey: "researchWsArchiveTitle",
-    summaryKey: "researchWsArchiveSummary",
-    capabilityKeys: [
-      "researchWsArchiveCap1",
-      "researchWsArchiveCap2",
-      "researchWsArchiveCap3",
-    ],
-  },
-  files: {
-    titleKey: "researchWsFilesTitle",
-    summaryKey: "researchWsFilesSummary",
-    capabilityKeys: [
-      "researchWsFilesCap1",
-      "researchWsFilesCap2",
-      "researchWsFilesCap3",
-    ],
-  },
-  settings: {
-    titleKey: "researchWsSettingsTitle",
-    summaryKey: "researchWsSettingsSummary",
-    capabilityKeys: [
-      "researchWsSettingsCap1",
-      "researchWsSettingsCap2",
-      "researchWsSettingsCap3",
-    ],
-  },
-};
-
 export type ResearchWorkspacePageProps = {
   researchId: string;
 };
 
 /**
- * Research Workspace Detail（PR-003 + PR-004 Notebook）。
- * TODO(backend): 用 getResearch(id) 替换 loadMockResearchById。
+ * Research Workspace Detail — data orchestration + chrome.
+ * Tab bodies live under workspace-tabs/.
  */
 export default function ResearchWorkspacePage({
   researchId,
@@ -159,9 +95,6 @@ export default function ResearchWorkspacePage({
     null
   );
 
-  // Evidence persistence rule:
-  // - Do not automatically re-run Validation when switching to Evaluation/Copilot.
-  // - Keep already-produced validation evidence in-session for downstream views.
   const [validationUnlocked, setValidationUnlocked] = useState(false);
   const [evaluationUnlocked, setEvaluationUnlocked] = useState(false);
 
@@ -235,14 +168,6 @@ export default function ResearchWorkspacePage({
     validationRunId
   );
 
-  /**
-   * Validation trigger design (PR-020):
-   * - Navigate to Validation first.
-   * - If validation evidence was not yet active, the existing tab hook owns the
-   *   single auto-fetch when the section becomes active.
-   * - If validation evidence was already active (validation/evaluation/copilot),
-   *   call reloadValidation() exactly once to re-run without creating a second hook.
-   */
   const handleRunValidation = useCallback(() => {
     navigateToSection("validation");
     if (shouldReloadValidationOnAction(validationEvidenceActive)) {
@@ -309,11 +234,8 @@ export default function ResearchWorkspacePage({
     if (!executionEnabled || executionStatus !== "ready" || !execution) {
       return null;
     }
-    return applyExecutionToExperiments(
-      getMockExperiments(researchId),
-      execution
-    );
-  }, [executionEnabled, executionStatus, execution, researchId]);
+    return applyExecutionToExperiments(getMockExperiments(researchId), execution);
+  }, [execution, executionEnabled, executionStatus, researchId]);
 
   const provenanceLabels = useMemo(
     () => ({
@@ -337,12 +259,12 @@ export default function ResearchWorkspacePage({
       return METRIC_NOT_CALCULATED;
     }
     if (kind === "pct") {
-      return `${(value * 100).toFixed(1)}%`;
+      return formatMetricPercent(value);
     }
     if (kind === "num") {
-      return value.toFixed(2);
+      return formatMetricSharpe(value);
     }
-    return String(Math.round(value));
+    return formatMetricTrades(value);
   }
 
   const loadDetail = useCallback(async () => {
@@ -373,7 +295,6 @@ export default function ResearchWorkspacePage({
     setSessionTimelineEvents([]);
     setSessionExperiments([]);
     setSelectedExperimentId(searchParams.get("experimentId"));
-    // Only reset session state when switching research projects.
     // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional: seed from URL once per researchId
   }, [researchId]);
 
@@ -390,25 +311,6 @@ export default function ResearchWorkspacePage({
       tr("researchCopilotSample2"),
       tr("researchCopilotSample3"),
     ],
-    [tr]
-  );
-
-  const navLabels = useMemo(
-    () => ({
-      overview: tr("researchWsNavOverview"),
-      notebook: tr("researchWsNavNotebook"),
-      experiments: tr("researchWsNavExperiments"),
-      validation: tr("researchWsNavValidation"),
-      evaluation: tr("researchWsNavEvaluation"),
-      robustness: tr("researchWsNavRobustness"),
-      paper: tr("researchWsNavPaper"),
-      decision: tr("researchWsNavDecision"),
-      archive: tr("researchWsNavArchive"),
-      copilot: tr("researchWsNavCopilot"),
-      timeline: tr("researchWsNavTimeline"),
-      files: tr("researchWsNavFiles"),
-      settings: tr("researchWsNavSettings"),
-    }),
     [tr]
   );
 
@@ -438,671 +340,6 @@ export default function ResearchWorkspacePage({
     setSessionExperiments((prev) => [payload.experiment, ...prev]);
     setSessionNotebookEntries((prev) => [payload.notebookEntry, ...prev]);
     setSessionTimelineEvents((prev) => [payload.timelineEvent, ...prev]);
-  }
-
-  function renderMainSection() {
-    if (!displayResearch) {
-      return null;
-    }
-
-    const provenanceSlot =
-      executionEnabled && executionStatus === "ready" && execution ? (
-        <ProvenanceBanner
-          provenance={execution.provenance}
-          labels={provenanceLabels}
-          warnings={execution.warnings}
-          language={language}
-        />
-      ) : executionEnabled && executionStatus === "error" ? (
-        <div className="research-execution-error">
-          <ErrorAlert
-            title={tr("researchExecUnavailableTitle")}
-            message={executionError ?? tr("researchExecUnavailableDescription")}
-          />
-          <Button primary onClick={reloadExecution}>
-            {tr("researchExecRetry")}
-          </Button>
-        </div>
-      ) : executionEnabled && executionStatus === "loading" ? (
-        <LoadingState message={tr("researchExecLoading")} />
-      ) : null;
-
-    const calculatedMetrics =
-      executionEnabled && executionStatus === "ready" && execution
-        ? {
-            totalReturn: formatMetric(execution.metrics.total_return, "pct"),
-            benchmarkReturn: formatMetric(
-              execution.benchmark_metrics.total_return,
-              "pct"
-            ),
-            cagr: formatMetric(execution.metrics.cagr, "pct"),
-            sharpe: formatMetric(execution.metrics.sharpe_ratio, "num"),
-            maxDrawdown: formatMetric(execution.metrics.maximum_drawdown, "pct"),
-            volatility: formatMetric(
-              execution.metrics.annualized_volatility,
-              "pct"
-            ),
-            tradeCount: formatMetric(execution.metrics.trade_count, "raw"),
-          }
-        : null;
-
-    if (activeSection === "overview") {
-      return (
-        <OverviewSection
-          language={language}
-          research={displayResearch}
-          provenanceSlot={provenanceSlot}
-          executionStatus={executionStatus}
-          execution={execution}
-          validationStatus={validationStatus}
-          validation={validation}
-          evaluationStatus={evaluationStatus}
-          evaluation={evaluation}
-          onRunResearch={reloadExecution}
-          onRunValidation={handleRunValidation}
-          onOpenSection={navigateToSection}
-          labels={{
-            keyResultsTitle: tr("researchWsCalculatedMetrics"),
-            guidedWorkflowTitle: tr("researchWsGuidedWorkflowTitle"),
-            conclusionTitle: tr("researchWsCurrentDecision"),
-            evidencePreviewTitle: tr("researchWsEvidencePreview"),
-            primaryActionCaption: tr("researchWsBandAction"),
-            progressCaption: tr("researchWsBandProgress"),
-            validationCaption: tr("researchWsBandValidation"),
-            decisionCaption: tr("researchWsBandDecision"),
-            supportCaption: tr("researchWsBandSupport"),
-            validationStatus: tr("researchWsNavValidation"),
-            decisionStatus: tr("researchWsNavDecision"),
-            validationComplete: tr("researchValEvidenceComplete"),
-            validationIncomplete: tr("researchValIncomplete"),
-            validationPending: tr("researchWsValidationNotStarted"),
-            decisionPending: tr("researchWsDecisionPending"),
-            evaluationCompleted: tr("researchEvalCompleted"),
-            evaluationIncomplete: tr("researchEvalIncomplete"),
-            evaluationBlocked: tr("researchEvalBlocked"),
-            keyResults: {
-              strategyTotalReturn: `${tr("researchListStrategy")} ${tr("researchWsMetricTotalReturn")}`,
-              benchmarkTotalReturn: tr("researchWsMetricBenchReturn"),
-              maxDrawdown: tr("researchValMaxDrawdown"),
-              oosSharpe: `${tr("researchValOutOfSample")} ${tr("researchValSharpe")}`,
-              unavailable: tr("researchWsKeyResultsUnavailable"),
-              unavailableTitle: tr("researchWsKeyResultsUnavailableTitle"),
-              oosSharpeUnavailable: tr("researchWsOosSharpeUnavailable"),
-            },
-            guidedFlow: {
-              title: tr("researchWsGuidedWorkflowTitle"),
-              stepResearch: tr("researchWsNavOverview"),
-              stepExperiment: tr("researchWsNavExperiments"),
-              stepValidation: tr("researchWsNavValidation"),
-              stepRobustness: tr("researchWsNavRobustness"),
-              stepPaper: tr("researchWsNavPaper"),
-              stepDecision: tr("researchWsNavDecision"),
-              stepArchive: tr("researchWsNavArchive"),
-              unavailableUntilPrior: tr("researchWsGuidedUnavailableUntilPrior"),
-              loading: tr("researchWsGuidedLoading"),
-              failed: tr("researchWsGuidedFailed"),
-            },
-            nextStep: {
-              title: tr("researchWsNextStepTitle"),
-              runResearchTitle: tr("researchWsNextStepRunResearchTitle"),
-              runResearchDescription: tr("researchWsNextStepRunResearchDescription"),
-              runResearchCta: tr("researchWsNextStepRunResearchCta"),
-              runResearchLoadingCta: tr("researchWsNextStepRunResearchLoadingCta"),
-              runResearchRetryCta: tr("researchWsNextStepRunResearchRetryCta"),
-              validateTitle: tr("researchWsNextStepValidateTitle"),
-              validateDescription: tr("researchWsNextStepValidateDescription"),
-              validateCta: tr("researchWsNextStepValidateCta"),
-              openExperimentTitle: tr("researchWsNextStepOpenExperimentTitle"),
-              openExperimentDescription: tr(
-                "researchWsNextStepOpenExperimentDescription"
-              ),
-              openExperimentCta: tr("researchWsNextStepOpenExperimentCta"),
-              openRobustnessTitle: tr("researchWsNextStepOpenRobustnessTitle"),
-              openRobustnessDescription: tr(
-                "researchWsNextStepOpenRobustnessDescription"
-              ),
-              openRobustnessCta: tr("researchWsNextStepOpenRobustnessCta"),
-              openPaperTitle: tr("researchWsNextStepOpenPaperTitle"),
-              openPaperDescription: tr("researchWsNextStepOpenPaperDescription"),
-              openPaperCta: tr("researchWsNextStepOpenPaperCta"),
-              openDecisionTitle: tr("researchWsNextStepOpenDecisionTitle"),
-              openDecisionDescription: tr(
-                "researchWsNextStepOpenDecisionDescription"
-              ),
-              openDecisionCta: tr("researchWsNextStepOpenDecisionCta"),
-              openArchiveTitle: tr("researchWsNextStepOpenArchiveTitle"),
-              openArchiveDescription: tr("researchWsNextStepOpenArchiveDescription"),
-              openArchiveCta: tr("researchWsNextStepOpenArchiveCta"),
-            },
-            conclusion: {
-              title: tr("researchWsCurrentDecision"),
-              notRequested: tr("researchWsConclusionNotRequested"),
-              incomplete: tr("researchWsConclusionIncomplete"),
-              blocked: tr("researchWsConclusionBlocked"),
-              completed: tr("researchEvalCompleted"),
-              coverageLabel: tr("researchEvalCoveragePercentage"),
-              keyStrengthsLabel: tr("researchWsKeyStrengths"),
-              limitationLabel: tr("researchWsKnownWeaknesses"),
-              nextActionLabel: tr("researchWsNextActions"),
-            },
-          }}
-        />
-      );
-    }
-
-    if (activeSection === "notebook") {
-      return (
-        <ResearchNotebook
-          research={displayResearch}
-          language={language}
-          sessionEntries={sessionNotebookEntries}
-          onSessionEntrySaved={handleSessionEntrySaved}
-          labels={{
-            title: tr("researchNbDesignNotesTitle"),
-            entryCount: tr("researchNbEntryCount"),
-            lastUpdated: tr("researchNbLastUpdated"),
-            newEntry: tr("researchNbNewEntry"),
-            loading: tr("researchNbLoading"),
-            errorTitle: tr("researchNbErrorTitle"),
-            retry: tr("researchNbRetry"),
-            emptyTitle: tr("researchNbEmptyTitle"),
-            emptyDescription: tr("researchNbEmptyDescription"),
-            filterEmptyTitle: tr("researchNbFilterEmptyTitle"),
-            filterEmptyDescription: tr("researchNbFilterEmptyDescription"),
-            filters: {
-              filterType: tr("researchNbFilterType"),
-              filterAll: tr("researchNbFilterAll"),
-              sort: tr("researchNbSort"),
-              sortNewest: tr("researchNbSortNewest"),
-              sortOldest: tr("researchNbSortOldest"),
-            },
-            card: {
-              author: tr("researchNbCardAuthor"),
-              created: tr("researchNbCardCreated"),
-              edited: tr("researchNbCardEdited"),
-              related: tr("researchNbCardRelated"),
-              tags: tr("researchWsTags"),
-            },
-            composer: {
-              title: tr("researchNbComposerTitle"),
-              entryType: tr("researchNbComposerType"),
-              entryTitle: tr("researchNbComposerEntryTitle"),
-              content: tr("researchNbComposerContent"),
-              tags: tr("researchNbComposerTags"),
-              tagsHint: tr("researchNbComposerTagsHint"),
-              relatedArtifact: tr("researchNbComposerArtifact"),
-              relatedNone: tr("researchNbComposerArtifactNone"),
-              save: tr("researchNbComposerSave"),
-              cancel: tr("researchNbComposerCancel"),
-              entryTypeRequired: tr("researchNbValidationType"),
-              titleRequired: tr("researchNbValidationTitle"),
-              bodyRequired: tr("researchNbValidationBody"),
-            },
-          }}
-        />
-      );
-    }
-
-    if (activeSection === "experiments") {
-      return (
-        <ResearchExperiments
-          research={displayResearch}
-          language={language}
-          sessionExperiments={sessionExperiments}
-          selectedExperimentId={selectedExperimentId}
-          onSelectExperiment={setSelectedExperimentId}
-          onExperimentDesigned={handleExperimentDesigned}
-          executedExperiments={executedExperiments}
-          provenanceSlot={provenanceSlot}
-          labels={{
-            title: tr("researchExpTitle"),
-            totalCount: tr("researchExpTotalCount"),
-            activeCount: tr("researchExpActiveCount"),
-            newExperiment: tr("researchExpNew"),
-            loading: tr("researchExpLoading"),
-            errorTitle: tr("researchExpErrorTitle"),
-            retry: tr("researchExpRetry"),
-            emptyTitle: tr("researchExpEmptyTitle"),
-            emptyDescription: tr("researchExpEmptyDescription"),
-            filterEmptyTitle: tr("researchExpFilterEmptyTitle"),
-            filterEmptyDescription: tr("researchExpFilterEmptyDescription"),
-            notFoundTitle: tr("researchExpNotFoundTitle"),
-            notFoundDescription: tr("researchExpNotFoundDescription"),
-            backToList: tr("researchExpBackToList"),
-            filters: {
-              search: tr("researchExpSearch"),
-              searchPlaceholder: tr("researchExpSearchPlaceholder"),
-              status: tr("researchExpFilterStatus"),
-              type: tr("researchExpFilterType"),
-              sort: tr("researchExpSort"),
-              all: tr("researchExpFilterAll"),
-              sortUpdated: tr("researchExpSortUpdated"),
-              sortCreated: tr("researchExpSortCreated"),
-              sortResult: tr("researchExpSortResult"),
-            },
-            card: {
-              hypothesis: tr("researchExpCardHypothesis"),
-              dataset: tr("researchExpCardDataset"),
-              window: tr("researchExpCardWindow"),
-              benchmark: tr("researchExpCardBenchmark"),
-              owner: tr("researchListOwner"),
-              updated: tr("researchListUpdated"),
-              result: tr("researchExpCardResult"),
-              readiness: tr("researchExpCardReadiness"),
-              parameters: tr("researchExpCardParameters"),
-              linkedNotes: tr("researchExpCardLinkedNotes"),
-              openDetail: tr("researchExpOpenDetail"),
-              sharpe: tr("researchExpMetricSharpe"),
-              maxDrawdown: tr("researchExpMetricMaxDD"),
-            },
-            composer: {
-              title: tr("researchExpComposerTitle"),
-              name: tr("researchExpComposerName"),
-              hypothesis: tr("researchExpComposerHypothesis"),
-              experimentType: tr("researchExpComposerType"),
-              dataset: tr("researchExpComposerDataset"),
-              startDate: tr("researchExpComposerStart"),
-              endDate: tr("researchExpComposerEnd"),
-              benchmark: tr("researchExpComposerBenchmark"),
-              parameters: tr("researchExpComposerParameters"),
-              parametersHint: tr("researchExpComposerParametersHint"),
-              successCriteria: tr("researchExpComposerSuccess"),
-              falsification: tr("researchExpComposerFalsify"),
-              notes: tr("researchExpComposerNotes"),
-              save: tr("researchExpComposerSave"),
-              cancel: tr("researchExpComposerCancel"),
-              nameRequired: tr("researchExpValidationName"),
-              hypothesisRequired: tr("researchExpValidationHypothesis"),
-              typeRequired: tr("researchExpValidationType"),
-              datasetRequired: tr("researchExpValidationDataset"),
-              startRequired: tr("researchExpValidationStart"),
-              endRequired: tr("researchExpValidationEnd"),
-              dateRangeInvalid: tr("researchExpValidationDateRange"),
-              successRequired: tr("researchExpValidationSuccess"),
-              falsificationRequired: tr("researchExpValidationFalsify"),
-            },
-            detail: {
-              title: tr("researchExpDetailTitle"),
-              close: tr("researchExpDetailClose"),
-              overview: tr("researchExpDetailOverview"),
-              hypothesis: tr("researchExpCardHypothesis"),
-              configuration: tr("researchExpDetailConfig"),
-              parameters: tr("researchExpCardParameters"),
-              results: tr("researchExpCardResult"),
-              notes: tr("researchExpComposerNotes"),
-              relatedEvidence: tr("researchExpDetailEvidence"),
-              linkedNotebook: tr("researchExpDetailNotebook"),
-              validationReadiness: tr("researchExpCardReadiness"),
-              dataset: tr("researchExpCardDataset"),
-              window: tr("researchExpCardWindow"),
-              benchmark: tr("researchExpCardBenchmark"),
-              owner: tr("researchListOwner"),
-              created: tr("researchWsCreated"),
-              updated: tr("researchListUpdated"),
-              success: tr("researchExpComposerSuccess"),
-              falsification: tr("researchExpComposerFalsify"),
-              none: tr("researchExpNone"),
-              lifecycle: {
-                title: tr("researchExpLifecycleTitle"),
-                description: tr("researchExpLifecycleDescription"),
-                completed: tr("researchExpLifecycleCompleted"),
-                current: tr("researchExpLifecycleCurrent"),
-                upcoming: tr("researchExpLifecycleUpcoming"),
-                terminalNote: tr("researchExpLifecycleTerminal"),
-                governedNote: tr("researchExpLifecycleGoverned"),
-              },
-              metrics: {
-                title: tr("researchExpMetricsTitle"),
-                disclaimer: tr("researchExpMetricsDisclaimer"),
-                sharpe: tr("researchExpMetricSharpe"),
-                cagr: tr("researchExpMetricCagr"),
-                maxDrawdown: tr("researchExpMetricMaxDD"),
-                volatility: tr("researchExpMetricVol"),
-                tradeCount: tr("researchExpMetricTrades"),
-                winRate: tr("researchExpMetricWinRate"),
-                totalTransactionCost: tr("researchExpMetricCost"),
-              },
-            },
-          }}
-        />
-      );
-    }
-
-    function renderEvaluationBlock(): ReactNode {
-      if (!evaluationEnabled) {
-        return (
-          <ErrorAlert
-            title={tr("researchEvalUnavailableTitle")}
-            message={tr("researchEvalUnavailableDescription")}
-          />
-        );
-      }
-      if (evaluationStatus === "awaiting_validation") {
-        return (
-          <div className="research-execution-error">
-            <ErrorAlert
-              title={tr("researchEvalAwaitingValidationTitle")}
-              message={tr("researchEvalAwaitingValidationDescription")}
-            />
-            <Link
-              href={`/research/${encodeURIComponent(researchId)}?tab=validation`}
-              className="btn btn--primary"
-            >
-              {tr("researchEvalGoToValidation")}
-            </Link>
-          </div>
-        );
-      }
-      if (evaluationStatus === "loading") {
-        return <LoadingState message={tr("researchEvalLoading")} />;
-      }
-      if (evaluationStatus === "error") {
-        return (
-          <div className="research-execution-error">
-            <ErrorAlert
-              title={tr("researchEvalUnavailableTitle")}
-              message={evaluationError ?? tr("researchEvalUnavailableDescription")}
-            />
-            <Button primary onClick={reloadEvaluation}>
-              {tr("researchEvalRetry")}
-            </Button>
-          </div>
-        );
-      }
-      if (evaluationStatus !== "ready" || !evaluation) {
-        return null;
-      }
-      return (
-        <ResearchEvaluationPanel
-          evaluation={evaluation}
-          language={language}
-          labels={{
-            title: tr("researchWsEvaluationTitle"),
-            summary: tr("researchEvalSummary"),
-            status: tr("researchEvalStatus"),
-            completed: tr("researchEvalCompleted"),
-            incomplete: tr("researchEvalIncomplete"),
-            blocked: tr("researchEvalBlocked"),
-            source: tr("researchEvalSource"),
-            generated: tr("researchEvalGenerated"),
-            coverageTitle: tr("researchEvalCoverageTitle"),
-            implementedStages: tr("researchEvalImplementedStages"),
-            completedStagesCount: tr("researchEvalCompletedStagesCount"),
-            coveragePercentage: tr("researchEvalCoveragePercentage"),
-            coverageDisclaimer: tr("researchEvalCoverageDisclaimer"),
-            evidenceSummaryTitle: tr("researchEvalEvidenceSummaryTitle"),
-            stageColumn: tr("researchEvalStageColumn"),
-            statusColumn: tr("researchEvalStatusColumn"),
-            summaryColumn: tr("researchEvalSummaryColumn"),
-            completedEvidenceTitle: tr("researchEvalCompletedEvidenceTitle"),
-            incompleteEvidenceTitle: tr("researchEvalIncompleteEvidenceTitle"),
-            nextMilestonesTitle: tr("researchEvalNextMilestonesTitle"),
-            limitationsTitle: tr("researchEvalLimitationsTitle"),
-            blockersTitle: tr("researchEvalBlockersTitle"),
-            noBlockersTitle: tr("researchEvalNoBlockersTitle"),
-            noBlockersDescription: tr("researchEvalNoBlockersDescription"),
-            limitationGroupEvidence: tr("researchEvalLimitationGroupEvidence"),
-            limitationGroupValidation: tr("researchEvalLimitationGroupValidation"),
-            limitationGroupRobustness: tr("researchEvalLimitationGroupRobustness"),
-            limitationGroupDeployment: tr("researchEvalLimitationGroupDeployment"),
-            decisionReadinessTitle: tr("researchEvalDecisionReadiness"),
-            keyFindingsTitle: tr("researchEvalKeyFindings"),
-            nextGovernanceActionTitle: tr("researchEvalNextGovernanceAction"),
-            detailsTitle: tr("researchEvalDetailsTitle"),
-            none: tr("researchEvalNone"),
-            notAvailable: tr("researchEvalNotAvailable"),
-          }}
-        />
-      );
-    }
-
-    if (activeSection === "validation") {
-      let validationBlock: ReactNode = null;
-      if (!validationEnabled) {
-        validationBlock = (
-          <ErrorAlert
-            title={tr("researchValUnavailableTitle")}
-            message={tr("researchValUnavailableDescription")}
-          />
-        );
-      } else if (validationStatus === "loading") {
-        validationBlock = <LoadingState message={tr("researchValLoading")} />;
-      } else if (validationStatus === "error") {
-        validationBlock = (
-          <div className="research-execution-error">
-            <ErrorAlert
-              title={tr("researchValUnavailableTitle")}
-              message={validationError ?? tr("researchValUnavailableDescription")}
-            />
-            <Button primary onClick={reloadValidation}>
-              {tr("researchValRetry")}
-            </Button>
-          </div>
-        );
-      } else if (validationStatus === "ready" && validation) {
-        validationBlock = (
-          <ResearchValidationPanel
-            validation={validation}
-            language={language}
-            labels={{
-            title: tr("researchWsValidationTitle"),
-            summary: tr("researchValSummary"),
-            status: tr("researchValStatus"),
-            evidenceComplete: tr("researchValEvidenceComplete"),
-            yes: tr("researchValYes"),
-            no: tr("researchValNo"),
-            completed: tr("researchWsValidationCompleted"),
-            incomplete: tr("researchValIncomplete"),
-            failed: tr("researchValFailed"),
-            unavailable: tr("researchValUnavailable"),
-            source: tr("researchValSource"),
-            generated: tr("researchValGenerated"),
-            rules: tr("researchValRules"),
-            warnings: tr("researchValWarnings"),
-            dataNotes: tr("researchValDataNotes"),
-            blockers: tr("researchValBlockers"),
-            evidence: tr("researchValEvidence"),
-            oosTitle: tr("researchValOosTitle"),
-            splitDate: tr("researchValSplitDate"),
-            inSampleRatio: tr("researchValInSampleRatio"),
-            minimumOos: tr("researchValMinimumOos"),
-            boundary: tr("researchValBoundary"),
-            inSample: tr("researchValInSample"),
-            outOfSample: tr("researchValOutOfSample"),
-            benchmark: tr("researchValBenchmark"),
-            observations: tr("researchValObservations"),
-            metric: tr("researchValMetric"),
-            totalReturn: tr("researchValTotalReturn"),
-            cagr: tr("researchValCagr"),
-            sharpe: tr("researchValSharpe"),
-            maxDrawdown: tr("researchValMaxDrawdown"),
-            volatility: tr("researchValVolatility"),
-            trades: tr("researchValTrades"),
-            totalCosts: tr("researchValTotalCosts"),
-            parameterTitle: tr("researchValParameterTitle"),
-            validCombinations: tr("researchValValidCombinations"),
-            profitableCombinations: tr("researchValProfitableCombinations"),
-            positiveSharpe: tr("researchValPositiveSharpe"),
-            medianSharpe: tr("researchValMedianSharpe"),
-            sharpeRange: tr("researchValSharpeRange"),
-            medianDrawdown: tr("researchValMedianDrawdown"),
-            canonicalPercentile: tr("researchValCanonicalPercentile"),
-            shortWindow: tr("researchValShortWindow"),
-            longWindow: tr("researchValLongWindow"),
-            canonical: tr("researchValCanonical"),
-            costTitle: tr("researchValCostTitle"),
-            transactionCost: tr("researchValTransactionCost"),
-            returnDegradation: tr("researchValReturnDegradation"),
-            sharpeDegradation: tr("researchValSharpeDegradation"),
-            mathematicallyValid: tr("researchValMathematicallyValid"),
-            canonicalCost: tr("researchValCanonicalCost"),
-            dataQualityTitle: tr("researchValDataQualityTitle"),
-            provider: tr("researchValProvider"),
-            dateRange: tr("researchValDateRange"),
-            cache: tr("researchValCache"),
-            cacheHit: tr("researchValCacheHit"),
-            cacheMiss: tr("researchValCacheMiss"),
-            fatalIssues: tr("researchValFatalIssues"),
-            checks: tr("researchValChecks"),
-            check: tr("researchValCheck"),
-            severity: tr("researchValSeverity"),
-            details: tr("researchValDetails"),
-            notAvailable: tr("researchValNotAvailable"),
-          }}
-          />
-        );
-      }
-
-      return (
-        <>
-          {validationBlock}
-          {renderEvaluationBlock()}
-        </>
-      );
-    }
-
-    if (activeSection === "evaluation") {
-      return renderEvaluationBlock();
-    }
-
-    if (activeSection === "robustness") {
-      const evaluationReadyForRobustness =
-        evaluationStatus === "ready" ? evaluation : null;
-      const validationReadyForRobustness =
-        validationStatus === "ready" ? validation : null;
-
-      return (
-        <ResearchRobustnessCenter
-          validation={validationReadyForRobustness}
-          evaluation={evaluationReadyForRobustness}
-          labels={buildRobustnessCenterLabels(tr)}
-          onContinue={() => navigateToSection("paper")}
-        />
-      );
-    }
-
-    if (activeSection === "paper" && research) {
-      return (
-        <ResearchPaperTradingCenter
-          research={research}
-          validation={validationStatus === "ready" ? validation : null}
-          evaluation={evaluationStatus === "ready" ? evaluation : null}
-          labels={buildPaperTradingLabels(tr)}
-          onContinue={() => navigateToSection("decision")}
-        />
-      );
-    }
-
-    if (activeSection === "decision" && research) {
-      return (
-        <ResearchDecisionCenter
-          research={research}
-          validation={validationStatus === "ready" ? validation : null}
-          evaluation={evaluationStatus === "ready" ? evaluation : null}
-          labels={buildDecisionCenterLabels(tr)}
-          onContinue={() => navigateToSection("archive")}
-        />
-      );
-    }
-
-    if (activeSection === "copilot") {
-      if (!copilotEnabled) {
-        return (
-          <ErrorAlert
-            title={tr("researchCopilotUnavailableTitle")}
-            message={tr("researchCopilotUnavailableDescription")}
-          />
-        );
-      }
-
-      return (
-        <div className="research-review-copilot">
-          {renderEvaluationBlock()}
-          <ResearchCopilotPanel
-            labels={{
-              title: tr("researchCopilotTitle"),
-              subtitle: tr("researchCopilotSubtitle"),
-              disclaimer: tr("researchCopilotDisclaimer"),
-              sampleQuestionsTitle: tr(
-                "researchCopilotSampleQuestionsTitle"
-              ),
-              questionPlaceholder: tr("researchCopilotQuestionPlaceholder"),
-              askButton: tr("researchCopilotAskButton"),
-              askingButton: tr("researchCopilotAskingButton"),
-              answerTitle: tr("researchCopilotAnswerTitle"),
-              citationsTitle: tr("researchCopilotCitationsTitle"),
-              warningsTitle: tr("researchCopilotWarningsTitle"),
-              groundingTitle: tr("researchCopilotGroundingTitle"),
-              generatedAt: tr("researchCopilotGeneratedAt"),
-              grounded: tr("researchCopilotGrounded"),
-              partiallyGrounded: tr("researchCopilotPartiallyGrounded"),
-              unavailable: tr("researchCopilotUnavailable"),
-              awaitingValidationTitle: tr("researchCopilotAwaitingValidationTitle"),
-              awaitingValidationDescription: tr(
-                "researchCopilotAwaitingValidationDescription"
-              ),
-              goToValidation: tr("researchCopilotGoToValidation"),
-              notConfigured: tr("researchCopilotNotConfigured"),
-              limitations: tr("researchCopilotLimitations"),
-            }}
-            sampleQuestions={copilotSampleQuestions}
-            status={
-              validationEvidenceActive && validationStatus === "loading"
-                ? "loading"
-                : copilotStatus
-            }
-            result={copilotResult}
-            error={
-              copilotError ??
-              (validationEvidenceActive && validationStatus === "error"
-                ? validationError
-                : null)
-            }
-            question={copilotQuestion}
-            onQuestionChange={setCopilotQuestion}
-            onAsk={() => void askCopilot(copilotQuestion)}
-            onSampleQuestion={(sample) => {
-              setCopilotQuestion(sample);
-              void askCopilot(sample);
-            }}
-            onGoToValidation={() => {
-              window.location.href = `/research/${encodeURIComponent(researchId)}?tab=validation`;
-            }}
-          />
-        </div>
-      );
-    }
-
-    if (activeSection === "timeline") {
-      return (
-        <ResearchTimeline
-          events={timelineEvents}
-          language={language}
-          labels={{
-            title: tr("researchTlTitle"),
-            description: tr("researchTlDescription"),
-            sessionNote: tr("researchTlSessionNote"),
-            empty: tr("researchTlEmpty"),
-          }}
-        />
-      );
-    }
-
-    if (isResearchWorkspaceSection(activeSection) && activeSection in PLACEHOLDER_COPY) {
-      const copy = PLACEHOLDER_COPY[activeSection as keyof typeof PLACEHOLDER_COPY];
-      return (
-        <WorkspacePlaceholder
-          title={tr(copy.titleKey)}
-          summary={tr(copy.summaryKey)}
-          plannedCapabilities={copy.capabilityKeys.map((key) => tr(key))}
-          deferredNote={tr("researchWsDeferredNote")}
-          emptyTitle={tr("researchWsDeferredEmptyTitle")}
-          capabilitiesCaption={tr("researchWsPlannedCapabilities")}
-        />
-      );
-    }
-
-    return null;
   }
 
   return (
@@ -1300,7 +537,50 @@ export default function ResearchWorkspacePage({
                   </details>
                 </div>
 
-                {renderMainSection()}
+                <ResearchWorkspaceMainSection
+                  researchId={researchId}
+                  activeSection={activeSection}
+                  displayResearch={displayResearch}
+                  research={research}
+                  language={language}
+                  tr={tr}
+                  provenanceLabels={provenanceLabels}
+                  executionEnabled={executionEnabled}
+                  executionStatus={executionStatus}
+                  execution={execution}
+                  executionError={executionError}
+                  reloadExecution={reloadExecution}
+                  formatMetric={formatMetric}
+                  navigateToSection={navigateToSection}
+                  handleRunValidation={handleRunValidation}
+                  validationEnabled={validationEnabled}
+                  validationStatus={validationStatus}
+                  validation={validation}
+                  validationError={validationError}
+                  reloadValidation={reloadValidation}
+                  evaluationEnabled={evaluationEnabled}
+                  evaluationStatus={evaluationStatus}
+                  evaluation={evaluation}
+                  evaluationError={evaluationError}
+                  reloadEvaluation={reloadEvaluation}
+                  sessionNotebookEntries={sessionNotebookEntries}
+                  handleSessionEntrySaved={handleSessionEntrySaved}
+                  sessionExperiments={sessionExperiments}
+                  selectedExperimentId={selectedExperimentId}
+                  setSelectedExperimentId={setSelectedExperimentId}
+                  handleExperimentDesigned={handleExperimentDesigned}
+                  executedExperiments={executedExperiments}
+                  timelineEvents={timelineEvents}
+                  validationEvidenceActive={validationEvidenceActive}
+                  copilotEnabled={copilotEnabled}
+                  copilotStatus={copilotStatus}
+                  copilotResult={copilotResult}
+                  copilotError={copilotError}
+                  copilotQuestion={copilotQuestion}
+                  setCopilotQuestion={setCopilotQuestion}
+                  askCopilot={askCopilot}
+                  copilotSampleQuestions={copilotSampleQuestions}
+                />
               </div>
 
               <ResearchSummaryRail

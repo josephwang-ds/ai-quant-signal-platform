@@ -18,6 +18,11 @@ import {
   EXPERIMENT_TYPES,
 } from "@/types/experiment";
 import type { NotebookEntry, ResearchTimelineEvent } from "@/types/notebook";
+import {
+  formatMetricPercent,
+  formatMetricSharpe,
+  formatMetricTrades,
+} from "@/lib/formatters";
 
 export type LifecycleStepState = "completed" | "current" | "upcoming" | "terminal";
 
@@ -285,14 +290,14 @@ export function formatMetricValue(
   }
   switch (kind) {
     case "sharpe":
-      return value.toFixed(2);
+      return formatMetricSharpe(value);
     case "cagr":
     case "maxDrawdown":
     case "volatility":
     case "winRate":
-      return `${(value * 100).toFixed(1)}%`;
+      return formatMetricPercent(value);
     case "tradeCount":
-      return String(Math.round(value));
+      return formatMetricTrades(value);
     case "totalTransactionCost":
       return `${value.toFixed(1)} bps`;
     default:

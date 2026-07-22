@@ -1,39 +1,61 @@
 /**
- * Global nav — Research Library is the entry; tools are secondary.
- * Lifecycle stages live inside the research workspace, not as global top items.
- * Routes remain reachable for backward compatibility.
+ * Global workspace navigation — primary modules always visible.
+ * Archive remains a secondary, optionally collapsed group.
  */
 
 import type { TranslationKey } from "@/lib/i18n";
+import { CANONICAL_RESEARCH_ID } from "@/lib/canonicalMaCrossover";
 
 export type WorkspaceNavItem = {
   href: string;
   labelKey: TranslationKey;
+  /** Flagship module — optional visual emphasis in SideNav. */
+  featured?: boolean;
 };
 
 export type WorkspaceNavGroup = {
   id: string;
   labelKey: TranslationKey;
   items: WorkspaceNavItem[];
+  /** When true, SideNav may render as a collapsed <details>. */
+  collapsible?: boolean;
 };
+
+export const CURRENT_STUDY_HREF = `/research/${encodeURIComponent(CANONICAL_RESEARCH_ID)}`;
 
 export const WORKSPACE_NAV_GROUPS: WorkspaceNavGroup[] = [
   {
-    id: "tools",
-    labelKey: "navGroupTools",
+    id: "overview",
+    labelKey: "navGroupOverview",
+    items: [{ href: "/overview", labelKey: "navDashboard" }],
+  },
+  {
+    id: "research",
+    labelKey: "navGroupResearch",
     items: [
-      { href: "/strategy-lab", labelKey: "navStrategyLab" },
-      { href: "/comparison", labelKey: "navComparison" },
-      { href: "/market-watch", labelKey: "navMarketWatch" },
+      { href: "/", labelKey: "navResearchWorkspace" },
+      { href: CURRENT_STUDY_HREF, labelKey: "navCurrentResearch" },
     ],
   },
   {
-    id: "supporting",
-    labelKey: "navGroupSupporting",
+    id: "analyze",
+    labelKey: "navGroupAnalyze",
+    items: [
+      { href: "/market-watch", labelKey: "navMarketWatch" },
+      { href: "/strategy-lab", labelKey: "navStrategyLab" },
+      { href: "/compare-models", labelKey: "navCompareModels", featured: true },
+      { href: "/robustness", labelKey: "navPerformanceReview" },
+      { href: "/risk-gate-review", labelKey: "navRiskReview" },
+      { href: "/paper-trading", labelKey: "navPaperTrading" },
+    ],
+  },
+  {
+    id: "archive",
+    labelKey: "navGroupArchive",
+    collapsible: true,
     items: [
       { href: "/data-center", labelKey: "navDataCenter" },
       { href: "/experiments", labelKey: "navExperiments" },
-      { href: "/overview", labelKey: "navModuleDirectory" },
     ],
   },
 ];
@@ -44,6 +66,9 @@ export function isWorkspaceNavItemActive(pathname: string, href: string): boolea
   }
   if (href === "/overview") {
     return pathname === "/overview";
+  }
+  if (href.startsWith("/research/")) {
+    return pathname.startsWith("/research/");
   }
   return pathname.startsWith(href);
 }

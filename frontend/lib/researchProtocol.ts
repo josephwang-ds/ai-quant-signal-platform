@@ -1,4 +1,5 @@
 import type { Language } from "@/lib/i18n";
+import { formatMetricPercent } from "@/lib/formatters";
 import { benchmarkLabel } from "@/lib/researchDisplay";
 import type { ResearchDetail } from "@/types/research";
 import type { ResearchExecutionResult } from "@/types/researchExecution";
@@ -92,7 +93,7 @@ export function buildResearchProtocolParts(
   const transactionCost = parseTransactionCost(research);
   const transactionCostPct =
     typeof transactionCost === "number" && Number.isFinite(transactionCost)
-      ? `${(transactionCost * 100).toFixed(2)}%`
+      ? formatMetricPercent(transactionCost)
       : null;
 
   const benchmarkRaw =

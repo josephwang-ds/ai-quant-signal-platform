@@ -8,6 +8,11 @@ import type { PlannedValidationStage } from "@/types/canonicalResearch";
 import type { ResearchDetail, ResearchListItem } from "@/types/research";
 import type { ResearchExecutionResult } from "@/types/researchExecution";
 import { getCanonicalResearchPackage } from "@/lib/canonicalMaCrossover";
+import {
+  formatMetricPercent,
+  formatMetricSharpe,
+  formatMetricTrades,
+} from "@/lib/formatters";
 
 const BASELINE_EXPERIMENT_ID = "exp-ma-baseline";
 
@@ -96,17 +101,11 @@ export function applyExecutionToResearch(
 }
 
 function formatNullable(value: number | null): string {
-  if (value === null || Number.isNaN(value)) {
-    return "n/a";
-  }
-  return value.toFixed(2);
+  return formatMetricSharpe(value) === "N/A" ? "n/a" : formatMetricSharpe(value);
 }
 
 function formatPct(value: number | null): string {
-  if (value === null || Number.isNaN(value)) {
-    return "n/a";
-  }
-  return `${(value * 100).toFixed(1)}%`;
+  return formatMetricPercent(value) === "N/A" ? "n/a" : formatMetricPercent(value);
 }
 
 export function applyExecutionToExperiments(
@@ -141,7 +140,7 @@ export function applyExecutionToExperiments(
             : m.total_transaction_costs * 10_000,
       },
       validationReadiness: "partial",
-      notes: `${experiment.notes} Total return ${formatPct(m.total_return)}; trades ${m.trade_count ?? "n/a"}.`,
+      notes: `${experiment.notes} Total return ${formatPct(m.total_return)}; trades ${formatMetricTrades(m.trade_count) === "N/A" ? "n/a" : formatMetricTrades(m.trade_count)}.`,
     };
   });
 }

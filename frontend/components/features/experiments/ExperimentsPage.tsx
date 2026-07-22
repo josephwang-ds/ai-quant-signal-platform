@@ -36,6 +36,7 @@ import {
   formatMetricPercent,
   formatMetricSharpe,
   formatMetricTrades,
+  formatPrice,
   getDrawdownTone,
   getReturnTone,
   getSharpeTone,
@@ -184,7 +185,7 @@ function ExperimentDetailPanel({
                       />
                     </td>
                     <td className="num">
-                      {trade.price == null ? "—" : Number(trade.price).toFixed(2)}
+                      {trade.price == null ? "—" : formatPrice(Number(trade.price))}
                     </td>
                     <td>
                       {trade.reason ? translateBackendText(language, trade.reason) : "—"}

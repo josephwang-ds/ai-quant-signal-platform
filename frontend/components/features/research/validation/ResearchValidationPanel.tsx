@@ -6,6 +6,11 @@ import type {
 } from "@/types/researchValidation";
 import type { Language } from "@/lib/i18n";
 import {
+  formatMetricPercent,
+  formatMetricSharpe,
+  formatMetricTrades,
+} from "@/lib/formatters";
+import {
   formatResearchTimestamp,
   localizeEvidenceNote,
 } from "@/lib/researchDisplay";
@@ -86,17 +91,15 @@ type Props = {
 };
 
 function formatNumber(value: number | null | undefined): string {
-  return value == null || Number.isNaN(value) ? "n/a" : value.toFixed(2);
+  return formatMetricSharpe(value) === "N/A" ? "n/a" : formatMetricSharpe(value);
 }
 
 function formatInteger(value: number | null | undefined): string {
-  return value == null || Number.isNaN(value) ? "n/a" : String(Math.round(value));
+  return formatMetricTrades(value) === "N/A" ? "n/a" : formatMetricTrades(value);
 }
 
 function formatPercent(value: number | null | undefined): string {
-  return value == null || Number.isNaN(value)
-    ? "n/a"
-    : `${(value * 100).toFixed(2)}%`;
+  return formatMetricPercent(value) === "N/A" ? "n/a" : formatMetricPercent(value);
 }
 
 function statusLabel(
