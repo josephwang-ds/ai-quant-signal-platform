@@ -11,8 +11,12 @@ import MetricSummaryCard from "@/components/ui/MetricSummaryCard";
 import SectionCard from "@/components/ui/SectionCard";
 import SectionHeader from "@/components/ui/SectionHeader";
 import ModelComparisonCharts from "@/components/features/comparison/ModelComparisonCharts";
+import ModelComparisonInsightPanels from "@/components/features/comparison/ModelComparisonInsightPanels";
+import ModelComparisonPreprocessingPanel from "@/components/features/comparison/ModelComparisonPreprocessingPanel";
 import {
+  explainModelComparison,
   runModelComparison,
+  type ModelComparisonPreprocessingMethod,
   type ModelComparisonResponse,
   type ModelComparisonResult,
   type ModelComparisonSummary,
@@ -26,6 +30,7 @@ import {
 import {
   translateComparisonLabel,
   translateModelComparisonInterpretation,
+  translateModelFeatureName,
   type TranslationKey,
 } from "@/lib/i18n";
 import { useWorkspaceLanguage } from "@/lib/useWorkspaceLanguage";
@@ -41,12 +46,71 @@ const DEFAULT_TRANSACTION_COST = 0.001;
 
 type ComparisonMode = "single_split" | "walk_forward";
 
-const MODEL_OPTIONS: Array<{ id: string; labelKey: TranslationKey }> = [
-  { id: "logistic", labelKey: "modelOptionLogistic" },
-  { id: "random_forest", labelKey: "modelOptionRandomForest" },
-  { id: "xgboost", labelKey: "modelOptionXgboost" },
-  { id: "lightgbm", labelKey: "modelOptionLightgbm" },
+type ModelOption = {
+  id: string;
+  labelKey: TranslationKey;
+  defaultSelected?: boolean;
+};
+
+type ModelGroup = {
+  id: string;
+  labelKey: TranslationKey;
+  options: ModelOption[];
+};
+
+const MODEL_GROUPS: ModelGroup[] = [
+  {
+    id: "linear",
+    labelKey: "modelGroupLinear",
+    options: [
+      { id: "logistic_l2", labelKey: "modelOptionLogisticL2", defaultSelected: true },
+      { id: "logistic_l1", labelKey: "modelOptionLogisticL1" },
+      { id: "logistic_en", labelKey: "modelOptionLogisticEn" },
+      { id: "ridge_clf", labelKey: "modelOptionRidgeClf" },
+    ],
+  },
+  {
+    id: "trees",
+    labelKey: "modelGroupTrees",
+    options: [
+      { id: "random_forest", labelKey: "modelOptionRandomForest", defaultSelected: true },
+      { id: "xgboost", labelKey: "modelOptionXgboost", defaultSelected: true },
+      { id: "lightgbm", labelKey: "modelOptionLightgbm", defaultSelected: true },
+    ],
+  },
+  {
+    id: "svm",
+    labelKey: "modelGroupSvm",
+    options: [{ id: "svm", labelKey: "modelOptionSvm" }],
+  },
+  {
+    id: "regression",
+    labelKey: "modelGroupRegressionSign",
+    options: [
+      { id: "ridge_reg", labelKey: "modelOptionRidgeReg", defaultSelected: true },
+      { id: "lasso_reg", labelKey: "modelOptionLassoReg" },
+      { id: "elasticnet_reg", labelKey: "modelOptionElasticNetReg" },
+    ],
+  },
+  {
+    id: "timeseries",
+    labelKey: "modelGroupTimeseries",
+    options: [{ id: "arima", labelKey: "modelOptionArima" }],
+  },
+  {
+    id: "offline_dl",
+    labelKey: "modelGroupOfflineDl",
+    options: [
+      { id: "cnn", labelKey: "modelOptionCnn" },
+      { id: "lstm", labelKey: "modelOptionLstm" },
+      { id: "rl", labelKey: "modelOptionRl" },
+    ],
+  },
 ];
+
+const DEFAULT_SELECTED_MODELS = MODEL_GROUPS.flatMap((group) =>
+  group.options.filter((option) => option.defaultSelected).map((option) => option.id)
+);
 
 function isRowHighlighted(
   row: ModelComparisonResult,
@@ -84,12 +148,21 @@ export default function ModelComparisonPage() {
     String(DEFAULT_TRANSACTION_COST)
   );
   const [selectedModels, setSelectedModels] = useState<string[]>(
-    MODEL_OPTIONS.map((item) => item.id)
+    DEFAULT_SELECTED_MODELS
   );
+  const [preprocessing, setPreprocessing] =
+    useState<ModelComparisonPreprocessingMethod>("none");
+  const [pcaComponents, setPcaComponents] = useState(5);
+  const [selectK, setSelectK] = useState(10);
+  const [tune, setTune] = useState(false);
   const [result, setResult] = useState<ModelComparisonResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [resultsView, setResultsView] = useState<"charts" | "table">("charts");
+  const [explaining, setExplaining] = useState(false);
+  const [copilotExplanation, setCopilotExplanation] = useState<string | null>(
+    null
+  );
 
   function toggleModel(id: string) {
     setSelectedModels((prev) =>
@@ -142,6 +215,7 @@ export default function ModelComparisonPage() {
     setLoading(true);
     setError(null);
     setResult(null);
+    setCopilotExplanation(null);
 
     try {
       const response = await runModelComparison({
@@ -153,6 +227,13 @@ export default function ModelComparisonPage() {
         long_window: parsedLongWindow,
         momentum_window: parsedMomentumWindow,
         models: selectedModels,
+        include_lstm: selectedModels.includes("lstm"),
+        tune,
+        preprocessing,
+        ...(preprocessing === "pca"
+          ? { pca_components: Number(pcaComponents) }
+          : {}),
+        ...(preprocessing === "select_kbest" ? { select_k: Number(selectK) } : {}),
         ...(isWalkForward
           ? { n_folds: parsedNFolds, scheme: "expanding" as const }
           : { split_date: splitDate }),
@@ -317,19 +398,92 @@ export default function ModelComparisonPage() {
 
       <fieldset className="model-comparison-models">
         <legend className="form-label">{tr("modelComparisonModels")}</legend>
-        <div className="model-comparison-models__grid">
-          {MODEL_OPTIONS.map((option) => (
-            <label key={option.id} className="model-comparison-models__item">
-              <input
-                type="checkbox"
-                checked={selectedModels.includes(option.id)}
-                onChange={() => toggleModel(option.id)}
-              />
-              <span>{tr(option.labelKey)}</span>
-            </label>
+        <div className="model-comparison-models__groups">
+          {MODEL_GROUPS.map((group) => (
+            <div key={group.id} className="model-comparison-models__group">
+              <p className="model-comparison-models__group-label">
+                {tr(group.labelKey)}
+              </p>
+              <div className="model-comparison-models__grid">
+                {group.options.map((option) => (
+                  <label key={option.id} className="model-comparison-models__item">
+                    <input
+                      type="checkbox"
+                      checked={selectedModels.includes(option.id)}
+                      onChange={() => toggleModel(option.id)}
+                    />
+                    <span>{tr(option.labelKey)}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
           ))}
         </div>
       </fieldset>
+
+      <div className="form-grid">
+        <label className="form-field">
+          <span className="form-label">{tr("modelComparisonPreprocessing")}</span>
+          <select
+            className="form-select"
+            value={preprocessing}
+            onChange={(e) =>
+              setPreprocessing(e.target.value as ModelComparisonPreprocessingMethod)
+            }
+          >
+            <option value="none">{tr("modelComparisonPreprocessingNone")}</option>
+            <option value="pca">{tr("modelComparisonPreprocessingPca")}</option>
+            <option value="select_kbest">
+              {tr("modelComparisonPreprocessingSelectKBest")}
+            </option>
+            <option value="l1_select">
+              {tr("modelComparisonPreprocessingL1")}
+            </option>
+          </select>
+        </label>
+
+        {preprocessing === "pca" ? (
+          <label className="form-field">
+            <span className="form-label">
+              {tr("modelComparisonPcaComponents")}
+            </span>
+            <input
+              className="form-input"
+              type="number"
+              min={1}
+              max={30}
+              value={pcaComponents}
+              onChange={(e) => setPcaComponents(Number(e.target.value))}
+            />
+          </label>
+        ) : null}
+
+        {preprocessing === "select_kbest" ? (
+          <label className="form-field">
+            <span className="form-label">{tr("modelComparisonSelectK")}</span>
+            <input
+              className="form-input"
+              type="number"
+              min={1}
+              max={30}
+              value={selectK}
+              onChange={(e) => setSelectK(Number(e.target.value))}
+            />
+          </label>
+        ) : null}
+
+        <label className="form-field model-comparison-tune">
+          <span className="form-label">{tr("modelComparisonTune")}</span>
+          <label className="model-comparison-tune__check">
+            <input
+              type="checkbox"
+              checked={tune}
+              onChange={(e) => setTune(e.target.checked)}
+            />
+            {tr("modelComparisonTuneHint")}
+          </label>
+        </label>
+      </div>
 
       <Button onClick={handleCompare} disabled={loading}>
         {loading ? tr("running") : tr("modelComparisonRun")}
@@ -360,6 +514,77 @@ export default function ModelComparisonPage() {
                 : tr("modelComparisonSameOosNote")}
             </span>
           </p>
+
+          <ModelComparisonInsightPanels
+            result={result}
+            explaining={explaining}
+            copilotExplanation={copilotExplanation}
+            onExplain={async () => {
+              setExplaining(true);
+              try {
+                const explained = await explainModelComparison({
+                  summary: result.summary,
+                  results: result.results,
+                  mode: result.mode,
+                });
+                setCopilotExplanation(explained.explanation);
+              } catch (err) {
+                setError(
+                  getApiDisplayMessage(err, tr("modelComparisonExplainFailed"))
+                );
+              } finally {
+                setExplaining(false);
+              }
+            }}
+          />
+
+          {result.feature_set && result.feature_set.columns.length > 0 ? (
+            <details className="model-comparison-feature-set">
+              <summary>
+                {tr("modelComparisonFeaturesUsed")}
+                <span className="model-comparison-feature-set__count">
+                  {tr("modelComparisonFeaturesUsedCount").replace(
+                    "{n}",
+                    String(result.feature_set.count)
+                  )}
+                </span>
+              </summary>
+              <p className="model-comparison-feature-set__hint">
+                {tr("modelComparisonFeaturesUsedHint")}
+              </p>
+              <ul className="model-comparison-feature-set__list">
+                {result.feature_set.columns.map((column) => (
+                  <li key={column}>
+                    <code className="model-comparison-feature-set__code">
+                      {column}
+                    </code>
+                    <span className="model-comparison-feature-set__label">
+                      {translateModelFeatureName(language, column)}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </details>
+          ) : null}
+
+          {result.preprocessing ? (
+            <ModelComparisonPreprocessingPanel
+              preprocessing={result.preprocessing}
+              language={language}
+              labels={{
+                title: tr("modelComparisonPreprocessingResult"),
+                methodNone: tr("modelComparisonPreprocessingNone"),
+                methodPca: tr("modelComparisonPreprocessingPca"),
+                methodSelectKBest: tr("modelComparisonPreprocessingSelectKBest"),
+                methodL1: tr("modelComparisonPreprocessingL1"),
+                pcaCaption: tr("modelComparisonPcaCaption"),
+                pcaCumulative: tr("modelComparisonPcaCumulative"),
+                selectedTitle: tr("modelComparisonSelectedFeatures"),
+                droppedTitle: tr("modelComparisonDroppedFeatures"),
+                emptySelection: tr("modelComparisonSelectionEmpty"),
+              }}
+            />
+          ) : null}
 
           <div className="metric-grid model-comparison-summary-metrics" role="list">
             <MetricSummaryCard
@@ -498,17 +723,34 @@ export default function ModelComparisonPage() {
                       {summaryMark(row, result.summary, "best_sharpe")}
                       {summaryMark(row, result.summary, "lowest_drawdown")}
                       {summaryMark(row, result.summary, "fewest_trades")}
-                      {row.source === "offline_artifact" || row.strategy === "lstm" ? (
+                      {row.source === "offline_artifact" ||
+                      row.strategy === "lstm" ||
+                      row.strategy === "cnn" ||
+                      row.strategy === "rl" ? (
                         <span
                           className="model-comparison-offline-badge"
-                          title={tr("modelComparisonOfflineTooltip")}
+                          title={
+                            row.strategy === "rl"
+                              ? tr("modelComparisonRlTooltip")
+                              : tr("modelComparisonOfflineTooltip")
+                          }
                         >
-                          {row.trained_at
-                            ? tr("modelComparisonOfflineBadgeWithDate").replace(
-                                "{date}",
-                                row.trained_at.slice(0, 10)
-                              )
-                            : tr("modelComparisonOfflineBadge")}
+                          {row.strategy === "rl"
+                            ? tr("modelComparisonRlBadge")
+                            : row.trained_at
+                              ? tr("modelComparisonOfflineBadgeWithDate").replace(
+                                  "{date}",
+                                  row.trained_at.slice(0, 10)
+                                )
+                              : tr("modelComparisonOfflineBadge")}
+                        </span>
+                      ) : null}
+                      {row.tuned && row.best_params ? (
+                        <span
+                          className="model-comparison-tune-badge"
+                          title={JSON.stringify(row.best_params)}
+                        >
+                          {tr("modelComparisonTunedBadge")}
                         </span>
                       ) : null}
                     </td>

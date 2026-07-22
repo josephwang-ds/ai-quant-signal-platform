@@ -307,7 +307,12 @@ class ModelComparisonRequest(BaseModel):
     models: Optional[list[str]] = None
     n_folds: Optional[int] = None
     scheme: str = "expanding"
+    # When models is set, cnn/lstm/rl come from that list; include_lstm only applies if models is None.
     include_lstm: bool = True
+    tune: bool = False
+    preprocessing: str = "none"
+    pca_components: Optional[int] = None
+    select_k: Optional[int] = None
 
     @field_validator("ticker")
     @classmethod
@@ -321,6 +326,35 @@ class ModelComparisonRequest(BaseModel):
     @classmethod
     def validate_data_source(cls, value: str) -> str:
         return normalize_request_data_source(value)
+
+    @field_validator("preprocessing")
+    @classmethod
+    def validate_preprocessing(cls, value: str) -> str:
+        cleaned = value.strip().lower()
+        allowed = {"none", "pca", "select_kbest", "l1_select"}
+        if cleaned not in allowed:
+            raise ValueError(
+                'preprocessing must be "none", "pca", "select_kbest", or "l1_select"'
+            )
+        return cleaned
+
+    @field_validator("pca_components")
+    @classmethod
+    def validate_pca_components(cls, value: Optional[int]) -> Optional[int]:
+        if value is None:
+            return None
+        if value < 1:
+            raise ValueError("pca_components must be >= 1")
+        return value
+
+    @field_validator("select_k")
+    @classmethod
+    def validate_select_k(cls, value: Optional[int]) -> Optional[int]:
+        if value is None:
+            return None
+        if value < 1:
+            raise ValueError("select_k must be >= 1")
+        return value
 
     @field_validator("short_window")
     @classmethod

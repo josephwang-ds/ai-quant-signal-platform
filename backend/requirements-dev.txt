@@ -3,3 +3,8 @@ httpx>=0.27.0
 pytest>=8.0.0
 # Offline-only ML tooling — not installed on Render / production runtime.
 torch>=2.2
+# Offline RL experiment only (scripts/train_rl.py) — never on Render.
+gymnasium>=0.29
+stable-baselines3>=2.3
+# Optional FinBERT for insights (gated by INSIGHTS_ALLOW_FINBERT=1; never default on Render).
+# transformers>=4.40.0

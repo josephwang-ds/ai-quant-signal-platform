@@ -392,9 +392,13 @@ export type ModelComparisonResult = {
   directional_accuracy?: number;
   directional_accuracy_note?: string;
   feature_importance?: Record<string, number>;
-  /** Present for offline LSTM artifact rows. */
+  /** Present for offline LSTM/CNN/RL artifact rows. */
   source?: "offline_artifact" | string;
   trained_at?: string;
+  best_params?: Record<string, string | number | boolean> | null;
+  tuned?: boolean;
+  paradigm?: string;
+  note?: string;
 };
 
 export type ModelComparisonSummary = {
@@ -427,6 +431,31 @@ export type ModelComparisonFold = {
   per_model: ModelComparisonFoldPerModel[];
 };
 
+export type ModelComparisonFeatureSet = {
+  columns: string[];
+  count: number;
+};
+
+export type ModelComparisonPreprocessingMethod =
+  | "none"
+  | "pca"
+  | "select_kbest"
+  | "l1_select";
+
+export type ModelComparisonPreprocessing = {
+  method: ModelComparisonPreprocessingMethod | string;
+  pca: {
+    n_components: number;
+    explained_variance_ratio: number[];
+    cumulative: number;
+  } | null;
+  selection: {
+    selected_features: string[];
+    dropped_features: string[];
+    scores?: Record<string, number>;
+  } | null;
+};
+
 export type ModelComparisonResponse = {
   ticker?: string;
   start_date?: string;
@@ -444,6 +473,9 @@ export type ModelComparisonResponse = {
   folds?: ModelComparisonFold[];
   oos_start?: string;
   oos_end?: string;
+  feature_set?: ModelComparisonFeatureSet;
+  preprocessing?: ModelComparisonPreprocessing;
+  tune?: boolean;
   results: ModelComparisonResult[];
   summary: ModelComparisonSummary;
   interpretation: string[];
@@ -464,8 +496,13 @@ export type RunModelComparisonParams = {
   models?: string[];
   n_folds?: number | null;
   scheme?: "expanding" | "rolling";
-  /** When true (default), attach compatible offline LSTM artifact if present. */
+  /** When true and ``models`` is omitted, attach LSTM artifact (legacy). */
   include_lstm?: boolean;
+  /** Train-set TimeSeriesSplit RandomizedSearchCV before OOS eval. */
+  tune?: boolean;
+  preprocessing?: ModelComparisonPreprocessingMethod;
+  pca_components?: number | null;
+  select_k?: number | null;
 };
 
 /**
@@ -482,6 +519,7 @@ export async function runModelComparison(
     short_window: params.short_window,
     long_window: params.long_window,
     momentum_window: params.momentum_window,
+    preprocessing: params.preprocessing ?? "none",
   });
 
   const trimmedEndDate = params.end_date?.trim();
@@ -490,6 +528,12 @@ export async function runModelComparison(
   }
   if (params.models && params.models.length > 0) {
     body.models = params.models;
+  }
+  if (params.pca_components != null) {
+    body.pca_components = params.pca_components;
+  }
+  if (params.select_k != null) {
+    body.select_k = params.select_k;
   }
 
   if (params.n_folds != null) {
@@ -500,8 +544,11 @@ export async function runModelComparison(
   } else if (params.split_date) {
     body.split_date = params.split_date;
   }
-  if (params.include_lstm === false) {
-    body.include_lstm = false;
+  if (params.include_lstm != null) {
+    body.include_lstm = params.include_lstm;
+  }
+  if (params.tune) {
+    body.tune = true;
   }
 
   return requestJson<ModelComparisonResponse>(
@@ -511,6 +558,132 @@ export async function runModelComparison(
       headers: { "Content-Type": "application/json" },
       cache: "no-store",
       body: JSON.stringify(body),
+    },
+    // Heavier endpoint: trains several models on-request; allow more time than
+    // the default 60s, especially on a cold / low-CPU free-tier backend.
+    { timeoutMs: 120_000 }
+  );
+}
+
+export type CompareExplainResponse = {
+  explanation: string;
+  model?: string;
+  disclaimer?: string;
+};
+
+export async function explainModelComparison(params: {
+  summary: ModelComparisonSummary;
+  results: ModelComparisonResult[];
+  mode?: string | null;
+}): Promise<CompareExplainResponse> {
+  return requestJson<CompareExplainResponse>(
+    "api/v1/models/compare/explain",
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      cache: "no-store",
+      body: JSON.stringify({
+        summary: params.summary,
+        results: params.results,
+        mode: params.mode ?? undefined,
+      }),
+    },
+    { timeoutMs: API_REQUEST_TIMEOUT_MS }
+  );
+}
+
+export type NewsSentimentStance = "favourable" | "neutral" | "not_favourable";
+
+export type NewsSentimentItem = {
+  headline: string;
+  url?: string;
+  source?: string;
+  published_at?: string | null;
+  stance: NewsSentimentStance | string;
+  score_1_5: number;
+  reason: string;
+  /** Shadow LLM label — evaluation only; classifier remains authoritative. */
+  llm_stance?: NewsSentimentStance | string;
+  llm_score_1_5?: number;
+};
+
+export type NewsSentimentOverall = {
+  stance: NewsSentimentStance | string;
+  score_1_5: number;
+  counts?: {
+    positive: number;
+    neutral: number;
+    negative: number;
+  };
+  polarity?: number;
+};
+
+export type NewsSentimentAgreement = {
+  n_compared: number;
+  n_agree_stance: number;
+  n_agree_score: number;
+  stance_agreement: number;
+  score_agreement: number;
+  note?: string;
+};
+
+export type NewsSentimentSummary = {
+  text: string;
+  disclaimer: string;
+  bullets?: Array<{
+    citation_id?: string;
+    headline: string;
+    reason: string;
+    citation_url?: string;
+    citation_source?: string;
+    llm_stance?: NewsSentimentStance | string;
+    llm_score_1_5?: number;
+  }>;
+  agreement?: NewsSentimentAgreement | null;
+  model?: string;
+} | null;
+
+export type NewsSentimentResponse = {
+  ticker: string;
+  generated_at?: string;
+  overall: NewsSentimentOverall | NewsSentimentStance | string;
+  score_1_5?: number;
+  items: NewsSentimentItem[];
+  summary?: NewsSentimentSummary;
+  /** Top-level mirror of summary.agreement for convenience. */
+  agreement?: NewsSentimentAgreement | null;
+  provider?: string;
+  classifier?: string;
+  notice?: string;
+  disclaimer?: string;
+  scope?: string;
+  backtest_feature?: boolean;
+  pit_note?: string;
+  headline_count?: number;
+  model?: string;
+};
+
+export async function runNewsSentiment(params: {
+  ticker: string;
+  paste_text?: string;
+  pasted_news?: string;
+  fetch_latest?: boolean;
+  limit?: number;
+  use_finbert?: boolean;
+}): Promise<NewsSentimentResponse> {
+  return requestJson<NewsSentimentResponse>(
+    "api/v1/insights/news-sentiment",
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      cache: "no-store",
+      body: JSON.stringify({
+        ticker: params.ticker,
+        paste_text: params.paste_text ?? params.pasted_news,
+        fetch_latest: params.fetch_latest ?? true,
+        limit: params.limit ?? 10,
+        use_finbert: params.use_finbert ?? false,
+      }),
     },
     { timeoutMs: API_REQUEST_TIMEOUT_MS }
   );

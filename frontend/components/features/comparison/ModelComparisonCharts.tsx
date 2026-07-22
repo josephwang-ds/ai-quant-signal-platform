@@ -109,7 +109,12 @@ function findByLabel(
 }
 
 function isOfflineArtifactRow(row: ModelComparisonResult): boolean {
-  return row.source === "offline_artifact" || row.strategy === "lstm";
+  return (
+    row.source === "offline_artifact" ||
+    row.strategy === "lstm" ||
+    row.strategy === "cnn" ||
+    row.strategy === "rl"
+  );
 }
 
 function offlineBadgeText(

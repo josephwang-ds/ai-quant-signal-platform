@@ -42,6 +42,7 @@ export const WORKSPACE_NAV_GROUPS: WorkspaceNavGroup[] = [
     labelKey: "navGroupAnalyze",
     items: [
       { href: "/market-watch", labelKey: "navMarketWatch" },
+      { href: "/ai-insights", labelKey: "navAiInsights" },
       { href: "/strategy-lab", labelKey: "navStrategyLab" },
       { href: "/compare-models", labelKey: "navCompareModels", featured: true },
       { href: "/robustness", labelKey: "navPerformanceReview" },
