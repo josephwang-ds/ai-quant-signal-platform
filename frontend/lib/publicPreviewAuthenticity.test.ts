@@ -3,24 +3,16 @@ import { describe, expect, it } from "vitest";
 import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { createElement } from "react";
-import StrategyHealthScorePanel from "@/components/features/executive/StrategyHealthScorePanel";
-import ReturnQualityLens from "@/components/features/executive/ReturnQualityLens";
-import ScenarioShockTestPanel from "@/components/features/executive/ScenarioShockTestPanel";
-import DecisionLedgerPanel from "@/components/features/executive/DecisionLedgerPanel";
 import RiskGateReview from "@/components/features/risk/RiskGateReview";
-import DecisionRoomPanel from "@/components/features/decision-room/DecisionRoomPanel";
 import { CANONICAL_MA_CROSSOVER } from "@/lib/canonicalMaCrossover";
 
 /**
  * PR-011A — Removes the fabricated evidence that used to live in
- * `frontend/lib/mockQuantData.ts` and rendered on the "adjacent" public
- * preview routes (Strategy Health Score, Return Quality Lens, Risk Gate
- * Review, Scenario Shock Test, Decision Ledger, Decision Room).
+ * `frontend/lib/mockQuantData.ts`.
  *
- * These tests prove the fabricated numbers/strings are gone from the
- * production data path (not merely hidden behind a badge), and that every
- * one of those routes now renders an honest "planned capability" state
- * instead of a blank page or invented evidence.
+ * Risk Gate Review is now a live Risk Review module that calls
+ * `/api/v1/risk/review`. These tests still prove fabricated numbers are gone
+ * from the production path, and that the form renders without inventing evidence.
  */
 
 const FABRICATED_NUMERIC_STRINGS = [
@@ -44,28 +36,8 @@ const FABRICATED_VERDICT_STRINGS = [
 
 const PANELS: Array<{ name: string; render: () => ReturnType<typeof render> }> = [
   {
-    name: "StrategyHealthScorePanel",
-    render: () => render(createElement(StrategyHealthScorePanel)),
-  },
-  {
-    name: "ReturnQualityLens",
-    render: () => render(createElement(ReturnQualityLens)),
-  },
-  {
-    name: "ScenarioShockTestPanel",
-    render: () => render(createElement(ScenarioShockTestPanel)),
-  },
-  {
-    name: "DecisionLedgerPanel",
-    render: () => render(createElement(DecisionLedgerPanel)),
-  },
-  {
     name: "RiskGateReview",
     render: () => render(createElement(RiskGateReview)),
-  },
-  {
-    name: "DecisionRoomPanel",
-    render: () => render(createElement(DecisionRoomPanel)),
   },
 ];
 
@@ -145,6 +117,12 @@ describe("PR-011A authenticity — mockQuantData is fully removed", () => {
         )
       )
     ).toBe(false);
+    expect(
+      existsSync(join(projectRoot, "components", "features", "executive"))
+    ).toBe(false);
+    expect(
+      existsSync(join(projectRoot, "components", "features", "decision-room"))
+    ).toBe(false);
   });
 });
 
@@ -185,7 +163,7 @@ describe("PR-011A authenticity — repository-wide fabricated-evidence scan", ()
   });
 });
 
-describe("PR-011A authenticity — public preview routes render honest placeholders", () => {
+describe("PR-011A authenticity — Risk Review form does not invent evidence", () => {
   for (const panel of PANELS) {
     it(`${panel.name} renders no fabricated numeric or BUY/SELL/Approved evidence`, () => {
       panel.render();
@@ -200,15 +178,13 @@ describe("PR-011A authenticity — public preview routes render honest placehold
       expect(screen.queryByText("SELL")).toBeNull();
     });
 
-    it(`${panel.name} renders an honest "planned capability" placeholder instead of blank content`, () => {
+    it(`${panel.name} renders the live Risk Review form, not a fabricated scorecard`, () => {
       panel.render();
 
-      expect(screen.getByText("Planned capabilities")).toBeInTheDocument();
-      expect(
-        screen.getByText(
-          "Deferred until real research evidence exists. Fabricated demo data has been removed from this preview."
-        )
-      ).toBeInTheDocument();
+      expect(screen.getByText("Risk Review")).toBeInTheDocument();
+      expect(screen.getByText("Run Risk Review")).toBeInTheDocument();
+      expect(screen.queryByText("Planned capabilities")).toBeNull();
+      expect(screen.queryByText("76/100")).toBeNull();
     });
   }
 });

@@ -2,6 +2,13 @@ import EmptyState from "@/components/ui/EmptyState";
 import MetricSummaryCard from "@/components/ui/MetricSummaryCard";
 import type { ResearchExecutionResult } from "@/types/researchExecution";
 import type { ResearchValidationResult } from "@/types/researchValidation";
+import {
+  formatMetricPercent,
+  formatMetricSharpe,
+  getDrawdownTone,
+  getReturnTone,
+  getSharpeTone,
+} from "@/lib/formatters";
 
 export type KeyResultsSummaryLabels = {
   strategyTotalReturn: string;
@@ -19,16 +26,6 @@ export type KeyResultsSummaryProps = {
   labels: KeyResultsSummaryLabels;
 };
 
-function formatPct(value: number | null | undefined): string | null {
-  if (value === null || value === undefined || Number.isNaN(value)) return null;
-  return `${(value * 100).toFixed(1)}%`;
-}
-
-function formatNum2(value: number | null | undefined): string | null {
-  if (value === null || value === undefined || Number.isNaN(value)) return null;
-  return value.toFixed(2);
-}
-
 export default function KeyResultsSummary({
   execution,
   validation,
@@ -43,26 +40,36 @@ export default function KeyResultsSummary({
     );
   }
 
+  const strategyReturn = execution.metrics?.total_return ?? null;
+  const benchmarkReturn = execution.benchmark_metrics?.total_return ?? null;
+  const maxDrawdown = execution.metrics?.maximum_drawdown ?? null;
   const oosSharpe = validation?.oos?.out_of_sample_metrics?.sharpe_ratio ?? null;
-  const oosSharpeFormatted = formatNum2(oosSharpe);
 
   return (
     <div className="key-results-summary" role="list">
       <MetricSummaryCard
         label={labels.strategyTotalReturn}
-        value={formatPct(execution.metrics?.total_return) ?? "—"}
+        value={formatMetricPercent(strategyReturn)}
+        tone={getReturnTone(strategyReturn)}
       />
       <MetricSummaryCard
         label={labels.benchmarkTotalReturn}
-        value={formatPct(execution.benchmark_metrics?.total_return) ?? "—"}
+        value={formatMetricPercent(benchmarkReturn)}
+        tone={getReturnTone(benchmarkReturn)}
       />
       <MetricSummaryCard
         label={labels.maxDrawdown}
-        value={formatPct(execution.metrics?.maximum_drawdown) ?? "—"}
+        value={formatMetricPercent(maxDrawdown)}
+        tone={getDrawdownTone(maxDrawdown)}
       />
       <MetricSummaryCard
         label={labels.oosSharpe}
-        value={oosSharpeFormatted ?? labels.oosSharpeUnavailable}
+        value={
+          oosSharpe == null
+            ? labels.oosSharpeUnavailable
+            : formatMetricSharpe(oosSharpe)
+        }
+        tone={getSharpeTone(oosSharpe)}
       />
     </div>
   );

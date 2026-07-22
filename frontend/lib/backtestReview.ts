@@ -1,5 +1,6 @@
 import type { Language } from "@/lib/i18n";
 import type { BacktestResponse } from "@/types/market";
+import { formatMetricPercent } from "@/lib/formatters";
 
 export type BacktestRiskLevel =
   | "Green"
@@ -27,7 +28,7 @@ export type BacktestExplanationPayload = {
 };
 
 function formatPct(value: number): string {
-  return `${(value * 100).toFixed(2)}%`;
+  return formatMetricPercent(value);
 }
 
 function resolveMaxDrawdown(metrics: BacktestResponse["metrics"]): number | null {

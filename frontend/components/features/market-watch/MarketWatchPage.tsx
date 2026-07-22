@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import AppShell from "@/components/layout/AppShell";
 import Button from "@/components/ui/Button";
 import DataTable from "@/components/ui/DataTable";
+import EmptyState from "@/components/ui/EmptyState";
 import ErrorAlert from "@/components/ui/ErrorAlert";
 import LoadingState from "@/components/ui/LoadingState";
 import MetricCard from "@/components/ui/MetricCard";
@@ -17,6 +18,7 @@ import StatusBadge, {
   trendVariant,
 } from "@/components/ui/StatusBadge";
 import { getIndicators, runCompareChart, runMarketWatch } from "@/lib/api";
+import { getApiDisplayMessage } from "@/lib/apiRequest";
 import {
   formatDateSeriesRange,
   formatPercent,
@@ -177,7 +179,7 @@ export default function MarketWatchPage() {
       if (requestId !== marketWatchRequestIdRef.current) {
         return;
       }
-      const message = error instanceof Error ? error.message : tr("marketWatchFailed");
+      const message = getApiDisplayMessage(error, tr("marketWatchFailed"));
       setMarketWatchError(message);
       setMarketWatchResult(null);
       setSelectedTicker(null);
@@ -223,7 +225,7 @@ export default function MarketWatchPage() {
         setCompareChartData(data);
       }
     } catch (err) {
-      setIndicatorError(err instanceof Error ? err.message : tr("chartLoadFailed"));
+      setIndicatorError(getApiDisplayMessage(err, tr("chartLoadFailed")));
     } finally {
       setChartLoading(false);
     }
@@ -289,6 +291,13 @@ export default function MarketWatchPage() {
         <Button primary onClick={handleRunMarketWatch} disabled={isMarketWatchLoading}>
           {isMarketWatchLoading ? tr("running") : tr("runMarketWatch")}
         </Button>
+        {isMarketWatchLoading && <LoadingState message={tr("toolResultsLoading")} />}
+        {!isMarketWatchLoading && !marketWatchResult && !marketWatchError && (
+          <EmptyState
+            title={tr("toolResultsEmptyTitle")}
+            description={tr("toolResultsEmptyDescription")}
+          />
+        )}
       </SectionCard>
 
       <SectionCard>

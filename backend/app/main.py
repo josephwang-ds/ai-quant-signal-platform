@@ -13,6 +13,8 @@ from app.api.routes.research_evaluation import router as research_evaluation_rou
 from app.api.routes.research_copilot import router as research_copilot_router
 from app.api.routes.research_execution import router as research_execution_router
 from app.api.routes.research_validation import router as research_validation_router
+from app.api.routes.risk_review import router as risk_review_router
+from app.api.routes.model_comparison import router as model_comparison_router
 from app.config import get_allowed_origins
 from app.backtest.engine import (
     run_combined_signal_backtest,
@@ -58,6 +60,8 @@ app.include_router(research_execution_router)
 app.include_router(research_validation_router)
 app.include_router(research_evaluation_router)
 app.include_router(research_copilot_router)
+app.include_router(risk_review_router)
+app.include_router(model_comparison_router)
 
 # 响应中最多返回的行数（仅用于 /api/price）
 MAX_PRICE_ROWS = 300

@@ -2,7 +2,7 @@ import type { TranslationKey } from "@/lib/i18n";
 
 export type ModuleStatus = "active" | "planned" | "comingLater";
 
-export type ModuleCategory = "core" | "data" | "model";
+export type ModuleCategory = "core" | "data";
 
 export type ModuleSkeletonKind = "planned" | "migrating";
 
@@ -89,36 +89,6 @@ export const WORKSPACE_MODULES: WorkspaceModule[] = [
     skeletonKind: "planned",
     category: "data",
   },
-  {
-    id: "research-notes",
-    href: "/research-notes",
-    titleKey: "researchNotes",
-    overviewDescKey: "moduleResearchNotesOverviewDesc",
-    pageDescKey: "researchNotesDesc",
-    status: "planned",
-    skeletonKind: "planned",
-    category: "data",
-  },
-  {
-    id: "model-lab",
-    href: "/model-lab",
-    titleKey: "modelLab",
-    overviewDescKey: "moduleModelLabOverviewDesc",
-    pageDescKey: "modelLabDesc",
-    status: "comingLater",
-    skeletonKind: "planned",
-    category: "model",
-  },
-  {
-    id: "ai-agent",
-    href: "/ai-agent",
-    titleKey: "aiResearchAgent",
-    overviewDescKey: "moduleAiAgentOverviewDesc",
-    pageDescKey: "aiResearchAgentDesc",
-    status: "comingLater",
-    skeletonKind: "planned",
-    category: "model",
-  },
 ];
 
 export const MODULE_CATEGORIES: Array<{
@@ -134,12 +104,7 @@ export const MODULE_CATEGORIES: Array<{
   {
     id: "data",
     titleKey: "categoryDataStorage",
-    moduleIds: ["data-center", "experiments", "research-notes"],
-  },
-  {
-    id: "model",
-    titleKey: "categoryModelAi",
-    moduleIds: ["model-lab", "ai-agent"],
+    moduleIds: ["data-center", "experiments"],
   },
 ];
 

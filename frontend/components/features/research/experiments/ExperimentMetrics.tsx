@@ -1,5 +1,12 @@
+import MetricSummaryCard from "@/components/ui/MetricSummaryCard";
 import type { ExperimentMetrics } from "@/types/experiment";
 import { formatMetricValue } from "@/lib/researchExperiments";
+import {
+  getDrawdownTone,
+  getReturnTone,
+  getSharpeTone,
+  type MetricTone,
+} from "@/lib/formatters";
 
 export type ExperimentMetricsLabels = {
   title: string;
@@ -28,6 +35,16 @@ const METRIC_KEYS: (keyof ExperimentMetrics)[] = [
   "totalTransactionCost",
 ];
 
+function toneForMetric(
+  key: keyof ExperimentMetrics,
+  value: number | null
+): MetricTone | "emphasis" | undefined {
+  if (key === "sharpe") return getSharpeTone(value);
+  if (key === "cagr" || key === "winRate") return getReturnTone(value);
+  if (key === "maxDrawdown") return getDrawdownTone(value);
+  return undefined;
+}
+
 export default function ExperimentMetricsPanel({
   metrics,
   labels,
@@ -46,14 +63,16 @@ export default function ExperimentMetricsPanel({
     <section className="experiment-metrics" aria-label={labels.title}>
       <h4 className="experiment-metrics__title">{labels.title}</h4>
       <p className="section-meta">{labels.disclaimer}</p>
-      <dl className="experiment-metrics__grid">
+      <div className="experiment-metrics__grid" role="list">
         {METRIC_KEYS.map((key) => (
-          <div key={key} className="experiment-metrics__item">
-            <dt>{labelMap[key]}</dt>
-            <dd className="font-mono">{formatMetricValue(metrics[key], key)}</dd>
-          </div>
+          <MetricSummaryCard
+            key={key}
+            label={labelMap[key]}
+            value={formatMetricValue(metrics[key], key)}
+            tone={toneForMetric(key, metrics[key])}
+          />
         ))}
-      </dl>
+      </div>
     </section>
   );
 }

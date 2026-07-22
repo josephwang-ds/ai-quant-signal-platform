@@ -37,9 +37,11 @@ Unlike a backtest dashboard, the product is organised around research process in
 | Robustness Center | Implemented — organises completed / pending / planned / blocked checks |
 | Paper Trading (Research Deployment) | Implemented — observation staging and readiness; empty when no real session |
 | Decision Center | Implemented — approval staging from existing evidence |
+| Risk Review | Implemented — five-level risk assessment from backtest metrics; deterministic and explainable (`component_levels` + `risk_reasons`) |
+| Compare Models | Implemented — rule strategies vs XGBoost/LightGBM and other ML models on the same out-of-sample window with leakage controls; compares Return / Sharpe / Drawdown / Turnover / Cost, plus feature importance and directional accuracy |
 | Archive | Implemented as a lifecycle stage — durable archive workflows remain limited |
 
-**Secondary / legacy tools** (reachable, not the product spine): Strategy Lab, Markets, Compare, Data Center, Saved Runs, and older demo routes.
+**Secondary / legacy tools** (reachable, not the product spine): Strategy Lab, Markets, Compare (rules-only), Data Center, Saved Runs, and older demo routes.
 
 **Planned / not implemented:** full stress and regime engines, broker connectivity, production OMS, autonomous trading, cross-browser durable research definitions without browser-local storage.
 

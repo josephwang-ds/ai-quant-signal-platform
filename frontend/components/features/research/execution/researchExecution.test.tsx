@@ -179,9 +179,9 @@ describe("PR-008B research execution UI", () => {
       />
     );
 
-    expect(screen.getByText("42.0%")).toBeInTheDocument();
-    expect(screen.getByText("90.0%")).toBeInTheDocument();
-    expect(screen.getByText("-22.0%")).toBeInTheDocument();
+    expect(screen.getByText("42.00%")).toBeInTheDocument();
+    expect(screen.getByText("90.00%")).toBeInTheDocument();
+    expect(screen.getByText("-22.00%")).toBeInTheDocument();
     expect(screen.getByText(overviewLabels.keyResults.oosSharpeUnavailable)).toBeInTheDocument();
     expect(screen.queryByText(/Research Confidence:\s*\d/i)).not.toBeInTheDocument();
     expect(research.confidenceScore).toBeNull();

@@ -4,20 +4,21 @@ export const LANGUAGE_STORAGE_KEY = "ai-quant-language";
 
 export const translations = {
   en: {
-    appTitle: "AI Quant Research Workspace",
-    appTitleShort: "AI Quant Research",
+    appTitle: "AI Investment Intelligence Platform",
+    appTitleShort: "Investment Intelligence",
     appSubtitle:
-      "Research workspace for quantitative experiments, validation, and decisions.",
+      "Investment intelligence for watchlists, strategy runs, model comparison, and risk review.",
     landingEyebrow: "Portfolio demonstration",
     landingWhat:
       "A research workspace that keeps hypotheses, experiments, validation, and decisions in one lifecycle.",
     landingWhoLabel: "For",
-    landingWho: "Quantitative researchers and portfolio reviewers evaluating research process quality.",
+    landingWho:
+      "Investors and analysts exploring AI-assisted investment decisions with evidence and governance.",
     landingProblemLabel: "Problem",
     landingProblem:
       "Research work often scatters across notebooks and sheets, so evidence and decisions lose a shared trail.",
     landingStartLabel: "Start",
-    landingStart: "Open the Research Library, then continue the sample research thread.",
+    landingStart: "Open Investment Ideas, then continue the sample research thread.",
     educationalDemo: "Research Demo",
     dailyMarketData: "Daily Market Data",
     notFinancialAdvice: "Not Financial Advice",
@@ -31,41 +32,39 @@ export const translations = {
     demoSampleBody:
       "This workspace includes one reference research project that demonstrates the complete lifecycle. It is for review and learning — not live investment use.",
     guidedEntryTitle: "Get started",
-    guidedEntryExploreLibrary: "Explore the Research Library",
+    guidedEntryExploreLibrary: "Explore Investment Ideas",
     guidedEntryExploreLibraryDesc: "See research projects and lifecycle stage.",
     guidedEntryContinueSample: "Continue the sample research",
     guidedEntryContinueSampleDesc: "Open the bundled Trend Following study workspace.",
     guidedEntryReviewValidation: "Review the validation process",
     guidedEntryReviewValidationDesc: "Inspect deterministic validation evidence for the sample.",
-    guidedEntryOpenStrategyLab: "Open Strategy Lab",
+    guidedEntryOpenStrategyLab: "Open Strategy Studio",
     guidedEntryOpenStrategyLabDesc: "Run a historical protocol against market data.",
     navOverview: "Overview",
     navModuleDirectory: "Module directory",
-    navResearchWorkspace: "Research Library",
-    navCurrentResearch: "Current Research",
+    navDashboard: "Dashboard",
+    navResearchWorkspace: "Investment Ideas",
+    navCurrentResearch: "Current Study",
     navAriaPrimary: "Primary navigation",
-    navGroupSecondary: "More tools",
-    navGroupCockpit: "Decision Cockpit",
-    navStrategyHealthScore: "Health Score",
-    navReturnQualityLens: "Return Lens",
-    navRiskGateReview: "Risk Gate",
-    navScenarioShockTest: "Shock Test",
-    navDecisionLedger: "Decision Ledger",
-    navDecisionRoom: "Decision Room",
+    navOpenMenu: "Open menu",
+    navCloseMenu: "Close menu",
+    navGroupOverview: "Overview",
     navGroupResearch: "Research",
-    navGroupTools: "Research Tools",
+    navGroupAnalyze: "Analyze & Model",
     navGroupArchive: "Archive",
+    navGroupTools: "Tools",
     navGroupSupporting: "Supporting",
+    navRiskGateReview: "Risk Review",
+    navRiskReview: "Risk Review",
+    navPerformanceReview: "Performance Review",
     navDataCenter: "Data",
-    navMarketWatch: "Markets",
-    navStrategyLab: "Strategy Lab",
-    navComparison: "Compare",
-    navRobustness: "Robustness",
-    navModelLab: "Model Lab",
+    navMarketWatch: "AI Watchlist",
+    navStrategyLab: "Strategy Studio",
+    navComparison: "Compare Models",
+    navCompareModels: "Compare Models",
+    navRobustness: "Performance Review",
     navExperiments: "Saved Runs",
     navPaperTrading: "Paper Trading",
-    navResearchNotes: "Notes",
-    navAiAgent: "AI Assistant",
     navBacktesting: "Backtesting",
     navSensitivity: "Sensitivity",
     navOos: "OOS Check",
@@ -81,7 +80,7 @@ export const translations = {
     backendUnreachable:
       "The research backend is currently unavailable or starting up. Try again shortly.",
 
-    marketWatch: "Markets",
+    marketWatch: "AI Watchlist",
     marketWatchDesc:
       "First pass: compare tickers with the same rules, then inspect the score, trend, risk, and rule components before looking at charts.",
     marketWatchPageDesc:
@@ -103,7 +102,7 @@ export const translations = {
 
     dataFreshness: "Data Freshness",
     dataFreshnessDesc:
-      "A quant workflow starts here: stale or partial data can make every downstream signal misleading.",
+      "Evidence starts here: stale or partial data can make every downstream signal misleading.",
     dataSource: "Data Source",
     downloadStartDate: "Data Download Start (Calendar Date)",
     latestAvailableDate: "Latest Available Date",
@@ -180,7 +179,7 @@ export const translations = {
     compareChartCaption:
       "Normalized means every ticker starts at 100, making relative performance easier to compare even when prices are different.",
 
-    strategyLab: "Backtest",
+    strategyLab: "Strategy Studio",
     strategyLabDesc:
       "Select a decision method and compare how each rule triggers simulated position changes in backtest.",
     strategyLabSimulatedNote:
@@ -244,10 +243,10 @@ export const translations = {
       "Position is shifted by one period to avoid look-ahead bias. Transaction cost is applied whenever the position changes.",
     backtestWarmupNote:
       "Because indicators need a warm-up window, the first backtest bar may be later than the requested start date.",
-    strategyComparison: "Compare",
+    strategyComparison: "Compare Models",
     strategyComparisonDesc:
       "Compare MA crossover, momentum, combined signal, and buy-and-hold under the same ticker, date range, and transaction cost.",
-    strategyComparisonReuses: "Reuses Strategy Lab inputs",
+    strategyComparisonReuses: "Reuses Strategy Studio inputs",
     compareStrategies: "Compare Strategies",
     bestTotalReturn: "Best Total Return",
     bestSharpe: "Best Sharpe",
@@ -261,6 +260,65 @@ export const translations = {
     strategyComparisonDisclaimer2: "It does not predict future performance.",
     strategyComparisonDisclaimer3: "It is not financial advice.",
     strategyComparisonFailed: "Failed to compare strategies.",
+    modelComparison: "Compare Models",
+    modelComparisonDesc:
+      "Compare rule strategies and ML models on the same out-of-sample window after a chronological split.",
+    modelComparisonSplitDate: "Split date",
+    modelComparisonSplitRequired: "Split date is required.",
+    modelComparisonModels: "Models",
+    modelComparisonModelsRequired: "Select at least one model.",
+    modelComparisonRun: "Compare Models",
+    modelComparisonFailed: "Failed to compare models.",
+    modelComparisonEvalWindow: "Evaluation window",
+    modelComparisonSameOosNote:
+      "All strategies are compared on the same out-of-sample window.",
+    modelComparisonHowToRead: "How to read this",
+    modelComparisonExplain:
+      "ML is not guaranteed to beat rules. Directional accuracy is a hit rate, not a return promise. Review costs and turnover with return and drawdown.",
+    modelComparisonDisclaimer1:
+      "Train and test are split chronologically; the last train row is embargoed to reduce label leakage.",
+    modelComparisonDisclaimer2:
+      "Metrics are computed only on the shared out-of-sample window.",
+    modelComparisonDisclaimer3: "Research demonstration only — not financial advice.",
+    modelComparisonKind: "Kind",
+    modelComparisonKindMl: "ML",
+    modelComparisonKindRule: "Rule",
+    modelComparisonDirectionalAccuracy: "Directional accuracy",
+    modelComparisonFeatureImportance: "Feature importance",
+    modelComparisonViewCharts: "Charts",
+    modelComparisonViewTable: "Table",
+    modelComparisonBannerSharpe: "OOS best Sharpe",
+    modelComparisonBannerReturn: "Best return",
+    modelComparisonBannerDrawdown: "Lowest drawdown",
+    modelComparisonChampionModel: "Best model",
+    modelComparisonEquityTitle: "Out-of-sample equity curve (start = 1)",
+    modelComparisonEquityEmpty: "No equity curve data for this comparison.",
+    modelComparisonRiskReturnTitle: "Risk–return",
+    modelComparisonRiskReturnHint:
+      "Lower-right (higher return, lower drawdown) is better.",
+    modelComparisonRiskReturnX: "Max drawdown (abs %)",
+    modelComparisonRiskReturnY: "Total return (%)",
+    modelComparisonRiskReturnEmpty: "Not enough metrics to plot risk–return.",
+    modelComparisonRankTitle: "Ranked by metric",
+    modelComparisonRankSharpe: "Sharpe",
+    modelComparisonRankReturn: "Total return",
+    modelComparisonRankDrawdown: "Max drawdown",
+    modelComparisonFeatureFocusTitle: "What models emphasize",
+    modelComparisonFeatureEmpty: "No feature importance available for selected models.",
+    toolResultsLoading: "Running analysis…",
+    toolResultsEmptyTitle: "No results yet",
+    toolResultsEmptyDescription: "Configure inputs above and run to see evidence-backed results.",
+    modelOptionLogistic: "Logistic Regression",
+    modelOptionRandomForest: "Random Forest",
+    modelOptionXgboost: "XGBoost",
+    modelOptionLightgbm: "LightGBM",
+    featureReturn20d: "20d return",
+    featureReturn60d: "60d return",
+    featureMa20Gap: "MA20 gap",
+    featureMa60Gap: "MA60 gap",
+    featureVolatility20d: "20d volatility",
+    featureVolumeChange: "Volume change",
+    featureRsi14: "RSI 14",
     comparisonColStrategy: "Strategy",
     comparisonColBenchmark: "Benchmark Return",
     comparisonColMaxDrawdown: "Max Drawdown",
@@ -345,7 +403,7 @@ export const translations = {
     experimentsListTitle: "Run List",
     experimentsListDesc: "Filter and sort saved runs. Click a row for details, or select rows to compare.",
     experimentsLoading: "Loading saved experiments...",
-    experimentsEmpty: "No saved experiments yet. Save a run from Strategy Lab.",
+    experimentsEmpty: "No saved experiments yet. Save a run from Strategy Studio.",
     experimentsLoadFailed: "Could not load experiments.",
     experimentsDetail: "Run Detail",
     experimentsBackToList: "Back to list",
@@ -391,10 +449,10 @@ export const translations = {
     experimentsDetailEmpty: "Select a saved run to view metrics, config, and trades.",
 
     researchListEyebrow: "Research",
-    researchListTitle: "Research Library",
+    researchListTitle: "Investment Ideas",
     researchListSubtitle:
       "What research exists, where each thread stands, and what should happen next.",
-    researchLibraryEyebrow: "Research Library",
+    researchLibraryEyebrow: "Investment Ideas",
     researchLibraryTitle: "Research projects",
     researchLibrarySubtitle:
       "Continue a thread, check lifecycle stage, and move to the next research step.",
@@ -422,7 +480,7 @@ export const translations = {
     researchLibraryActionsTitle: "Quick actions",
     researchLibraryActionNew: "New Research",
     researchLibraryActionCompare: "Compare Research",
-    researchLibraryActionStrategyLab: "Open Strategy Lab",
+    researchLibraryActionStrategyLab: "Open Strategy Studio",
     researchLibraryActionRobustness: "Open Robustness",
     researchLibraryActionPaper: "Open Paper Trading",
     researchListNewResearch: "New Research",
@@ -519,9 +577,9 @@ export const translations = {
     researchWsNavOverview: "Research",
     researchWsNavNotebook: "Notes",
     researchWsNavExperiments: "Experiment",
-    researchWsNavValidation: "Validation",
+    researchWsNavValidation: "Performance Review",
     researchWsNavEvaluation: "Validation",
-    researchWsNavRobustness: "Robustness",
+    researchWsNavRobustness: "Risk Review",
     researchWsNavPaper: "Paper Trading",
     researchWsNavDecision: "Decision",
     researchWsNavArchive: "Archive",
@@ -810,7 +868,7 @@ export const translations = {
     researchWsDataRequirements: "Data requirements",
     researchWsNotebookTitle: "Notebook",
     researchWsNotebookSummary:
-      "The notebook will hold dated research notes, assumption changes, and interpretation clearly separated from quantitative facts.",
+      "The notebook will hold dated research notes, assumption changes, and interpretation clearly separated from calculated evidence.",
     researchWsNotebookCap1: "Append-only entries with author and timestamp",
     researchWsNotebookCap2: "Links from notes to Evidence and Experiment IDs",
     researchWsNotebookCap3: "Distinction between fact, calculation, and interpretation",
@@ -1141,9 +1199,30 @@ export const translations = {
     researchExpMetricWinRate: "Win Rate",
     researchExpMetricCost: "Total Transaction Cost",
 
-    overviewTitle: "Module directory",
+    overviewTitle: "Dashboard",
     overviewDesc:
-      "A directory of research workspace modules grouped by area, each labeled with an honest availability status — available, in progress, or not started.",
+      "Start from the three modules that carry the product story — model comparison, risk review, and investment ideas.",
+    dashboardCardCompareTitle: "Compare Models",
+    dashboardCardCompareValue:
+      "Rule, momentum, and ML strategies on the same out-of-sample window — return, Sharpe, drawdown, and cost side by side.",
+    dashboardCardCompareCta: "Open Compare Models",
+    dashboardCardRiskTitle: "Risk Review",
+    dashboardCardRiskValue:
+      "Map authentic backtest metrics into a five-level risk gate before any paper-trading posture.",
+    dashboardCardRiskCta: "Open Risk Review",
+    dashboardCardIdeasTitle: "Investment Ideas",
+    dashboardCardIdeasValue:
+      "Keep thesis, runs, performance review, and decisions in one governed research thread.",
+    dashboardCardIdeasCta: "Open Investment Ideas",
+    dashboardRecentTitle: "Recent analysis",
+    dashboardRecentDesc:
+      "Latest paper-account risk review when available — otherwise start a flagship module above.",
+    dashboardRecentLastReview: "Last risk review",
+    dashboardRecentOpenRisk: "Re-run Risk Review",
+    dashboardRecentOpenSample: "Open sample study",
+    dashboardRecentEmptyTitle: "No recent analysis yet",
+    dashboardRecentEmptyDesc:
+      "Run Compare Models or Risk Review to populate this summary. The sample Trend Following study remains available under Investment Ideas.",
     executiveCockpit: "Executive Cockpit",
     executiveCockpitDesc:
       "Leadership view of simulated portfolio posture, risk gates, and decision traceability. For governance review only.",
@@ -1152,148 +1231,42 @@ export const translations = {
     cockpitGridTitle: "Decision Cockpit Modules",
     cockpitGridDesc:
       "Each panel supports simulated review workflows. No live orders or investment advice.",
-    cockpitDisclaimer:
-      "Simulated decision support only. Not financial advice. No live trading.",
-    cockpitNav: "Simulated NAV",
-    cockpitYtdReturn: "YTD Return (Simulated)",
-    cockpitMaxDrawdown: "Max Drawdown",
-    cockpitSharpe: "Sharpe Ratio",
-    cockpitRiskLevel: "Risk Level",
-    categoryDecisionCockpit: "Decision Cockpit",
-    strategyHealthScore: "Strategy Health Score",
-    strategyHealthScoreDesc:
-      "Composite simulated health score from drawdown, Sharpe drift, cost drag, and risk-governance signals.",
-    returnQualityLens: "Return Quality Lens",
-    returnQualityLensDesc:
-      "Simulated return attribution and quality lens for leadership review — not a performance guarantee.",
-    returnQualityLensModuleNote:
-      "Return Quality Lens is designed to evaluate whether simulated returns are supported by acceptable drawdown, cost efficiency, and risk-adjusted performance.",
-    returnQualityLensSimulatedNote:
-      "Simulated return and risk-adjusted metrics for governance review only. Not financial advice.",
-    returnQualityExcessReturn: "Excess Return",
-    returnQualityMaxDrawdown: "Max Drawdown",
-    returnQualityCostDrag: "Cost Drag",
-    returnQualityHitRate: "Hit Rate",
-    returnQualityProfitFactor: "Profit Factor",
-    returnQualityCapitalAtRisk: "Capital at Risk",
-    returnQualityDrawdownBuffer: "Drawdown Buffer to Red Level",
-    riskGateReview: "Risk Gate Review",
+    riskGateReview: "Risk Review",
     riskGateReviewDesc:
-      "Five-level risk governance panel: signal intake, gate checks, and allowed simulated actions.",
-    riskGateReviewModuleNote:
-      "Strategy signals do not flow directly into simulated actions. The risk gate reviews drawdown, volatility, consecutive losses, and signal conflicts before allowing paper trading, limiting adds, or placing the session on watch.",
-    riskGateSimulatedNote:
-      "Simulated paper-trading governance flow only. No real orders or live execution.",
-    riskGateStepStrategySignal: "Strategy Signal",
-    riskGateStepGateReview: "Risk Gate Review",
-    riskGateStepFinalAction: "Final Paper Action",
-    riskGateRawSignal: "Raw Signal",
+      "Run a backtest, map authentic metrics into the five-level risk engine, and review allowed paper-trading posture.",
+    riskReviewDisclaimer1:
+      "Risk levels come from backend RiskMonitor calculations on real backtest metrics — not simulated scores.",
+    riskReviewDisclaimer2:
+      "Research demonstration only. No broker connection and no live execution.",
+    riskReviewRun: "Run Risk Review",
+    riskReviewFailed: "Risk review request failed.",
+    riskReviewAllowedAction: "Allowed action",
+    riskReviewComponents: "Component levels",
     riskGateRiskLevel: "Risk Level",
-    riskGateDecision: "Gate Decision",
-    riskGateReasons: "Reasons",
-    scenarioShockTest: "Scenario Shock Test",
-    scenarioShockTestDesc:
-      "This module simulates how strategy NAV, drawdown, and risk level may react under predefined market shock scenarios. It is not a market prediction.",
-    scenarioShockTestNote:
-      "Simulated shock scenarios for risk contingency planning only. Not financial advice and not a forecast.",
-    scenarioShockNavImpact: "NAV Impact",
-    scenarioShockRiskAfter: "Risk Level After Shock",
-    scenarioShockTriggeredRules: "Triggered Rules",
-    scenarioShockSystemAction: "System Action",
-    scenarioShockInterpretation: "Management Interpretation",
-    decisionLedger: "Decision Ledger",
-    decisionLedgerDesc:
-      "A traceable ledger of strategy signals, risk gate decisions, paper actions, human notes, and follow-up outcomes.",
-    decisionLedgerNote:
-      "Governance audit trail with human-in-the-loop review. Not a trade blotter — every row documents accountability and follow-up.",
-    ledgerDate: "Date",
-    ledgerSymbol: "Symbol",
-    ledgerStrategy: "Strategy",
-    ledgerRawSignal: "Raw Signal",
-    ledgerRiskLevel: "Risk Level",
-    ledgerGateDecision: "Gate Decision",
-    ledgerFinalPaperAction: "Final Paper Action",
-    ledgerExplanation: "Explanation",
-    ledgerHumanNote: "Human Note",
-    ledgerOutcome: "Outcome",
-    decisionRoom: "Decision Room",
-    decisionRoomDesc:
-      "This module explains how a raw strategy signal is reviewed by the risk gate and translated into a simulated paper action. It does not provide investment advice.",
-    decisionRoomNote:
-      "Mock AI decision explanations for governance demo only. No live LLM. No real trading.",
-    decisionRoomSignalSnapshot: "Signal Snapshot",
-    decisionRoomRolesTitle: "Decision Room — Three Perspectives",
-    decisionRoomRetrievedContext: "Retrieved Risk Context",
-    decisionRoomRagNote:
-      "Simulated RAG snippets from risk_knowledge docs. Not live retrieval in this demo.",
-    decisionRoomReviewQuestions: "Review Questions",
-    moduleDecisionRoomOverviewDesc:
-      "AI-style explanations of signal → gate → paper action with mock retrieved policy context.",
-    moduleStrategyHealthScoreOverviewDesc:
-      "Weighted simulated health score for strategy governance checkpoints.",
-    moduleReturnQualityLensOverviewDesc:
-      "Return quality and attribution lens for simulated leadership review.",
+    riskGateReasons: "Why this level",
+    riskComponentDrawdown: "Drawdown",
+    riskComponentVolatility: "Volatility",
+    riskComponentSharpeDecline: "Sharpe decline",
+    riskComponentCostDrag: "Cost drag",
+    riskComponentConsecutiveLosses: "Consecutive losses",
+    riskComponentSingleTradeLoss: "Single-trade loss",
+    riskComponentSignalConflict: "Signal conflict",
+    riskLabelGreen: "Green",
+    riskLabelLightYellow: "Light Yellow",
+    riskLabelYellow: "Yellow",
+    riskLabelOrange: "Orange",
+    riskLabelRed: "Red",
+    riskActionLevel1: "Normal paper trading",
+    riskActionLevel2: "Cautious paper trading",
+    riskActionLevel3: "Hold or reduce only",
+    riskActionLevel4: "No new positions",
+    riskActionLevel5: "Stop following / cooldown",
     moduleRiskGateReviewOverviewDesc:
-      "Risk gate workflow: signal → gate review → allowed simulated action.",
-    moduleScenarioShockTestOverviewDesc:
-      "Predefined shock library for simulated NAV, drawdown, and risk-level contingency review.",
-    moduleDecisionLedgerOverviewDesc:
-      "Traceable audit ledger for signals, gate decisions, human notes, and review outcomes.",
-    strategyHealthScorePlaceholderSummary:
-      "Strategy Health Score is planned as a composite score built only from real Validation and Evaluation evidence. No scoring methodology exists yet, so no score is shown.",
-    strategyHealthScorePlaceholderCap1:
-      "Composite score derived from real Sharpe, drawdown, and cost-drag evidence",
-    strategyHealthScorePlaceholderCap2:
-      "Backed by completed Validation and Evaluation results, not simulated pillars",
-    strategyHealthScorePlaceholderCap3:
-      "Published only after a scoring methodology is defined and reviewed",
-    returnQualityLensPlaceholderSummary:
-      "Return Quality Lens is planned to show real return attribution, cost drag, and hit-rate evidence once produced by the Research Execution and Validation engines. No simulated figures are shown.",
-    returnQualityLensPlaceholderCap1:
-      "Return, benchmark, and excess-return figures sourced from real execution evidence",
-    returnQualityLensPlaceholderCap2:
-      "Cost drag and hit rate derived from real validation stage results",
-    returnQualityLensPlaceholderCap3:
-      "Available once a strategy completes Execution and Validation",
-    riskGateReviewPlaceholderSummary:
-      "Risk Gate Review is planned to apply deterministic governance rules to real strategy evidence. No simulated signal, gate decision, or paper action is shown until those rules and evidence exist.",
-    riskGateReviewPlaceholderCap1:
-      "Deterministic risk-gate rules applied to real Evaluation evidence",
-    riskGateReviewPlaceholderCap2:
-      "Signal, gate decision, and action traced to source, never simulated",
-    riskGateReviewPlaceholderCap3:
-      "Governed by explicit guardrails reviewed before publication",
-    scenarioShockTestPlaceholderSummary:
-      "Scenario Shock Test is planned to run stress and regime scenarios against real strategy history. No simulated NAV, drawdown, or risk-level outcome is shown until that capability exists.",
-    scenarioShockTestPlaceholderCap1:
-      "Stress testing and regime analysis against real validated evidence",
-    scenarioShockTestPlaceholderCap2:
-      "NAV, drawdown, and risk-level impact computed, never simulated",
-    scenarioShockTestPlaceholderCap3:
-      "Delivered as part of the Robustness capability roadmap",
-    decisionLedgerPlaceholderSummary:
-      "Decision Ledger is planned to record real governance decisions with human accountability once Risk Gate Review and Decision Room are backed by real evidence. No simulated entries are shown.",
-    decisionLedgerPlaceholderCap1:
-      "Ledger entries backed by real signal, gate decision, and outcome evidence",
-    decisionLedgerPlaceholderCap2:
-      "Human review notes tied to an auditable decision record",
-    decisionLedgerPlaceholderCap3:
-      "Populated once governance decisions are made on real strategies",
-    decisionRoomPlaceholderSummary:
-      "Decision Room is planned to explain how a real signal moves through risk governance into a paper-trading action, with AI interpretation clearly labeled and traceable to evidence. No simulated roles or retrieval snippets are shown.",
-    decisionRoomPlaceholderCap1:
-      "AI interpretation of real signal, gate, and action evidence, clearly labeled",
-    decisionRoomPlaceholderCap2:
-      "Retrieved context traced to real policy and evidence sources",
-    decisionRoomPlaceholderCap3:
-      "Available once governed AI review is implemented",
-    publicPreviewDeferredNote:
-      "Deferred until real research evidence exists. Fabricated demo data has been removed from this preview.",
+      "Backtest metrics → five-level risk assessment with component breakdown.",
     overviewStatusLegend:
       "Module tags: Available = ready to use now · In progress = placeholder page · Not started = on the roadmap.",
     categoryCoreResearch: "Core Research",
     categoryDataStorage: "Data & Storage",
-    categoryModelAi: "Model & AI",
     categorySystemNotes: "System Notes",
     statusActive: "Available",
     statusBasicSupport: "Partial",
@@ -1410,7 +1383,7 @@ export const translations = {
       "Target normalized fields: date, open, high, low, close, volume, symbol, market, data_source, adjustment, currency.",
     dcCachePlanned: "Cache layer: planned, not implemented.",
     dcDatabasePlanned: "Database persistence: planned for research assets, not raw OHLCV in v1.",
-    robustnessChecks: "Robustness",
+    robustnessChecks: "Risk Review",
     robustnessChecksDesc:
       "Organise robustness work after Validation — sensitivity, costs, regimes, and planned checks.",
     robustnessPageDesc:
@@ -1480,19 +1453,9 @@ export const translations = {
     robustnessOpenWorkspace: "Open in Research Workspace",
     robustnessCanonicalHint:
       "Showing robustness organisation for the canonical Trend Following Study. Open the workspace for the full research flow.",
-    modelLab: "Model Lab",
-    modelLabDesc:
-      "ML dataset builder, feature engineering, logistic regression, gradient boosting models, and future deep learning signal research.",
     experiments: "Saved Runs",
     experimentsDesc:
       "Saved backtest runs, trade logs, strategy comparisons, model runs, and experiment history backed by the database.",
-    researchNotes: "Research Notes",
-    researchNotesDesc:
-      "Watchlist, ticker, and strategy notes linked to backtests and model runs — human-written and AI-generated.",
-    aiResearchAgent: "AI Research Agent",
-    aiResearchAgentDesc:
-      "LLM explanations of backtest results, trade logs, and strategy comparisons. Research note drafting — no trading or financial advice.",
-
     moduleDataCenterOverviewDesc:
       "Documents current Yahoo/yfinance coverage and planned AKShare, CoinGecko, and CSV data sources.",
     moduleMarketWatchOverviewDesc:
@@ -1503,15 +1466,8 @@ export const translations = {
       "Compare MA, momentum, combined, and buy-and-hold on the same inputs.",
     moduleRobustnessOverviewDesc:
       "Organise robustness work after Validation — matrix status, failure conditions, next action.",
-    moduleModelLabOverviewDesc:
-      "ML dataset building, feature engineering, and signal model experiments.",
     moduleExperimentsOverviewDesc:
       "Review saved backtests, trade logs, comparisons, and model runs.",
-    moduleResearchNotesOverviewDesc:
-      "Human and AI research notes linked to tickers, strategies, and runs.",
-    moduleAiAgentOverviewDesc:
-      "LLM explanations of results and research note drafting — no trading.",
-
     systemCurrentDataSource: "Current data source: auto (AKShare → Yahoo → Stooq)",
     systemFutureDatabase: "Future database: Supabase / Postgres",
     systemFutureCache: "Future cache: Redis / Upstash or equivalent",
@@ -1588,7 +1544,7 @@ export const translations = {
     demoSignalScoring: "Signal Scoring",
     demoSignalScoringDesc:
       "Rank tickers using trend, momentum, RSI, and volatility conditions.",
-    demoBacktestingCard: "Strategy Lab",
+    demoBacktestingCard: "Strategy Studio",
     demoBacktestingDesc:
       "Backtest MA crossover, momentum, or MA + momentum combined (conservative / aggressive). Includes trade log and benchmark charts.",
     demoRobustness: "Robustness Checks",
@@ -1596,7 +1552,7 @@ export const translations = {
       "Use parameter sensitivity and out-of-sample validation to reduce overclaiming.",
     aboutThisDemo: "About This Project",
     aboutThisDemoText:
-      "A quant research dashboard built for portfolio showcase and research demonstration. It uses daily historical market data and simplified backtesting assumptions. It is not financial advice and is not intended for live trading.",
+      "An investment intelligence demo for portfolio showcase and research review. It uses daily historical market data and simplified backtesting assumptions. It is not financial advice and is not intended for live trading.",
 
     tradeLog: "Trade Log",
     tradeLogDesc:
@@ -1658,19 +1614,19 @@ export const translations = {
     overviewPaperNotEvaluated: "No paper session yet. Open Research Deployment to review eligibility.",
   },
   zh: {
-    appTitle: "AI Quant Research Workspace",
-    appTitleShort: "AI Quant Research",
-    appSubtitle: "面向量化实验、验证与决策的研究工作区。",
+    appTitle: "AI 投资智能平台",
+    appTitleShort: "AI 投资智能",
+    appSubtitle: "面向关注列表、策略运行、模型对比与风险评估的投资智能平台。",
     landingEyebrow: "作品集演示",
     landingWhat:
       "把假设、实验、验证与决策放在同一生命周期中的研究工作区。",
     landingWhoLabel: "面向",
-    landingWho: "关注研究过程质量的量化研究者与组合审阅者。",
+    landingWho: "借助 AI 辅助做投资决策的投资者与分析师。",
     landingProblemLabel: "问题",
     landingProblem:
       "研究工作常散落在笔记本与表格中，证据与决策难以形成共享轨迹。",
     landingStartLabel: "开始",
-    landingStart: "打开研究库，然后继续示例研究线程。",
+    landingStart: "打开投资想法，然后继续示例研究线程。",
     educationalDemo: "研究演示",
     dailyMarketData: "日线市场数据",
     notFinancialAdvice: "非投资建议",
@@ -1684,41 +1640,39 @@ export const translations = {
     demoSampleBody:
       "本工作区包含一个参考研究项目，用于演示完整生命周期。仅供审阅与学习——不用于实盘投资。",
     guidedEntryTitle: "开始使用",
-    guidedEntryExploreLibrary: "浏览研究库",
+    guidedEntryExploreLibrary: "浏览投资想法",
     guidedEntryExploreLibraryDesc: "查看研究项目与生命周期阶段。",
     guidedEntryContinueSample: "继续示例研究",
     guidedEntryContinueSampleDesc: "打开内置趋势跟踪研究工作区。",
     guidedEntryReviewValidation: "查看验证流程",
     guidedEntryReviewValidationDesc: "检查示例研究的确定性验证结果。",
-    guidedEntryOpenStrategyLab: "打开策略实验室",
+    guidedEntryOpenStrategyLab: "打开策略工作室",
     guidedEntryOpenStrategyLabDesc: "对市场数据运行历史协议。",
-    navOverview: "总览",
+    navOverview: "概览",
     navModuleDirectory: "模块目录",
-    navResearchWorkspace: "研究库",
+    navDashboard: "仪表盘",
+    navResearchWorkspace: "投资想法",
     navCurrentResearch: "当前研究",
     navAriaPrimary: "主导航",
-    navGroupSecondary: "更多工具",
-    navGroupCockpit: "决策驾驶舱",
-    navStrategyHealthScore: "策略健康度",
-    navReturnQualityLens: "收益质量",
-    navRiskGateReview: "风控闸口",
-    navScenarioShockTest: "情景冲击",
-    navDecisionLedger: "决策台账",
-    navDecisionRoom: "策略决策室",
+    navOpenMenu: "打开菜单",
+    navCloseMenu: "关闭菜单",
+    navGroupOverview: "概览",
     navGroupResearch: "研究",
-    navGroupTools: "研究工具",
-    navGroupArchive: "存档",
+    navGroupAnalyze: "分析与建模",
+    navGroupArchive: "资料",
+    navGroupTools: "工具",
     navGroupSupporting: "辅助",
+    navRiskGateReview: "风险评估",
+    navRiskReview: "风险评估",
+    navPerformanceReview: "业绩回顾",
     navDataCenter: "数据",
-    navMarketWatch: "行情",
-    navStrategyLab: "策略实验室",
-    navComparison: "对比",
-    navRobustness: "稳健性",
-    navModelLab: "模型实验",
-    navExperiments: "已保存运行",
-    navPaperTrading: "模拟交易",
-    navResearchNotes: "笔记",
-    navAiAgent: "AI 助手",
+    navMarketWatch: "AI 关注列表",
+    navStrategyLab: "策略工作室",
+    navComparison: "模型对比",
+    navCompareModels: "模型对比",
+    navRobustness: "业绩回顾",
+    navExperiments: "已存运行",
+    navPaperTrading: "模拟盘",
     navBacktesting: "回测",
     navSensitivity: "参数敏感性",
     navOos: "样本外验证",
@@ -1733,7 +1687,7 @@ export const translations = {
     checking: "检查中...",
     backendUnreachable: "研究后端当前不可用或正在启动，请稍后重试。",
 
-    marketWatch: "行情",
+    marketWatch: "AI 关注列表",
     marketWatchDesc:
       "第一步：用相同规则对比多个标的，查看分数、趋势、风险与规则组成，再进入图表分析。",
     marketWatchPageDesc:
@@ -1753,7 +1707,7 @@ export const translations = {
     marketWatchError: "市场观察错误",
 
     dataFreshness: "数据新鲜度",
-    dataFreshnessDesc: "量化流程从这里开始：陈旧或不完整的数据会让后续信号产生误导。",
+    dataFreshnessDesc: "证据从这里开始：陈旧或不完整的数据会让后续信号产生误导。",
     dataSource: "数据来源",
     downloadStartDate: "数据下载起始（日历日）",
     latestAvailableDate: "最新可用日期",
@@ -1824,7 +1778,7 @@ export const translations = {
     compareChartCaption:
       "归一化表示每个标的从 100 起步，便于在价格不同的情况下比较相对表现。",
 
-    strategyLab: "回测",
+    strategyLab: "策略工作室",
     strategyLabDesc:
       "选择不同决策方法，比较各规则在回测中如何触发模拟买卖事件。",
     strategyLabSimulatedNote: "这些仅为模拟回测结果，系统不会执行真实交易。",
@@ -1885,10 +1839,10 @@ export const translations = {
     backtestBiasNote:
       "持仓信号会向后移动一个周期，以避免使用未来信息。每次仓位变化时都会计入交易成本。",
     backtestWarmupNote: "因指标预热，首条回测日晚于起始日。",
-    strategyComparison: "策略对比",
+    strategyComparison: "模型对比",
     strategyComparisonDesc:
       "在同一股票、时间区间和交易成本下，对比均线交叉、动量、组合信号和买入持有。",
-    strategyComparisonReuses: "复用策略实验室输入",
+    strategyComparisonReuses: "复用策略工作室输入",
     compareStrategies: "对比策略",
     bestTotalReturn: "最高总收益",
     bestSharpe: "最高 Sharpe",
@@ -1901,6 +1855,62 @@ export const translations = {
     strategyComparisonDisclaimer2: "不能预测未来表现。",
     strategyComparisonDisclaimer3: "不构成投资建议。",
     strategyComparisonFailed: "策略对比运行失败。",
+    modelComparison: "模型对比",
+    modelComparisonDesc:
+      "在时序切分后的同一样本外窗口上，对比规则策略与机器学习模型。",
+    modelComparisonSplitDate: "切分日期",
+    modelComparisonSplitRequired: "必须填写切分日期。",
+    modelComparisonModels: "模型",
+    modelComparisonModelsRequired: "请至少选择一个模型。",
+    modelComparisonRun: "运行模型对比",
+    modelComparisonFailed: "模型对比运行失败。",
+    modelComparisonEvalWindow: "评估区间",
+    modelComparisonSameOosNote: "所有策略在同一样本外窗口对比。",
+    modelComparisonHowToRead: "读法提示",
+    modelComparisonExplain:
+      "机器学习未必优于规则。方向准确率是命中率，不是收益承诺。请结合成本、换手、收益与回撤一起看。",
+    modelComparisonDisclaimer1:
+      "训练与测试按时序切分；训练集末行会做 embargo，以降低标签泄漏。",
+    modelComparisonDisclaimer2: "指标仅在共享的样本外窗口上计算。",
+    modelComparisonDisclaimer3: "仅供研究演示，不构成投资建议。",
+    modelComparisonKind: "类型",
+    modelComparisonKindMl: "机器学习",
+    modelComparisonKindRule: "规则",
+    modelComparisonDirectionalAccuracy: "方向准确率",
+    modelComparisonFeatureImportance: "特征重要性",
+    modelComparisonViewCharts: "图表",
+    modelComparisonViewTable: "表格",
+    modelComparisonBannerSharpe: "OOS 最佳 Sharpe",
+    modelComparisonBannerReturn: "最高收益",
+    modelComparisonBannerDrawdown: "最低回撤",
+    modelComparisonChampionModel: "最佳模型",
+    modelComparisonEquityTitle: "样本外净值曲线（起点=1）",
+    modelComparisonEquityEmpty: "本次对比暂无净值曲线数据。",
+    modelComparisonRiskReturnTitle: "风险–收益",
+    modelComparisonRiskReturnHint: "直觉：右下方（高收益、低回撤）更好。",
+    modelComparisonRiskReturnX: "最大回撤（绝对值%）",
+    modelComparisonRiskReturnY: "总收益（%）",
+    modelComparisonRiskReturnEmpty: "指标不足，无法绘制风险–收益散点图。",
+    modelComparisonRankTitle: "分指标排名",
+    modelComparisonRankSharpe: "Sharpe",
+    modelComparisonRankReturn: "总收益",
+    modelComparisonRankDrawdown: "最大回撤",
+    modelComparisonFeatureFocusTitle: "模型看重哪些特征",
+    modelComparisonFeatureEmpty: "所选模型暂无特征重要性。",
+    toolResultsLoading: "正在分析…",
+    toolResultsEmptyTitle: "暂无结果",
+    toolResultsEmptyDescription: "在上方配置参数并运行后，将显示有证据支撑的结果。",
+    modelOptionLogistic: "逻辑回归",
+    modelOptionRandomForest: "随机森林",
+    modelOptionXgboost: "XGBoost",
+    modelOptionLightgbm: "LightGBM",
+    featureReturn20d: "20 日收益",
+    featureReturn60d: "60 日收益",
+    featureMa20Gap: "MA20 相对缺口",
+    featureMa60Gap: "MA60 相对缺口",
+    featureVolatility20d: "20 日波动率",
+    featureVolumeChange: "成交量变化",
+    featureRsi14: "RSI 14",
     comparisonColStrategy: "策略",
     comparisonColBenchmark: "基准收益",
     comparisonColMaxDrawdown: "最大回撤",
@@ -1983,7 +1993,7 @@ export const translations = {
     experimentsListTitle: "记录列表",
     experimentsListDesc: "筛选、排序已保存记录。点击行看详情，勾选多行可对比。",
     experimentsLoading: "正在加载已保存实验...",
-    experimentsEmpty: "暂无已保存实验。请先在策略实验室保存一次回测。",
+    experimentsEmpty: "暂无已保存实验。请先在策略工作室保存一次回测。",
     experimentsLoadFailed: "无法加载实验列表。",
     experimentsDetail: "记录详情",
     experimentsBackToList: "返回列表",
@@ -2029,10 +2039,10 @@ export const translations = {
     experimentsDetailEmpty: "选择一条已保存记录，查看指标、配置与交易日志。",
 
     researchListEyebrow: "研究",
-    researchListTitle: "研究库",
+    researchListTitle: "投资想法",
     researchListSubtitle:
       "有哪些研究、各自处于哪一阶段、接下来该做什么。",
-    researchLibraryEyebrow: "研究库",
+    researchLibraryEyebrow: "投资想法",
     researchLibraryTitle: "研究项目",
     researchLibrarySubtitle:
       "继续一条研究线程，查看生命周期阶段，并进入下一步。",
@@ -2058,7 +2068,7 @@ export const translations = {
     researchLibraryActionsTitle: "快捷操作",
     researchLibraryActionNew: "新建研究",
     researchLibraryActionCompare: "对比研究",
-    researchLibraryActionStrategyLab: "打开策略实验室",
+    researchLibraryActionStrategyLab: "打开策略工作室",
     researchLibraryActionRobustness: "打开稳健性",
     researchLibraryActionPaper: "打开模拟试盘",
     researchListNewResearch: "新建研究",
@@ -2153,9 +2163,9 @@ export const translations = {
     researchWsNavOverview: "研究",
     researchWsNavNotebook: "笔记",
     researchWsNavExperiments: "实验",
-    researchWsNavValidation: "验证",
+    researchWsNavValidation: "业绩回顾",
     researchWsNavEvaluation: "验证",
-    researchWsNavRobustness: "稳健性",
+    researchWsNavRobustness: "风险评估",
     researchWsNavPaper: "模拟交易",
     researchWsNavDecision: "决策",
     researchWsNavArchive: "归档",
@@ -2422,7 +2432,7 @@ export const translations = {
     researchWsDataRequirements: "数据要求",
     researchWsNotebookTitle: "笔记",
     researchWsNotebookSummary:
-      "笔记将保存带日期的研究记录、假设变更，并明确区分解释与量化事实。",
+      "笔记将保存带日期的研究记录、假设变更，并明确区分解释与可计算证据。",
     researchWsNotebookCap1: "追加式条目，含作者与时间戳",
     researchWsNotebookCap2: "笔记关联 Evidence / Experiment ID",
     researchWsNotebookCap3: "区分事实、计算与模型解释",
@@ -2746,9 +2756,29 @@ export const translations = {
     researchExpMetricWinRate: "胜率",
     researchExpMetricCost: "总交易成本",
 
-    overviewTitle: "模块目录",
+    overviewTitle: "仪表盘",
     overviewDesc:
-      "按功能分组展示研究工作台各模块，并如实标注每个模块的可用状态——已上线、开发中或尚未开始。",
+      "从三个能打的模块开始——模型对比、风险评估、投资想法，直接进入产品主线。",
+    dashboardCardCompareTitle: "模型对比",
+    dashboardCardCompareValue:
+      "规则、动量与机器学习策略在同一样本外窗口对比收益、Sharpe、回撤与成本。",
+    dashboardCardCompareCta: "打开模型对比",
+    dashboardCardRiskTitle: "风险评估",
+    dashboardCardRiskValue:
+      "将真实回测指标映射为五档风险闸门，再决定是否进入模拟交易姿态。",
+    dashboardCardRiskCta: "打开风险评估",
+    dashboardCardIdeasTitle: "投资想法",
+    dashboardCardIdeasValue:
+      "把投资逻辑、策略运行、业绩回顾与决策留在同一条可治理的研究线程里。",
+    dashboardCardIdeasCta: "打开投资想法",
+    dashboardRecentTitle: "最近分析",
+    dashboardRecentDesc: "如有模拟账户的风控回顾则显示于此；否则请从上方旗舰模块开始。",
+    dashboardRecentLastReview: "最近一次风险回顾",
+    dashboardRecentOpenRisk: "再次运行风险评估",
+    dashboardRecentOpenSample: "打开示例研究",
+    dashboardRecentEmptyTitle: "暂无最近分析",
+    dashboardRecentEmptyDesc:
+      "运行模型对比或风险评估后，摘要会出现在这里。示例趋势跟踪研究仍可在投资想法中打开。",
     executiveCockpit: "管理层驾驶舱",
     executiveCockpitDesc:
       "汇总模拟组合态势、风控闸口与决策可追溯信息，供管理层审阅与治理。",
@@ -2757,129 +2787,41 @@ export const translations = {
     cockpitGridTitle: "决策驾驶舱模块",
     cockpitGridDesc:
       "各模块支撑模拟审阅流程，不构成投资建议，也不执行真实交易。",
-    cockpitDisclaimer: "仅供模拟决策支持，非投资建议，不用于实盘交易。",
-    cockpitNav: "模拟净值",
-    cockpitYtdReturn: "年初至今收益（模拟）",
-    cockpitMaxDrawdown: "最大回撤",
-    cockpitSharpe: "夏普比率",
-    cockpitRiskLevel: "风险等级",
-    categoryDecisionCockpit: "决策驾驶舱",
-    strategyHealthScore: "策略健康度评分",
-    strategyHealthScoreDesc:
-      "基于回撤、夏普漂移、成本拖累与风控信号的模拟健康度综合评分。",
-    returnQualityLens: "收益质量透视",
-    returnQualityLensDesc:
-      "模拟收益归因与质量透视，供管理层审阅，不代表收益承诺。",
-    returnQualityLensModuleNote:
-      "收益质量透视用于判断模拟收益是否来自可接受的回撤、成本效率和风险调整后表现，而不是只看收益率本身。",
-    returnQualityLensSimulatedNote:
-      "以下为模拟收益与风险调整指标，仅供治理审阅，不构成投资建议。",
-    returnQualityExcessReturn: "超额收益",
-    returnQualityMaxDrawdown: "最大回撤",
-    returnQualityCostDrag: "成本拖累",
-    returnQualityHitRate: "胜率",
-    returnQualityProfitFactor: "盈亏比",
-    returnQualityCapitalAtRisk: "风险敞口",
-    returnQualityDrawdownBuffer: "距红色档位回撤缓冲",
-    riskGateReview: "风控闸口审查",
+    riskGateReview: "风险评估",
     riskGateReviewDesc:
-      "五档风险治理面板：信号输入、闸口校验与允许的模拟动作。",
-    riskGateReviewModuleNote:
-      "策略信号不会直接进入模拟动作，必须先经过风控闸口，根据回撤、波动率、连续亏损和信号冲突决定是否允许继续试盘、限制加仓或进入观察。",
-    riskGateSimulatedNote:
-      "以下为模拟试盘治理流程示意，不涉及真实下单或实盘执行。",
-    riskGateStepStrategySignal: "策略信号",
-    riskGateStepGateReview: "风控闸口审查",
-    riskGateStepFinalAction: "最终模拟动作",
-    riskGateRawSignal: "原始信号",
+      "运行一次回测，将真实指标映射到五档风控引擎，并查看允许的模拟交易姿态。",
+    riskReviewDisclaimer1:
+      "风险等级来自后端 RiskMonitor 对真实回测指标的计算，不是模拟打分。",
+    riskReviewDisclaimer2: "仅供研究演示。无券商连接，无实盘执行。",
+    riskReviewRun: "运行风险评估",
+    riskReviewFailed: "风险评估请求失败。",
+    riskReviewAllowedAction: "允许动作",
+    riskReviewComponents: "分量等级",
     riskGateRiskLevel: "风险等级",
-    riskGateDecision: "闸口结论",
-    riskGateReasons: "审查原因",
-    scenarioShockTest: "情景冲击测试",
-    scenarioShockTestDesc:
-      "本模块用于模拟预设市场冲击下，策略净值、回撤和风控等级可能如何变化。它不是市场预测，而是风险预案工具。",
-    scenarioShockTestNote:
-      "以下为模拟冲击情景，仅供风险预案审阅，不构成投资建议，也不代表市场预测。",
-    scenarioShockNavImpact: "净值影响",
-    scenarioShockRiskAfter: "冲击后风控等级",
-    scenarioShockTriggeredRules: "触发规则",
-    scenarioShockSystemAction: "系统动作",
-    scenarioShockInterpretation: "管理层解读",
-    decisionLedger: "决策留痕台账",
-    decisionLedgerDesc:
-      "记录每一次策略信号、风控闸口判断、模拟动作、人工备注和后续结果，形成可追溯、可复盘的决策台账。",
-    decisionLedgerNote:
-      "治理审计留痕，强调人工复核与问责追溯。不是交易流水账——每一行都记录审阅判断与后续跟进。",
-    ledgerDate: "日期",
-    ledgerSymbol: "标的",
-    ledgerStrategy: "策略",
-    ledgerRawSignal: "原始信号",
-    ledgerRiskLevel: "风险等级",
-    ledgerGateDecision: "闸口结论",
-    ledgerFinalPaperAction: "最终模拟动作",
-    ledgerExplanation: "系统说明",
-    ledgerHumanNote: "人工备注",
-    ledgerOutcome: "后续结果",
-    decisionRoom: "策略决策室",
-    decisionRoomDesc:
-      "本模块用于解释策略信号如何经过风控闸口审查，并转化为最终模拟动作。它不提供投资建议，也不执行真实交易。",
-    decisionRoomNote:
-      "以下为治理演示用的模拟 AI 解释，非真实 LLM 调用，不涉及实盘交易。",
-    decisionRoomSignalSnapshot: "信号快照",
-    decisionRoomRolesTitle: "策略决策室 — 三视角解读",
-    decisionRoomRetrievedContext: "检索到的风控上下文",
-    decisionRoomRagNote:
-      "模拟自 risk_knowledge 文档的 RAG 片段。本演示页未接入实时检索。",
-    decisionRoomReviewQuestions: "复盘问题",
-    moduleDecisionRoomOverviewDesc:
-      "以三角色视角解释「信号 → 闸口 → 模拟动作」，并展示模拟政策检索上下文。",
-    moduleStrategyHealthScoreOverviewDesc:
-      "策略治理检查点的模拟健康度加权评分。",
-    moduleReturnQualityLensOverviewDesc:
-      "面向管理层审阅的模拟收益质量与归因透视。",
+    riskGateReasons: "等级依据",
+    riskComponentDrawdown: "回撤",
+    riskComponentVolatility: "波动率",
+    riskComponentSharpeDecline: "夏普回落",
+    riskComponentCostDrag: "成本拖累",
+    riskComponentConsecutiveLosses: "连续亏损",
+    riskComponentSingleTradeLoss: "单笔亏损",
+    riskComponentSignalConflict: "信号冲突",
+    riskLabelGreen: "正常",
+    riskLabelLightYellow: "轻度预警",
+    riskLabelYellow: "谨慎",
+    riskLabelOrange: "高风险",
+    riskLabelRed: "停止跟随",
+    riskActionLevel1: "正常模拟",
+    riskActionLevel2: "小心模拟",
+    riskActionLevel3: "仅持有或减仓",
+    riskActionLevel4: "暂停新增仓位",
+    riskActionLevel5: "停止模拟跟随",
     moduleRiskGateReviewOverviewDesc:
-      "风控闸口流程：信号 → 闸口校验 → 允许的模拟动作。",
-    moduleScenarioShockTestOverviewDesc:
-      "预设冲击情景库，模拟净值、回撤与风控等级的预案审阅。",
-    moduleDecisionLedgerOverviewDesc:
-      "信号、闸口结论、人工备注与审阅结果的可追溯审计台账。",
-    strategyHealthScorePlaceholderSummary:
-      "策略健康度评分计划仅基于真实的验证与评估证据构建综合评分。目前尚无可用的评分方法，因此不展示任何分数。",
-    strategyHealthScorePlaceholderCap1: "综合评分将来自真实的夏普比率、回撤与成本拖累证据",
-    strategyHealthScorePlaceholderCap2: "评分需以已完成的验证与评估结果为依据，而非模拟维度",
-    strategyHealthScorePlaceholderCap3: "仅在评分方法被定义并评审通过后才会上线",
-    returnQualityLensPlaceholderSummary:
-      "收益质量透视计划在研究执行与验证引擎产出真实证据后，展示真实的收益归因、成本拖累与胜率。当前不展示任何模拟数字。",
-    returnQualityLensPlaceholderCap1: "收益、基准与超额收益均来自真实执行证据",
-    returnQualityLensPlaceholderCap2: "成本拖累与胜率来自真实的验证阶段结果",
-    returnQualityLensPlaceholderCap3: "策略完成执行与验证后即可查看",
-    riskGateReviewPlaceholderSummary:
-      "风控闸口审查计划将确定性治理规则应用于真实策略证据。在相关规则与证据具备之前，不展示任何模拟信号、闸口结论或模拟动作。",
-    riskGateReviewPlaceholderCap1: "确定性风控规则将应用于真实的评估证据",
-    riskGateReviewPlaceholderCap2: "信号、闸口结论与动作均可追溯至来源，绝不模拟",
-    riskGateReviewPlaceholderCap3: "上线前需经过明确的护栏规则评审",
-    scenarioShockTestPlaceholderSummary:
-      "情景冲击测试计划对真实策略历史运行压力与regime情景。在该能力具备之前，不展示任何模拟净值、回撤或风控等级结果。",
-    scenarioShockTestPlaceholderCap1: "压力测试与regime分析将基于真实的已验证证据",
-    scenarioShockTestPlaceholderCap2: "净值、回撤与风控等级影响将被计算，绝不模拟",
-    scenarioShockTestPlaceholderCap3: "作为稳健性能力路线图的一部分交付",
-    decisionLedgerPlaceholderSummary:
-      "决策留痕台账计划在风控闸口审查与策略决策室具备真实证据后，记录带人工问责的真实治理决策。当前不展示任何模拟条目。",
-    decisionLedgerPlaceholderCap1: "台账条目将基于真实的信号、闸口结论与结果证据",
-    decisionLedgerPlaceholderCap2: "人工复核备注将关联可审计的决策记录",
-    decisionLedgerPlaceholderCap3: "真实策略产生治理决策后即会填充",
-    decisionRoomPlaceholderSummary:
-      "策略决策室计划解释真实信号如何经过风控治理转化为模拟盘动作，AI 解读将明确标注并可追溯至证据。当前不展示任何模拟角色或检索片段。",
-    decisionRoomPlaceholderCap1: "对真实信号、闸口与动作证据的 AI 解读，并会明确标注",
-    decisionRoomPlaceholderCap2: "检索到的上下文将可追溯至真实政策与证据来源",
-    decisionRoomPlaceholderCap3: "治理化的 AI 审阅能力落地后即可使用",
-    publicPreviewDeferredNote:
-      "在真实研究证据具备之前暂缓上线。本预览页面中的虚构演示数据已被移除。",
+      "回测指标 → 五档风险评估与分量拆解。",
     overviewStatusLegend:
       "模块标签说明：可使用 = 现在就能用 · 开发中 = 仅占位，功能未完成 · 未开始 = 还在路线图里。",
     categoryCoreResearch: "核心研究",
     categoryDataStorage: "数据与存储",
-    categoryModelAi: "模型与 AI",
     categorySystemNotes: "系统说明",
     statusActive: "可使用",
     statusBasicSupport: "部分可用",
@@ -2993,7 +2935,7 @@ export const translations = {
       "目标标准化字段：date, open, high, low, close, volume, symbol, market, data_source, adjustment, currency。",
     dcCachePlanned: "缓存层：已规划，尚未实现。",
     dcDatabasePlanned: "数据库持久化：已规划用于研究资产，v1 不存储全量 OHLCV。",
-    robustnessChecks: "稳健性",
+    robustnessChecks: "风险评估",
     robustnessChecksDesc:
       "在验证之后组织稳健性工作——敏感性、成本、市场状态与已规划检查。",
     robustnessPageDesc:
@@ -3063,19 +3005,9 @@ export const translations = {
     robustnessOpenWorkspace: "在研究工作区中打开",
     robustnessCanonicalHint:
       "当前展示的是规范趋势跟踪研究的稳健性组织视图。打开工作区可进入完整研究流程。",
-    modelLab: "模型实验室",
-    modelLabDesc:
-      "机器学习数据集构建、特征工程、逻辑回归、梯度提升模型，以及后续深度学习信号研究。",
     experiments: "实验",
     experimentsDesc:
       "保存的回测、交易日志、策略对比、模型运行记录与实验历史，由数据库持久化。",
-    researchNotes: "研究笔记",
-    researchNotesDesc:
-      "与自选、标的、策略及回测/模型运行关联的研究笔记，支持人工撰写与 AI 生成。",
-    aiResearchAgent: "AI 研究助手",
-    aiResearchAgentDesc:
-      "用大模型解读回测结果、交易日志与策略对比，辅助撰写研究笔记——不执行交易，不构成投资建议。",
-
     moduleDataCenterOverviewDesc:
       "记录当前 Yahoo/yfinance 覆盖范围，以及规划中的 AKShare、CoinGecko 与 CSV 数据源。",
     moduleMarketWatchOverviewDesc:
@@ -3086,15 +3018,8 @@ export const translations = {
       "在相同输入下对比均线、动量、组合与买入并持有。",
     moduleRobustnessOverviewDesc:
       "在验证之后组织稳健性工作——矩阵状态、失效条件与下一步行动。",
-    moduleModelLabOverviewDesc:
-      "机器学习数据集构建、特征工程与信号模型实验。",
     moduleExperimentsOverviewDesc:
       "查看已保存的回测、交易日志、对比结果与模型运行。",
-    moduleResearchNotesOverviewDesc:
-      "与标的、策略及运行关联的人工与 AI 研究笔记。",
-    moduleAiAgentOverviewDesc:
-      "用大模型解读结果并辅助撰写研究笔记——不涉及交易。",
-
     systemCurrentDataSource: "当前数据源：自动（AKShare → Yahoo → Stooq）",
     systemFutureDatabase: "未来数据库：Supabase / Postgres",
     systemFutureCache: "未来缓存：Redis / Upstash 或同类方案",
@@ -3168,14 +3093,14 @@ export const translations = {
     demoDataPipelineDesc: "获取日线市场数据，并计算技术指标。",
     demoSignalScoring: "信号评分",
     demoSignalScoringDesc: "结合趋势、动量、RSI 和波动率条件，对标的进行信号评分。",
-    demoBacktestingCard: "策略实验室",
+    demoBacktestingCard: "策略工作室",
     demoBacktestingDesc:
       "回测均线交叉、动量策略，或均线+动量组合（保守 / 进取），含交易记录与基准对比图。",
     demoRobustness: "稳健性检验",
     demoRobustnessDesc: "通过参数敏感性和样本外验证，避免只看单一历史最优结果。",
     aboutThisDemo: "关于本项目",
     aboutThisDemoText:
-      "这是一个面向作品集与研究演示的量化研究看板。项目使用历史日线数据和简化回测假设，不构成投资建议，也不用于实盘交易。",
+      "这是一个面向作品集与研究演示的投资智能平台。项目使用历史日线数据和简化回测假设，不构成投资建议，也不用于实盘交易。",
 
     tradeLog: "交易记录",
     tradeLogDesc:
@@ -3527,6 +3452,47 @@ export function translateComparisonInterpretation(
     return sentences;
   }
   return sentences.map((sentence) => COMPARISON_INTERPRETATION_ZH[sentence] ?? sentence);
+}
+
+const MODEL_COMPARISON_INTERPRETATION_ZH: Record<string, string> = {
+  "ML models are not guaranteed to beat simple rules on this out-of-sample window.":
+    "在本样本外窗口上，机器学习模型未必优于简单规则。",
+  "Compare strategies only on the shared out-of-sample interval after the split date.":
+    "请仅在切分日后的共享样本外区间对比策略。",
+  "Directional accuracy measures next-day up/down hit rate — it is not a return promise.":
+    "方向准确率衡量次日涨跌命中率，不是收益承诺。",
+  "Review costs and turnover together with return and drawdown; frequent signals can erode edge.":
+    "请把成本与换手和收益、回撤一起看；频繁信号可能侵蚀优势。",
+};
+
+export function translateModelComparisonInterpretation(
+  lang: Language,
+  sentences: string[]
+): string[] {
+  if (lang === "en") {
+    return sentences;
+  }
+  return sentences.map(
+    (sentence) => MODEL_COMPARISON_INTERPRETATION_ZH[sentence] ?? sentence
+  );
+}
+
+const MODEL_FEATURE_LABEL_KEYS: Record<string, TranslationKey> = {
+  return_20d: "featureReturn20d",
+  return_60d: "featureReturn60d",
+  ma20_gap: "featureMa20Gap",
+  ma60_gap: "featureMa60Gap",
+  volatility_20d: "featureVolatility20d",
+  volume_change: "featureVolumeChange",
+  rsi_14: "featureRsi14",
+};
+
+export function translateModelFeatureName(lang: Language, feature: string): string {
+  const key = MODEL_FEATURE_LABEL_KEYS[feature];
+  if (key) {
+    return t(lang, key);
+  }
+  return feature;
 }
 
 const OOS_INTERPRETATION_ZH: Record<string, string> = {

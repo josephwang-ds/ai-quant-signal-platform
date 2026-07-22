@@ -7,6 +7,7 @@ import { useState } from "react";
 import AppShell from "@/components/layout/AppShell";
 import Button from "@/components/ui/Button";
 import DataTable from "@/components/ui/DataTable";
+import EmptyState from "@/components/ui/EmptyState";
 import ErrorAlert from "@/components/ui/ErrorAlert";
 import InterpretationPanel from "@/components/ui/InterpretationPanel";
 import LoadingState from "@/components/ui/LoadingState";
@@ -15,12 +16,14 @@ import SectionCard from "@/components/ui/SectionCard";
 import SectionHeader from "@/components/ui/SectionHeader";
 import StatusBadge from "@/components/ui/StatusBadge";
 import { runBacktest, saveBacktestRun } from "@/lib/api";
+import { getApiDisplayMessage } from "@/lib/apiRequest";
 import { generateBacktestInterpretation } from "@/lib/backtestInterpretation";
 import {
   formatDateSeriesRange,
   formatMetricPercent,
   formatMetricSharpe,
   formatMetricTrades,
+  formatPrice,
   getDrawdownTone,
   getReturnTone,
   getSharpeTone,
@@ -178,7 +181,7 @@ export default function StrategyLabPage() {
       });
       setBacktestResult(response);
     } catch (error) {
-      setBacktestError(error instanceof Error ? error.message : tr("backtestFailed"));
+      setBacktestError(getApiDisplayMessage(error, tr("backtestFailed")));
     } finally {
       setBacktestLoading(false);
     }
@@ -224,7 +227,7 @@ export default function StrategyLabPage() {
 
       router.push(`/experiments?saved=${encodeURIComponent(response.id)}`);
     } catch (error) {
-      setSaveError(error instanceof Error ? error.message : tr("saveBacktestFailed"));
+      setSaveError(getApiDisplayMessage(error, tr("saveBacktestFailed")));
     } finally {
       setSaveLoading(false);
     }
@@ -409,6 +412,13 @@ export default function StrategyLabPage() {
         <p className="section-meta">{tr("backtestWarmupNote")}</p>
 
         {backtestError && <ErrorAlert message={backtestError} />}
+        {backtestLoading && <LoadingState message={tr("toolResultsLoading")} />}
+        {!backtestLoading && !backtestResult && !backtestError && (
+          <EmptyState
+            title={tr("toolResultsEmptyTitle")}
+            description={tr("toolResultsEmptyDescription")}
+          />
+        )}
 
         {backtestResult && (
           <>
@@ -501,7 +511,7 @@ export default function StrategyLabPage() {
               <p className="collapsible-panel__desc">{tr("tradeLogDateNote")}</p>
               <div className="collapsible-panel__body">
                 {(backtestResult.trade_log ?? []).length === 0 ? (
-                  <p className="section-meta">{tr("tradeLogEmpty")}</p>
+                  <EmptyState message={tr("tradeLogEmpty")} />
                 ) : (
                   <>
                     {(backtestResult.trade_log ?? []).length > 15 && (
@@ -527,7 +537,7 @@ export default function StrategyLabPage() {
                                 variant={trade.action === "BUY" ? "buy" : "sell"}
                               />
                             </td>
-                            <td className="num">{trade.price.toFixed(2)}</td>
+                            <td className="num">{formatPrice(trade.price)}</td>
                             <td>{translateBackendText(language, trade.reason)}</td>
                             <td className="num">{trade.position_after}</td>
                           </tr>

@@ -4,12 +4,15 @@ import { useState } from "react";
 import AppShell from "@/components/layout/AppShell";
 import Button from "@/components/ui/Button";
 import DataTable from "@/components/ui/DataTable";
+import EmptyState from "@/components/ui/EmptyState";
 import ErrorAlert from "@/components/ui/ErrorAlert";
 import InterpretationPanel from "@/components/ui/InterpretationPanel";
-import MetricCard from "@/components/ui/MetricCard";
+import LoadingState from "@/components/ui/LoadingState";
+import MetricSummaryCard from "@/components/ui/MetricSummaryCard";
 import SectionCard from "@/components/ui/SectionCard";
 import SectionHeader from "@/components/ui/SectionHeader";
 import { runStrategyComparison } from "@/lib/api";
+import { getApiDisplayMessage } from "@/lib/apiRequest";
 import {
   formatMetricPercent,
   formatMetricSharpe,
@@ -117,7 +120,7 @@ export default function StrategyComparisonPage() {
       setComparisonResult(response);
     } catch (error) {
       setComparisonError(
-        error instanceof Error ? error.message : tr("strategyComparisonFailed")
+        getApiDisplayMessage(error, tr("strategyComparisonFailed"))
       );
     } finally {
       setComparisonLoading(false);
@@ -225,35 +228,42 @@ export default function StrategyComparisonPage() {
         </Button>
 
         {comparisonError && <ErrorAlert message={comparisonError} />}
+        {comparisonLoading && <LoadingState message={tr("toolResultsLoading")} />}
+        {!comparisonLoading && !comparisonResult && !comparisonError && (
+          <EmptyState
+            title={tr("toolResultsEmptyTitle")}
+            description={tr("toolResultsEmptyDescription")}
+          />
+        )}
 
         {comparisonResult && (
           <>
-            <div className="metric-grid">
-              <MetricCard
+            <div className="metric-grid" role="list">
+              <MetricSummaryCard
                 label={tr("bestTotalReturn")}
                 value={translateComparisonLabel(
                   language,
                   comparisonResult.summary.best_total_return ?? tr("na")
                 )}
-                featured
+                tone="emphasis"
               />
-              <MetricCard
+              <MetricSummaryCard
                 label={tr("bestSharpe")}
                 value={translateComparisonLabel(
                   language,
                   comparisonResult.summary.best_sharpe ?? tr("na")
                 )}
-                featured
+                tone="emphasis"
               />
-              <MetricCard
+              <MetricSummaryCard
                 label={tr("lowestDrawdown")}
                 value={translateComparisonLabel(
                   language,
                   comparisonResult.summary.lowest_drawdown ?? tr("na")
                 )}
-                featured
+                tone="emphasis"
               />
-              <MetricCard
+              <MetricSummaryCard
                 label={tr("fewestTrades")}
                 value={translateComparisonLabel(
                   language,
@@ -271,7 +281,7 @@ export default function StrategyComparisonPage() {
               note={tr("strategyComparisonExplain")}
             />
 
-            <DataTable className="table-scroll">
+            <DataTable>
               <thead>
                 <tr>
                   <th>{tr("comparisonColStrategy")}</th>

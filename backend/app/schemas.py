@@ -267,6 +267,93 @@ class StrategyComparisonRequest(BaseModel):
         return self
 
 
+class ModelComparisonRequest(BaseModel):
+    """ML vs rule-strategy chronological comparison request."""
+
+    ticker: str
+    start_date: str = "2020-01-01"
+    end_date: Optional[str] = None
+    split_date: str
+    transaction_cost: float = 0.001
+    short_window: int = 20
+    long_window: int = 60
+    momentum_window: int = 60
+    data_source: str = "auto"
+    models: Optional[list[str]] = None
+
+    @field_validator("ticker")
+    @classmethod
+    def normalize_ticker(cls, value: str) -> str:
+        ticker = value.upper().strip()
+        if not ticker:
+            raise ValueError("ticker must not be empty")
+        return ticker
+
+    @field_validator("data_source")
+    @classmethod
+    def validate_data_source(cls, value: str) -> str:
+        return normalize_request_data_source(value)
+
+    @field_validator("short_window")
+    @classmethod
+    def validate_short_window(cls, value: int) -> int:
+        if value < 2:
+            raise ValueError("short_window must be >= 2")
+        return value
+
+    @field_validator("long_window")
+    @classmethod
+    def validate_long_window(cls, value: int) -> int:
+        if value < 2:
+            raise ValueError("long_window must be >= 2")
+        return value
+
+    @field_validator("momentum_window")
+    @classmethod
+    def validate_momentum_window(cls, value: int) -> int:
+        if value < 5 or value > 252:
+            raise ValueError("momentum_window must be between 5 and 252")
+        return value
+
+    @field_validator("transaction_cost")
+    @classmethod
+    def validate_transaction_cost(cls, value: float) -> float:
+        if value < 0 or value > 0.05:
+            raise ValueError("transaction_cost must be between 0 and 0.05")
+        return value
+
+    @field_validator("models")
+    @classmethod
+    def validate_models(cls, value: Optional[list[str]]) -> Optional[list[str]]:
+        if value is None:
+            return None
+        cleaned = [item.strip() for item in value if item and item.strip()]
+        if not cleaned:
+            raise ValueError("models must be a non-empty list when provided")
+        return cleaned
+
+    @model_validator(mode="after")
+    def validate_dates_and_windows(self) -> "ModelComparisonRequest":
+        if self.long_window <= self.short_window:
+            raise ValueError("long_window must be > short_window")
+
+        start = self.start_date.strip()
+        split = self.split_date.strip()
+        if not split:
+            raise ValueError("split_date must not be empty")
+        if split <= start:
+            raise ValueError("split_date must be after start_date")
+
+        self.start_date = start
+        self.split_date = split
+        if self.end_date:
+            end = self.end_date.strip()
+            if end and end <= split:
+                raise ValueError("end_date must be after split_date when provided")
+            self.end_date = end or None
+        return self
+
+
 # 参数敏感性分析默认均线窗口组合
 DEFAULT_SENSITIVITY_PARAMETER_SETS = [
     {"short_window": 10, "long_window": 30},

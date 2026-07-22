@@ -3,19 +3,41 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import AppShell from "@/components/layout/AppShell";
-import { Button, ErrorAlert, SectionCard, SectionHeader, StatusBadge, healthVariant } from "@/components/ui";
+import {
+  Button,
+  EmptyState,
+  ErrorAlert,
+  SectionCard,
+  SectionHeader,
+  StatusBadge,
+  healthVariant,
+} from "@/components/ui";
 import { getBackendHealth, getPaperAccount, type HealthResponse } from "@/lib/api";
 import { getApiUserMessage } from "@/lib/apiRequest";
 import { paperRiskVariant, translateRiskLabel } from "@/lib/i18n";
 import { useWorkspaceLanguage } from "@/lib/useWorkspaceLanguage";
-import {
-  MODULE_CATEGORIES,
-  WORKSPACE_MODULES,
-  moduleStatusBadgeVariant,
-  moduleStatusLabelKey,
-  shouldShowModuleStatusBadge,
-} from "@/lib/workspaceModules";
 import type { PaperAccount } from "@/types/market";
+
+const ENTRY_CARDS = [
+  {
+    href: "/compare-models",
+    titleKey: "dashboardCardCompareTitle" as const,
+    valueKey: "dashboardCardCompareValue" as const,
+    ctaKey: "dashboardCardCompareCta" as const,
+  },
+  {
+    href: "/risk-gate-review",
+    titleKey: "dashboardCardRiskTitle" as const,
+    valueKey: "dashboardCardRiskValue" as const,
+    ctaKey: "dashboardCardRiskCta" as const,
+  },
+  {
+    href: "/",
+    titleKey: "dashboardCardIdeasTitle" as const,
+    valueKey: "dashboardCardIdeasValue" as const,
+    ctaKey: "dashboardCardIdeasCta" as const,
+  },
+];
 
 export default function OverviewPage() {
   const { language, setLanguage, tr } = useWorkspaceLanguage();
@@ -44,29 +66,46 @@ export default function OverviewPage() {
     }
   }
 
-  const upcomingModules = WORKSPACE_MODULES.filter(
-    (module) => module.status === "planned" || module.status === "comingLater"
-  );
-
   return (
     <AppShell language={language} onLanguageChange={setLanguage}>
       <SectionCard>
-        <SectionHeader title={tr("overviewTitle")} />
-        <p className="overview-intro">{tr("overviewDesc")}</p>
-        <p className="overview-legend">{tr("overviewStatusLegend")}</p>
+        <SectionHeader
+          title={tr("overviewTitle")}
+          description={tr("overviewDesc")}
+        />
+
+        <div className="dashboard-entry-grid" role="list">
+          {ENTRY_CARDS.map((card) => (
+            <article key={card.href} className="dashboard-entry-card" role="listitem">
+              <h3 className="dashboard-entry-card__title">{tr(card.titleKey)}</h3>
+              <p className="dashboard-entry-card__value">{tr(card.valueKey)}</p>
+              <Link href={card.href} className="dashboard-entry-card__cta">
+                {tr(card.ctaKey)} →
+              </Link>
+            </article>
+          ))}
+        </div>
       </SectionCard>
 
       <SectionCard>
         <SectionHeader
-          title={tr("overviewPaperAccount")}
-          description={tr("overviewPaperAccountDesc")}
+          title={tr("dashboardRecentTitle")}
+          description={tr("dashboardRecentDesc")}
         />
         {paperAccount?.ticker ? (
-          <div className="overview-paper">
-            <div className="overview-paper__row">
-              <span>
-                {paperAccount.ticker} · {paperAccount.strategy}
-              </span>
+          <div className="dashboard-recent">
+            <div className="dashboard-recent__row">
+              <div>
+                <p className="dashboard-recent__label">{tr("dashboardRecentLastReview")}</p>
+                <p className="dashboard-recent__primary">
+                  {paperAccount.ticker} · {paperAccount.strategy}
+                </p>
+                <p className="section-meta">
+                  {tr("paperPortfolioValue")}: $
+                  {paperAccount.portfolio_value.toLocaleString()} · {tr("paperPosition")}:{" "}
+                  {paperAccount.position > 0 ? tr("paperLong") : tr("paperFlat")}
+                </p>
+              </div>
               {paperAccount.last_risk_level && paperAccount.last_risk_label ? (
                 <StatusBadge
                   label={`L${paperAccount.last_risk_level} ${translateRiskLabel(language, paperAccount.last_risk_label)}`}
@@ -74,102 +113,30 @@ export default function OverviewPage() {
                 />
               ) : null}
             </div>
-            <p className="section-meta">
-              {tr("paperPortfolioValue")}: ${paperAccount.portfolio_value.toLocaleString()} ·{" "}
-              {tr("paperPosition")}: {paperAccount.position > 0 ? tr("paperLong") : tr("paperFlat")}
-            </p>
+            <div className="dashboard-recent__actions">
+              <Link href="/risk-gate-review" className="module-card__link">
+                {tr("dashboardRecentOpenRisk")} →
+              </Link>
+              <Link href="/paper-trading" className="module-card__link">
+                {tr("overviewOpenPaperTrading")} →
+              </Link>
+              <Link href="/research/ma-crossover-spy" className="module-card__link">
+                {tr("dashboardRecentOpenSample")} →
+              </Link>
+            </div>
           </div>
         ) : (
-          <p className="section-meta">{tr("overviewPaperNotEvaluated")}</p>
+          <EmptyState
+            title={tr("dashboardRecentEmptyTitle")}
+            description={tr("dashboardRecentEmptyDesc")}
+            action={
+              <Link href="/compare-models" className="btn btn--primary">
+                {tr("dashboardCardCompareCta")}
+              </Link>
+            }
+          />
         )}
-        <Link href="/paper-trading" className="module-card__link">
-          {tr("overviewOpenPaperTrading")} →
-        </Link>
       </SectionCard>
-
-      {MODULE_CATEGORIES.map((category) => {
-        const activeModules = category.moduleIds
-          .map((moduleId) => WORKSPACE_MODULES.find((item) => item.id === moduleId))
-          .filter(
-            (module): module is (typeof WORKSPACE_MODULES)[number] =>
-              module != null && module.status === "active"
-          );
-        if (activeModules.length === 0) {
-          return null;
-        }
-        return (
-          <SectionCard key={category.id}>
-            <SectionHeader title={tr(category.titleKey)} />
-            <div className="workspace-modules">
-              {activeModules.map((module) => {
-                const statusKey = moduleStatusLabelKey(module.status);
-                const showStatus = shouldShowModuleStatusBadge(module.status);
-                return (
-                  <article key={module.id} className="module-card">
-                    <div className="module-card__header">
-                      <h3 className="module-card__title">{tr(module.titleKey)}</h3>
-                      {showStatus ? (
-                        <StatusBadge
-                          label={tr(statusKey)}
-                          variant={moduleStatusBadgeVariant(module.status)}
-                        />
-                      ) : null}
-                    </div>
-                    <p className="module-card__desc">{tr(module.overviewDescKey)}</p>
-                    <Link href={module.href} className="module-card__link">
-                      {tr("openModule")} →
-                    </Link>
-                    {module.legacyAnchor ? (
-                      <Link href={`/legacy#${module.legacyAnchor}`} className="module-card__link">
-                        {tr("openLegacyDemo")} →
-                      </Link>
-                    ) : null}
-                  </article>
-                );
-              })}
-            </div>
-          </SectionCard>
-        );
-      })}
-
-      {upcomingModules.length > 0 ? (
-          <SectionCard>
-            <details className="overview-coming-soon">
-              <summary>{tr("comingSoonTitle")}</summary>
-              <div className="workspace-modules">
-                {upcomingModules.map((module) => {
-                  const statusKey = moduleStatusLabelKey(module.status);
-                  const showStatus = shouldShowModuleStatusBadge(module.status);
-                  return (
-                    <article key={module.id} className="module-card">
-                      <div className="module-card__header">
-                        <h3 className="module-card__title">{tr(module.titleKey)}</h3>
-                        {showStatus ? (
-                          <StatusBadge
-                            label={tr(statusKey)}
-                            variant={moduleStatusBadgeVariant(module.status)}
-                          />
-                        ) : null}
-                      </div>
-                      <p className="module-card__desc">{tr(module.overviewDescKey)}</p>
-                      <Link href={module.href} className="module-card__link">
-                        {tr("openModule")} →
-                      </Link>
-                      {module.legacyAnchor ? (
-                        <Link
-                          href={`/legacy#${module.legacyAnchor}`}
-                          className="module-card__link"
-                        >
-                          {tr("openLegacyDemo")} →
-                        </Link>
-                      ) : null}
-                    </article>
-                  );
-                })}
-              </div>
-            </details>
-          </SectionCard>
-        ) : null}
 
       <SectionCard>
         <SectionHeader title={tr("categorySystemNotes")} />
