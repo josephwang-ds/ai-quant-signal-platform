@@ -66,6 +66,8 @@ Close with: authenticity first — the demo proves process integrity, not invent
 
 If the Render free tier is cold, hit `/health` first. Prefer one browser session when research definitions are localStorage-backed.
 
+If the backend does not recover in time, switch to the [frontend-safe walkthrough](DEMO_MODE.md) and present the visible unavailable state as an intentional authenticity boundary.
+
 ---
 
 ## Key talking points

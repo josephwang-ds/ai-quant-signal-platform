@@ -163,18 +163,34 @@ export default function RiskGateReview() {
         : tr("riskProfileAggressive");
 
   return (
-    <SectionCard>
-      <SectionHeader
-        title={tr("riskGateReview")}
-        description={tr("riskGateReviewDesc")}
-      />
+    <SectionCard className="risk-review-shell">
+      <header className="risk-review-page-hero">
+        <SectionHeader
+          level={1}
+          title={tr("riskGateReview")}
+          description={tr("riskGateReviewDesc")}
+        />
 
-      <ul className="system-notes-list">
-        <li>{tr("riskReviewDisclaimer1")}</li>
-        <li>{tr("riskReviewDisclaimer2")}</li>
-      </ul>
+        <ul className="system-notes-list risk-review-guardrails">
+          <li>{tr("riskReviewDisclaimer1")}</li>
+          <li>{tr("riskReviewDisclaimer2")}</li>
+        </ul>
+      </header>
 
-      <div className="form-grid">
+      <section className="risk-review-config-panel">
+        <div className="analysis-panel-heading">
+          <span className="analysis-panel-heading__index">01</span>
+          <div>
+            <h2 className="analysis-panel-heading__title">
+              {tr("riskReviewProtocolTitle")}
+            </h2>
+            <p className="analysis-panel-heading__description">
+              {tr("riskReviewProtocolHint")}
+            </p>
+          </div>
+        </div>
+
+        <div className="form-grid risk-review-form-grid">
         <label className="form-field">
           <span className="form-label">{tr("ticker")}</span>
           <input
@@ -302,48 +318,72 @@ export default function RiskGateReview() {
             </option>
           </select>
         </label>
-      </div>
-
-      <p className="risk-review-drawdown-hint">{tr("riskDrawdownModeHint")}</p>
-
-      <div
-        className="risk-review-profile"
-        role="group"
-        aria-label={tr("riskProfilePreference")}
-      >
-        <span className="form-label">{tr("riskProfilePreference")}</span>
-        <div className="model-comparison-view-toggle">
-          {RISK_PROFILE_OPTIONS.map((option) => (
-            <button
-              key={option.value}
-              type="button"
-              className={`model-comparison-view-toggle__btn${
-                riskProfile === option.value ? " is-active" : ""
-              }`}
-              aria-pressed={riskProfile === option.value}
-              onClick={() => setRiskProfile(option.value)}
-            >
-              {tr(option.labelKey)}
-            </button>
-          ))}
         </div>
+
+        <p className="risk-review-drawdown-hint">{tr("riskDrawdownModeHint")}</p>
+
+        <div
+          className="risk-review-profile"
+          role="group"
+          aria-label={tr("riskProfilePreference")}
+        >
+          <span className="form-label">{tr("riskProfilePreference")}</span>
+          <div className="model-comparison-view-toggle">
+            {RISK_PROFILE_OPTIONS.map((option) => (
+              <button
+                key={option.value}
+                type="button"
+                className={`model-comparison-view-toggle__btn${
+                  riskProfile === option.value ? " is-active" : ""
+                }`}
+                aria-pressed={riskProfile === option.value}
+                onClick={() => setRiskProfile(option.value)}
+              >
+                {tr(option.labelKey)}
+              </button>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <div className="risk-review-run-bar">
+        <div>
+          <p className="risk-review-run-bar__title">
+            {tr("riskReviewReadyTitle")}
+          </p>
+          <p className="risk-review-run-bar__description">
+            {tr("riskReviewReadyHint")}
+          </p>
+        </div>
+        <Button onClick={handleSubmit} disabled={loading}>
+          {loading ? tr("running") : tr("riskReviewRun")}
+        </Button>
       </div>
 
-      <Button onClick={handleSubmit} disabled={loading}>
-        {loading ? tr("running") : tr("riskReviewRun")}
-      </Button>
+      <section className="risk-review-results-panel">
+        <div className="analysis-panel-heading">
+          <span className="analysis-panel-heading__index">02</span>
+          <div>
+            <h2 className="analysis-panel-heading__title">
+              {tr("riskReviewEvidenceTitle")}
+            </h2>
+            <p className="analysis-panel-heading__description">
+              {tr("riskReviewEvidenceHint")}
+            </p>
+          </div>
+        </div>
 
-      {error && <ErrorAlert message={error} />}
-      {loading && <LoadingState message={tr("toolResultsLoading")} />}
-      {!loading && !result && !error && (
-        <EmptyState
-          title={tr("toolResultsEmptyTitle")}
-          description={tr("toolResultsEmptyDescription")}
-        />
-      )}
+        {error && <ErrorAlert message={error} />}
+        {loading && <LoadingState message={tr("toolResultsLoading")} />}
+        {!loading && !result && !error && (
+          <EmptyState
+            title={tr("toolResultsEmptyTitle")}
+            description={tr("toolResultsEmptyDescription")}
+          />
+        )}
 
-      {result && riskLevel !== null && (
-        <>
+        {result && riskLevel !== null && (
+          <>
           <p className="risk-review-lens">
             {tr("riskReviewLensMode")}: {drawdownModeLabel} ·{" "}
             {tr("riskReviewLensProfile")}: {riskProfileLabel}
@@ -396,8 +436,9 @@ export default function RiskGateReview() {
               ))}
             </ul>
           </section>
-        </>
-      )}
+          </>
+        )}
+      </section>
     </SectionCard>
   );
 }

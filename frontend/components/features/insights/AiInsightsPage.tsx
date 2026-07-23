@@ -11,15 +11,16 @@ export default function AiInsightsPage() {
 
   return (
     <AppShell language={language} onLanguageChange={setLanguage}>
-      <SectionCard>
+      <SectionCard className="ai-insights-hero">
         <SectionHeader
+          level={1}
           title={tr("aiInsightsPageTitle")}
           description={tr("aiInsightsPageDesc")}
         />
-        <p className="section-meta">{tr("newsSentimentDisclaimerFull")}</p>
+        <p className="ai-insights-hero__note">{tr("newsSentimentDisclaimerFull")}</p>
       </SectionCard>
 
-      <SectionCard>
+      <SectionCard className="ai-insights-workbench">
         <NewsSentimentPanel defaultTicker="SPY" />
       </SectionCard>
     </AppShell>

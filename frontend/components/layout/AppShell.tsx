@@ -6,13 +6,18 @@ import { useEffect, useState, type ReactNode } from "react";
 import type { Language } from "@/lib/i18n";
 import { t } from "@/lib/i18n";
 import {
+  getBackendReadinessState,
+  subscribeBackendReadiness,
+  warmBackend,
+  type BackendReadinessState,
+} from "@/lib/apiRequest";
+import {
   PRODUCT_COPYRIGHT,
   PRODUCT_REPO_URL,
   PRODUCT_VERSION,
 } from "@/lib/productIdentity";
 import DemoBanner from "./DemoBanner";
 import LanguageToggle from "./LanguageToggle";
-import PageHero from "./PageHero";
 import SideNav from "./SideNav";
 import TopNav from "./TopNav";
 
@@ -30,9 +35,10 @@ export default function AppShell({
   children,
 }: AppShellProps) {
   const pathname = usePathname();
-  const isHome = pathname === "/";
   const [navOpen, setNavOpen] = useState(false);
   const [isMobileNav, setIsMobileNav] = useState(false);
+  const [backendReadiness, setBackendReadiness] =
+    useState<BackendReadinessState>(getBackendReadinessState);
 
   useEffect(() => {
     const media = window.matchMedia(MOBILE_NAV_MQ);
@@ -41,6 +47,17 @@ export default function AppShell({
     media.addEventListener("change", sync);
     return () => media.removeEventListener("change", sync);
   }, []);
+
+  useEffect(() => {
+    if (process.env.NODE_ENV === "test") return;
+    const unsubscribe = subscribeBackendReadiness(setBackendReadiness);
+    void warmBackend().catch(() => undefined);
+    return unsubscribe;
+  }, []);
+
+  useEffect(() => {
+    document.documentElement.lang = language === "zh" ? "zh-CN" : "en";
+  }, [language]);
 
   useEffect(() => {
     setNavOpen(false);
@@ -106,7 +123,43 @@ export default function AppShell({
 
       <main className="workspace-main">
         <DemoBanner language={language} />
-        {isHome ? <PageHero language={language} /> : null}
+        {backendReadiness === "waking" || backendReadiness === "unavailable" ? (
+          <aside
+            className={`backend-startup backend-startup--${backendReadiness}`}
+            role={backendReadiness === "unavailable" ? "alert" : "status"}
+            aria-live="polite"
+          >
+            <div>
+              <strong>
+                {t(
+                  language,
+                  backendReadiness === "waking"
+                    ? "backendStarting"
+                    : "backendStartupUnavailable"
+                )}
+              </strong>
+              <span>
+                {t(
+                  language,
+                  backendReadiness === "waking"
+                    ? "backendStartingHint"
+                    : "backendStartupUnavailableHint"
+                )}
+              </span>
+            </div>
+            {backendReadiness === "unavailable" ? (
+              <button
+                type="button"
+                className="btn"
+                onClick={() => {
+                  void warmBackend({ force: true }).catch(() => undefined);
+                }}
+              >
+                {t(language, "backendStartupRetry")}
+              </button>
+            ) : null}
+          </aside>
+        ) : null}
         <div className="workspace-content">{children}</div>
         <footer className="workspace-footer">
           <p className="workspace-footer__identity">

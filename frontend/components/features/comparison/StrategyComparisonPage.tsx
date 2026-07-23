@@ -129,8 +129,10 @@ export default function StrategyComparisonPage() {
 
   return (
     <AppShell language={language} onLanguageChange={setLanguage}>
-      <SectionCard>
+      <SectionCard className="strategy-comparison-shell">
+        <header className="strategy-comparison-hero">
         <SectionHeader
+          level={1}
           title={tr("strategyComparison")}
           description={tr("strategyComparisonDesc")}
         />
@@ -140,7 +142,9 @@ export default function StrategyComparisonPage() {
           <li>{tr("strategyComparisonDisclaimer2")}</li>
           <li>{tr("strategyComparisonDisclaimer3")}</li>
         </ul>
+        </header>
 
+        <section className="strategy-comparison-workbench">
         <div className="form-grid">
           <label className="form-field">
             <span className="form-label">{tr("ticker")}</span>
@@ -328,6 +332,7 @@ export default function StrategyComparisonPage() {
             </DataTable>
           </>
         )}
+        </section>
       </SectionCard>
     </AppShell>
   );

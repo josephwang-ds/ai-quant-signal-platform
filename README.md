@@ -4,7 +4,7 @@
 
 Research and portfolio demonstration only. Not investment advice. No broker integration. No live execution.
 
-[Product](docs/PRODUCT.md) · [Workflow](docs/RESEARCH_WORKFLOW.md) · [Authenticity](docs/AUTHENTICITY.md) · [Demo script](docs/DEMO_SCRIPT.md) · [Project story](docs/PROJECT_STORY.md) · [Architecture](docs/ARCHITECTURE.md) · [Contributing](CONTRIBUTING.md)
+[Product](docs/PRODUCT.md) · [Workflow](docs/RESEARCH_WORKFLOW.md) · [Authenticity](docs/AUTHENTICITY.md) · [Demo script](docs/DEMO_SCRIPT.md) · [Stable demo modes](docs/DEMO_MODE.md) · [Project story](docs/PROJECT_STORY.md) · [Architecture](docs/ARCHITECTURE.md) · [Contributing](CONTRIBUTING.md)
 
 > **Research First. AI Second. Decisions Last.**
 
@@ -70,6 +70,10 @@ Backend evidence for the sample flows through:
 - `POST /api/v1/research/copilot/query` (optional evidence-grounded explanation; supporting tool)
 
 Keep one browser session and wake the Render service before demos if using the free tier.
+
+The frontend includes a cold-start readiness gate: concurrent API calls share one backend wakeup, remain in a startup state for a bounded period, and continue automatically after `/health` succeeds. The scheduled GitHub warmup is an optimization, not the only recovery mechanism.
+
+For interviews where the backend may be cold or unavailable, use the documented [frontend-safe walkthrough](docs/DEMO_MODE.md). It demonstrates the product structure and honest evidence boundaries without inventing calculated output.
 
 ## Authenticity
 

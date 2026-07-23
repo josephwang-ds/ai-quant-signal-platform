@@ -72,6 +72,7 @@ type Props = {
   evaluation: ResearchEvaluationResult | null;
   labels: ResearchPaperTradingCenterLabels;
   onContinue?: () => void;
+  showHeader?: boolean;
 };
 
 function eligibilityLabel(
@@ -131,6 +132,7 @@ export default function ResearchPaperTradingCenter({
   evaluation,
   labels,
   onContinue,
+  showHeader = true,
 }: Props) {
   const model = buildPaperTradingCenterModel({
     research,
@@ -142,13 +144,16 @@ export default function ResearchPaperTradingCenter({
   return (
     <section
       className="research-center"
-      aria-labelledby="paper-deployment-title"
+      aria-labelledby={showHeader ? "paper-deployment-title" : undefined}
+      aria-label={showHeader ? undefined : labels.title}
     >
-      <ResearchCenterHeader
-        titleId="paper-deployment-title"
-        title={labels.title}
-        description={labels.summary}
-      />
+      {showHeader ? (
+        <ResearchCenterHeader
+          titleId="paper-deployment-title"
+          title={labels.title}
+          description={labels.summary}
+        />
+      ) : null}
 
       {!model.hasValidationEvidence && !model.hasEvaluationEvidence ? (
         <EmptyState title={labels.noEvidenceTitle} description={labels.noEvidenceNote} />

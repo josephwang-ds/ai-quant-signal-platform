@@ -23,7 +23,9 @@ import { buildApiUrl } from "@/lib/apiConfig";
 import {
   API_REQUEST_TIMEOUT_MS,
   API_STATUS_TIMEOUT_MS,
+  fetchWithBackendReady,
   requestJson,
+  warmBackend,
 } from "@/lib/apiRequest";
 
 function withPreferredDataSource(
@@ -50,11 +52,7 @@ type FastApiValidationError = {
  * 调用后端 GET /health，确认 FastAPI 服务是否可用。
  */
 export async function getBackendHealth(): Promise<HealthResponse> {
-  return requestJson<HealthResponse>(
-    "/health",
-    {},
-    { timeoutMs: API_STATUS_TIMEOUT_MS }
-  );
+  return warmBackend({ force: true });
 }
 
 /**
@@ -82,7 +80,7 @@ export async function probePriceData(
     data_source: source,
   });
 
-  const response = await fetch(
+  const response = await fetchWithBackendReady(
     `${buildApiUrl(`/api/price/${encodeURIComponent(ticker)}`)}?${params.toString()}`,
     { cache: "no-store" }
   );
@@ -169,7 +167,7 @@ export async function runMarketWatch(
   tickers: string[],
   lookbackDays: number
 ): Promise<MarketWatchResponse> {
-  const response = await fetch(buildApiUrl("/api/market-watch"), {
+  const response = await fetchWithBackendReady(buildApiUrl("/api/market-watch"), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     cache: "no-store",
@@ -209,7 +207,7 @@ export async function getIndicators(
     params.set("end_date", trimmedEndDate);
   }
 
-  const response = await fetch(
+  const response = await fetchWithBackendReady(
     `${buildApiUrl(`/api/indicators/${encodeURIComponent(ticker)}`)}?${params.toString()}`,
     { cache: "no-store" }
   );
@@ -243,7 +241,7 @@ export async function runCompareChart(
     body.end_date = trimmedEndDate;
   }
 
-  const response = await fetch(buildApiUrl("/api/chart/compare"), {
+  const response = await fetchWithBackendReady(buildApiUrl("/api/chart/compare"), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     cache: "no-store",
@@ -301,7 +299,7 @@ export async function runBacktest(params: RunBacktestParams): Promise<BacktestRe
     body.end_date = trimmedEndDate;
   }
 
-  const response = await fetch(buildApiUrl("/api/backtest"), {
+  const response = await fetchWithBackendReady(buildApiUrl("/api/backtest"), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     cache: "no-store",
@@ -349,12 +347,15 @@ export async function runStrategyComparison(
     body.end_date = trimmedEndDate;
   }
 
-  const response = await fetch(buildApiUrl("/api/backtest/compare-strategies"), {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    cache: "no-store",
-    body: JSON.stringify(body),
-  });
+  const response = await fetchWithBackendReady(
+    buildApiUrl("/api/backtest/compare-strategies"),
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      cache: "no-store",
+      body: JSON.stringify(body),
+    }
+  );
 
   if (!response.ok) {
     const message = await parseApiError(
@@ -786,12 +787,15 @@ export async function runBacktestSensitivity(
     body.end_date = trimmedEndDate;
   }
 
-  const response = await fetch(buildApiUrl("/api/backtest/sensitivity"), {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    cache: "no-store",
-    body: JSON.stringify(body),
-  });
+  const response = await fetchWithBackendReady(
+    buildApiUrl("/api/backtest/sensitivity"),
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      cache: "no-store",
+      body: JSON.stringify(body),
+    }
+  );
 
   if (!response.ok) {
     const message = await parseApiError(
@@ -835,7 +839,7 @@ export async function runOOSValidation(
     body.end_date = trimmedEndDate;
   }
 
-  const response = await fetch(buildApiUrl("/api/backtest/oos"), {
+  const response = await fetchWithBackendReady(buildApiUrl("/api/backtest/oos"), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     cache: "no-store",
@@ -859,12 +863,15 @@ export async function runOOSValidation(
 export async function saveBacktestRun(
   payload: SaveBacktestRunRequest
 ): Promise<SaveBacktestRunResponse> {
-  const response = await fetch(buildApiUrl("/api/experiments/backtest-runs"), {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    cache: "no-store",
-    body: JSON.stringify(payload),
-  });
+  const response = await fetchWithBackendReady(
+    buildApiUrl("/api/experiments/backtest-runs"),
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      cache: "no-store",
+      body: JSON.stringify(payload),
+    }
+  );
 
   if (!response.ok) {
     const message = await parseApiError(
@@ -889,7 +896,7 @@ export async function listBacktestRuns(
     offset: String(offset),
   });
 
-  const response = await fetch(
+  const response = await fetchWithBackendReady(
     `${buildApiUrl("/api/experiments/backtest-runs")}?${params.toString()}`,
     { cache: "no-store" }
   );
@@ -909,7 +916,7 @@ export async function listBacktestRuns(
  * 调用后端 GET /api/experiments/backtest-runs/{id}，获取实验详情。
  */
 export async function getBacktestRun(runId: string): Promise<BacktestRunDetail> {
-  const response = await fetch(
+  const response = await fetchWithBackendReady(
     buildApiUrl(`/api/experiments/backtest-runs/${encodeURIComponent(runId)}`),
     { cache: "no-store" }
   );
@@ -931,7 +938,7 @@ export async function getBacktestRun(runId: string): Promise<BacktestRunDetail> 
 export async function deleteBacktestRun(
   runId: string
 ): Promise<{ id: string; message: string }> {
-  const response = await fetch(
+  const response = await fetchWithBackendReady(
     buildApiUrl(`/api/experiments/backtest-runs/${encodeURIComponent(runId)}`),
     {
       method: "DELETE",
@@ -994,7 +1001,7 @@ function buildPaperTradingBody(params: PaperTradingParams): Record<string, unkno
 export async function getPaperAccount(
   accountId = "default"
 ): Promise<PaperAccountSnapshotResponse> {
-  const response = await fetch(
+  const response = await fetchWithBackendReady(
     buildApiUrl(`/api/paper/account?account_id=${encodeURIComponent(accountId)}`),
     { cache: "no-store" }
   );
@@ -1016,7 +1023,7 @@ export async function getPaperAccount(
 export async function evaluatePaperTrading(
   params: PaperTradingParams
 ): Promise<PaperTradingResponse> {
-  const response = await fetch(buildApiUrl("/api/paper/dashboard"), {
+  const response = await fetchWithBackendReady(buildApiUrl("/api/paper/dashboard"), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     cache: "no-store",
@@ -1040,7 +1047,7 @@ export async function evaluatePaperTrading(
 export async function executePaperTrading(
   params: PaperTradingParams
 ): Promise<PaperTradingResponse> {
-  const response = await fetch(buildApiUrl("/api/paper/execute"), {
+  const response = await fetchWithBackendReady(buildApiUrl("/api/paper/execute"), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     cache: "no-store",
@@ -1064,7 +1071,7 @@ export async function executePaperTrading(
 export async function resetPaperAccount(
   accountId = "default"
 ): Promise<{ account: PaperAccountSnapshotResponse["account"]; message: string }> {
-  const response = await fetch(
+  const response = await fetchWithBackendReady(
     buildApiUrl(`/api/paper/reset?account_id=${encodeURIComponent(accountId)}`),
     {
       method: "POST",

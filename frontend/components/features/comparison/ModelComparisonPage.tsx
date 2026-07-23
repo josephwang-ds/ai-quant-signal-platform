@@ -252,19 +252,32 @@ export default function ModelComparisonPage() {
   const oosEnd = result?.oos_end ?? result?.test_end;
 
   return (
-    <SectionCard>
-      <SectionHeader
-        title={tr("modelComparison")}
-        description={tr("modelComparisonDesc")}
-      />
+    <SectionCard className="model-comparison-shell">
+      <header className="model-comparison-hero">
+        <SectionHeader
+          level={1}
+          title={tr("modelComparison")}
+          description={tr("modelComparisonDesc")}
+        />
 
-      <ul className="system-notes-list">
-        <li>{tr("modelComparisonDisclaimer1")}</li>
-        <li>{tr("modelComparisonDisclaimer2")}</li>
-        <li>{tr("modelComparisonDisclaimer3")}</li>
-      </ul>
+        <ul className="system-notes-list model-comparison-guardrails">
+          <li>{tr("modelComparisonDisclaimer1")}</li>
+          <li>{tr("modelComparisonDisclaimer2")}</li>
+          <li>{tr("modelComparisonDisclaimer3")}</li>
+        </ul>
+      </header>
 
-      <div className="model-comparison-mode" role="group" aria-label={tr("modelComparisonMode")}>
+      <div className="model-comparison-config-grid">
+        <section className="model-comparison-config-panel">
+          <header className="model-comparison-config-panel__header">
+            <p className="model-comparison-config-panel__eyebrow">01</p>
+            <div>
+              <h2>{tr("modelComparisonProtocolTitle")}</h2>
+              <p>{tr("modelComparisonProtocolHint")}</p>
+            </div>
+          </header>
+
+          <div className="model-comparison-mode" role="group" aria-label={tr("modelComparisonMode")}>
         <span className="form-label">{tr("modelComparisonMode")}</span>
         <div className="model-comparison-view-toggle">
           <button
@@ -288,9 +301,9 @@ export default function ModelComparisonPage() {
             {tr("modelComparisonModeWalkForward")}
           </button>
         </div>
-      </div>
+          </div>
 
-      <div className="form-grid">
+          <div className="form-grid model-comparison-protocol-grid">
         <label className="form-field">
           <span className="form-label">{tr("ticker")}</span>
           <input
@@ -394,10 +407,20 @@ export default function ModelComparisonPage() {
             onChange={(e) => setTransactionCost(e.target.value)}
           />
         </label>
-      </div>
+          </div>
+        </section>
 
-      <fieldset className="model-comparison-models">
-        <legend className="form-label">{tr("modelComparisonModels")}</legend>
+        <section className="model-comparison-config-panel">
+          <header className="model-comparison-config-panel__header">
+            <p className="model-comparison-config-panel__eyebrow">02</p>
+            <div>
+              <h2>{tr("modelComparisonLineupTitle")}</h2>
+              <p>{tr("modelComparisonLineupHint")}</p>
+            </div>
+          </header>
+
+          <fieldset className="model-comparison-models">
+            <legend className="form-label">{tr("modelComparisonModels")}</legend>
         <div className="model-comparison-models__groups">
           {MODEL_GROUPS.map((group) => (
             <div key={group.id} className="model-comparison-models__group">
@@ -419,9 +442,9 @@ export default function ModelComparisonPage() {
             </div>
           ))}
         </div>
-      </fieldset>
+          </fieldset>
 
-      <div className="form-grid">
+          <div className="form-grid model-comparison-options-grid">
         <label className="form-field">
           <span className="form-label">{tr("modelComparisonPreprocessing")}</span>
           <select
@@ -483,23 +506,51 @@ export default function ModelComparisonPage() {
             {tr("modelComparisonTuneHint")}
           </label>
         </label>
+          </div>
+        </section>
       </div>
 
-      <Button onClick={handleCompare} disabled={loading}>
-        {loading ? tr("running") : tr("modelComparisonRun")}
-      </Button>
+      <div className="model-comparison-run-bar">
+        <div>
+          <p className="model-comparison-run-bar__title">
+            {tr("modelComparisonReadyTitle")}
+          </p>
+          <p className="model-comparison-run-bar__hint">
+            {tr("modelComparisonReadyHint")
+              .replace("{count}", String(selectedModels.length))
+              .replace(
+                "{mode}",
+                comparisonMode === "single_split"
+                  ? tr("modelComparisonModeSingleSplit")
+                  : tr("modelComparisonModeWalkForward")
+              )}
+          </p>
+        </div>
+        <Button primary onClick={handleCompare} disabled={loading}>
+          {loading ? tr("running") : tr("modelComparisonRun")}
+        </Button>
+      </div>
 
-      {error && <ErrorAlert message={error} />}
-      {loading && <LoadingState message={tr("toolResultsLoading")} />}
-      {!loading && !result && !error && (
-        <EmptyState
-          title={tr("toolResultsEmptyTitle")}
-          description={tr("toolResultsEmptyDescription")}
-        />
-      )}
+      <section className="model-comparison-results-shell" aria-live="polite">
+        <header className="model-comparison-results-shell__header">
+          <p className="model-comparison-config-panel__eyebrow">03</p>
+          <div>
+            <h2>{tr("modelComparisonEvidenceTitle")}</h2>
+            <p>{tr("modelComparisonEvidenceHint")}</p>
+          </div>
+        </header>
 
-      {result && (
-        <>
+        {error && <ErrorAlert message={error} />}
+        {loading && <LoadingState message={tr("toolResultsLoading")} />}
+        {!loading && !result && !error && (
+          <EmptyState
+            title={tr("toolResultsEmptyTitle")}
+            description={tr("toolResultsEmptyDescription")}
+          />
+        )}
+
+        {result && (
+          <>
           <p className="model-comparison-window" role="status">
             <strong>{tr("modelComparisonEvalWindow")}:</strong>{" "}
             {oosStart} – {oosEnd}
@@ -786,8 +837,9 @@ export default function ModelComparisonPage() {
               </tbody>
             </DataTable>
           )}
-        </>
-      )}
+          </>
+        )}
+      </section>
     </SectionCard>
   );
 }

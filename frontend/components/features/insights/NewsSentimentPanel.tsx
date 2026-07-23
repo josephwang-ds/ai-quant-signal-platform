@@ -125,6 +125,8 @@ export default function NewsSentimentPanel({ defaultTicker = "SPY" }: Props) {
         </p>
       </header>
 
+      <div className="news-sentiment-panel__workspace">
+        <section className="news-sentiment-panel__command">
       <div className="form-grid">
         <label className="form-field">
           <span className="form-label">{tr("ticker")}</span>
@@ -163,13 +165,16 @@ export default function NewsSentimentPanel({ defaultTicker = "SPY" }: Props) {
       </label>
 
       <Button
+        primary
         onClick={handleRun}
         disabled={loading || !ticker.trim()}
         data-testid="news-sentiment-run"
       >
         {loading ? tr("running") : tr("newsSentimentRun")}
       </Button>
+        </section>
 
+        <section className="news-sentiment-panel__evidence" aria-live="polite">
       {error && <ErrorAlert message={error} />}
       {loading && <LoadingState message={tr("toolResultsLoading")} />}
       {!loading && !result && !error && (
@@ -339,6 +344,8 @@ export default function NewsSentimentPanel({ defaultTicker = "SPY" }: Props) {
           ) : null}
         </div>
       ) : null}
+        </section>
+      </div>
     </section>
   );
 }

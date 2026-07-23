@@ -235,11 +235,18 @@ export default function StrategyLabPage() {
 
   return (
     <AppShell language={language} onLanguageChange={setLanguage}>
-      <SectionCard>
-        <SectionHeader title={tr("strategyLab")} description={tr("strategyLabDesc")} />
-        <p className="section-meta">{tr("strategyLabSimulatedNote")}</p>
+      <SectionCard className="strategy-lab-shell">
+        <header className="strategy-lab-hero">
+          <SectionHeader
+            level={1}
+            title={tr("strategyLab")}
+            description={tr("strategyLabDesc")}
+          />
+          <p className="strategy-lab-hero__note">{tr("strategyLabSimulatedNote")}</p>
+        </header>
 
-        <div className="strategy-lab-guide">
+        <div className="strategy-lab-config-grid">
+          <aside className="strategy-lab-guide">
           <p className="strategy-lab-guide__hint">{tr("strategySelectHint")}</p>
           <h3 className="strategy-lab-guide__title">
             {translateStrategyName(language, backtestStrategy)}
@@ -258,9 +265,21 @@ export default function StrategyLabPage() {
               <dd>{tr(STRATEGY_GUIDE_KEYS[backtestStrategy].read)}</dd>
             </div>
           </dl>
-        </div>
+          </aside>
 
-        <div className="form-grid">
+          <section className="strategy-lab-config-panel">
+            <div className="analysis-panel-heading">
+              <span className="analysis-panel-heading__index">01</span>
+              <div>
+                <h2 className="analysis-panel-heading__title">
+                  {tr("strategyLabProtocolTitle")}
+                </h2>
+                <p className="analysis-panel-heading__description">
+                  {tr("strategyLabProtocolHint")}
+                </p>
+              </div>
+            </div>
+            <div className="form-grid strategy-lab-form-grid">
           <label className="form-field">
             <span className="form-label">{tr("ticker")}</span>
             <input
@@ -376,52 +395,79 @@ export default function StrategyLabPage() {
               onChange={(e) => setTransactionCost(e.target.value)}
             />
           </label>
+            </div>
+          </section>
         </div>
 
-        <Button onClick={handleRunBacktest} disabled={backtestLoading}>
-          {backtestLoading ? tr("running") : tr("runBacktest")}
-        </Button>
-
-        <label className="form-field" style={{ marginTop: "1rem", display: "block" }}>
-          <span className="form-label">{tr("experimentNotes")}</span>
-          <textarea
-            className="form-input"
-            rows={3}
-            value={experimentNotes}
-            placeholder={tr("experimentNotesPlaceholder")}
-            onChange={(e) => setExperimentNotes(e.target.value)}
-          />
-        </label>
-
-        <div style={{ display: "flex", gap: "0.75rem", flexWrap: "wrap", marginTop: "0.75rem" }}>
-          <Button
-            onClick={handleSaveBacktestRun}
-            disabled={saveLoading || !backtestResult}
-          >
-            {saveLoading ? tr("savingBacktestRun") : tr("saveBacktestRun")}
+        <div className="strategy-lab-run-bar">
+          <div>
+            <p className="strategy-lab-run-bar__title">{tr("strategyLabReadyTitle")}</p>
+            <p className="strategy-lab-run-bar__description">{tr("strategyLabReadyHint")}</p>
+          </div>
+          <Button primary onClick={handleRunBacktest} disabled={backtestLoading}>
+            {backtestLoading ? tr("running") : tr("runBacktest")}
           </Button>
-          <Link href="/experiments" className="section-meta">
-            {tr("openExperiments")}
-          </Link>
+        </div>
+
+        <section className="strategy-lab-archive-panel">
+          <div className="strategy-lab-archive-panel__copy">
+            <p className="strategy-lab-archive-panel__title">{tr("strategyLabArchiveTitle")}</p>
+            <label className="form-field">
+              <span className="form-label">{tr("experimentNotes")}</span>
+              <textarea
+                className="form-input"
+                rows={2}
+                value={experimentNotes}
+                placeholder={tr("experimentNotesPlaceholder")}
+                onChange={(e) => setExperimentNotes(e.target.value)}
+              />
+            </label>
+          </div>
+          <div className="strategy-lab-archive-panel__actions">
+            <Button
+              onClick={handleSaveBacktestRun}
+              disabled={saveLoading || !backtestResult}
+            >
+              {saveLoading ? tr("savingBacktestRun") : tr("saveBacktestRun")}
+            </Button>
+            <Link href="/experiments" className="btn btn--ghost">
+              {tr("openExperiments")}
+            </Link>
+          </div>
+        </section>
+
+        <div className="strategy-lab-method-notes">
+          <p>{tr("backtestBiasNote")}</p>
+          <p>{tr("backtestWarmupNote")}</p>
         </div>
 
         {saveError && <ErrorAlert title={tr("saveBacktestFailed")} message={saveError} />}
         {saveSuccess && <p className="section-meta">{saveSuccess}</p>}
 
-        <p className="section-meta">{tr("backtestBiasNote")}</p>
-        <p className="section-meta">{tr("backtestWarmupNote")}</p>
+        <section className="strategy-lab-results-panel">
+          <div className="analysis-panel-heading">
+            <span className="analysis-panel-heading__index">02</span>
+            <div>
+              <h2 className="analysis-panel-heading__title">
+                {tr("strategyLabEvidenceTitle")}
+              </h2>
+              <p className="analysis-panel-heading__description">
+                {tr("strategyLabEvidenceHint")}
+              </p>
+            </div>
+          </div>
 
-        {backtestError && <ErrorAlert message={backtestError} />}
-        {backtestLoading && <LoadingState message={tr("toolResultsLoading")} />}
-        {!backtestLoading && !backtestResult && !backtestError && (
-          <EmptyState
-            title={tr("toolResultsEmptyTitle")}
-            description={tr("toolResultsEmptyDescription")}
-          />
-        )}
+          {backtestError && <ErrorAlert message={backtestError} />}
+          {backtestLoading && <LoadingState message={tr("toolResultsLoading")} />}
+          {!backtestLoading && !backtestResult && !backtestError && (
+            <EmptyState
+              title={tr("toolResultsEmptyTitle")}
+              description={tr("toolResultsEmptyDescription")}
+            />
+          )}
 
-        {backtestResult && (
-          <>
+          {backtestResult && (
+            <>
             <div className="metric-grid">
               <MetricCard
                 label={tr("totalReturn")}
@@ -559,8 +605,9 @@ export default function StrategyLabPage() {
             </p>
 
             <BacktestChart data={backtestResult.data} labels={chartLabels} />
-          </>
-        )}
+            </>
+          )}
+        </section>
       </SectionCard>
     </AppShell>
   );

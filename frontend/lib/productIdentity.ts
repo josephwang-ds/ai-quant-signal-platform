@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 
 /** Shared product identity for browser chrome and Open Graph. */
-export const PRODUCT_NAME = "AI Investment Intelligence Platform";
+export const PRODUCT_NAME = "AI Quant Research Workspace";
 export const PRODUCT_VERSION = "0.1.0";
 export const PRODUCT_REPO_URL =
   "https://github.com/josephwang-ds/ai-quant-signal-platform";
@@ -13,12 +13,12 @@ export const rootMetadata: Metadata = {
     template: `%s · ${PRODUCT_NAME}`,
   },
   description:
-    "AI-assisted investment intelligence: watchlists, strategy runs, model comparison, and risk review. Portfolio demonstration only — not investment advice and not live trading.",
+    "A governed quantitative research workspace for turning hypotheses into reproducible evidence, robustness review, and controlled decisions.",
   applicationName: PRODUCT_NAME,
   openGraph: {
     title: PRODUCT_NAME,
     description:
-      "Explore investment ideas with evidence-backed comparison and risk review. Demo only — not investment advice.",
+      "Move quantitative hypotheses through experiments, validation, robustness review, and controlled decisions.",
     type: "website",
     siteName: PRODUCT_NAME,
   },
@@ -26,6 +26,6 @@ export const rootMetadata: Metadata = {
     card: "summary",
     title: PRODUCT_NAME,
     description:
-      "AI investment intelligence for watchlists, strategy studio, and model comparison. Portfolio demonstration only.",
+      "A research operating system for reproducible quantitative evidence. Portfolio demonstration only.",
   },
 };

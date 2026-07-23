@@ -1,6 +1,6 @@
 /**
- * Global workspace navigation — primary modules always visible.
- * Archive remains a secondary, optionally collapsed group.
+ * Global workspace navigation — keep the research spine visible and move
+ * supporting utilities behind compact, collapsible groups.
  */
 
 import type { TranslationKey } from "@/lib/i18n";
@@ -41,12 +41,19 @@ export const WORKSPACE_NAV_GROUPS: WorkspaceNavGroup[] = [
     id: "analyze",
     labelKey: "navGroupAnalyze",
     items: [
+      { href: "/compare-models", labelKey: "navCompareModels" },
+      { href: "/robustness", labelKey: "navPerformanceReview" },
+      { href: "/risk-gate-review", labelKey: "navRiskReview" },
+    ],
+  },
+  {
+    id: "tools",
+    labelKey: "navGroupTools",
+    collapsible: true,
+    items: [
       { href: "/market-watch", labelKey: "navMarketWatch" },
       { href: "/ai-insights", labelKey: "navAiInsights" },
       { href: "/strategy-lab", labelKey: "navStrategyLab" },
-      { href: "/compare-models", labelKey: "navCompareModels", featured: true },
-      { href: "/robustness", labelKey: "navPerformanceReview" },
-      { href: "/risk-gate-review", labelKey: "navRiskReview" },
       { href: "/paper-trading", labelKey: "navPaperTrading" },
     ],
   },

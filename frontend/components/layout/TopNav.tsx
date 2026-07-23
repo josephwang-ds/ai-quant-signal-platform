@@ -4,7 +4,6 @@ import Link from "next/link";
 import type { Language } from "@/lib/i18n";
 import { t } from "@/lib/i18n";
 import { PRODUCT_VERSION } from "@/lib/productIdentity";
-import LanguageToggle from "./LanguageToggle";
 
 type TopNavProps = {
   language: Language;
@@ -47,7 +46,15 @@ export default function TopNav({
       </Link>
 
       <div className="workspace-topbar__actions">
-        <LanguageToggle language={language} onLanguageChange={onLanguageChange} />
+        <button
+          type="button"
+          className="workspace-language-switch"
+          aria-label={language === "en" ? "切换为中文" : "Switch to English"}
+          title={language === "en" ? "切换为中文" : "Switch to English"}
+          onClick={() => onLanguageChange(language === "en" ? "zh" : "en")}
+        >
+          {language === "en" ? "中" : "EN"}
+        </button>
       </div>
     </header>
   );
