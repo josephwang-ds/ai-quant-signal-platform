@@ -251,12 +251,17 @@ export default function MarketWatchPage() {
 
   return (
     <AppShell language={language} onLanguageChange={setLanguage}>
-      <SectionCard>
-        <SectionHeader title={tr("marketWatch")} description={tr("marketWatchPageDesc")} />
-        <p className="section-meta">{tr("marketWatchSignalNote")}</p>
+      <SectionCard className="market-watch-hero">
+        <SectionHeader
+          level={1}
+          title={tr("marketWatch")}
+          description={tr("marketWatchPageDesc")}
+        />
+        <p className="market-watch-hero__note">{tr("marketWatchSignalNote")}</p>
       </SectionCard>
 
-      <SectionCard>
+      <div className="market-watch-command-grid">
+      <SectionCard className="market-watch-insights-card">
         <SectionHeader
           title={tr("aiInsightsPageTitle")}
           description={tr("aiInsightsPageDesc")}
@@ -269,7 +274,7 @@ export default function MarketWatchPage() {
         </p>
       </SectionCard>
 
-      <SectionCard id="market-watch">
+      <SectionCard id="market-watch" className="market-watch-config-card">
         <SectionHeader title={tr("marketWatch")} description={tr("marketWatchDesc")} />
 
         <div className="form-grid">
@@ -302,9 +307,12 @@ export default function MarketWatchPage() {
           </label>
         </div>
 
-        <Button primary onClick={handleRunMarketWatch} disabled={isMarketWatchLoading}>
-          {isMarketWatchLoading ? tr("running") : tr("runMarketWatch")}
-        </Button>
+        <div className="market-watch-run-row">
+          <p>{tr("marketWatchSignalNote")}</p>
+          <Button primary onClick={handleRunMarketWatch} disabled={isMarketWatchLoading}>
+            {isMarketWatchLoading ? tr("running") : tr("runMarketWatch")}
+          </Button>
+        </div>
         {isMarketWatchLoading && <LoadingState message={tr("toolResultsLoading")} />}
         {!isMarketWatchLoading && !marketWatchResult && !marketWatchError && (
           <EmptyState
@@ -313,8 +321,9 @@ export default function MarketWatchPage() {
           />
         )}
       </SectionCard>
+      </div>
 
-      <SectionCard>
+      <SectionCard className="market-watch-freshness-card">
         <SectionHeader title={tr("dataFreshness")} description={tr("dataFreshnessDesc")} />
         <dl className="info-grid info-grid--4">
           <div className="info-grid__item">
@@ -362,7 +371,7 @@ export default function MarketWatchPage() {
         !marketWatchError &&
         marketWatchResult &&
         marketWatchResult.results.length > 0 && (
-          <SectionCard>
+          <SectionCard className="market-watch-ranking-card">
             <SectionHeader title={tr("signalRanking")} description={tr("signalRankingDesc")} />
 
             <div className="reader-guide">
@@ -449,7 +458,7 @@ export default function MarketWatchPage() {
         selectedResult &&
         marketWatchResult &&
         marketWatchResult.results.length > 0 && (
-          <SectionCard>
+          <SectionCard className="market-watch-detail-card">
             <div className="detail-header">
               <h2 className="detail-header__title">
                 {formatMessage(tr("tickerDetail"), { ticker: selectedResult.ticker })}
@@ -603,7 +612,7 @@ export default function MarketWatchPage() {
         )}
 
       {!marketWatchError && marketWatchResult && marketWatchResult.results.length > 0 && (
-        <SectionCard>
+        <SectionCard className="market-watch-chart-card">
           <SectionHeader title={tr("chartSettings")} description={tr("chartSettingsDesc")} />
 
           <div className="form-grid form-grid--2">

@@ -63,7 +63,7 @@ function NavGroupSection({
     const groupActive = isWorkspaceNavGroupActive(pathname, group);
     return (
       <details
-        className="workspace-sidenav__group workspace-sidenav__group--archive"
+        className="workspace-sidenav__group workspace-sidenav__group--collapsible"
         open={groupActive || undefined}
       >
         <summary className="workspace-sidenav__group-label workspace-sidenav__summary">

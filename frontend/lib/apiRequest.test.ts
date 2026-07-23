@@ -2,8 +2,11 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   API_USER_MESSAGES,
   ApiRequestError,
+  getBackendReadinessState,
   getApiDisplayMessage,
+  resetBackendReadinessForTests,
   requestJson,
+  warmBackend,
 } from "@/lib/apiRequest";
 
 function jsonResponse(body: unknown, status = 200): Response {
@@ -15,9 +18,55 @@ function jsonResponse(body: unknown, status = 200): Response {
 
 describe("shared API request transport", () => {
   afterEach(() => {
+    resetBackendReadinessForTests();
     vi.useRealTimers();
     vi.unstubAllEnvs();
     vi.unstubAllGlobals();
+  });
+
+  it("coalesces concurrent backend wakeups into one health request", async () => {
+    let resolveHealth!: (response: Response) => void;
+    const fetchMock = vi.fn(
+      () =>
+        new Promise<Response>((resolve) => {
+          resolveHealth = resolve;
+        })
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const first = warmBackend({ force: true });
+    const second = warmBackend();
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(getBackendReadinessState()).toBe("waking");
+
+    resolveHealth(
+      jsonResponse({ status: "ok", service: "ai-quant-signal-backend" })
+    );
+
+    await expect(first).resolves.toMatchObject({ status: "ok" });
+    await expect(second).resolves.toMatchObject({ status: "ok" });
+    expect(getBackendReadinessState()).toBe("ready");
+  });
+
+  it("retries a transient warmup response before reporting ready", async () => {
+    vi.useFakeTimers();
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(jsonResponse({}, 503))
+      .mockResolvedValueOnce(
+        jsonResponse({ status: "ok", service: "ai-quant-signal-backend" })
+      );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const warmup = warmBackend({ force: true });
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+
+    await vi.advanceTimersByTimeAsync(1_000);
+    await expect(warmup).resolves.toMatchObject({ status: "ok" });
+    expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 
   it("fails configuration before fetch in production", async () => {

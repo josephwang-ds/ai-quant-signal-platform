@@ -146,30 +146,41 @@ export default function DataCenterPage() {
 
   return (
     <AppShell language={language} onLanguageChange={setLanguage}>
-      <SectionCard>
-        <SectionHeader title={tr("dataCenter")} description={tr("dataCenterPageDesc")} />
+      <SectionCard className="data-center-hero">
+        <SectionHeader
+          level={1}
+          title={tr("dataCenter")}
+          description={tr("dataCenterPageDesc")}
+        />
+        <div className="data-center-flow" aria-label={tr("dcFutureDataArchitecture")}>
+          <span>{tr("dcFlowSource")}</span>
+          <span aria-hidden="true">→</span>
+          <span>{tr("dcFlowNormalize")}</span>
+          <span aria-hidden="true">→</span>
+          <span>{tr("dcFlowSchema")}</span>
+        </div>
       </SectionCard>
 
-      <SectionCard>
+      <SectionCard className="data-center-control-panel">
         <SectionHeader title={tr("dcPreferredSource")} description={tr("dcPreferredSourceDesc")} />
-        <div className="form-field" style={{ maxWidth: 360 }}>
-          <label className="form-label" htmlFor="preferred-data-source">
-            {tr("dcPreferredSource")}
-          </label>
-          <select
-            id="preferred-data-source"
-            className="form-select"
-            value={preferredSource}
-            onChange={(event) => handlePreferredSourceChange(event.target.value)}
-          >
-            {MARKET_DATA_SOURCES.map((source) => (
-              <option key={source} value={source}>
-                {tr(PREFERRED_SOURCE_LABEL_KEYS[source])}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div className="button-row" style={{ marginTop: 12 }}>
+        <div className="data-center-control-row">
+          <div className="form-field">
+            <label className="form-label" htmlFor="preferred-data-source">
+              {tr("dcPreferredSource")}
+            </label>
+            <select
+              id="preferred-data-source"
+              className="form-select"
+              value={preferredSource}
+              onChange={(event) => handlePreferredSourceChange(event.target.value)}
+            >
+              {MARKET_DATA_SOURCES.map((source) => (
+                <option key={source} value={source}>
+                  {tr(PREFERRED_SOURCE_LABEL_KEYS[source])}
+                </option>
+              ))}
+            </select>
+          </div>
           <Button
             className="btn--ghost"
             onClick={() => void handleProbe()}
@@ -177,14 +188,14 @@ export default function DataCenterPage() {
           >
             {probeLoading ? tr("dcProbeLoading") : tr("dcProbeSource")}
           </Button>
-          {probeResult ? <p className="section-meta">{probeResult}</p> : null}
         </div>
+        {probeResult ? <p className="data-center-probe-result">{probeResult}</p> : null}
         {probeError ? (
           <ErrorAlert title={tr("dcProbeError")} message={probeError} />
         ) : null}
       </SectionCard>
 
-      <SectionCard>
+      <SectionCard className="data-center-status-panel">
         <SectionHeader title={tr("dcLiveProviderStatus")} />
         {providerStatusLoading ? (
           <LoadingState message={tr("dcLoadingProviderStatus")} />
@@ -200,35 +211,38 @@ export default function DataCenterPage() {
         ) : null}
         {providerStatus ? (
           <>
-            {providerStatus.routing_mode ? (
-              <p className="section-meta">
-                <strong>{tr("dcRoutingMode")}:</strong>{" "}
-                <code>{providerStatus.routing_mode}</code>
-              </p>
-            ) : null}
-            {providerStatus.active_provider ? (
-              <p className="section-meta">
-                <strong>{tr("dcActiveProvider")}:</strong>{" "}
-                <code>{providerStatus.active_provider}</code>
-              </p>
-            ) : null}
-            {providerStatus.fallback_chain?.default?.length ? (
-              <p className="section-meta">
-                fallback: <code>{providerStatus.fallback_chain.default.join(" → ")}</code>
-              </p>
-            ) : null}
-            {providerStatus.symbol_examples?.length ? (
-              <p className="section-meta">
-                <strong>{tr("dcSymbolExamples")}:</strong>{" "}
-                {providerStatus.symbol_examples.map((symbol) => (
-                  <code key={symbol} style={{ marginRight: 8 }}>
-                    {symbol}
-                  </code>
-                ))}
-              </p>
-            ) : null}
+            <dl className="data-center-routing-summary">
+              {providerStatus.routing_mode ? (
+                <div>
+                  <dt>{tr("dcRoutingMode")}</dt>
+                  <dd><code>{providerStatus.routing_mode}</code></dd>
+                </div>
+              ) : null}
+              {providerStatus.active_provider ? (
+                <div>
+                  <dt>{tr("dcActiveProvider")}</dt>
+                  <dd><code>{providerStatus.active_provider}</code></dd>
+                </div>
+              ) : null}
+              {providerStatus.fallback_chain?.default?.length ? (
+                <div>
+                  <dt>Fallback</dt>
+                  <dd><code>{providerStatus.fallback_chain.default.join(" → ")}</code></dd>
+                </div>
+              ) : null}
+              {providerStatus.symbol_examples?.length ? (
+                <div>
+                  <dt>{tr("dcSymbolExamples")}</dt>
+                  <dd className="data-center-symbols">
+                    {providerStatus.symbol_examples.map((symbol) => (
+                      <code key={symbol}>{symbol}</code>
+                    ))}
+                  </dd>
+                </div>
+              ) : null}
+            </dl>
             <p className="section-meta">{tr("dcProvidersList")}</p>
-            <div className="workspace-modules">
+            <div className="workspace-modules data-center-provider-grid">
               {providerStatus.providers.map((provider) => (
                 <article key={provider.name} className="module-card">
                   <div className="module-card__header">
@@ -295,7 +309,7 @@ export default function DataCenterPage() {
         ) : null}
       </SectionCard>
 
-      <SectionCard>
+      <SectionCard className="data-center-reference-panel">
         <SectionHeader title={tr("dcCurrentActiveProvider")} />
         <article className="module-card">
           <div className="module-card__header">
@@ -311,7 +325,7 @@ export default function DataCenterPage() {
         </article>
       </SectionCard>
 
-      <SectionCard>
+      <SectionCard className="data-center-reference-panel">
         <SectionHeader title={tr("dcAssetClassCoverage")} />
         <DataTable className="table-scroll">
           <thead>
@@ -344,7 +358,7 @@ export default function DataCenterPage() {
         </DataTable>
       </SectionCard>
 
-      <SectionCard>
+      <SectionCard className="data-center-reference-panel">
         <SectionHeader title={tr("dcPlannedProviders")} />
         <div className="workspace-modules">
           {PLANNED_PROVIDER_CARDS.map((provider) => (
@@ -362,7 +376,7 @@ export default function DataCenterPage() {
         </div>
       </SectionCard>
 
-      <SectionCard>
+      <SectionCard className="data-center-reference-panel">
         <SectionHeader title={tr("dcSymbolFormatGuide")} />
         <DataTable>
           <thead>
@@ -384,9 +398,9 @@ export default function DataCenterPage() {
         </DataTable>
       </SectionCard>
 
-      <SectionCard>
+      <SectionCard className="data-center-architecture-panel">
         <SectionHeader title={tr("dcFutureDataArchitecture")} />
-        <ul className="system-notes-list">
+        <ul className="data-center-architecture-list">
           <li>{tr("dcArchDataSource")}</li>
           <li>{tr("dcArchNormalize")}</li>
           <li>{tr("dcArchSchema")}</li>

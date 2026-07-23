@@ -2,7 +2,12 @@ import { describe, expect, it } from "vitest";
 import {
   getCurrentLibraryStage,
   getLibraryLifecycleProgress,
+  getLibraryProgressRatio,
   getLibraryRecentActivity,
+  getLibraryRecentActivityForResearchIds,
+  getOverviewWorkflowProgress,
+  getWorkspaceOverviewStats,
+  overviewWorkflowTab,
   selectContinueResearch,
 } from "@/lib/researchLibrary";
 import {
@@ -81,6 +86,45 @@ describe("researchLibrary", () => {
     expect(canonical.length).toBeGreaterThan(0);
     expect(getLibraryRecentActivity("unknown-research")).toEqual([]);
     expect(getLibraryRecentActivity(null)).toEqual([]);
+  });
+
+  it("merges activity across research ids without fabricating events", () => {
+    const merged = getLibraryRecentActivityForResearchIds([
+      CANONICAL_RESEARCH_ID,
+      "unknown-research",
+    ]);
+    expect(merged.length).toBe(
+      getLibraryRecentActivity(CANONICAL_RESEARCH_ID).length
+    );
+  });
+
+  it("maps operational status onto the 4-stage homepage workflow", () => {
+    const validated = getOverviewWorkflowProgress("Validated");
+    expect(validated.completed).toEqual(["research", "validation"]);
+    expect(validated.current).toBe("risk_review");
+    expect(overviewWorkflowTab("risk_review")).toBe("robustness");
+  });
+
+  it("computes progress ratio and workspace stats from real items only", () => {
+    expect(getLibraryProgressRatio("Draft")).toBe(0);
+    expect(getLibraryProgressRatio("Validated")).toBeCloseTo(3 / 6);
+    expect(getLibraryProgressRatio("Archived")).toBe(1);
+
+    const stats = getWorkspaceOverviewStats([
+      item({ id: "a", name: "A", status: "Review", experimentCount: 2 }),
+      item({
+        id: "b",
+        name: "B",
+        status: "Paper Trading",
+        experimentCount: 1,
+      }),
+    ]);
+    expect(stats).toEqual({
+      active: 2,
+      inReview: 1,
+      paperTrading: 1,
+      experiments: 3,
+    });
   });
 
   it("uses the real mock catalog without fabricating projects", () => {

@@ -4,21 +4,21 @@ export const LANGUAGE_STORAGE_KEY = "ai-quant-language";
 
 export const translations = {
   en: {
-    appTitle: "AI Investment Intelligence Platform",
-    appTitleShort: "Investment Intelligence",
+    appTitle: "AI Quant Research Workspace",
+    appTitleShort: "Quant Research OS",
     appSubtitle:
-      "Investment intelligence for watchlists, strategy runs, model comparison, and risk review.",
+      "A governed workspace for hypotheses, experiments, evidence, and research decisions.",
     landingEyebrow: "Portfolio demonstration",
     landingWhat:
-      "A research workspace that keeps hypotheses, experiments, validation, and decisions in one lifecycle.",
+      "Turn quantitative hypotheses into reproducible evidence, robustness review, and governed decisions.",
     landingWhoLabel: "For",
     landingWho:
-      "Investors and analysts exploring AI-assisted investment decisions with evidence and governance.",
+      "Quantitative researchers, analysts, and reviewers who need a traceable research process.",
     landingProblemLabel: "Problem",
     landingProblem:
-      "Research work often scatters across notebooks and sheets, so evidence and decisions lose a shared trail.",
+      "Investment analysis often scatters across notebooks and spreadsheets, so evidence and decisions lose a shared trail.",
     landingStartLabel: "Start",
-    landingStart: "Open Investment Ideas, then continue the sample research thread.",
+    landingStart: "Open the research library, then continue the built-in sample study.",
     educationalDemo: "Research Demo",
     dailyMarketData: "Daily Market Data",
     notFinancialAdvice: "Not Financial Advice",
@@ -32,7 +32,7 @@ export const translations = {
     demoSampleBody:
       "This workspace includes one reference research project that demonstrates the complete lifecycle. It is for review and learning — not live investment use.",
     guidedEntryTitle: "Get started",
-    guidedEntryExploreLibrary: "Explore Investment Ideas",
+    guidedEntryExploreLibrary: "Explore the research library",
     guidedEntryExploreLibraryDesc: "See research projects and lifecycle stage.",
     guidedEntryContinueSample: "Continue the sample research",
     guidedEntryContinueSampleDesc: "Open the bundled Trend Following study workspace.",
@@ -42,17 +42,17 @@ export const translations = {
     guidedEntryOpenStrategyLabDesc: "Run a historical protocol against market data.",
     navOverview: "Overview",
     navModuleDirectory: "Module directory",
-    navDashboard: "Dashboard",
-    navResearchWorkspace: "Investment Ideas",
+    navDashboard: "Workspace Overview",
+    navResearchWorkspace: "Research Library",
     navCurrentResearch: "Current Study",
     navAriaPrimary: "Primary navigation",
     navOpenMenu: "Open menu",
     navCloseMenu: "Close menu",
     navGroupOverview: "Overview",
     navGroupResearch: "Research",
-    navGroupAnalyze: "Analyze & Model",
+    navGroupAnalyze: "Evidence & Review",
     navGroupArchive: "Archive",
-    navGroupTools: "Tools",
+    navGroupTools: "Research Tools",
     navGroupSupporting: "Supporting",
     navRiskGateReview: "Risk Review",
     navRiskReview: "Risk Review",
@@ -80,6 +80,13 @@ export const translations = {
     checking: "Checking...",
     backendUnreachable:
       "The research backend is currently unavailable or starting up. Try again shortly.",
+    backendStarting: "Starting research backend",
+    backendStartingHint:
+      "The first visit can take about a minute. Requests will continue automatically.",
+    backendStartupUnavailable: "Research backend has not responded",
+    backendStartupUnavailableHint:
+      "You can keep browsing local research content or retry the connection.",
+    backendStartupRetry: "Retry connection",
 
     marketWatch: "AI Watchlist",
     marketWatchDesc:
@@ -185,6 +192,16 @@ export const translations = {
       "Select a decision method and compare how each rule triggers simulated position changes in backtest.",
     strategyLabSimulatedNote:
       "These are simulated backtest results only. The system does not place real trades.",
+    strategyLabProtocolTitle: "Backtest protocol",
+    strategyLabProtocolHint:
+      "Define the instrument, observation window, decision rule, and cost assumption.",
+    strategyLabReadyTitle: "Ready to generate strategy evidence",
+    strategyLabReadyHint:
+      "Run the selected rule against the requested historical window before interpreting or saving it.",
+    strategyLabArchiveTitle: "Research note and archive",
+    strategyLabEvidenceTitle: "Backtest evidence",
+    strategyLabEvidenceHint:
+      "Return, risk, interpretation, trade events, and the equity path appear after a successful run.",
     combinedSignal: "MA + Momentum Combined",
     momentumStrategy: "Momentum",
     combinedMode: "Combined Mode",
@@ -264,6 +281,17 @@ export const translations = {
     modelComparison: "Compare Models",
     modelComparisonDesc:
       "Compare rule strategies and ML models on the same out-of-sample window after a chronological split.",
+    modelComparisonProtocolTitle: "Experiment protocol",
+    modelComparisonProtocolHint:
+      "Define the shared market window, split policy, strategy windows, and cost assumption.",
+    modelComparisonLineupTitle: "Model lineup",
+    modelComparisonLineupHint:
+      "Choose the candidate models and keep preprocessing inside the training boundary.",
+    modelComparisonReadyTitle: "Ready to create comparable evidence",
+    modelComparisonReadyHint: "{count} models selected · {mode}",
+    modelComparisonEvidenceTitle: "Out-of-sample evidence",
+    modelComparisonEvidenceHint:
+      "Results, methodology, rankings, and feature evidence appear here after a successful run.",
     modelComparisonSplitDate: "Split date",
     modelComparisonSplitRequired: "Split date is required.",
     modelComparisonMode: "Comparison mode",
@@ -606,7 +634,7 @@ export const translations = {
     researchLibraryContinueEmpty: "No research to continue yet.",
     researchLibraryCurrentStage: "Current stage",
     researchLibraryLastUpdated: "Last updated",
-    researchLibraryProjectsTitle: "Research projects",
+    researchLibraryProjectsTitle: "Research library",
     researchLibraryEmptyTitle: "No research yet.",
     researchLibraryEmptyDescription:
       "Create or import a research project to begin.",
@@ -628,6 +656,37 @@ export const translations = {
     researchLibraryActionStrategyLab: "Open Strategy Studio",
     researchLibraryActionRobustness: "Open Robustness",
     researchLibraryActionPaper: "Open Paper Trading",
+    researchOverviewHeroTitle: "Research command center",
+    researchOverviewHeroSentence:
+      "Current posture across research threads — resume work, advance stages, review evidence.",
+    researchOverviewStatActive: "Active",
+    researchOverviewStatReview: "In review",
+    researchOverviewStatPaper: "Paper",
+    researchOverviewStatExperiments: "Experiments",
+    researchOverviewContinueHint: "Most recent thread ready to resume.",
+    researchOverviewRecentWork: "Recent work",
+    researchOverviewResume: "Resume",
+    researchOverviewOpen: "Open",
+    researchOverviewProgressLabel: "Lifecycle progress",
+    researchOverviewLifecycleHint:
+      "Operating spine for the focused thread. Each stage opens the matching workspace view.",
+    researchOverviewWorkflowResearch: "Research",
+    researchOverviewWorkflowValidation: "Validation",
+    researchOverviewWorkflowRiskReview: "Risk review",
+    researchOverviewWorkflowDeployment: "Deployment",
+    researchOverviewLibraryHint: "All active research threads in this workspace.",
+    researchOverviewActivityHint:
+      "Recent updates, experiments, validations, and stage changes.",
+    researchOverviewActivityKindUpdate: "Update",
+    researchOverviewActivityKindBacktest: "Backtest",
+    researchOverviewActivityKindValidation: "Risk / validation",
+    researchOverviewActivityKindStage: "Stage",
+    researchOverviewAiTitle: "Research briefing",
+    researchOverviewAiSummaryFocus:
+      "{count} active thread(s). Focus: {name} — currently at {stage}. Resume the workspace to review evidence before the next gate.",
+    researchOverviewAiSummaryEmpty:
+      "No active research threads. Create a project to begin the research lifecycle.",
+    researchOverviewAiActionResume: "Resume research",
     researchListNewResearch: "New Research",
     researchListCreateResearch: "Create Research",
     researchListLoadDemo: "Load Demo Research",
@@ -1386,6 +1445,15 @@ export const translations = {
       "Risk levels come from backend RiskMonitor calculations on real backtest metrics — not simulated scores.",
     riskReviewDisclaimer2:
       "Research demonstration only. No broker connection and no live execution.",
+    riskReviewProtocolTitle: "Risk protocol",
+    riskReviewProtocolHint:
+      "Define the market window, strategy assumptions, loss lens, and governance preference before scoring.",
+    riskReviewReadyTitle: "Ready to evaluate the risk gate",
+    riskReviewReadyHint:
+      "The backend maps observed backtest metrics into a five-level decision posture.",
+    riskReviewEvidenceTitle: "Risk evidence",
+    riskReviewEvidenceHint:
+      "The resulting level, allowed action, component scores, and reasons will appear here.",
     riskReviewRun: "Run Risk Review",
     riskReviewFailed: "Risk review request failed.",
     riskReviewAllowedAction: "Allowed action",
@@ -1442,6 +1510,9 @@ export const translations = {
     dataCenter: "Data",
     dataCenterPageDesc:
       "Manage data source coverage, symbol formats, asset classes, and future provider integration.",
+    dcFlowSource: "Source routing",
+    dcFlowNormalize: "Normalization",
+    dcFlowSchema: "Research-ready schema",
     dataCenterDesc:
       "Documents current Yahoo/yfinance coverage, asset classes, symbol formats, and the planned multi-source roadmap.",
     dcCurrentActiveProvider: "Current Active Provider",
@@ -1773,19 +1844,19 @@ export const translations = {
     overviewPaperNotEvaluated: "No paper session yet. Open Research Deployment to review eligibility.",
   },
   zh: {
-    appTitle: "AI 投资智能平台",
-    appTitleShort: "AI 投资智能",
-    appSubtitle: "面向关注列表、策略运行、模型对比与风险评估的投资智能平台。",
+    appTitle: "AI 量化研究工作区",
+    appTitleShort: "量化研究 OS",
+    appSubtitle: "贯通假设、实验、证据与研究决策的治理型工作区。",
     landingEyebrow: "作品集演示",
     landingWhat:
-      "把假设、实验、验证与决策放在同一生命周期中的研究工作区。",
+      "把量化假设转化为可复现证据、稳健性审阅与受控决策。",
     landingWhoLabel: "面向",
-    landingWho: "借助 AI 辅助做投资决策的投资者与分析师。",
+    landingWho: "需要可追溯研究过程的量化研究员、分析师与评审者。",
     landingProblemLabel: "问题",
     landingProblem:
-      "研究工作常散落在笔记本与表格中，证据与决策难以形成共享轨迹。",
+      "投资分析常散落在笔记本与表格里，证据与决策难以形成一致记录。",
     landingStartLabel: "开始",
-    landingStart: "打开投资想法，然后继续示例研究线程。",
+    landingStart: "打开研究库，然后继续内置示例研究。",
     educationalDemo: "研究演示",
     dailyMarketData: "日线市场数据",
     notFinancialAdvice: "非投资建议",
@@ -1799,7 +1870,7 @@ export const translations = {
     demoSampleBody:
       "本工作区包含一个参考研究项目，用于演示完整生命周期。仅供审阅与学习——不用于实盘投资。",
     guidedEntryTitle: "开始使用",
-    guidedEntryExploreLibrary: "浏览投资想法",
+    guidedEntryExploreLibrary: "浏览研究库",
     guidedEntryExploreLibraryDesc: "查看研究项目与生命周期阶段。",
     guidedEntryContinueSample: "继续示例研究",
     guidedEntryContinueSampleDesc: "打开内置趋势跟踪研究工作区。",
@@ -1809,17 +1880,17 @@ export const translations = {
     guidedEntryOpenStrategyLabDesc: "对市场数据运行历史协议。",
     navOverview: "概览",
     navModuleDirectory: "模块目录",
-    navDashboard: "仪表盘",
-    navResearchWorkspace: "投资想法",
+    navDashboard: "工作区概览",
+    navResearchWorkspace: "研究库",
     navCurrentResearch: "当前研究",
     navAriaPrimary: "主导航",
     navOpenMenu: "打开菜单",
     navCloseMenu: "关闭菜单",
     navGroupOverview: "概览",
     navGroupResearch: "研究",
-    navGroupAnalyze: "分析与建模",
+    navGroupAnalyze: "证据与审阅",
     navGroupArchive: "资料",
-    navGroupTools: "工具",
+    navGroupTools: "研究工具",
     navGroupSupporting: "辅助",
     navRiskGateReview: "风险评估",
     navRiskReview: "风险评估",
@@ -1846,6 +1917,11 @@ export const translations = {
     checkBackend: "检查后端",
     checking: "检查中...",
     backendUnreachable: "研究后端当前不可用或正在启动，请稍后重试。",
+    backendStarting: "正在启动研究后端",
+    backendStartingHint: "首次访问可能需要约一分钟，请求会在服务就绪后自动继续。",
+    backendStartupUnavailable: "研究后端尚未响应",
+    backendStartupUnavailableHint: "你仍可浏览本地研究内容，或重新尝试连接。",
+    backendStartupRetry: "重试连接",
 
     marketWatch: "AI 关注列表",
     marketWatchDesc:
@@ -1942,6 +2018,16 @@ export const translations = {
     strategyLabDesc:
       "选择不同决策方法，比较各规则在回测中如何触发模拟买卖事件。",
     strategyLabSimulatedNote: "这些仅为模拟回测结果，系统不会执行真实交易。",
+    strategyLabProtocolTitle: "回测协议",
+    strategyLabProtocolHint:
+      "统一定义标的、观测区间、决策规则与交易成本假设。",
+    strategyLabReadyTitle: "准备生成策略证据",
+    strategyLabReadyHint:
+      "先在指定历史区间运行所选规则，再解释或保存结果。",
+    strategyLabArchiveTitle: "研究备注与归档",
+    strategyLabEvidenceTitle: "回测证据",
+    strategyLabEvidenceHint:
+      "成功运行后，这里将展示收益、风险、解释、交易事件与资金曲线。",
     combinedSignal: "均线 + 动量组合",
     momentumStrategy: "动量策略",
     combinedMode: "组合模式",
@@ -2018,6 +2104,17 @@ export const translations = {
     modelComparison: "模型对比",
     modelComparisonDesc:
       "在时序切分后的同一样本外窗口上，对比规则策略与机器学习模型。",
+    modelComparisonProtocolTitle: "实验协议",
+    modelComparisonProtocolHint:
+      "统一定义市场区间、切分规则、策略窗口与交易成本假设。",
+    modelComparisonLineupTitle: "模型阵容",
+    modelComparisonLineupHint:
+      "选择候选模型，并确保所有预处理只发生在训练集边界内。",
+    modelComparisonReadyTitle: "准备生成可比证据",
+    modelComparisonReadyHint: "已选择 {count} 个模型 · {mode}",
+    modelComparisonEvidenceTitle: "样本外证据",
+    modelComparisonEvidenceHint:
+      "成功运行后，这里将显示结果、方法论、排名与特征证据。",
     modelComparisonSplitDate: "切分日期",
     modelComparisonSplitRequired: "必须填写切分日期。",
     modelComparisonMode: "对比模式",
@@ -2350,7 +2447,7 @@ export const translations = {
     researchLibraryContinueEmpty: "暂无可继续的研究。",
     researchLibraryCurrentStage: "当前阶段",
     researchLibraryLastUpdated: "最近更新",
-    researchLibraryProjectsTitle: "研究项目",
+    researchLibraryProjectsTitle: "研究库",
     researchLibraryEmptyTitle: "尚无研究。",
     researchLibraryEmptyDescription: "创建或导入研究项目以开始。",
     researchLibraryLifecycleTitle: "研究生命周期",
@@ -2370,6 +2467,36 @@ export const translations = {
     researchLibraryActionStrategyLab: "打开策略工作室",
     researchLibraryActionRobustness: "打开稳健性",
     researchLibraryActionPaper: "打开模拟试盘",
+    researchOverviewHeroTitle: "量化研究工作台",
+    researchOverviewHeroSentence:
+      "查看研究线程当前态势——继续工作、推进阶段、审阅证据。",
+    researchOverviewStatActive: "进行中",
+    researchOverviewStatReview: "审阅中",
+    researchOverviewStatPaper: "模拟盘",
+    researchOverviewStatExperiments: "实验",
+    researchOverviewContinueHint: "最近更新的线程，可直接恢复。",
+    researchOverviewRecentWork: "最近工作",
+    researchOverviewResume: "恢复",
+    researchOverviewOpen: "打开",
+    researchOverviewProgressLabel: "生命周期进度",
+    researchOverviewLifecycleHint:
+      "聚焦线程的操作主线。每个阶段打开对应工作区视图。",
+    researchOverviewWorkflowResearch: "研究",
+    researchOverviewWorkflowValidation: "验证",
+    researchOverviewWorkflowRiskReview: "风险审阅",
+    researchOverviewWorkflowDeployment: "部署",
+    researchOverviewLibraryHint: "本工作区全部活跃研究线程。",
+    researchOverviewActivityHint: "近期更新、实验、验证与阶段变更。",
+    researchOverviewActivityKindUpdate: "更新",
+    researchOverviewActivityKindBacktest: "回测",
+    researchOverviewActivityKindValidation: "风险 / 验证",
+    researchOverviewActivityKindStage: "阶段",
+    researchOverviewAiTitle: "研究简报",
+    researchOverviewAiSummaryFocus:
+      "当前 {count} 条活跃线程。焦点：{name}——处于 {stage}。恢复工作区，在下一闸门前审阅证据。",
+    researchOverviewAiSummaryEmpty:
+      "暂无活跃研究线程。创建项目以开始研究生命周期。",
+    researchOverviewAiActionResume: "恢复研究",
     researchListNewResearch: "新建研究",
     researchListCreateResearch: "创建研究",
     researchListLoadDemo: "加载演示研究",
@@ -3095,6 +3222,15 @@ export const translations = {
     riskReviewDisclaimer1:
       "风险等级来自后端 RiskMonitor 对真实回测指标的计算，不是模拟打分。",
     riskReviewDisclaimer2: "仅供研究演示。无券商连接，无实盘执行。",
+    riskReviewProtocolTitle: "风险评估协议",
+    riskReviewProtocolHint:
+      "在评分前统一定义市场区间、策略假设、回撤口径与治理偏好。",
+    riskReviewReadyTitle: "准备评估风险闸口",
+    riskReviewReadyHint:
+      "后端会把回测观测指标映射为五档决策姿态。",
+    riskReviewEvidenceTitle: "风险证据",
+    riskReviewEvidenceHint:
+      "评估结果将在这里展示风险等级、允许动作、分量评分与等级依据。",
     riskReviewRun: "运行风险评估",
     riskReviewFailed: "风险评估请求失败。",
     riskReviewAllowedAction: "允许动作",
@@ -3150,6 +3286,9 @@ export const translations = {
     dataCenter: "数据",
     dataCenterPageDesc:
       "管理数据源覆盖范围、代码格式、资产类别和未来数据提供方集成。",
+    dcFlowSource: "数据源路由",
+    dcFlowNormalize: "标准化处理",
+    dcFlowSchema: "研究就绪数据",
     dataCenterDesc:
       "记录当前 Yahoo/yfinance 覆盖范围、资产类别、代码格式与多数据源规划路线图。",
     dcCurrentActiveProvider: "当前启用数据源",

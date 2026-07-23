@@ -70,6 +70,7 @@ export default function OverviewPage() {
     <AppShell language={language} onLanguageChange={setLanguage}>
       <SectionCard>
         <SectionHeader
+          level={1}
           title={tr("overviewTitle")}
           description={tr("overviewDesc")}
         />

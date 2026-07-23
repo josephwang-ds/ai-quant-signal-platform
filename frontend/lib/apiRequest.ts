@@ -2,6 +2,12 @@ import { ApiConfigurationError, buildApiUrl } from "@/lib/apiConfig";
 
 export const API_REQUEST_TIMEOUT_MS = 60_000;
 export const API_STATUS_TIMEOUT_MS = 5_000;
+export const BACKEND_WARMUP_TIMEOUT_MS = 90_000;
+
+const BACKEND_READY_TTL_MS = 60_000;
+const BACKEND_WARMUP_ATTEMPT_TIMEOUT_MS = 70_000;
+const BACKEND_WARMUP_RETRY_BASE_MS = 1_000;
+const BACKEND_WARMUP_RETRY_MAX_MS = 5_000;
 
 export type ApiErrorCategory =
   | "configuration"
@@ -61,6 +67,186 @@ export class ApiRequestError extends Error {
     this.userMessage = userMessage;
     this.cause = options.cause;
   }
+}
+
+export type BackendReadinessState =
+  | "idle"
+  | "waking"
+  | "ready"
+  | "unavailable";
+
+type BackendHealth = {
+  status: string;
+  service: string;
+};
+
+let backendReadinessState: BackendReadinessState = "idle";
+let backendReadyUntil = 0;
+let backendWarmupPromise: Promise<BackendHealth> | null = null;
+const backendReadinessListeners = new Set<
+  (state: BackendReadinessState) => void
+>();
+
+function publishBackendReadiness(state: BackendReadinessState): void {
+  backendReadinessState = state;
+  backendReadinessListeners.forEach((listener) => listener(state));
+}
+
+export function getBackendReadinessState(): BackendReadinessState {
+  if (
+    backendReadinessState === "ready" &&
+    backendReadyUntil > 0 &&
+    Date.now() >= backendReadyUntil
+  ) {
+    backendReadinessState = "idle";
+  }
+  return backendReadinessState;
+}
+
+export function subscribeBackendReadiness(
+  listener: (state: BackendReadinessState) => void
+): () => void {
+  backendReadinessListeners.add(listener);
+  return () => backendReadinessListeners.delete(listener);
+}
+
+function wait(delayMs: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, delayMs));
+}
+
+function configurationRequestError(error: ApiConfigurationError): ApiRequestError {
+  return new ApiRequestError({
+    category: "configuration",
+    code: error.code,
+    cause: error,
+  });
+}
+
+async function runBackendWarmup(): Promise<BackendHealth> {
+  let healthUrl: string;
+  try {
+    healthUrl = buildApiUrl("/health");
+  } catch (error) {
+    publishBackendReadiness("unavailable");
+    if (error instanceof ApiConfigurationError) {
+      throw configurationRequestError(error);
+    }
+    throw error;
+  }
+
+  publishBackendReadiness("waking");
+  const deadline = Date.now() + BACKEND_WARMUP_TIMEOUT_MS;
+  let attempt = 0;
+  let lastError: unknown;
+
+  while (Date.now() < deadline) {
+    const remainingMs = deadline - Date.now();
+    const controller = new AbortController();
+    const timeoutId = setTimeout(
+      () => controller.abort(),
+      Math.min(BACKEND_WARMUP_ATTEMPT_TIMEOUT_MS, remainingMs)
+    );
+
+    try {
+      const response = await fetch(healthUrl, {
+        cache: "no-store",
+        headers: { Accept: "application/json" },
+        signal: controller.signal,
+      });
+      if (!response.ok) {
+        throw new Error(`Backend warmup returned HTTP ${response.status}.`);
+      }
+
+      const health = (await response.json()) as Partial<BackendHealth>;
+      if (health.status !== "ok" || typeof health.service !== "string") {
+        throw new Error("Backend warmup returned an invalid health response.");
+      }
+
+      backendReadyUntil = Date.now() + BACKEND_READY_TTL_MS;
+      publishBackendReadiness("ready");
+      return health as BackendHealth;
+    } catch (error) {
+      lastError = error;
+    } finally {
+      clearTimeout(timeoutId);
+    }
+
+    attempt += 1;
+    const remainingAfterAttempt = deadline - Date.now();
+    if (remainingAfterAttempt <= 0) break;
+    const retryDelayMs = Math.min(
+      BACKEND_WARMUP_RETRY_BASE_MS * 2 ** Math.min(attempt - 1, 3),
+      BACKEND_WARMUP_RETRY_MAX_MS,
+      remainingAfterAttempt
+    );
+    await wait(retryDelayMs);
+  }
+
+  backendReadyUntil = 0;
+  publishBackendReadiness("unavailable");
+  throw new ApiRequestError({
+    category: "backend_unavailable",
+    code: "BACKEND_WARMUP_TIMEOUT",
+    cause: lastError,
+  });
+}
+
+/**
+ * Wake the backend once and share that work across concurrent page requests.
+ * Render free instances can take about a minute to spin up, so the UI keeps a
+ * loading state while this bounded readiness gate runs instead of surfacing an
+ * immediate error from every feature panel.
+ */
+export function warmBackend(options: { force?: boolean } = {}): Promise<BackendHealth> {
+  if (
+    !options.force &&
+    getBackendReadinessState() === "ready" &&
+    Date.now() < backendReadyUntil
+  ) {
+    return Promise.resolve({
+      status: "ok",
+      service: "ai-quant-signal-backend",
+    });
+  }
+
+  if (backendWarmupPromise) {
+    return backendWarmupPromise;
+  }
+
+  backendWarmupPromise = runBackendWarmup().finally(() => {
+    backendWarmupPromise = null;
+  });
+  return backendWarmupPromise;
+}
+
+function shouldGateBackendRequest(): boolean {
+  return process.env.NODE_ENV !== "test";
+}
+
+function throwIfAborted(signal?: AbortSignal | null): void {
+  if (signal?.aborted) {
+    throw new DOMException("Aborted", "AbortError");
+  }
+}
+
+/** Fetch helper for legacy clients that still parse their own response bodies. */
+export async function fetchWithBackendReady(
+  input: RequestInfo | URL,
+  init: RequestInit = {}
+): Promise<Response> {
+  throwIfAborted(init.signal);
+  if (shouldGateBackendRequest()) {
+    await warmBackend();
+  }
+  throwIfAborted(init.signal);
+  return fetch(input, init);
+}
+
+export function resetBackendReadinessForTests(): void {
+  backendReadinessState = "idle";
+  backendReadyUntil = 0;
+  backendWarmupPromise = null;
+  backendReadinessListeners.clear();
 }
 
 export function getApiUserMessage(
@@ -218,6 +404,11 @@ export async function requestJson<T>(
   }
 
   const timeoutMs = options.timeoutMs ?? API_REQUEST_TIMEOUT_MS;
+  throwIfAborted(init.signal);
+  if (shouldGateBackendRequest() && path !== "/health") {
+    await warmBackend();
+  }
+  throwIfAborted(init.signal);
   const requestController = new AbortController();
   const callerSignal = init.signal;
   let timedOut = false;

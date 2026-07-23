@@ -1,5 +1,5 @@
-import LegacyDashboard from "@/components/legacy/LegacyDashboard";
+import LegacyLandingPage from "@/components/legacy/LegacyLandingPage";
 
 export default function LegacyDashboardPage() {
-  return <LegacyDashboard />;
+  return <LegacyLandingPage />;
 }

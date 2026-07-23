@@ -96,7 +96,7 @@ function ExperimentDetailPanel({
   return (
     <div className="experiments-detail-panel">
       <h3 className="module-card__title">{tr("experimentsDetail")}</h3>
-      <div style={{ display: "flex", gap: "0.75rem", flexWrap: "wrap", marginBottom: "0.75rem" }}>
+      <div className="experiments-detail-panel__actions">
         <Button onClick={onClose}>{tr("experimentsBackToList")}</Button>
         <Button onClick={onDelete} disabled={deleteLoading}>
           {deleteLoading ? tr("running") : tr("experimentsDelete")}
@@ -153,10 +153,7 @@ function ExperimentDetailPanel({
           ) : null}
 
           <h3 className="module-card__title">{tr("experimentsConfig")}</h3>
-          <pre
-            className="section-meta font-mono"
-            style={{ whiteSpace: "pre-wrap", wordBreak: "break-word", fontSize: "0.8125rem" }}
-          >
+          <pre className="experiments-detail-panel__config font-mono">
             {JSON.stringify(detail.strategy_config, null, 2)}
           </pre>
 
@@ -367,11 +364,16 @@ export default function ExperimentsPage() {
 
   return (
     <AppShell language={language} onLanguageChange={setLanguage}>
-      <SectionCard>
-        <SectionHeader
-          title={tr("experimentsPageTitle")}
-          description={tr("experimentsPageDesc")}
-        />
+      <SectionCard className="experiments-page-shell">
+        <header className="experiments-page-hero">
+          <SectionHeader
+            level={1}
+            title={tr("experimentsPageTitle")}
+            description={tr("experimentsPageDesc")}
+          />
+        </header>
+
+        <section className="experiments-library-panel">
 
         {listLoading ? <LoadingState message={tr("experimentsLoading")} /> : null}
         {listError ? (
@@ -467,13 +469,13 @@ export default function ExperimentsPage() {
             </div>
 
             <div className="experiments-toolbar-row">
-              <p className="section-meta" style={{ margin: 0 }}>
+              <p className="section-meta experiments-toolbar-row__count">
                 {formatMessage(tr("experimentsShowingCount"), {
                   shown: displayedItems.length,
                   total: items.length,
                 })}
               </p>
-              <div style={{ display: "flex", gap: "0.75rem", flexWrap: "wrap" }}>
+              <div className="experiments-toolbar-row__actions">
                 <Button onClick={handleShowCompare} disabled={compareIds.length < 2}>
                   {tr("experimentsCompareSelect")} ({compareIds.length})
                 </Button>
@@ -507,10 +509,11 @@ export default function ExperimentsPage() {
             )}
           </>
         ) : null}
+        </section>
       </SectionCard>
 
       {selectedId ? (
-        <SectionCard>
+        <SectionCard className="experiments-detail-shell">
           <ExperimentDetailPanel
             language={language}
             tr={tr}
@@ -530,7 +533,7 @@ export default function ExperimentsPage() {
       ) : null}
 
       {showCompare && compareRuns.length >= 2 ? (
-        <SectionCard>
+        <SectionCard className="experiments-compare-shell">
           <SectionHeader
             title={tr("experimentsCompareTitle")}
             description={tr("experimentsCompareDesc")}

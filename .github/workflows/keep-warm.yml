@@ -5,7 +5,7 @@ name: keep-warm
 # 这样一箭双雕——既唤醒 Render 后端，又让 Supabase 免费档不因 7 天无活动而被暂停。
 #
 # 说明与注意：
-# - GitHub Actions 定时任务是"尽力而为"，可能延迟 5–15 分钟，偶尔会错过 15 分钟窗口；
+# - GitHub Actions 定时任务是"尽力而为"，可能延迟或漏跑；
 #   对作品集 demo 足够，但不保证 100% 常驻。要更稳可再叠加一个外部监控
 #   （UptimeRobot 5 分钟 / cron-job.org 1 分钟，免费），指向同一个 URL。
 # - GitHub 会在仓库 60 天无提交后自动停用定时工作流；面试期保持偶尔提交即可。
@@ -17,9 +17,8 @@ name: keep-warm
 
 on:
   schedule:
-    # 每 10 分钟一次（UTC）。想只在被查看时段保活以省额度，可改成例如：
-    #   - cron: "*/10 0-6,13-23 * * *"   # 覆盖美/亚白天，凌晨不 ping
-    - cron: "*/10 * * * *"
+    # 每 5 分钟一次（UTC），并避开整点/常见十分钟边界，降低 GitHub 高峰排队概率。
+    - cron: "2-57/5 * * * *"
   workflow_dispatch: {}   # 允许手动触发
 
 concurrency:
@@ -34,15 +33,27 @@ jobs:
       - name: Ping backend (wake Render + keep Supabase active)
         run: |
           BASE="${{ vars.BACKEND_URL || 'https://ai-quant-signal-platform.onrender.com' }}"
+          BASE="${BASE%/}"
           echo "Pinging $BASE ..."
 
-          # 1) 唤醒进程：给冷启动最多 90 秒
-          code_health=$(curl -sS -o /dev/null -w "%{http_code}" -m 90 "$BASE/health" || echo "000")
+          # 1) 唤醒进程：Render 免费实例冷启动约一分钟；连接失败时有限重试。
+          code_health="000"
+          if measured_health=$(curl -sS -o /dev/null -w "%{http_code}" \
+            --connect-timeout 15 --max-time 100 \
+            --retry 2 --retry-all-errors --retry-delay 5 \
+            "$BASE/health"); then
+            code_health="$measured_health"
+          fi
           echo "GET /health -> $code_health"
 
-          # 2) 触碰数据库：执行 select 1，防止 Supabase 因闲置暂停
-          #    /api/database/status 在 DB 不通时返回 503，这里不因 503 让 job 失败
-          code_db=$(curl -sS -o /dev/null -w "%{http_code}" -m 60 "$BASE/api/database/status" || echo "000")
+          # 2) 触碰数据库：执行 select 1，防止 Supabase 因闲置暂停。
+          code_db="000"
+          if measured_db=$(curl -sS -o /dev/null -w "%{http_code}" \
+            --connect-timeout 15 --max-time 60 \
+            --retry 1 --retry-all-errors --retry-delay 3 \
+            "$BASE/api/database/status"); then
+            code_db="$measured_db"
+          fi
           echo "GET /api/database/status -> $code_db"
 
           # 只要进程活着（health 2xx）就算保活成功；DB 状态仅记录不阻断
@@ -53,7 +64,6 @@ jobs:
             fi
             exit 0
           else
-            echo "::warning::Backend not healthy (health=$code_health)。可能仍在冷启动或已宕机。"
-            # 不让工作流失败刷红，避免噪音；如需告警可改成 exit 1
-            exit 0
+            echo "::error::Backend warmup failed (health=$code_health)。检查 Render 状态、BACKEND_URL 和本工作流是否被 GitHub 停用。"
+            exit 1
           fi

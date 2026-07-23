@@ -58,6 +58,7 @@ type Props = {
   evaluation: ResearchEvaluationResult | null;
   labels: ResearchRobustnessCenterLabels;
   onContinue?: () => void;
+  showHeader?: boolean;
 };
 
 function statusLabel(
@@ -118,6 +119,7 @@ export default function ResearchRobustnessCenter({
   evaluation,
   labels,
   onContinue,
+  showHeader = true,
 }: Props) {
   const model = buildRobustnessCenterModel({ validation, evaluation });
   const overall = overallCopy(model.overallStatus, labels);
@@ -138,12 +140,18 @@ export default function ResearchRobustnessCenter({
   })();
 
   return (
-    <section className="research-center" aria-labelledby="robustness-center-title">
-      <ResearchCenterHeader
-        titleId="robustness-center-title"
-        title={labels.title}
-        description={labels.summary}
-      />
+    <section
+      className="research-center"
+      aria-labelledby={showHeader ? "robustness-center-title" : undefined}
+      aria-label={showHeader ? undefined : labels.title}
+    >
+      {showHeader ? (
+        <ResearchCenterHeader
+          titleId="robustness-center-title"
+          title={labels.title}
+          description={labels.summary}
+        />
+      ) : null}
 
       {!model.hasValidationEvidence && !model.hasEvaluationEvidence ? (
         <EmptyState title={labels.noEvidenceTitle} description={labels.noEvidenceNote} />

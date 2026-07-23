@@ -8,6 +8,7 @@ import ResearchPaperTradingCenter, {
 import ErrorAlert from "@/components/ui/ErrorAlert";
 import LoadingState from "@/components/ui/LoadingState";
 import SectionCard from "@/components/ui/SectionCard";
+import SectionHeader from "@/components/ui/SectionHeader";
 import { CANONICAL_RESEARCH_ID } from "@/lib/canonicalMaCrossover";
 import { useResearchEvaluation } from "@/components/features/research/evaluation/useResearchEvaluation";
 import { useResearchValidation } from "@/components/features/research/validation/useResearchValidation";
@@ -128,38 +129,43 @@ export default function PaperTradingPage() {
 
   return (
     <AppShell language={language} onLanguageChange={setLanguage}>
-      <SectionCard>
-        <p className="section-meta">{tr("paperDeployCanonicalHint")}</p>
-        <p className="section-meta">
+      <SectionCard className="paper-trading-page-hero">
+        <SectionHeader
+          level={1}
+          title={labels.title}
+          description={labels.summary}
+        />
+        <div className="paper-trading-page-hero__footer">
+          <p>{tr("paperDeployCanonicalHint")}</p>
           <Link
             href={`/research/${encodeURIComponent(CANONICAL_RESEARCH_ID)}?tab=paper`}
             className="btn btn--ghost"
           >
             {tr("paperDeployOpenWorkspace")}
           </Link>
-        </p>
+        </div>
       </SectionCard>
 
       {loadError ? (
-        <SectionCard>
+        <SectionCard className="paper-trading-state-panel">
           <ErrorAlert title={tr("paperDeployTitle")} message={loadError} />
         </SectionCard>
       ) : null}
 
       {!research && !loadError ? (
-        <SectionCard>
+        <SectionCard className="paper-trading-state-panel">
           <LoadingState message={tr("researchWsLoading")} />
         </SectionCard>
       ) : null}
 
       {validationEnabled && validationStatus === "loading" ? (
-        <SectionCard>
+        <SectionCard className="paper-trading-state-panel">
           <LoadingState message={tr("researchValLoading")} />
         </SectionCard>
       ) : null}
 
       {validationEnabled && validationStatus === "error" ? (
-        <SectionCard>
+        <SectionCard className="paper-trading-state-panel">
           <ErrorAlert
             title={tr("researchValUnavailableTitle")}
             message={validationError ?? tr("researchValUnavailableDescription")}
@@ -168,12 +174,13 @@ export default function PaperTradingPage() {
       ) : null}
 
       {research ? (
-        <SectionCard>
+        <SectionCard className="paper-trading-center-panel">
           <ResearchPaperTradingCenter
             research={research}
             validation={validationStatus === "ready" ? validation : null}
             evaluation={evaluationStatus === "ready" ? evaluation : null}
             labels={labels}
+            showHeader={false}
           />
         </SectionCard>
       ) : null}

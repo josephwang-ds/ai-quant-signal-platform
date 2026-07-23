@@ -6,6 +6,7 @@ import ResearchRobustnessCenter from "@/components/features/research/robustness/
 import ErrorAlert from "@/components/ui/ErrorAlert";
 import LoadingState from "@/components/ui/LoadingState";
 import SectionCard from "@/components/ui/SectionCard";
+import SectionHeader from "@/components/ui/SectionHeader";
 import { CANONICAL_RESEARCH_ID } from "@/lib/canonicalMaCrossover";
 import { useResearchEvaluation } from "@/components/features/research/evaluation/useResearchEvaluation";
 import { useResearchValidation } from "@/components/features/research/validation/useResearchValidation";
@@ -34,26 +35,31 @@ export default function RobustnessPage() {
 
   return (
     <AppShell language={language} onLanguageChange={setLanguage}>
-      <SectionCard>
-        <p className="section-meta">{tr("robustnessCanonicalHint")}</p>
-        <p className="section-meta">
+      <SectionCard className="robustness-page-hero">
+        <SectionHeader
+          level={1}
+          title={labels.title}
+          description={labels.summary}
+        />
+        <div className="robustness-page-hero__footer">
+          <p>{tr("robustnessCanonicalHint")}</p>
           <Link
             href={`/research/${encodeURIComponent(CANONICAL_RESEARCH_ID)}?tab=robustness`}
             className="btn btn--ghost"
           >
             {tr("robustnessOpenWorkspace")}
           </Link>
-        </p>
+        </div>
       </SectionCard>
 
       {validationEnabled && validationStatus === "loading" ? (
-        <SectionCard>
+        <SectionCard className="robustness-state-panel">
           <LoadingState message={tr("researchValLoading")} />
         </SectionCard>
       ) : null}
 
       {validationEnabled && validationStatus === "error" ? (
-        <SectionCard>
+        <SectionCard className="robustness-state-panel">
           <ErrorAlert
             title={tr("researchValUnavailableTitle")}
             message={validationError ?? tr("researchValUnavailableDescription")}
@@ -62,11 +68,12 @@ export default function RobustnessPage() {
       ) : null}
 
       {validationStatus === "ready" || evaluationStatus === "ready" || !validationEnabled ? (
-        <SectionCard>
+        <SectionCard className="robustness-center-panel">
           <ResearchRobustnessCenter
             validation={validationStatus === "ready" ? validation : null}
             evaluation={evaluationStatus === "ready" ? evaluation : null}
             labels={labels}
+            showHeader={false}
           />
         </SectionCard>
       ) : null}

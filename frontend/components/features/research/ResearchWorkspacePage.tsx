@@ -359,7 +359,7 @@ export default function ResearchWorkspacePage({
 
   return (
     <AppShell language={language} onLanguageChange={setLanguage}>
-      <SectionCard>
+      <SectionCard className="research-workspace-shell-card">
         {loadStatus === "loading" ? (
           <div className="research-workspace-loading">
             <LoadingState message={tr("researchWsLoading")} />

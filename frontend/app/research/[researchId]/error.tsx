@@ -25,13 +25,13 @@ export default function ResearchDetailError({
   }, [error]);
 
   return (
-    <main style={{ padding: "2rem", maxWidth: "40rem", margin: "0 auto" }}>
+    <main className="route-error-shell">
       <SectionCard error>
         <ErrorAlert
           title="The Research Workspace could not be loaded."
           message="A temporary rendering problem occurred. Retry the page, or return to the research list. No invented metrics are shown."
         />
-        <div className="button-row" style={{ marginTop: "1rem", gap: "0.75rem" }}>
+        <div className="button-row route-error-shell__actions">
           <Button primary onClick={() => reset()}>
             Retry
           </Button>
