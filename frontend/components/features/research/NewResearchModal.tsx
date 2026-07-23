@@ -12,11 +12,25 @@ export type NewResearchModalLabels = {
   hypothesis: string;
   tags: string;
   tagsHint: string;
+  executionTitle: string;
+  executionHint: string;
+  symbol: string;
+  benchmark: string;
+  startDate: string;
+  endDate: string;
+  shortWindow: string;
+  longWindow: string;
+  transactionCost: string;
   create: string;
   cancel: string;
   errorName: string;
   errorQuestion: string;
   errorHypothesis: string;
+  errorSymbol: string;
+  errorShortWindow: string;
+  errorLongWindow: string;
+  errorDateRange: string;
+  errorTransactionCost: string;
 };
 
 export type NewResearchModalProps = {
@@ -33,6 +47,13 @@ function makeDefaultForm() {
     researchQuestion: "",
     hypothesis: "",
     tags: "",
+    symbol: "SPY",
+    benchmark: "SPY",
+    startDate: "2018-01-01",
+    endDate: "",
+    shortWindow: "20",
+    longWindow: "60",
+    transactionCost: "0.001",
   };
 }
 
@@ -73,6 +94,23 @@ export default function NewResearchModal({
     if (!form.name.trim()) return setError(labels.errorName);
     if (!form.researchQuestion.trim()) return setError(labels.errorQuestion);
     if (!form.hypothesis.trim()) return setError(labels.errorHypothesis);
+    if (!form.symbol.trim()) return setError(labels.errorSymbol);
+
+    const shortWindow = Number(form.shortWindow);
+    const longWindow = Number(form.longWindow);
+    const transactionCost = Number(form.transactionCost);
+    if (!Number.isInteger(shortWindow) || shortWindow <= 0) {
+      return setError(labels.errorShortWindow);
+    }
+    if (!Number.isInteger(longWindow) || longWindow <= shortWindow) {
+      return setError(labels.errorLongWindow);
+    }
+    if (form.endDate && form.startDate >= form.endDate) {
+      return setError(labels.errorDateRange);
+    }
+    if (!Number.isFinite(transactionCost) || transactionCost < 0) {
+      return setError(labels.errorTransactionCost);
+    }
 
     setError(null);
     await onCreate({
@@ -83,6 +121,16 @@ export default function NewResearchModal({
         .split(",")
         .map((tag) => tag.trim())
         .filter(Boolean),
+      runConfiguration: {
+        symbol: form.symbol.trim().toUpperCase(),
+        benchmark: (form.benchmark.trim() || form.symbol.trim()).toUpperCase(),
+        startDate: form.startDate,
+        endDate: form.endDate || null,
+        shortWindow,
+        longWindow,
+        transactionCost,
+        riskFreeRate: 0,
+      },
     });
     setForm(makeDefaultForm());
   }
@@ -128,6 +176,117 @@ export default function NewResearchModal({
               disabled={busy}
             />
           </div>
+
+          <fieldset className="research-modal__fieldset">
+            <legend>{labels.executionTitle}</legend>
+            <p className="section-meta">{labels.executionHint}</p>
+            <div className="research-modal__row">
+              <div className="form-field">
+                <label className="form-label" htmlFor="new-research-symbol">
+                  {labels.symbol} *
+                </label>
+                <input
+                  id="new-research-symbol"
+                  className="form-input"
+                  value={form.symbol}
+                  onChange={(event) => updateField("symbol", event.target.value)}
+                  required
+                  disabled={busy}
+                />
+              </div>
+              <div className="form-field">
+                <label className="form-label" htmlFor="new-research-benchmark">
+                  {labels.benchmark}
+                </label>
+                <input
+                  id="new-research-benchmark"
+                  className="form-input"
+                  value={form.benchmark}
+                  onChange={(event) => updateField("benchmark", event.target.value)}
+                  disabled={busy}
+                />
+              </div>
+            </div>
+            <div className="research-modal__row">
+              <div className="form-field">
+                <label className="form-label" htmlFor="new-research-start-date">
+                  {labels.startDate} *
+                </label>
+                <input
+                  id="new-research-start-date"
+                  className="form-input"
+                  type="date"
+                  value={form.startDate}
+                  onChange={(event) => updateField("startDate", event.target.value)}
+                  required
+                  disabled={busy}
+                />
+              </div>
+              <div className="form-field">
+                <label className="form-label" htmlFor="new-research-end-date">
+                  {labels.endDate}
+                </label>
+                <input
+                  id="new-research-end-date"
+                  className="form-input"
+                  type="date"
+                  value={form.endDate}
+                  onChange={(event) => updateField("endDate", event.target.value)}
+                  disabled={busy}
+                />
+              </div>
+            </div>
+            <div className="research-modal__row research-modal__row--three">
+              <div className="form-field">
+                <label className="form-label" htmlFor="new-research-short-window">
+                  {labels.shortWindow} *
+                </label>
+                <input
+                  id="new-research-short-window"
+                  className="form-input"
+                  type="number"
+                  min="1"
+                  step="1"
+                  value={form.shortWindow}
+                  onChange={(event) => updateField("shortWindow", event.target.value)}
+                  required
+                  disabled={busy}
+                />
+              </div>
+              <div className="form-field">
+                <label className="form-label" htmlFor="new-research-long-window">
+                  {labels.longWindow} *
+                </label>
+                <input
+                  id="new-research-long-window"
+                  className="form-input"
+                  type="number"
+                  min="2"
+                  step="1"
+                  value={form.longWindow}
+                  onChange={(event) => updateField("longWindow", event.target.value)}
+                  required
+                  disabled={busy}
+                />
+              </div>
+              <div className="form-field">
+                <label className="form-label" htmlFor="new-research-cost">
+                  {labels.transactionCost} *
+                </label>
+                <input
+                  id="new-research-cost"
+                  className="form-input"
+                  type="number"
+                  min="0"
+                  step="0.0001"
+                  value={form.transactionCost}
+                  onChange={(event) => updateField("transactionCost", event.target.value)}
+                  required
+                  disabled={busy}
+                />
+              </div>
+            </div>
+          </fieldset>
 
           <div className="form-field">
             <label className="form-label" htmlFor="new-research-question">

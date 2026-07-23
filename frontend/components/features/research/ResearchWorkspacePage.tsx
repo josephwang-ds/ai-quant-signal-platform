@@ -8,6 +8,7 @@ import ResearchSummaryRail from "@/components/features/research/ResearchSummaryR
 import ResearchWorkspaceHeader from "@/components/features/research/ResearchWorkspaceHeader";
 import ResearchWorkspaceSkeleton from "@/components/features/research/ResearchWorkspaceSkeleton";
 import ResearchPrimaryTabs from "@/components/features/research/ResearchPrimaryTabs";
+import DeleteResearchModal from "@/components/features/research/DeleteResearchModal";
 import ResearchWorkspaceMainSection from "@/components/features/research/workspace-tabs/ResearchWorkspaceMainSection";
 import Button from "@/components/ui/Button";
 import EmptyState from "@/components/ui/EmptyState";
@@ -16,6 +17,7 @@ import LoadingState from "@/components/ui/LoadingState";
 import SectionCard from "@/components/ui/SectionCard";
 import { getMockTimelineEvents } from "@/lib/mockNotebookCatalog";
 import { getResearchRepository } from "@/lib/localResearchRepository";
+import { CANONICAL_RESEARCH_ID } from "@/lib/canonicalMaCrossover";
 import { mergeTimelineEvents } from "@/lib/researchNotebook";
 import { resolveWorkspaceSection } from "@/lib/researchWorkspace";
 import {
@@ -98,6 +100,8 @@ export default function ResearchWorkspacePage({
   const [selectedExperimentId, setSelectedExperimentId] = useState<string | null>(
     null
   );
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [deletingResearch, setDeletingResearch] = useState(false);
 
   const [validationUnlocked, setValidationUnlocked] = useState(false);
   const [evaluationUnlocked, setEvaluationUnlocked] = useState(false);
@@ -357,6 +361,18 @@ export default function ResearchWorkspacePage({
     setSessionTimelineEvents((prev) => [payload.timelineEvent, ...prev]);
   }
 
+  async function handleDeleteResearch() {
+    if (researchId === CANONICAL_RESEARCH_ID) return;
+    setDeletingResearch(true);
+    try {
+      await getResearchRepository().deletePermanently(researchId);
+      setDeleteModalOpen(false);
+      router.replace("/");
+    } finally {
+      setDeletingResearch(false);
+    }
+  }
+
   return (
     <AppShell language={language} onLanguageChange={setLanguage}>
       <SectionCard className="research-workspace-shell-card">
@@ -398,6 +414,7 @@ export default function ResearchWorkspacePage({
                 back: tr("researchWsBackToList"),
                 moreActions: tr("researchWsMoreActions"),
                 moreActionsHint: tr("researchWsMoreActionsHint"),
+                deleteResearch: tr("researchListDelete"),
                 owner: tr("researchListOwner"),
                 created: tr("researchWsCreated"),
                 updated: tr("researchListUpdated"),
@@ -408,6 +425,11 @@ export default function ResearchWorkspacePage({
                 experiment: tr("researchWsHeroExperiment"),
                 experimentNotConfigured: tr("researchWsExperimentNotConfigured"),
               }}
+              onDeleteResearch={
+                displayResearch.id === CANONICAL_RESEARCH_ID
+                  ? undefined
+                  : () => setDeleteModalOpen(true)
+              }
             />
 
             <div className="research-workspace__layout">
@@ -544,6 +566,23 @@ export default function ResearchWorkspacePage({
           </div>
         ) : null}
       </SectionCard>
+      <DeleteResearchModal
+        open={deleteModalOpen}
+        researchName={displayResearch?.name ?? ""}
+        busy={deletingResearch}
+        onClose={() => {
+          if (!deletingResearch) setDeleteModalOpen(false);
+        }}
+        onConfirm={handleDeleteResearch}
+        labels={{
+          title: tr("researchListDeleteTitle"),
+          description: tr("researchListDeleteDescription"),
+          irreversible: tr("researchListDeleteIrreversible"),
+          confirm: tr("researchListDeleteConfirm"),
+          cancel: tr("researchListDeleteCancel"),
+          deleting: tr("researchListDeleting"),
+        }}
+      />
     </AppShell>
   );
 }

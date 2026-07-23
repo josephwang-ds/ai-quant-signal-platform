@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import type { Dispatch, ReactNode, SetStateAction } from "react";
 import ResearchExperiments from "@/components/features/research/experiments/ResearchExperiments";
 import ResearchValidationPanel from "@/components/features/research/validation/ResearchValidationPanel";
@@ -201,10 +202,15 @@ export default function EvidenceTab(props: EvidenceTabProps) {
     let validationBlock: ReactNode = null;
     if (!validationEnabled) {
       validationBlock = (
-        <ErrorAlert
-          title={tr("researchValUnavailableTitle")}
-          message={tr("researchValUnavailableDescription")}
-        />
+        <div className="research-execution-error">
+          <ErrorAlert
+            title={tr("researchValConfigurationRequiredTitle")}
+            message={tr("researchValConfigurationRequiredDescription")}
+          />
+          <Link href="/" className="btn btn--primary">
+            {tr("researchValBackToLibrary")}
+          </Link>
+        </div>
       );
     } else if (validationStatus === "loading") {
       validationBlock = <LoadingState message={tr("researchValLoading")} />;
@@ -297,7 +303,8 @@ export default function EvidenceTab(props: EvidenceTabProps) {
     return (
       <>
         {validationBlock}
-        <EvaluationBlock
+        {validationStatus === "ready" && validation?.validation_run_id ? (
+          <EvaluationBlock
             researchId={researchId}
             language={language}
             tr={tr}
@@ -307,6 +314,7 @@ export default function EvidenceTab(props: EvidenceTabProps) {
             evaluationError={evaluationError}
             reloadEvaluation={reloadEvaluation}
           />
+        ) : null}
       </>
     );
 

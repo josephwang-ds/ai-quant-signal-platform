@@ -32,6 +32,18 @@ export type LibraryLifecycleProgress = {
   current: LibraryLifecycleStageId | null;
 };
 
+/** Keep incomplete legacy drafts out of portfolio focus and workflow metrics. */
+export function hasExecutableProtocol(item: ResearchListItem): boolean {
+  const strategy = item.configuration.strategyName.trim().toLowerCase();
+  const symbol = item.configuration.symbol.trim();
+  return (
+    symbol !== "" &&
+    symbol !== "—" &&
+    strategy !== "not configured" &&
+    strategy !== "未配置"
+  );
+}
+
 /**
  * Map operational lifecycle status onto the product spine stages.
  * Only stages that are already past are marked completed.

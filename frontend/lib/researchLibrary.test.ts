@@ -5,6 +5,7 @@ import {
   getLibraryProgressRatio,
   getLibraryRecentActivity,
   getLibraryRecentActivityForResearchIds,
+  hasExecutableProtocol,
   getOverviewWorkflowProgress,
   getWorkspaceOverviewStats,
   overviewWorkflowTab,
@@ -62,6 +63,24 @@ describe("researchLibrary", () => {
 
   it("returns null continue target when the catalog is empty", () => {
     expect(selectContinueResearch([])).toBeNull();
+  });
+
+  it("keeps legacy unconfigured drafts out of portfolio focus", () => {
+    const configured = item({ id: "configured", name: "Configured" });
+    const legacyDraft = item({
+      id: "legacy-draft",
+      name: "Legacy draft",
+      configuration: {
+        symbol: "—",
+        benchmark: "—",
+        strategyName: "Not configured",
+        parameterLines: [],
+        dataRequirements: [],
+      },
+    });
+
+    expect(hasExecutableProtocol(configured)).toBe(true);
+    expect(hasExecutableProtocol(legacyDraft)).toBe(false);
   });
 
   it("marks only completed lifecycle stages for Validated research", () => {

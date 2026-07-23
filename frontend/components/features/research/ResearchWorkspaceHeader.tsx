@@ -31,6 +31,7 @@ export type ResearchWorkspaceHeaderLabels = {
   back: string;
   moreActions: string;
   moreActionsHint: string;
+  deleteResearch: string;
   owner: string;
   created: string;
   updated: string;
@@ -47,6 +48,7 @@ export type ResearchWorkspaceHeaderProps = {
   language: Language;
   labels: ResearchWorkspaceHeaderLabels;
   execution?: ResearchExecutionResult | null;
+  onDeleteResearch?: () => void;
 };
 
 /** Compact research hero — title, question, status, thin metadata. */
@@ -55,6 +57,7 @@ export default function ResearchWorkspaceHeader({
   language,
   labels,
   execution = null,
+  onDeleteResearch,
 }: ResearchWorkspaceHeaderProps) {
   const menuId = useId();
   const [menuOpen, setMenuOpen] = useState(false);
@@ -87,6 +90,18 @@ export default function ResearchWorkspaceHeader({
               role="menu"
             >
               <p className="section-meta">{labels.moreActionsHint}</p>
+              {onDeleteResearch ? (
+                <Button
+                  className="btn--danger-outline research-hero__delete"
+                  role="menuitem"
+                  onClick={() => {
+                    setMenuOpen(false);
+                    onDeleteResearch();
+                  }}
+                >
+                  {labels.deleteResearch}
+                </Button>
+              ) : null}
             </div>
           ) : null}
         </div>

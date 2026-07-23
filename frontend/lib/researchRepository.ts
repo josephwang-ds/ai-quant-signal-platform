@@ -3,7 +3,12 @@
  * Future backend: swap LocalResearchRepository for ApiResearchRepository.
  */
 
-import type { ResearchDetail, ResearchListItem, ResearchLifecycleStatus } from "@/types/research";
+import type {
+  ResearchDetail,
+  ResearchListItem,
+  ResearchLifecycleStatus,
+  ResearchRunConfiguration,
+} from "@/types/research";
 
 /** Research-first create — experiments / run config are added inside the research later. */
 export type CreateResearchInput = {
@@ -12,6 +17,7 @@ export type CreateResearchInput = {
   hypothesis: string;
   tags: string[];
   owner?: string;
+  runConfiguration?: ResearchRunConfiguration;
 };
 
 export type ResearchWorkspaceSnapshot = {
@@ -24,6 +30,7 @@ export interface ResearchRepository {
   getById(researchId: string): Promise<ResearchDetail | null>;
   create(input: CreateResearchInput): Promise<ResearchDetail>;
   archive(researchId: string): Promise<void>;
+  deletePermanently(researchId: string): Promise<void>;
   includeDemoResearch(): Promise<void>;
   getSummary(): Promise<{
     total: number;

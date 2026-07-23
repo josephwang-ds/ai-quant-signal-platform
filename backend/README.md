@@ -17,6 +17,10 @@ uses `MarketDataRouter` — see `docs/slices/multi-provider-market-data.md`.
 If AkShare is missing from the active env, `/api/data-sources/status` reports
 `installed: false` for the akshare provider.
 
+The production runtime installs both `xgboost` and `lightgbm`, because Compare
+Models selects those tree models by default. Runtime model dependencies belong
+in `requirements.txt`; Render does not install `requirements-dev.txt`.
+
 Copy environment template:
 
 ```bash

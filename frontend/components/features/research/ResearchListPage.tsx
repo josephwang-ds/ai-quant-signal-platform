@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import AppShell from "@/components/layout/AppShell";
 import PageHero from "@/components/layout/PageHero";
+import DeleteResearchModal from "@/components/features/research/DeleteResearchModal";
 import NewResearchModal from "@/components/features/research/NewResearchModal";
 import Button from "@/components/ui/Button";
 import EmptyState from "@/components/ui/EmptyState";
@@ -24,6 +25,7 @@ import {
 } from "@/lib/researchDisplay";
 import {
   getCurrentLibraryStage,
+  hasExecutableProtocol,
   getLibraryProgressRatio,
   getLibraryRecentActivityForResearchIds,
   getOverviewWorkflowProgress,
@@ -75,6 +77,10 @@ export default function ResearchListPage() {
   const [actionNotice, setActionNotice] = useState<string | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [creating, setCreating] = useState(false);
+  const [pendingDelete, setPendingDelete] = useState<ResearchListItem | null>(
+    null
+  );
+  const [deleting, setDeleting] = useState(false);
   const { status: executionStatus, execution } = useResearchExecution(
     CANONICAL_RESEARCH_ID
   );
@@ -109,22 +115,41 @@ export default function ResearchListPage() {
     );
   }, [items, executionStatus, execution]);
 
-  const continueResearch = useMemo(
-    () => selectContinueResearch(displayedItems),
+  const archivedItems = useMemo(
+    () =>
+      items.filter(
+        (item) =>
+          item.status === "Archived" && item.id !== CANONICAL_RESEARCH_ID
+      ),
+    [items]
+  );
+
+  const executableItems = useMemo(
+    () => displayedItems.filter(hasExecutableProtocol),
     [displayedItems]
   );
 
-  const stats = useMemo(
-    () => getWorkspaceOverviewStats(displayedItems),
+  const localDraftItems = useMemo(
+    () => displayedItems.filter((item) => !hasExecutableProtocol(item)),
     [displayedItems]
+  );
+
+  const continueResearch = useMemo(
+    () => selectContinueResearch(executableItems),
+    [executableItems]
+  );
+
+  const stats = useMemo(
+    () => getWorkspaceOverviewStats(executableItems),
+    [executableItems]
   );
 
   const recentActivity = useMemo(
     () =>
       getLibraryRecentActivityForResearchIds(
-        displayedItems.map((item) => item.id)
+        executableItems.map((item) => item.id)
       ).slice(0, 8),
-    [displayedItems]
+    [executableItems]
   );
 
   const workflowProgress = useMemo(
@@ -197,7 +222,36 @@ export default function ResearchListPage() {
     setReloadToken((token) => token + 1);
   }
 
-  const isCatalogEmpty = loadStatus === "ready" && displayedItems.length === 0;
+  function requestDelete(item: ResearchListItem) {
+    setActionNotice(null);
+    setPendingDelete(item);
+  }
+
+  async function handleDeleteResearch() {
+    if (!pendingDelete) return;
+
+    setDeleting(true);
+    setActionNotice(null);
+    const name = researchNameLabel(
+      pendingDelete.id,
+      pendingDelete.name,
+      language
+    );
+    try {
+      await repository.deletePermanently(pendingDelete.id);
+      setPendingDelete(null);
+      setActionNotice(tr("researchListDeleted").replace("{name}", name));
+      setReloadToken((token) => token + 1);
+    } catch (error) {
+      setActionNotice(
+        error instanceof Error ? error.message : tr("researchListDeleteFailed")
+      );
+    } finally {
+      setDeleting(false);
+    }
+  }
+
+  const isCatalogEmpty = loadStatus === "ready" && executableItems.length === 0;
 
   const continueHref = continueResearch
     ? `/research/${encodeURIComponent(continueResearch.id)}`
@@ -470,7 +524,7 @@ export default function ResearchListPage() {
                 />
               ) : (
                 <ul className="research-overview__library">
-                  {displayedItems.map((item) => {
+                  {executableItems.map((item) => {
                     const stage = getCurrentLibraryStage(item.status);
                     const ratio = getLibraryProgressRatio(item.status);
                     const pct = Math.round(ratio * 100);
@@ -529,15 +583,94 @@ export default function ResearchListPage() {
                               <span style={{ width: `${pct}%` }} />
                             </div>
                           </div>
-                          <Link href={href} className="btn">
-                            {tr("researchOverviewOpen")}
-                          </Link>
+                          <div className="research-overview__project-actions">
+                            <Link href={href} className="btn">
+                              {tr("researchOverviewOpen")}
+                            </Link>
+                            {item.id !== CANONICAL_RESEARCH_ID ? (
+                              <Button onClick={() => requestDelete(item)}>
+                                {tr("researchListDelete")}
+                              </Button>
+                            ) : null}
+                          </div>
                         </article>
                       </li>
                     );
                   })}
                 </ul>
               )}
+
+              {localDraftItems.length > 0 ? (
+                <details className="research-overview__archived">
+                  <summary>
+                    {tr("researchListLocalDrafts")} ({localDraftItems.length})
+                  </summary>
+                  <p className="research-overview__archived-hint">
+                    {tr("researchListLocalDraftsHint")}
+                  </p>
+                  <ul className="research-overview__archived-list">
+                    {localDraftItems.map((item) => {
+                      const href = `/research/${encodeURIComponent(item.id)}`;
+                      return (
+                        <li
+                          key={item.id}
+                          className="research-overview__archived-item"
+                        >
+                          <div>
+                            <strong>
+                              {researchNameLabel(item.id, item.name, language)}
+                            </strong>
+                            <span>{item.researchQuestion}</span>
+                          </div>
+                          <div className="research-overview__project-actions">
+                            <Link href={href} className="btn">
+                              {tr("researchOverviewOpen")}
+                            </Link>
+                            <Button
+                              className="btn--danger-outline"
+                              onClick={() => requestDelete(item)}
+                            >
+                              {tr("researchListDelete")}
+                            </Button>
+                          </div>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </details>
+              ) : null}
+
+              {archivedItems.length > 0 ? (
+                <details className="research-overview__archived">
+                  <summary>
+                    {tr("researchListArchivedLocal")} ({archivedItems.length})
+                  </summary>
+                  <p className="research-overview__archived-hint">
+                    {tr("researchListArchivedLocalHint")}
+                  </p>
+                  <ul className="research-overview__archived-list">
+                    {archivedItems.map((item) => (
+                      <li
+                        key={item.id}
+                        className="research-overview__archived-item"
+                      >
+                        <div>
+                          <strong>
+                            {researchNameLabel(item.id, item.name, language)}
+                          </strong>
+                          <span>{item.researchQuestion}</span>
+                        </div>
+                        <Button
+                          className="btn--danger-outline"
+                          onClick={() => requestDelete(item)}
+                        >
+                          {tr("researchListDelete")}
+                        </Button>
+                      </li>
+                    ))}
+                  </ul>
+                </details>
+              ) : null}
               </section>
 
               {/* 5. Recent Activity */}
@@ -623,11 +756,50 @@ export default function ResearchListPage() {
           hypothesis: tr("researchListModalHypothesis"),
           tags: tr("researchWsTags"),
           tagsHint: tr("researchListModalTagsHint"),
+          executionTitle: tr("researchListModalExecutionTitle"),
+          executionHint: tr("researchListModalExecutionHint"),
+          symbol: tr("researchListModalSymbol"),
+          benchmark: tr("researchListModalBenchmark"),
+          startDate: tr("researchListModalStartDate"),
+          endDate: tr("researchListModalEndDate"),
+          shortWindow: tr("researchListModalShortWindow"),
+          longWindow: tr("researchListModalLongWindow"),
+          transactionCost: tr("researchListModalTransactionCost"),
           create: tr("researchListModalCreate"),
           cancel: tr("researchListModalCancel"),
           errorName: tr("researchListModalNameRequired"),
           errorQuestion: tr("researchListModalQuestionRequired"),
           errorHypothesis: tr("researchListModalHypothesisRequired"),
+          errorSymbol: tr("researchListModalSymbolRequired"),
+          errorShortWindow: tr("researchListModalShortInvalid"),
+          errorLongWindow: tr("researchListModalLongInvalid"),
+          errorDateRange: tr("researchListModalDateInvalid"),
+          errorTransactionCost: tr("researchListModalCostInvalid"),
+        }}
+      />
+      <DeleteResearchModal
+        open={Boolean(pendingDelete)}
+        researchName={
+          pendingDelete
+            ? researchNameLabel(
+                pendingDelete.id,
+                pendingDelete.name,
+                language
+              )
+            : ""
+        }
+        busy={deleting}
+        onClose={() => {
+          if (!deleting) setPendingDelete(null);
+        }}
+        onConfirm={handleDeleteResearch}
+        labels={{
+          title: tr("researchListDeleteTitle"),
+          description: tr("researchListDeleteDescription"),
+          irreversible: tr("researchListDeleteIrreversible"),
+          confirm: tr("researchListDeleteConfirm"),
+          cancel: tr("researchListDeleteCancel"),
+          deleting: tr("researchListDeleting"),
         }}
       />
     </AppShell>

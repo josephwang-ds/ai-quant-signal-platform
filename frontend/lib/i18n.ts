@@ -634,7 +634,7 @@ export const translations = {
     researchLibraryContinueEmpty: "No research to continue yet.",
     researchLibraryCurrentStage: "Current stage",
     researchLibraryLastUpdated: "Last updated",
-    researchLibraryProjectsTitle: "Research library",
+    researchLibraryProjectsTitle: "Research case studies",
     researchLibraryEmptyTitle: "No research yet.",
     researchLibraryEmptyDescription:
       "Create or import a research project to begin.",
@@ -674,7 +674,8 @@ export const translations = {
     researchOverviewWorkflowValidation: "Validation",
     researchOverviewWorkflowRiskReview: "Risk review",
     researchOverviewWorkflowDeployment: "Deployment",
-    researchOverviewLibraryHint: "All active research threads in this workspace.",
+    researchOverviewLibraryHint:
+      "Executable studies with a defined market, strategy, and evidence path.",
     researchOverviewActivityHint:
       "Recent updates, experiments, validations, and stage changes.",
     researchOverviewActivityKindUpdate: "Update",
@@ -693,6 +694,24 @@ export const translations = {
     researchListDemoLoaded: "Demo research restored to the list.",
     researchListCreated: "Research created locally.",
     researchListCreateFailed: "Could not create research. Please retry.",
+    researchListDelete: "Delete",
+    researchListDeleteTitle: "Delete research permanently?",
+    researchListDeleteDescription:
+      '"{name}" will be removed from this browser.',
+    researchListDeleteIrreversible:
+      "This removes the complete local research definition and cannot be undone.",
+    researchListDeleteConfirm: "Delete permanently",
+    researchListDeleteCancel: "Cancel",
+    researchListDeleting: "Deleting…",
+    researchListDeleted:
+      '"{name}" was permanently deleted from this browser.',
+    researchListDeleteFailed: "Could not delete this research. Please retry.",
+    researchListArchivedLocal: "Archived local research",
+    researchListArchivedLocalHint:
+      "Archived research remains in browser storage until it is permanently deleted.",
+    researchListLocalDrafts: "Local drafts",
+    researchListLocalDraftsHint:
+      "Legacy drafts without an executable protocol stay outside portfolio statistics and the primary workflow.",
     researchListKpiResearch: "Total Research",
     researchListSummaryAria: "Research workspace summary",
     researchListKpiDefined: "Draft / Defined",
@@ -716,6 +735,16 @@ export const translations = {
     researchListModalDateInvalid: "Start date must be before end date.",
     researchListModalCostInvalid: "Transaction cost cannot be negative.",
     researchListModalTagsHint: "Optional — comma-separated tags",
+    researchListModalExecutionTitle: "Executable protocol",
+    researchListModalExecutionHint:
+      "These inputs let the workspace run research and generate validation evidence.",
+    researchListModalSymbol: "Symbol",
+    researchListModalBenchmark: "Benchmark",
+    researchListModalStartDate: "Start date",
+    researchListModalEndDate: "End date (optional)",
+    researchListModalShortWindow: "Short MA",
+    researchListModalLongWindow: "Long MA",
+    researchListModalTransactionCost: "Transaction cost",
     researchListModalCreate: "Create",
     researchListModalCancel: "Cancel",
     researchListTemplateMa: "Moving Average",
@@ -769,7 +798,7 @@ export const translations = {
     researchWsBackToList: "Back to Research",
     researchWsMoreActions: "More actions",
     researchWsMoreActionsHint:
-      "Rename, share, and destructive actions are deferred. No changes are applied in this mock.",
+      "Manage this local research. Permanent deletion is available for user-created research.",
     researchWsCreated: "Created",
     researchWsTags: "Tags",
     researchWsLoading: "Loading research workspace…",
@@ -1100,6 +1129,10 @@ export const translations = {
     researchValUnavailableTitle: "Validation evidence unavailable",
     researchValUnavailableDescription:
       "The backend did not return validation evidence. Mock outcomes are not shown.",
+    researchValConfigurationRequiredTitle: "Executable protocol required",
+    researchValConfigurationRequiredDescription:
+      "This legacy local draft has no symbol, date range, or strategy parameters. Delete it or create a configured research before running Validation.",
+    researchValBackToLibrary: "Back to Research Library",
     researchValRetry: "Retry validation",
     researchValStatus: "Status",
     researchValEvidenceComplete: "Evidence complete",
@@ -2447,7 +2480,7 @@ export const translations = {
     researchLibraryContinueEmpty: "暂无可继续的研究。",
     researchLibraryCurrentStage: "当前阶段",
     researchLibraryLastUpdated: "最近更新",
-    researchLibraryProjectsTitle: "研究库",
+    researchLibraryProjectsTitle: "研究案例",
     researchLibraryEmptyTitle: "尚无研究。",
     researchLibraryEmptyDescription: "创建或导入研究项目以开始。",
     researchLibraryLifecycleTitle: "研究生命周期",
@@ -2485,7 +2518,8 @@ export const translations = {
     researchOverviewWorkflowValidation: "验证",
     researchOverviewWorkflowRiskReview: "风险审阅",
     researchOverviewWorkflowDeployment: "部署",
-    researchOverviewLibraryHint: "本工作区全部活跃研究线程。",
+    researchOverviewLibraryHint:
+      "已定义市场、策略与证据路径的可执行研究。",
     researchOverviewActivityHint: "近期更新、实验、验证与阶段变更。",
     researchOverviewActivityKindUpdate: "更新",
     researchOverviewActivityKindBacktest: "回测",
@@ -2503,6 +2537,22 @@ export const translations = {
     researchListDemoLoaded: "已恢复演示研究到列表。",
     researchListCreated: "已在本地创建研究。",
     researchListCreateFailed: "无法创建研究，请重试。",
+    researchListDelete: "删除",
+    researchListDeleteTitle: "永久删除研究？",
+    researchListDeleteDescription: "“{name}”将从当前浏览器中移除。",
+    researchListDeleteIrreversible:
+      "这会删除完整的本地研究定义，且无法撤销。",
+    researchListDeleteConfirm: "永久删除",
+    researchListDeleteCancel: "取消",
+    researchListDeleting: "正在删除…",
+    researchListDeleted: "已从当前浏览器永久删除“{name}”。",
+    researchListDeleteFailed: "无法删除该研究，请重试。",
+    researchListArchivedLocal: "已归档的本地研究",
+    researchListArchivedLocalHint:
+      "归档研究仍保存在浏览器中，只有永久删除才会清除。",
+    researchListLocalDrafts: "本地草稿",
+    researchListLocalDraftsHint:
+      "没有可执行协议的旧版草稿不计入作品集统计，也不会成为主流程焦点。",
     researchListKpiResearch: "研究总数",
     researchListSummaryAria: "研究工作区摘要",
     researchListKpiDefined: "草稿 / 已定义",
@@ -2525,6 +2575,16 @@ export const translations = {
     researchListModalDateInvalid: "开始日期必须早于结束日期。",
     researchListModalCostInvalid: "交易成本不能为负数。",
     researchListModalTagsHint: "可选 — 逗号分隔的标签",
+    researchListModalExecutionTitle: "可执行研究协议",
+    researchListModalExecutionHint:
+      "这些参数用于运行研究并生成验证证据。",
+    researchListModalSymbol: "标的代码",
+    researchListModalBenchmark: "基准",
+    researchListModalStartDate: "开始日期",
+    researchListModalEndDate: "结束日期（可选）",
+    researchListModalShortWindow: "短期均线",
+    researchListModalLongWindow: "长期均线",
+    researchListModalTransactionCost: "交易成本",
     researchListModalCreate: "创建",
     researchListModalCancel: "取消",
     researchListTemplateMa: "均线交叉",
@@ -2577,7 +2637,7 @@ export const translations = {
     researchWsBackToList: "返回研究列表",
     researchWsMoreActions: "更多操作",
     researchWsMoreActionsHint:
-      "重命名、共享与破坏性操作延后实现。当前模拟不会修改状态。",
+      "管理当前本地研究。用户创建的研究可以永久删除。",
     researchWsCreated: "创建于",
     researchWsTags: "标签",
     researchWsLoading: "正在加载研究工作区…",
@@ -2886,6 +2946,10 @@ export const translations = {
     researchValUnavailableTitle: "验证证据不可用",
     researchValUnavailableDescription:
       "后端未返回验证证据，不展示模拟结果。",
+    researchValConfigurationRequiredTitle: "需要可执行研究协议",
+    researchValConfigurationRequiredDescription:
+      "该旧版本地草稿没有标的、日期范围和策略参数。请删除它，或新建一条已配置研究后再运行验证。",
+    researchValBackToLibrary: "返回研究库",
     researchValRetry: "重试验证",
     researchValStatus: "状态",
     researchValEvidenceComplete: "证据完整",

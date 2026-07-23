@@ -70,6 +70,9 @@ function buildUserResearch(input: CreateResearchInput): ResearchDetail {
   const tags = input.tags.map((tag) => tag.trim()).filter(Boolean);
   const hypothesis = input.hypothesis.trim();
   const researchQuestion = input.researchQuestion.trim();
+  const runConfiguration = input.runConfiguration
+    ? { ...input.runConfiguration }
+    : undefined;
 
   return {
     id,
@@ -96,14 +99,27 @@ function buildUserResearch(input: CreateResearchInput): ResearchDetail {
       evaluationPendingMessage: "Evaluation pending first validation evidence",
     },
     configuration: {
-      symbol: "—",
-      benchmark: "—",
-      strategyName: "Not configured",
-      parameterLines: [],
-      dataRequirements: [
-        "Define datasets and experiment protocols inside the research workspace",
-      ],
+      symbol: runConfiguration?.symbol ?? "—",
+      benchmark: runConfiguration?.benchmark ?? "—",
+      strategyName: runConfiguration
+        ? "Moving Average Crossover"
+        : "Not configured",
+      parameterLines: runConfiguration
+        ? [
+            `MA ${runConfiguration.shortWindow}/${runConfiguration.longWindow}`,
+            `Transaction cost ${runConfiguration.transactionCost}`,
+          ]
+        : [],
+      dataRequirements: runConfiguration
+        ? [
+            `${runConfiguration.symbol} adjusted daily prices`,
+            `${runConfiguration.benchmark} benchmark prices`,
+          ]
+        : [
+            "Define datasets and experiment protocols inside the research workspace",
+          ],
     },
+    runConfiguration,
     hypothesis,
     researchObjective: hypothesis || researchQuestion,
     researchSummary:
@@ -198,6 +214,17 @@ export class LocalResearchRepository implements ResearchRepository {
             currentRecommendation: "Archived from Research List",
           }
         : item
+    );
+    writeSnapshot(snapshot);
+  }
+
+  async deletePermanently(researchId: string): Promise<void> {
+    if (researchId === CANONICAL_RESEARCH_ID) {
+      throw new Error("The built-in demo research cannot be permanently deleted.");
+    }
+    const snapshot = readSnapshot();
+    snapshot.userResearch = snapshot.userResearch.filter(
+      (item) => item.id !== researchId
     );
     writeSnapshot(snapshot);
   }
