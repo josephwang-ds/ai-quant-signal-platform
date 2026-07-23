@@ -39,6 +39,7 @@ Unlike a backtest dashboard, the product is organised around research process in
 | Decision Center | Implemented — approval staging from existing evidence |
 | Risk Review | Implemented — five-level risk assessment from backtest metrics; deterministic and explainable (`component_levels` + `risk_reasons`) |
 | Compare Models | Implemented — rule strategies vs XGBoost/LightGBM and other ML models on the same out-of-sample window with leakage controls; compares Return / Sharpe / Drawdown / Turnover / Cost, plus feature importance and directional accuracy |
+| Cold-start recovery | Implemented — one shared readiness gate, visible startup state, bounded retry, and automatic continuation |
 | Archive | Implemented as a lifecycle stage — durable archive workflows remain limited |
 
 **Secondary / legacy tools** (reachable, not the product spine): Strategy Lab, Markets, Compare (rules-only), Data Center, Saved Runs, and older demo routes.
@@ -69,9 +70,19 @@ Backend evidence for the sample flows through:
 - `POST /api/v1/research/evaluation` (summarises validation only; not a lifecycle stage)
 - `POST /api/v1/research/copilot/query` (optional evidence-grounded explanation; supporting tool)
 
-Keep one browser session and wake the Render service before demos if using the free tier.
+### Cold-start behaviour
 
-The frontend includes a cold-start readiness gate: concurrent API calls share one backend wakeup, remain in a startup state for a bounded period, and continue automatically after `/health` succeeds. The scheduled GitHub warmup is an optimization, not the only recovery mechanism.
+Open the product normally, even when the Render free-tier backend may be asleep. The frontend:
+
+- starts one shared `/health` readiness request instead of letting every panel fail independently;
+- shows a visible **Starting research backend** state for a bounded 90-second window;
+- merges concurrent API callers behind the same wakeup request;
+- continues pending requests automatically after the backend responds — no refresh required;
+- preserves local research content and offers **Retry connection** if the backend remains unavailable.
+
+The `keep-warm` GitHub workflow runs on an offset five-minute schedule, retries transient connection failures, and touches `/api/database/status` after the process is awake. A failed health check marks the workflow red so an outdated `BACKEND_URL`, suspended Render service, or disabled schedule is visible. Scheduled warmup is an optimization, not a correctness dependency.
+
+Before an interview, confirm the latest `keep-warm` run is green and open [`/health`](https://ai-quant-signal-platform.onrender.com/health). If the startup notice appears, wait for it to clear rather than refreshing repeatedly.
 
 For interviews where the backend may be cold or unavailable, use the documented [frontend-safe walkthrough](docs/DEMO_MODE.md). It demonstrates the product structure and honest evidence boundaries without inventing calculated output.
 
