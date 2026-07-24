@@ -1,6 +1,7 @@
 "use client";
 
 import OverviewSection from "@/components/features/research/OverviewSection";
+import GovernanceAgentPanel from "@/components/features/research/governance/GovernanceAgentPanel";
 import ResearchDefinitionSummary from "@/components/features/research/ResearchDefinitionSummary";
 import ResearchReadinessSummary from "@/components/features/research/ResearchReadinessSummary";
 import { buildResearchReadinessModel } from "@/lib/researchReadiness";
@@ -29,6 +30,7 @@ export type OverviewTabProps = {
   evaluation: ResearchEvaluationResult | null;
   factorValidationStatus?: FactorValidationStatus;
   factorValidation?: FactorValidationResult | null;
+  isFactorTemplate?: boolean;
   reloadExecution: () => void;
   handleRunValidation: () => void;
   navigateToSection: (section: ResearchWorkspaceSection) => void;
@@ -47,6 +49,7 @@ export default function OverviewTab({
   evaluation,
   factorValidationStatus = "idle",
   factorValidation = null,
+  isFactorTemplate = false,
   reloadExecution,
   handleRunValidation,
   navigateToSection,
@@ -59,8 +62,19 @@ export default function OverviewTab({
       factorValidationStatus === "ready" ? factorValidation : null,
   });
 
+  const evidenceSnapshotId =
+    (isFactorTemplate
+      ? factorValidation?.validation_run_id
+      : validation?.validation_run_id) ?? null;
+
   return (
     <div className="overview-tab-stack">
+      <GovernanceAgentPanel
+        research={displayResearch}
+        isFactorTemplate={isFactorTemplate}
+        evidenceSnapshotId={evidenceSnapshotId}
+        language={language}
+      />
       <ResearchDefinitionSummary
         research={displayResearch}
         labels={{

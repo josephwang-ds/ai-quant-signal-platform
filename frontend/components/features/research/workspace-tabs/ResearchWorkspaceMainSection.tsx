@@ -192,6 +192,7 @@ export default function ResearchWorkspaceMainSection(
         evaluation={evaluation}
         factorValidationStatus={factorValidationStatus}
         factorValidation={factorValidation}
+        isFactorTemplate={isFactorTemplate}
         reloadExecution={reloadExecution}
         handleRunValidation={handleRunValidation}
         navigateToSection={navigateToSection}
@@ -256,6 +257,7 @@ export default function ResearchWorkspaceMainSection(
         factorValidationStatus={factorValidationStatus}
         factorValidation={factorValidation}
         navigateToSection={navigateToSection}
+        execution={executionStatus === "ready" ? execution : null}
       />
     );
   }
@@ -291,6 +293,7 @@ export default function ResearchWorkspaceMainSection(
         evaluation={evaluation}
         evaluationError={evaluationError}
         reloadEvaluation={reloadEvaluation}
+        isFactorTemplate={isFactorTemplate}
       />
     );
   }
