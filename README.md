@@ -1,186 +1,233 @@
 # AI Quant Research Workspace
 
-**A research operating system for turning quantitative hypotheses into reproducible evidence, robustness review, controlled paper observation, and governed decisions.**
+**An evidence-governed research operating system for turning quantitative hypotheses into reproducible experiments, robustness review, and human-owned decisions.**
+
+[Live demo](https://signals.josephjwang.com) · [Product story](docs/PROJECT_STORY.md) · [Architecture](docs/ARCHITECTURE.md) · [Governance Agent](docs/AGENT_GOVERNANCE.md) · [Three-minute demo](docs/DEMO_SCRIPT.md)
+
+[![CI](https://github.com/josephwang-ds/ai-quant-signal-platform/actions/workflows/ci.yml/badge.svg)](https://github.com/josephwang-ds/ai-quant-signal-platform/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-111111.svg)](LICENSE)
+[![Next.js](https://img.shields.io/badge/Next.js-15-111111?logo=nextdotjs)](frontend/package.json)
+[![FastAPI](https://img.shields.io/badge/FastAPI-Research_API-009688?logo=fastapi&logoColor=white)](backend/app/main.py)
+[![LangGraph](https://img.shields.io/badge/Agent-LangGraph-3578e5)](backend/app/research_agent)
+
+![AI Quant Research Workspace — Trend Following Study](docs/assets/readme/research-workspace-hero.jpg)
+
+> **Research First · Evidence Before Interpretation · Human Final**
+
+This is not a signal dashboard and it does not place trades. It is a portfolio-grade demonstration of how research questions, deterministic calculations, AI-assisted review, approval gates, and final decisions can coexist without confusing their authority.
 
 Research and portfolio demonstration only. Not investment advice. No broker integration. No live execution.
 
-[Product](docs/PRODUCT.md) · [Workflow](docs/RESEARCH_WORKFLOW.md) · [Governance Agent](docs/AGENT_GOVERNANCE.md) · [AI Reviewer](docs/AI_REVIEWER.md) · [Authenticity](docs/AUTHENTICITY.md) · [Demo script](docs/DEMO_SCRIPT.md) · [Stable demo modes](docs/DEMO_MODE.md) · [Project story](docs/PROJECT_STORY.md) · [Architecture](docs/ARCHITECTURE.md) · [Contributing](CONTRIBUTING.md)
+## Why this project is different
 
-> **Research First. AI Second. Decisions Last.**
-> **Evidence First · AI Second · Human Final**
+Most quant demos optimize for an impressive chart. This project optimizes for a conclusion that can be challenged.
+
+| Typical quant demo | This workspace |
+| --- | --- |
+| Starts with a ticker and a promising backtest | Starts with a falsifiable question and a frozen protocol |
+| Shows one best result | Exposes benchmark, OOS, sensitivity, cost, data-quality, and missing evidence |
+| Lets AI produce the answer | Deterministic services own every metric; AI may only interpret supplied evidence |
+| Mixes implemented work with roadmap language | Separates calculated checks, unavailable evidence, and unsupported methods |
+| Ends with a signal | Ends with a cited evidence snapshot and a human decision record |
+
+The main initiative was not “add an agent.” It was to define a credible research-control system and carry that decision through:
+
+- separate evidence contracts for Trend and Factor research;
+- research-type-specific, deterministic tool planning;
+- approval before expensive or state-changing work;
+- benchmark-aware `Promote / Hold / Reject` suggestions calculated outside the LLM;
+- honest unavailable states instead of placeholder metrics;
+- one shared cold-start recovery path for the deployed backend;
+- a focused Apple-inspired Bento interface that makes the workflow easy to present.
 
 ## Review it in three minutes
 
-Open the Research Library and choose **Start guided review**. The product walks through one sample study as four proof points:
+Open the [live demo](https://signals.josephjwang.com), select **Trend Following Study**, and follow one question through four proof points:
 
-1. **Question** — a falsifiable hypothesis and fixed research protocol
-2. **Evidence** — backend-calculated results and deterministic validation
-3. **Challenge** — four implemented robustness checks are separated from unsupported methods and limitations
-4. **Decision** — evidence informs a decision record; a human retains authority
+1. **Question** — inspect the hypothesis, frozen protocol, benchmark, and success criteria.
+2. **Evidence** — run the historical experiment and review deterministic validation.
+3. **Challenge** — inspect OOS, parameter, cost, data-quality, and robustness evidence alongside explicit scope boundaries.
+4. **Decision** — ask the Governance Agent to review the available evidence, then record the human outcome and rationale.
 
-This is the shortest path for customers, reviewers, and hiring teams. It demonstrates the product judgment, quantitative controls, and engineering boundaries without requiring prior knowledge of the repository.
+The shortest interview route is documented in [docs/DEMO_SCRIPT.md](docs/DEMO_SCRIPT.md). If the Render backend is waking up, the UI queues the request and resumes automatically; the [frontend-safe walkthrough](docs/DEMO_MODE.md) remains available without invented results.
 
-## Why this exists
+## Product workflow
 
-Quantitative research often fails when hypotheses, experiments, validation, and decisions live in disconnected tools. This workspace keeps one visible lifecycle:
-
-```text
-Research
-→ Experiment
-→ Validation
-→ Robustness
-→ Paper Observation
-→ Decision
+```mermaid
+flowchart LR
+    Q["1 · Research question"] --> E["2 · Historical experiment"]
+    E --> V["3 · Validation"]
+    V --> R["4 · Pressure test"]
+    R --> P["5 · Paper observation"]
+    P --> D["6 · Human decision"]
 ```
 
-Unlike a backtest dashboard, the product is organised around research process integrity: deterministic validation, honest empty states, and governed next steps — not charts alone.
+Two canonical studies demonstrate different evidence contracts:
 
-## What makes this project different
+| Study | Research type | Benchmark | Required evidence |
+| --- | --- | --- | --- |
+| **Trend Following Study** | Single-asset time-series | SPY Buy & Hold | execution, aligned benchmark, OOS, parameter sensitivity, cost sensitivity, data quality |
+| **Cross-Sectional Equity Factor Study** | Cross-sectional factor | Equal-Weight Universe plus zero RankIC / spread baselines | completed factor validation, benchmark result, calculated RankIC evidence |
 
-| Typical quant portfolio demo | This workspace |
-| --- | --- |
-| Starts with a ticker or a promising chart | Starts with a falsifiable question and a fixed protocol |
-| Highlights one best backtest | Exposes OOS, sensitivity, cost, data-quality, and missing checks |
-| Uses AI to produce the answer | Establishes facts deterministically before AI may explain them |
-| Mixes roadmap ideas with completed evidence | Keeps implemented checks, blockers, and unsupported methods visibly separate |
-| Ends with a signal | Ends with an evidence trail and a human-owned decision |
+## Architecture
 
-The initiative was not “add more screens.” It was to reframe the product from a signal dashboard into a reviewable research system, then carry that decision through the data contract, validation rules, UI states, cold-start recovery, and three-minute reviewer path.
+The deployable runtime is a modular monolith: Next.js owns presentation, FastAPI owns application orchestration, and deterministic research services own quantitative truth.
 
-The visual system adapts the MIT-licensed [Apple Bento Grid](https://github.com/hubeiqiao/apple-bento-grid) principles for an interactive product: a `#f5f5f7` canvas, full-height white cards, 6px grid rhythm, restrained accent colors, and a small number of dark or gradient highlight cards. It uses the system font stack, so the production build does not depend on remote font downloads.
+```mermaid
+flowchart TB
+    U["Researcher / Reviewer"] --> UI["Next.js 15 workspace"]
+    UI --> API["FastAPI API"]
 
-## What is implemented
+    API --> EXEC["Research execution"]
+    API --> VAL["Validation engines"]
+    API --> FACTOR["Factor validation"]
+    EXEC --> SNAP["Normalized evidence snapshot"]
+    VAL --> SNAP
+    FACTOR --> SNAP
 
-| Surface | Status |
-| --- | --- |
-| Research Library | Implemented — homepage entry for research projects |
-| Research Workspace | Implemented — lifecycle tabs for one research thread |
-| Research Definition Guidance | Implemented — editable, browser-saved question / hypothesis / null / mechanism / criteria templates; fully usable without an LLM |
-| DeepSeek Research Reviewer | Implemented — four focused, strict-JSON actions for definition, hypothesis, supplied evidence, and missing-step review; no automatic save or approval |
-| Experiment | Implemented — historical execution for the canonical MA study |
-| Benchmark Framework | Implemented — same-asset Buy and Hold for Trend Following; Equal-Weight Universe plus zero RankIC/spread baselines for Factor research |
-| Validation | Implemented — deterministic OOS, sensitivity, cost, data-quality evidence |
-| Robustness Center | Implemented — four evidence-backed checks; unsupported regime, walk-forward, Monte Carlo, and capacity methods are disclosed as scope boundaries |
-| Paper Observation | Implemented — creates a browser-local plan, records dated human notes, and closes the session; no trades or P&L |
-| Decision Center | Implemented — transparent deterministic checks suggest Promote / Hold / Reject readiness; the human outcome, override rationale, and evidence snapshot remain authoritative |
-| Evidence Governance Agent | Implemented — controlled LangGraph workflow with normalized Trend/Factor evidence, deterministic tool plans and decision suggestions, DeepSeek interpretation, human approval gates, and no trading authority |
-| Risk Review | Implemented — five-level risk assessment from backtest metrics; deterministic and explainable (`component_levels` + `risk_reasons`) |
-| Compare Models | Implemented — rule strategies vs XGBoost/LightGBM and other ML models on the same out-of-sample window with leakage controls; compares Return / Sharpe / Drawdown / Turnover / Cost, plus feature importance and directional accuracy |
-| Cold-start recovery | Implemented — one shared readiness gate, visible startup state, bounded retry, and automatic continuation |
-| Archive | Implemented as a real action for browser-local research; no empty Archive page |
+    API --> AGENT["LangGraph Governance Agent"]
+    RULES["Versioned Research Rulebook"] --> AGENT
+    SNAP --> AGENT
+    AGENT --> GATE{"Human tool approval"}
+    GATE --> EXEC
+    GATE --> VAL
+    GATE --> FACTOR
+    AGENT --> LLM["DeepSeek interpretation<br/>optional and read-only"]
 
-**Secondary / legacy tools** (reachable, not the product spine): Strategy Lab, Markets, Compare (rules-only), Data Center, Saved Runs, and older demo routes.
+    SNAP --> UI
+    LLM --> UI
+    UI --> HUMAN["Human decision record"]
 
-**Not implemented:** regime analysis, rolling walk-forward validation, Monte Carlo analysis, liquidity/capacity modelling, broker connectivity, production OMS, autonomous trading, and cross-browser durable research records.
-
-Details: [docs/ROADMAP.md](docs/ROADMAP.md).
-
-## Demo journey
-
-Canonical executable experiments:
-
-- **Trend Following Study** (`ma-crossover-spy`) — SPY MA20/MA60 vs buy-and-hold
-- **Cross-Sectional Equity Factor Study** (`cross-sectional-factor-sector-etfs`) — RankIC / Q1–Q5 factor validation on sector ETFs
-
-```text
-Research Library
-→ Open Trend Following Study
-→ Review Experiment
-→ Inspect Validation Evidence
-→ Review Robustness
-→ Create or review Paper Observation
-→ Record the Human Decision
+    DATA["Yahoo / AkShare market data"] --> EXEC
+    DB["Optional Supabase Postgres"] --> API
 ```
 
-Backend evidence for the sample flows through:
+### Authority boundaries
 
-- `POST /api/v1/research/execution`
-- `POST /api/v1/research/validation`
-- `POST /api/v1/research/evaluation` (summarises validation only; not a lifecycle stage)
-- `POST /api/v1/research/guidance/definition` (template-first definition guidance; optional constrained LLM refinement)
-- `POST /api/v1/research/reviewer/*` (four optional, structured DeepSeek reviewer actions)
-- `POST /api/v1/research/copilot/query` (optional evidence-grounded explanation; supporting tool)
+| Layer | Owns | Must not do |
+| --- | --- | --- |
+| Deterministic research services | backtests, benchmarks, validation metrics, evidence availability | delegate calculations to an LLM |
+| Governance Agent | workflow coordination, methodology retrieval, evidence review, approval pauses | invent metrics, choose arbitrary tools, trade, or approve deployment |
+| DeepSeek adapter | explain a supplied normalized snapshot in a strict schema | change completeness, tool plans, or decision suggestions |
+| Human reviewer | approve tools and record the final outcome and rationale | silently overwrite prior evidence |
 
-### Cold-start behaviour
+Deeper design: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) · [docs/RESEARCH_WORKFLOW.md](docs/RESEARCH_WORKFLOW.md) · [docs/adr/ADR-0010-quant-research-governance-agent.md](docs/adr/ADR-0010-quant-research-governance-agent.md)
 
-Open the product normally, even when the Render free-tier backend may be asleep. The frontend:
+## Evidence Governance Agent
 
-- starts one shared `/health` readiness request instead of letting every panel fail independently;
-- shows a visible **Starting research backend** state for a bounded three-minute window;
-- merges concurrent API callers behind the same wakeup request;
-- continues pending requests automatically after the backend responds — no refresh required;
-- preserves local research content and offers **Retry and resume** if the backend remains unavailable;
-- automatically reruns research evidence panels that failed before the shared connection recovered.
+![Evidence Governance Agent panel](docs/assets/readme/evidence-governance-agent.jpg)
 
-The `keep-warm` GitHub workflow requests an offset five-minute schedule, retries transient connection failures, and touches `/api/database/status` after the process is awake. GitHub scheduled workflows are best-effort and can be delayed or skipped, so observed runs may be much farther apart than the cron expression. A failed health check marks the workflow red so an outdated `BACKEND_URL`, suspended Render service, or disabled schedule is visible. Scheduled warmup is an optimization, not a correctness dependency.
-
-Before an interview, confirm the latest `keep-warm` run is green and open [`/health`](https://ai-quant-signal-platform.onrender.com/health). If the startup notice appears, wait for it to clear rather than refreshing repeatedly. For a no-cold-start public portfolio, use an always-on paid instance; changing the existing Render service to Starter is the lowest-migration option.
-
-For interviews where the backend may be cold or unavailable, use the documented [frontend-safe walkthrough](docs/DEMO_MODE.md). It demonstrates the product structure and honest evidence boundaries without inventing calculated output.
-
-## Authenticity
-
-- No fabricated PnL
-- No fake trades
-- No fake confidence scores
-- No fake paper-observation sessions, trades, or P&L
-- Calculated metrics come from backend responses only
-- Unimplemented methods are explicit scope boundaries — never implied complete or counted as workflow tasks
-
-Policy: [docs/AUTHENTICITY.md](docs/AUTHENTICITY.md) · [docs/data/AUTHENTICITY_POLICY.md](docs/data/AUTHENTICITY_POLICY.md) · [docs/KNOWN_LIMITATIONS.md](docs/KNOWN_LIMITATIONS.md) · [docs/DEMO_CONFIGURATIONS.md](docs/DEMO_CONFIGURATIONS.md)
-
-## Screenshots
-
-Captured from the live local workspace using `ma-crossover-spy` — not mocked or edited.
-
-| Screen | What it shows |
-| --- | --- |
-| ![Overview](docs/assets/screenshots/research-overview.png) | Research Workspace overview — question, lifecycle progress, next action |
-| ![Validation](docs/assets/screenshots/validation.png) | Validation evidence from backend checks (OOS, sensitivity, provenance) |
-| ![Robustness](docs/assets/screenshots/robustness.png) | Robustness Review — four implemented checks plus an explicit scope boundary |
-| ![Paper Observation](docs/assets/screenshots/paper-trading.png) | Paper Observation — bounded plan and dated notes, no fake session |
-| ![Decision](docs/assets/screenshots/decision.png) | Decision Center — human-authored outcome and rationale |
-
-Walkthrough: [docs/DEMO_SCRIPT.md](docs/DEMO_SCRIPT.md). Narrative: [docs/PROJECT_STORY.md](docs/PROJECT_STORY.md).
-
-## Current architecture
+The Agent is a controlled reviewer inside the research lifecycle, not a chatbot pasted beside a backtest.
 
 ```text
-Browser (Next.js on Vercel)
-  → FastAPI (Render)
-    → Market data (Yahoo / AkShare)
-    → Deterministic evidence (backtest, benchmark, validation, decision checks)
-    → Research guidance + focused AI reviewer (one backend-only provider adapter)
-    → Human decision record (never written by the LLM)
-    → Optional Supabase Postgres for durable legacy experiment records
+Classify intent
+→ load saved research context
+→ retrieve versioned methodology
+→ normalize the current evidence snapshot
+→ build a deterministic tool plan
+→ pause for human approval when required
+→ execute only registered deterministic tools
+→ refresh evidence
+→ optionally ask DeepSeek to interpret supplied facts
+→ calculate a deterministic decision suggestion
+→ wait for the human decision
 ```
+
+Key controls:
+
+- **Bounded graph:** maximum 24 nodes; no unbounded autonomous loop.
+- **Registered tools only:** no arbitrary code execution or open-ended HTTP tools.
+- **One model call at most:** planning and decision logic remain deterministic.
+- **Approval gates:** expensive validation and write-sensitive actions pause.
+- **Typed outputs:** LLM responses must satisfy strict Pydantic schemas.
+- **Dual citations:** methodology citations and calculated evidence IDs are kept structurally distinct.
+- **Safe degradation:** without an LLM key, the deterministic workflow still runs and AI interpretation is marked unavailable.
+- **No chain-of-thought exposure:** the UI receives concise workflow events, not hidden reasoning.
+
+Decision suggestions follow transparent rules:
+
+| Evidence state | Deterministic suggestion |
+| --- | --- |
+| Failed validation or failed benchmark | `Reject` |
+| Missing or incomplete required evidence | `Hold` |
+| Complete evidence with a passing benchmark | `Promote` |
+| Any remaining inconclusive state | `Hold` |
+
+The suggestion is review input. Only the human decision record is authoritative.
+
+Implementation: [`backend/app/research_agent/`](backend/app/research_agent) · API routes: [`backend/app/api/routes/research_agent.py`](backend/app/api/routes/research_agent.py) · Full policy: [docs/AGENT_GOVERNANCE.md](docs/AGENT_GOVERNANCE.md)
+
+## Implemented product surfaces
+
+| Surface | What is real today |
+| --- | --- |
+| Research Library | entry point for canonical Trend and Factor studies |
+| Research Definition | editable question, hypothesis, null, mechanism, criteria, and limitation templates; usable without an LLM |
+| Historical Experiment | reproducible MA crossover execution against same-asset Buy & Hold |
+| Factor Validation | RankIC and Q1–Q5 cross-sectional validation with explicit baselines |
+| Validation | chronological OOS, parameter sensitivity, cost sensitivity, and data-quality evidence |
+| Pressure Test | four evidence-backed checks plus visible unsupported-method boundaries |
+| Compare Models | rules vs XGBoost / LightGBM on the same OOS window with leakage controls |
+| Risk Review | deterministic five-level risk assessment with component levels and reasons |
+| Paper Observation | bounded, browser-local plan and dated human notes; no fake trades or P&L |
+| Decision Record | deterministic readiness suggestion, human override rationale, and evidence snapshot reference |
+| AI Research Reviewer | four focused strict-JSON actions for definition, hypothesis, supplied evidence, and missing steps |
+| Evidence Governance Agent | controlled LangGraph workflow over normalized evidence and approved tools |
+| Cold-start recovery | shared readiness gate, bounded retry, queued requests, and automatic continuation |
+
+Unsupported methods are documented rather than presented as empty product features: regime analysis, rolling walk-forward, Monte Carlo, liquidity/capacity modelling, broker connectivity, production OMS, and autonomous trading.
+
+See [docs/ROADMAP.md](docs/ROADMAP.md) and [docs/KNOWN_LIMITATIONS.md](docs/KNOWN_LIMITATIONS.md).
+
+## Evidence and authenticity
+
+The workspace uses a simple rule: if the backend did not calculate it, the UI does not present it as evidence.
+
+- no fabricated PnL, fills, trades, or confidence scores;
+- failed or incomplete validation stages never count as available;
+- unavailable evidence remains unavailable rather than becoming zero;
+- AI text is visually separate from calculated results;
+- paper observation is a research log, not simulated execution;
+- unimplemented methods are scope boundaries, not disabled promises.
+
+Policy: [docs/AUTHENTICITY.md](docs/AUTHENTICITY.md) · [docs/data/AUTHENTICITY_POLICY.md](docs/data/AUTHENTICITY_POLICY.md)
+
+## Cold-start design
+
+The public backend runs on Render and may be asleep on a free instance. The frontend treats startup as an application state instead of allowing every evidence panel to fail independently:
+
+1. one shared `/health` request wakes the backend;
+2. concurrent API calls join the same readiness promise;
+3. the UI shows a bounded startup notice and queues pending requests;
+4. requests resume automatically when health succeeds;
+5. local research content remains intact if startup fails;
+6. **Retry and resume** restarts the same user intent.
+
+The `keep-warm` GitHub workflow is an optimization, not a correctness dependency. GitHub schedules are best-effort; an always-on Render Starter instance is the lowest-migration option when cold starts are unacceptable.
+
+Before a live interview, confirm the latest `keep-warm` run is green and check the [backend health endpoint](https://ai-quant-signal-platform.onrender.com/health).
+
+## Tech stack
 
 | Layer | Technology |
 | --- | --- |
-| Frontend | Next.js 15, React 19, TypeScript |
-| Backend | FastAPI, Pydantic, pandas |
-| Tests | Vitest (frontend), pytest (backend) |
-| Deploy | Vercel + Render |
+| Frontend | Next.js 15, React 19, TypeScript, Vitest |
+| Backend | FastAPI, Pydantic v2, pandas, pytest |
+| Agent | LangGraph, strict schemas, backend-only OpenAI-compatible provider adapter |
+| Quant / ML | NumPy, scikit-learn, XGBoost, LightGBM |
+| Data | Yahoo Finance, AkShare; optional Supabase Postgres |
+| Deployment | Vercel + Render + GitHub Actions |
 
-Portfolio overview: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) · [docs/TECH_STACK.md](docs/TECH_STACK.md) · [docs/API.md](docs/API.md)
+The visual system adapts principles from the MIT-licensed [Apple Bento Grid](https://github.com/hubeiqiao/apple-bento-grid): a quiet `#f5f5f7` canvas, large editorial type, full-height cards, a consistent grid rhythm, and restrained accent surfaces. The implementation remains an interactive research product rather than a landing-page clone.
 
-## Current limitations
-
-- Research definitions may use browser-local persistence (`localStorage`); another browser will not see them
-- Paper Observation is a browser-local research log, not live execution
-- No broker connection and no production OMS
-- Regime, walk-forward, Monte Carlo, and liquidity/capacity methods are not implemented
-- Validation run state may be process-local on Render; a restart can invalidate in-memory run ids
-- LLM refinement, Reviewer, and Copilot require backend `LLM_*` configuration; deterministic templates and evidence remain fully available without it
-
-## Getting started
+## Run locally
 
 ### Prerequisites
 
 - Python 3.9+
-- Node.js 18+ and npm
+- Node.js 18.18+ and npm
 
-### Backend
+### 1. Start the backend
 
 ```bash
 cd backend
@@ -191,7 +238,7 @@ cp .env.example .env
 uvicorn app.main:app --reload --port 8000
 ```
 
-### Frontend
+### 2. Start the frontend
 
 ```bash
 cd frontend
@@ -200,62 +247,77 @@ cp .env.example .env.local
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000). API docs: [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs).
+Open [http://localhost:3000](http://localhost:3000). FastAPI docs are available at [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs).
 
-### Checks
+The deterministic research workflow works without an LLM key. To enable DeepSeek or another OpenAI-compatible provider, configure the backend-only `LLM_PROVIDER`, `LLM_API_KEY`, `LLM_BASE_URL`, and `COPILOT_MODEL` values described in [`backend/.env.example`](backend/.env.example). Never put provider secrets in `NEXT_PUBLIC_*`.
+
+## Verify the project
 
 ```bash
-cd backend && source .venv/bin/activate && PYTHONPATH=. python -m pytest tests -m "not live" -q
-cd frontend && npm test && npx tsc --noEmit && npm run build
+# Backend
+cd backend
+source .venv/bin/activate
+PYTHONPATH=. python -m pytest tests -m "not live" -q
+
+# Frontend
+cd frontend
+npm test
+npx tsc --noEmit
+npm run build
 ```
 
-CI: [`.github/workflows/ci.yml`](.github/workflows/ci.yml). Live provider checks are optional and manual — [docs/deployment/LIVE_DATA_VERIFICATION.md](docs/deployment/LIVE_DATA_VERIFICATION.md).
+Live data-provider checks are intentionally separate and manual: [docs/deployment/LIVE_DATA_VERIFICATION.md](docs/deployment/LIVE_DATA_VERIFICATION.md).
 
-More detail: [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) · [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md).
+## API map
 
-## Environment (summary)
+| Capability | Endpoint |
+| --- | --- |
+| Health / readiness | `GET /health` |
+| Research execution | `POST /api/v1/research/execution` |
+| Research validation | `POST /api/v1/research/validation` |
+| Evaluation summary | `POST /api/v1/research/evaluation` |
+| Definition guidance | `POST /api/v1/research/guidance/definition` |
+| Focused AI reviewer | `POST /api/v1/research/reviewer/*` |
+| Evidence-grounded Copilot | `POST /api/v1/research/copilot/query` |
+| Governance Agent | `POST /api/v1/research/agent/runs` |
+| Agent approval / resume | `POST /api/v1/research/agent/runs/{id}/resume` |
 
-| Variable | Scope | Purpose |
-| --- | --- | --- |
-| `NEXT_PUBLIC_API_BASE_URL` | frontend | Production backend URL (local default `http://127.0.0.1:8000`) |
-| `ALLOWED_ORIGINS` | backend | CORS origins |
-| `SUPABASE_DB_URL` | backend | Optional Postgres |
-| `LLM_PROVIDER` / `LLM_API_KEY` / `LLM_BASE_URL` / `COPILOT_MODEL` | backend | Copilot only; never `NEXT_PUBLIC_*` |
-
-Use checked-in `.env.example` files. Never commit secrets. Production API wiring: [docs/deployment/PRODUCTION_API_WIRING.md](docs/deployment/PRODUCTION_API_WIRING.md).
+Full reference: [docs/API.md](docs/API.md)
 
 ## Repository map
 
 ```text
 .
-├── frontend/                 # Next.js workspace
-├── backend/                  # FastAPI demonstrable runtime
-├── apps/api/                 # target modular API reference (not the live path)
-├── docs/                     # product, workflow, authenticity, architecture, slices, ADRs
+├── frontend/                  # Next.js product workspace
+├── backend/                   # FastAPI demonstrable runtime
+│   └── app/research_agent/    # LangGraph governance workflow
+├── apps/api/                  # target modular API reference, not the live runtime
+├── docs/                      # product, workflow, architecture, ADRs, demo guidance
+├── .github/workflows/         # CI and backend warm-up
 ├── CONTRIBUTING.md
-├── ROADMAP.md
-└── PROJECT_STRUCTURE.md
+└── README.md
 ```
 
-## Architecture migration (deeper context)
+The deployed path is `frontend/` + `backend/`. The `apps/api/` tree is an early target-shaped reference and is intentionally not presented as the live implementation.
 
-Longer-term design uses a modular monolith, DDD, Clean Architecture, and vertical slices. Frozen authority lives in the [Project Bible](docs/PROJECT_BIBLE.md) and [Architecture Bible](docs/Architecture-Bible/). The `apps/api/` tree is an early reference for that shape; `backend/` + `frontend/` remain the demonstrable runtime.
+## Documentation
 
-Migration notes: [MIGRATION_REPORT.md](MIGRATION_REPORT.md) · [PROJECT_STRUCTURE.md](PROJECT_STRUCTURE.md) · [ROADMAP.md](ROADMAP.md) · [docs/ROADMAP.md](docs/ROADMAP.md).
-
-## Contributing and governance
-
-- [CONTRIBUTING.md](CONTRIBUTING.md)
-- [DEVELOPMENT_WORKFLOW.md](DEVELOPMENT_WORKFLOW.md)
-- [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)
-- [SECURITY.md](SECURITY.md)
-- [CHANGELOG.md](CHANGELOG.md)
-- [docs/adr/](docs/adr/)
+- [Product definition](docs/PRODUCT.md)
+- [Project story and interview narrative](docs/PROJECT_STORY.md)
+- [Research workflow](docs/RESEARCH_WORKFLOW.md)
+- [Governance Agent](docs/AGENT_GOVERNANCE.md)
+- [AI Reviewer](docs/AI_REVIEWER.md)
+- [Architecture](docs/ARCHITECTURE.md)
+- [Three-minute demo](docs/DEMO_SCRIPT.md)
+- [Stable demo modes](docs/DEMO_MODE.md)
+- [Known limitations](docs/KNOWN_LIMITATIONS.md)
+- [Development](docs/DEVELOPMENT.md)
+- [Deployment](docs/DEPLOYMENT.md)
 
 ## Responsible use
 
-This software supports research demonstration and paper observation staging. It is not financial advice, does not guarantee results, and is not designed for live order execution. Historical results can differ from real outcomes.
+This software supports research demonstration and paper-observation staging. It does not provide financial advice, guarantee results, connect to a broker, or execute orders. Historical results can differ materially from real outcomes.
 
 ## License
 
-[MIT License](LICENSE). Copyright (c) 2026 Joseph Wang.
+[MIT License](LICENSE) · Copyright © 2026 Joseph Wang
