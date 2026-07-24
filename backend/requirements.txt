@@ -10,3 +10,4 @@ scikit-learn>=1.4
 xgboost>=2.0
 lightgbm>=4.3,<5.0
 statsmodels>=0.14.0
+shap>=0.44.0; python_version >= "3.9"

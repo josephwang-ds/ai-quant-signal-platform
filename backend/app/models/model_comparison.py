@@ -25,6 +25,11 @@ from app.backtest.engine import (
 )
 from app.backtest.metrics import calculate_backtest_metrics, calculate_buy_and_hold_metrics
 from app.backtest.oos import _rebase_segment_for_metrics
+from app.models.feature_interpretation import (
+    CAUSALITY_DISCLAIMER,
+    build_importance_research,
+    compute_importance_stability,
+)
 from app.models.features import FEATURE_COLUMNS, build_feature_frame, feature_set_payload
 from app.models.model_registry import (
     DEFAULT_MODELS,
@@ -55,6 +60,7 @@ MODEL_COMPARISON_INTERPRETATION = [
     "Compare strategies only on the shared out-of-sample interval after the split date.",
     "Directional accuracy measures next-day up/down hit rate — it is not a return promise.",
     "Review costs and turnover together with return and drawdown; frequent signals can erode edge.",
+    CAUSALITY_DISCLAIMER,
 ]
 
 WALK_FORWARD_INTERPRETATION_EXTRA = (
@@ -171,11 +177,14 @@ def _run_ml_model_on_split(
     pca_components: Optional[int],
     select_k: Optional[int],
     tune: bool = False,
+    y_test: pd.Series | None = None,
+    y_return_test: pd.Series | None = None,
 ) -> tuple[pd.Series, Any | None, dict[str, float], dict[str, Any]]:
     """
     Fit one model paradigm and return (signal, fitted_pipeline_or_None, importance, extras).
 
-    ``extras`` includes uses_features / paradigm / best_params (when tuned).
+    ``extras`` includes uses_features / paradigm / best_params / importance_research.
+    Importance research is diagnostic only and never alters ``signal``.
     """
     meta = get_model_meta(model_name)
     paradigm = str(meta["paradigm"])
@@ -185,10 +194,19 @@ def _run_ml_model_on_split(
         "uses_features": uses_features,
         "best_params": None,
         "tuned": False,
+        "importance_research": None,
     }
 
     if paradigm == "timeseries":
         signal = fit_arima_direction_signals(returns, train_index, test_index)
+        extras["importance_research"] = build_importance_research(
+            None,
+            X_test=X_test,
+            y_test=y_test if y_test is not None else pd.Series(dtype=float),
+            original_names=list(FEATURE_COLUMNS),
+            paradigm=paradigm,
+            native_importance={},
+        )
         return signal, None, {}, extras
 
     if paradigm == "offline_dl":
@@ -219,10 +237,24 @@ def _run_ml_model_on_split(
 
     if paradigm == "regressor":
         signal = _predict_regressor_signal(fitted, X_test)
+        y_perm = (
+            y_return_test
+            if y_return_test is not None
+            else y_return_train.reindex(X_test.index)
+        )
     else:
         signal = _predict_signal(fitted, X_test)
+        y_perm = y_test if y_test is not None else y_train.reindex(X_test.index)
 
     importance = importance_for_pipeline(fitted, FEATURE_COLUMNS)
+    extras["importance_research"] = build_importance_research(
+        fitted,
+        X_test=X_test,
+        y_test=y_perm,
+        original_names=list(FEATURE_COLUMNS),
+        paradigm=paradigm,
+        native_importance=importance,
+    )
     return signal, fitted, importance, extras
 
 
@@ -658,6 +690,8 @@ def run_model_comparison(
             pca_components=pca_components,
             select_k=select_k,
             tune=tune,
+            y_test=y_test,
+            y_return_test=aligned.loc[test_index, "y_next_return"],
         )
         if extras.get("tuned"):
             any_tuned = True
@@ -695,6 +729,7 @@ def run_model_comparison(
                         "directional accuracy — next-day up/down hit rate, not a return promise"
                     ),
                     "feature_importance": importance,
+                    "importance_research": extras.get("importance_research"),
                     "best_params": extras.get("best_params"),
                     "tuned": bool(extras.get("tuned")),
                 }
@@ -963,6 +998,9 @@ def run_walk_forward_comparison(
     importance_accum: dict[str, list[dict[str, float]]] = {
         name: [] for name in model_names
     }
+    importance_research_accum: dict[str, list[dict[str, Any]]] = {
+        name: [] for name in model_names
+    }
     best_params_by_model: dict[str, Optional[dict[str, Any]]] = {
         name: None for name in model_names
     }
@@ -1010,6 +1048,8 @@ def run_walk_forward_comparison(
                 pca_components=pca_components,
                 select_k=select_k,
                 tune=tune,
+                y_test=y_test,
+                y_return_test=aligned.loc[test_index, "y_next_return"],
             )
             if extras.get("best_params"):
                 best_params_by_model[model_name] = extras["best_params"]
@@ -1022,6 +1062,8 @@ def run_walk_forward_comparison(
             oos_signals[model_name].append(signal_test)
             oos_labels[model_name].append(y_test)
             importance_accum[model_name].append(importance)
+            research = extras.get("importance_research") or {}
+            importance_research_accum[model_name].append(research)
 
             fold_df = aligned.loc[test_index, ["date", "close", "daily_return"]].copy()
             fold_df["model_signal"] = signal_test.reindex(fold_df.index).astype(int)
@@ -1041,6 +1083,7 @@ def run_walk_forward_comparison(
                     "uses_features": extras["uses_features"],
                     "directional_accuracy": float(accuracy_score(y_test, signal_test)),
                     "sharpe_ratio": fold_metrics.get("sharpe_ratio"),
+                    "feature_importance": importance,
                 }
             )
 
@@ -1089,6 +1132,91 @@ def run_walk_forward_comparison(
             for key in sorted(keys)
         }
 
+    def _merge_importance_research(
+        parts: list[dict[str, Any]],
+        native_fold_parts: list[dict[str, float]],
+        native_avg: dict[str, float],
+    ) -> dict[str, Any]:
+        if not parts:
+            return {
+                "disclaimer": CAUSALITY_DISCLAIMER,
+                "methods": {},
+                "ranking": [],
+                "stability": compute_importance_stability(native_fold_parts),
+                "limitations": [],
+            }
+        method_keys = ("native", "permutation", "shap", "coefficient")
+        merged_methods: dict[str, Any] = {}
+        for method in method_keys:
+            value_parts = [
+                (part.get("methods") or {}).get(method) or {}
+                for part in parts
+            ]
+            available_parts = [
+                p for p in value_parts if p.get("available") and p.get("values")
+            ]
+            if not available_parts:
+                note = next(
+                    (p.get("note") for p in value_parts if p.get("note")),
+                    "Unavailable across folds.",
+                )
+                merged_methods[method] = {
+                    "available": False,
+                    "values": {},
+                    "note": note,
+                    **({"signed": {}} if method == "coefficient" else {}),
+                }
+                continue
+            avg_values = _avg_importance(
+                [dict(p.get("values") or {}) for p in available_parts]
+            )
+            entry: dict[str, Any] = {
+                "available": True,
+                "values": avg_values,
+                "note": available_parts[0].get("note"),
+            }
+            if method == "coefficient":
+                signed_parts = [
+                    dict(p.get("signed") or {})
+                    for p in available_parts
+                    if p.get("signed")
+                ]
+                entry["signed"] = _avg_importance(signed_parts) if signed_parts else {}
+            merged_methods[method] = entry
+
+        primary = (
+            "permutation" if merged_methods["permutation"]["available"] else "native"
+        )
+        if (
+            not merged_methods[primary]["available"]
+            and merged_methods["coefficient"]["available"]
+        ):
+            primary = "coefficient"
+        primary_values = merged_methods.get(primary, {}).get("values") or native_avg
+        ranking = [
+            {
+                "rank": i + 1,
+                "feature": name,
+                "score": float(score),
+                "method": primary,
+            }
+            for i, (name, score) in enumerate(
+                sorted(primary_values.items(), key=lambda item: item[1], reverse=True)
+            )
+        ]
+        limitations: list[str] = []
+        for part in parts:
+            for item in part.get("limitations") or []:
+                if item not in limitations:
+                    limitations.append(str(item))
+        return {
+            "disclaimer": CAUSALITY_DISCLAIMER,
+            "methods": merged_methods,
+            "ranking": ranking,
+            "stability": compute_importance_stability(native_fold_parts),
+            "limitations": limitations,
+        }
+
     for model_name in model_names:
         signal_oos = pd.concat(oos_signals[model_name], axis=0)
         y_oos = pd.concat(oos_labels[model_name], axis=0)
@@ -1108,6 +1236,7 @@ def run_walk_forward_comparison(
         meta = get_model_meta(model_name)
         _register_equity(label, backtest_df, value_col="cumulative_strategy")
 
+        native_avg = _avg_importance(importance_accum[model_name])
         results.append(
             _stamp_window(
                 {
@@ -1121,7 +1250,12 @@ def run_walk_forward_comparison(
                     "directional_accuracy_note": (
                         "directional accuracy — next-day up/down hit rate, not a return promise"
                     ),
-                    "feature_importance": _avg_importance(importance_accum[model_name]),
+                    "feature_importance": native_avg,
+                    "importance_research": _merge_importance_research(
+                        importance_research_accum[model_name],
+                        importance_accum[model_name],
+                        native_avg,
+                    ),
                     "best_params": best_params_by_model.get(model_name),
                     "tuned": bool(best_params_by_model.get(model_name)),
                 }
