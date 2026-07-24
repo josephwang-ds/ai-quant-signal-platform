@@ -1,0 +1,27 @@
+{
+  "note": "Regression fixtures protect calculation behavior. They do not guarantee future market performance.",
+  "factor_panel": {
+    "2020-01": {"A": 1, "B": 2, "C": 3, "D": 4, "E": 5, "F": 6, "G": 7, "H": 8, "I": 9, "J": 10},
+    "2020-02": {"A": 1, "B": 2, "C": 3, "D": 4, "E": 5, "F": 6, "G": 7, "H": 8, "I": 9, "J": 10}
+  },
+  "forward_panel": {
+    "2020-01": {"A": 0.0, "B": 0.01, "C": 0.02, "D": 0.03, "E": 0.04, "F": 0.05, "G": 0.06, "H": 0.07, "I": 0.08, "J": 0.09},
+    "2020-02": {"A": 0.0, "B": 0.01, "C": 0.02, "D": 0.03, "E": 0.04, "F": 0.05, "G": 0.06, "H": 0.07, "I": 0.08, "J": 0.09}
+  },
+  "cost_rate": 0.001,
+  "expected": {
+    "n_periods": 2,
+    "mean_rank_ic": 1.0,
+    "median_rank_ic": 1.0,
+    "positive_ic_ratio": 1.0,
+    "icir": null,
+    "q1_period_return_0": 0.005,
+    "q5_period_return_0": 0.085,
+    "long_short_period_0": 0.08,
+    "turnover_0": 1.0,
+    "turnover_1": 0.0,
+    "transaction_cost_0": 0.001,
+    "transaction_cost_total": 0.001,
+    "long_short_net_period_0": 0.079
+  }
+}

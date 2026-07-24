@@ -1,0 +1,22 @@
+{
+  "fixture": "spy_daily_sample.csv",
+  "protocol": {
+    "symbol": "SPY",
+    "start_date": "2018-01-01",
+    "short_window": 20,
+    "long_window": 60,
+    "transaction_cost": 0.001,
+    "risk_free_rate": 0.0
+  },
+  "note": "Regression fixtures protect calculation behavior. They do not guarantee future market performance.",
+  "strategy": {
+    "total_return": -0.14824090039928262,
+    "sharpe_ratio": -0.4560963076214183,
+    "maximum_drawdown": -0.2686702731687256,
+    "trade_count": 15,
+    "total_transaction_costs": 0.015000000000000001
+  },
+  "benchmark": {
+    "total_return": -0.00045376231132665534
+  }
+}
