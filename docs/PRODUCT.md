@@ -55,11 +55,14 @@ Details: [`RESEARCH_WORKFLOW.md`](RESEARCH_WORKFLOW.md).
 
 Demo and portfolio deployments must state: research only, not investment advice, no live trading, no broker connection. See [`AUTHENTICITY.md`](AUTHENTICITY.md).
 
-## Reference study
+## Reference studies
 
-One bundled sample exists for demonstration:
+Bundled samples for demonstration:
 
 - **Trend Following Study** (`ma-crossover-spy`)
-- Protocol: SPY MA20 / MA60 vs buy-and-hold
+  - Protocol: SPY MA20 / MA60 vs buy-and-hold
+- **Cross-Sectional Equity Factor Study** (`cross-sectional-factor-sector-etfs`)
+  - Factor validation on `us_sector_etfs` (Momentum / Low Volatility; Value Coming Soon)
+  - Evidence: RankIC / ICIR and equal-weight Q1–Q5 long–short — not portfolio optimization
 
-It demonstrates the lifecycle. It does not imply live investment use.
+They demonstrate the lifecycle. They do not imply live investment use.

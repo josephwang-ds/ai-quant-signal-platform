@@ -72,7 +72,10 @@ Details: [docs/ROADMAP.md](docs/ROADMAP.md).
 
 ## Demo journey
 
-Canonical executable experiment: **Trend Following Study** (`ma-crossover-spy`) — SPY MA20/MA60 vs buy-and-hold.
+Canonical executable experiments:
+
+- **Trend Following Study** (`ma-crossover-spy`) — SPY MA20/MA60 vs buy-and-hold
+- **Cross-Sectional Equity Factor Study** (`cross-sectional-factor-sector-etfs`) — RankIC / Q1–Q5 factor validation on sector ETFs
 
 ```text
 Research Library

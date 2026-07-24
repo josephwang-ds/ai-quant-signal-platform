@@ -24,6 +24,27 @@ Executable reference protocol remains SPY MA20/MA60 vs buy-and-hold.
 
 Source of truth: `frontend/lib/canonicalMaCrossover.ts`
 
+**Cross-Sectional Equity Factor Study** (`cross-sectional-factor-sector-etfs`)
+
+Factor **validation** workflow (not a trading strategy). Evidence from
+`POST /api/v1/research/factor-validation` only.
+
+| Field | Value |
+| --- | --- |
+| Universe | `us_sector_etfs` |
+| Factors (v1) | Momentum, Low Volatility (Value = Coming Soon) |
+| Rebalance | Monthly |
+| Evidence | RankIC / ICIR; Q1–Q5 equal-weight; Q5−Q1; turnover × cost |
+
+Source of truth: `frontend/lib/canonicalCrossSectionalFactor.ts`
+
+**Feature Interpretation** (`/feature-interpretation`)
+
+Diagnostic layer over `POST /api/v1/models/compare`. Importance methods
+(coefficient / permutation / optional SHAP) never invent values and never
+alter model signals or return metrics. SHAP unavailable → explicit API/UI
+state — no substitute numbers. Causality disclaimer always shown.
+
 ## Allowed static demo metadata
 
 - Research name, question, hypothesis, and objective

@@ -11,6 +11,7 @@ Authoritative numbering is sequential under the `ADR-NNNN` prefix.
 | [ADR-0005](ADR-0005-create-research-vertical-slice.md) | CreateResearch as the first modular-monolith vertical slice | Accepted |
 | [ADR-0006](ADR-0006-research-initial-state-draft.md) | Research initial state is Draft | Accepted |
 | [ADR-0007](ADR-0007-market-data-router.md) | Route market data by asset class behind MarketDataPort | Accepted |
+| [ADR-0008](ADR-0008-factor-validation-engine.md) | Factor Validation engine and Cross-Sectional Factor Study | Accepted |
 
 ## Numbering rules
 

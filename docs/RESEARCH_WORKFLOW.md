@@ -33,7 +33,12 @@ No calculated performance belongs here until execution succeeds.
 
 **Purpose:** run or review the historical protocol.
 
-In the current runtime, the executable template is the MA crossover research definition. Historical metrics come from `POST /api/v1/research/execution` using live provider data.
+In the current runtime, executable templates are:
+
+- **Trend Following** — MA crossover; historical metrics from `POST /api/v1/research/execution` / `.../validation`
+- **Cross-Sectional Equity Factor** — RankIC + quantile portfolios from `POST /api/v1/research/factor-validation`
+
+Both use live provider data through MarketDataRouter. Metrics are never fabricated in the UI.
 
 If execution has not run or the provider fails, the UI shows honest empty/error states — never substitute numbers.
 
