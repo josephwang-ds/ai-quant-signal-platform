@@ -218,6 +218,15 @@ Before a live interview, confirm the latest `keep-warm` run is green and check t
 | Data | Yahoo Finance, AkShare; optional Supabase Postgres |
 | Deployment | Vercel + Render + GitHub Actions |
 
+### Data availability
+
+The product exposes only provider paths that are suitable for a research walkthrough:
+
+- **Auto routing, Yahoo Finance, and AKShare** are the selectable research-data options.
+- **Crypto support is price-history only**; the product does not claim market-cap, volume-profile, or on-chain coverage.
+- **Stooq remains an internal last-resort fallback** in the legacy market-data service, but is deliberately not selectable in the UI because its public CSV endpoint can return browser-verification pages.
+- CSV upload, CoinGecko, Tushare, and BaoStock are not exposed as product capabilities because they are not implemented in this runtime.
+
 The visual system adapts principles from the MIT-licensed [Apple Bento Grid](https://github.com/hubeiqiao/apple-bento-grid): a quiet `#f5f5f7` canvas, large editorial type, full-height cards, a consistent grid rhythm, and restrained accent surfaces. The implementation remains an interactive research product rather than a landing-page clone.
 
 ## Run locally

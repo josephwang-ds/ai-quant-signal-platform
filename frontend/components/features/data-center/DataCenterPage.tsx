@@ -13,9 +13,7 @@ import {
   ASSET_CLASS_ROWS,
   coverageStatusBadgeVariant,
   coverageStatusLabelKey,
-  PLANNED_PROVIDER_CARDS,
   SYMBOL_FORMAT_ROWS,
-  YAHOO_USE_CASE_KEYS,
 } from "@/lib/dataCenterConfig";
 import { getDataSourceStatus, probePriceData } from "@/lib/api";
 import {
@@ -67,7 +65,6 @@ const PREFERRED_SOURCE_LABEL_KEYS: Record<MarketDataSource, TranslationKey> = {
   auto: "dcPreferredSourceOptionAuto",
   akshare: "dcPreferredSourceOptionAkshare",
   yahoo: "dcPreferredSourceOptionYahoo",
-  stooq: "dcPreferredSourceOptionStooq",
 };
 
 export default function DataCenterPage() {
@@ -152,7 +149,7 @@ export default function DataCenterPage() {
           title={tr("dataCenter")}
           description={tr("dataCenterPageDesc")}
         />
-        <div className="data-center-flow" aria-label={tr("dcFutureDataArchitecture")}>
+        <div className="data-center-flow" aria-label={tr("dcCurrentDataFlow")}>
           <span>{tr("dcFlowSource")}</span>
           <span aria-hidden="true">→</span>
           <span>{tr("dcFlowNormalize")}</span>
@@ -310,22 +307,6 @@ export default function DataCenterPage() {
       </SectionCard>
 
       <SectionCard className="data-center-reference-panel">
-        <SectionHeader title={tr("dcCurrentActiveProvider")} />
-        <article className="module-card">
-          <div className="module-card__header">
-            <h3 className="module-card__title">{tr("dcProviderYahoo")}</h3>
-            <StatusBadge label={tr("statusActive")} variant="success" />
-          </div>
-          <ul className="system-notes-list">
-            {YAHOO_USE_CASE_KEYS.map((key) => (
-              <li key={key}>{tr(key)}</li>
-            ))}
-          </ul>
-          <p className="section-meta">{tr("dcYahooNote")}</p>
-        </article>
-      </SectionCard>
-
-      <SectionCard className="data-center-reference-panel">
         <SectionHeader title={tr("dcAssetClassCoverage")} />
         <DataTable className="table-scroll">
           <thead>
@@ -359,24 +340,6 @@ export default function DataCenterPage() {
       </SectionCard>
 
       <SectionCard className="data-center-reference-panel">
-        <SectionHeader title={tr("dcPlannedProviders")} />
-        <div className="workspace-modules">
-          {PLANNED_PROVIDER_CARDS.map((provider) => (
-            <article key={provider.id} className="module-card">
-              <div className="module-card__header">
-                <h3 className="module-card__title">{tr(provider.titleKey)}</h3>
-                <StatusBadge
-                  label={tr(coverageStatusLabelKey(provider.status))}
-                  variant={coverageStatusBadgeVariant(provider.status)}
-                />
-              </div>
-              <p className="module-card__desc">{tr(provider.descKey)}</p>
-            </article>
-          ))}
-        </div>
-      </SectionCard>
-
-      <SectionCard className="data-center-reference-panel">
         <SectionHeader title={tr("dcSymbolFormatGuide")} />
         <DataTable>
           <thead>
@@ -398,16 +361,6 @@ export default function DataCenterPage() {
         </DataTable>
       </SectionCard>
 
-      <SectionCard className="data-center-architecture-panel">
-        <SectionHeader title={tr("dcFutureDataArchitecture")} />
-        <ul className="data-center-architecture-list">
-          <li>{tr("dcArchDataSource")}</li>
-          <li>{tr("dcArchNormalize")}</li>
-          <li>{tr("dcArchSchema")}</li>
-          <li>{tr("dcCachePlanned")}</li>
-          <li>{tr("dcDatabasePlanned")}</li>
-        </ul>
-      </SectionCard>
     </AppShell>
   );
 }

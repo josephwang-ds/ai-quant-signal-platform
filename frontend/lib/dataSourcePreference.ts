@@ -1,6 +1,6 @@
 /** 行情数据源全局偏好（localStorage），默认 auto。 */
 
-export const MARKET_DATA_SOURCES = ["auto", "akshare", "yahoo", "stooq"] as const;
+export const MARKET_DATA_SOURCES = ["auto", "akshare", "yahoo"] as const;
 
 export type MarketDataSource = (typeof MARKET_DATA_SOURCES)[number];
 

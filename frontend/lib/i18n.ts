@@ -1756,22 +1756,21 @@ export const translations = {
 
     dataCenter: "Data",
     dataCenterPageDesc:
-      "Manage data source coverage, symbol formats, asset classes, and future provider integration.",
+      "Inspect configured providers, verify supported routing, and review research-ready asset coverage.",
+    dcCurrentDataFlow: "Current data flow",
     dcFlowSource: "Source routing",
     dcFlowNormalize: "Normalization",
     dcFlowSchema: "Research-ready schema",
     dataCenterDesc:
-      "Documents current Yahoo/yfinance coverage, asset classes, symbol formats, and the planned multi-source roadmap.",
-    dcCurrentActiveProvider: "Current Active Provider",
+      "Verifies current provider routing, asset coverage, and supported symbol formats.",
     dcLiveProviderStatus: "Configured Provider Status",
     dcActiveProvider: "Active Provider",
     dcPreferredSource: "Preferred Data Source",
     dcPreferredSourceDesc:
-      "Default is auto (AKShare → Yahoo → Stooq). Lock a source to force it; failed locked sources do not fall back.",
-    dcPreferredSourceOptionAuto: "auto (failover)",
+      "Use auto for managed routing. Lock Yahoo or AKShare only when diagnosing a provider; failed locked sources do not fall back.",
+    dcPreferredSourceOptionAuto: "auto (managed routing)",
     dcPreferredSourceOptionAkshare: "akshare",
     dcPreferredSourceOptionYahoo: "yahoo",
-    dcPreferredSourceOptionStooq: "stooq",
     dcProbeSource: "Probe AAPL",
     dcProbeLoading: "Probing...",
     dcProbeSuccess: "Hit source",
@@ -1781,9 +1780,7 @@ export const translations = {
     dcProviderStatusError: "Could not load provider status.",
     dcStaticDocsFallback: "Static documentation is still available below.",
     dcAssetClassCoverage: "Asset Class Coverage",
-    dcPlannedProviders: "Planned Providers",
     dcSymbolFormatGuide: "Symbol Format Guide",
-    dcFutureDataArchitecture: "Future Data Architecture",
     dcColAssetClass: "Asset Class",
     dcColMarket: "Market",
     dcColExamples: "Example Symbols",
@@ -1792,17 +1789,7 @@ export const translations = {
     dcColNotes: "Notes",
     dcColFormatType: "Format",
     dcColSymbolExample: "Example",
-    dcProviderYahoo: "Yahoo / yfinance",
-    dcYahooNote:
-      "Yahoo/yfinance is used for research and demo purposes. It is not treated as trading-grade data.",
-    dcYahooUseUsStocks: "US stocks",
-    dcYahooUseEtfs: "ETFs",
-    dcYahooUseHkStocks: "HK stocks",
-    dcYahooUseCnBasic: "Basic China A-share through Yahoo symbols",
-    dcYahooUseCryptoBasic: "Basic crypto tickers",
-    dcYahooUseIndicesFxFutures: "Indices / FX / futures examples",
     dcSourceYahoo: "Yahoo / yfinance",
-    dcSourcePlanned: "Not connected",
     dcMarketUs: "US",
     dcMarketHk: "HK",
     dcMarketCn: "CN",
@@ -1810,7 +1797,6 @@ export const translations = {
     dcMarketGlobal: "Global",
     dcMarketFx: "FX",
     dcMarketFutures: "Futures",
-    dcMarketCustom: "Custom",
     dcAssetUsStocks: "US Stocks",
     dcAssetEtfs: "ETFs",
     dcAssetHkStocks: "HK Stocks",
@@ -1819,31 +1805,16 @@ export const translations = {
     dcAssetIndices: "Indices",
     dcAssetFx: "FX",
     dcAssetFutures: "Commodities / Futures",
-    dcAssetCsvUpload: "CSV Upload",
     dcNoteCnAkShare:
       "Mainland A-shares route to AKShare with qfq-adjusted daily bars.",
-    dcNoteCryptoCoinGecko: "CoinGecko planned for richer crypto market data.",
-    dcNoteCsvUpload: "For custom research datasets and model lab experiments.",
+    dcNoteCryptoLimitations:
+      "Price history only; market-cap, volume-profile, and on-chain datasets are not available.",
     dcRoutingMode: "Routing mode",
     dcProviderInstalled: "Installed",
     dcProviderConfigured: "Configured",
     dcProviderLiveHealth: "Live health checked",
     dcSymbolExamples: "Supported symbol examples",
     dcSourceAkShare: "AKShare",
-    dcAkShareTitle: "AKShare",
-    dcAkShareDesc:
-      "Active China-friendly free provider for A-shares and US equities. Primary source in auto failover.",
-    dcStooqTitle: "Stooq",
-    dcStooqDesc:
-      "Free CSV provider for US/HK/EU equities. Used as last fallback if bot checks block access.",
-    dcCoinGeckoTitle: "CoinGecko",
-    dcCoinGeckoDesc:
-      "Planned for crypto. Future use: market cap, volume, and historical crypto market data.",
-    dcCsvUploadTitle: "CSV Upload",
-    dcCsvUploadDesc:
-      "Planned for custom datasets. Future use: local experiments and Model Lab.",
-    dcTushareTitle: "Tushare / BaoStock",
-    dcTushareDesc: "Optional later. Future use: alternative China market data.",
     dcSymbolUsStock: "US stock",
     dcSymbolEtf: "ETF",
     dcSymbolHkStock: "HK stock",
@@ -1852,14 +1823,6 @@ export const translations = {
     dcSymbolCrypto: "Crypto via Yahoo",
     dcSymbolFx: "FX",
     dcSymbolFutures: "Futures",
-    dcArchDataSource:
-      "Data Source is where data comes from. Cache is temporary and rebuildable. Database stores durable research assets.",
-    dcArchNormalize:
-      "Future providers should normalize data into a common OHLCV schema before strategy or model code consumes it.",
-    dcArchSchema:
-      "Target normalized fields: date, open, high, low, close, volume, symbol, market, data_source, adjustment, currency.",
-    dcCachePlanned: "Cache layer: planned, not implemented.",
-    dcDatabasePlanned: "Database persistence: planned for research assets, not raw OHLCV in v1.",
     robustnessChecks: "Risk Review",
     robustnessChecksDesc:
       "Review the four deterministic checks that are implemented today.",
@@ -1939,7 +1902,7 @@ export const translations = {
     experimentsDesc:
       "Saved backtest runs, trade logs, strategy comparisons, model runs, and experiment history backed by the database.",
     moduleDataCenterOverviewDesc:
-      "Documents current Yahoo/yfinance coverage and planned AKShare, CoinGecko, and CSV data sources.",
+      "Inspect configured providers, supported asset coverage, and symbol formats.",
     moduleMarketWatchOverviewDesc:
       "Rank tickers, inspect signal components, and view indicator charts.",
     moduleStrategyLabOverviewDesc:
@@ -3777,22 +3740,21 @@ export const translations = {
 
     dataCenter: "数据",
     dataCenterPageDesc:
-      "管理数据源覆盖范围、代码格式、资产类别和未来数据提供方集成。",
+      "检查已配置数据源、验证支持的路由方式，并查看研究可用的资产覆盖。",
+    dcCurrentDataFlow: "当前数据流",
     dcFlowSource: "数据源路由",
     dcFlowNormalize: "标准化处理",
     dcFlowSchema: "研究就绪数据",
     dataCenterDesc:
-      "记录当前 Yahoo/yfinance 覆盖范围、资产类别、代码格式与多数据源规划路线图。",
-    dcCurrentActiveProvider: "当前启用数据源",
+      "验证当前数据源路由、资产覆盖和支持的代码格式。",
     dcLiveProviderStatus: "已配置数据源状态",
     dcActiveProvider: "当前启用数据源",
     dcPreferredSource: "首选数据源",
     dcPreferredSourceDesc:
-      "默认 auto（AKShare → Yahoo → Stooq）。锁定某一源则强制使用；锁定失败不会回退。",
-    dcPreferredSourceOptionAuto: "auto（自动回退）",
+      "建议使用 auto 管理路由。仅在诊断数据源时锁定 Yahoo 或 AKShare；锁定失败不会回退。",
+    dcPreferredSourceOptionAuto: "auto（托管路由）",
     dcPreferredSourceOptionAkshare: "akshare",
     dcPreferredSourceOptionYahoo: "yahoo",
-    dcPreferredSourceOptionStooq: "stooq",
     dcProbeSource: "探测 AAPL",
     dcProbeLoading: "探测中...",
     dcProbeSuccess: "实际命中",
@@ -3802,9 +3764,7 @@ export const translations = {
     dcProviderStatusError: "无法加载数据源状态。",
     dcStaticDocsFallback: "下方静态文档仍可查看。",
     dcAssetClassCoverage: "资产类别覆盖",
-    dcPlannedProviders: "规划中的数据源",
     dcSymbolFormatGuide: "代码格式指南",
-    dcFutureDataArchitecture: "未来数据架构",
     dcColAssetClass: "资产类别",
     dcColMarket: "市场",
     dcColExamples: "示例代码",
@@ -3813,17 +3773,7 @@ export const translations = {
     dcColNotes: "说明",
     dcColFormatType: "格式类型",
     dcColSymbolExample: "示例",
-    dcProviderYahoo: "Yahoo / yfinance",
-    dcYahooNote:
-      "Yahoo/yfinance 用于研究和演示目的，不作为交易级数据源。",
-    dcYahooUseUsStocks: "美股",
-    dcYahooUseEtfs: "ETF",
-    dcYahooUseHkStocks: "港股",
-    dcYahooUseCnBasic: "通过 Yahoo 代码的基础 A 股支持",
-    dcYahooUseCryptoBasic: "基础加密货币代码",
-    dcYahooUseIndicesFxFutures: "指数 / 外汇 / 期货示例",
     dcSourceYahoo: "Yahoo / yfinance",
-    dcSourcePlanned: "尚未接入",
     dcMarketUs: "美国",
     dcMarketHk: "香港",
     dcMarketCn: "中国",
@@ -3831,7 +3781,6 @@ export const translations = {
     dcMarketGlobal: "全球",
     dcMarketFx: "外汇",
     dcMarketFutures: "期货",
-    dcMarketCustom: "自定义",
     dcAssetUsStocks: "美股",
     dcAssetEtfs: "ETF",
     dcAssetHkStocks: "港股",
@@ -3840,29 +3789,15 @@ export const translations = {
     dcAssetIndices: "指数",
     dcAssetFx: "外汇",
     dcAssetFutures: "商品 / 期货",
-    dcAssetCsvUpload: "CSV 上传",
     dcNoteCnAkShare: "A 股通过 AKShare 路由，默认使用前复权（qfq）日线。",
-    dcNoteCryptoCoinGecko: "计划使用 CoinGecko 提供更丰富的加密市场数据。",
-    dcNoteCsvUpload: "用于自定义研究数据集与模型实验室实验。",
+    dcNoteCryptoLimitations:
+      "仅提供价格历史；不包含市值、成交量结构或链上数据。",
     dcRoutingMode: "路由模式",
     dcProviderInstalled: "已安装",
     dcProviderConfigured: "已配置",
     dcProviderLiveHealth: "已做实时健康检查",
     dcSymbolExamples: "支持的标的示例",
     dcSourceAkShare: "AKShare",
-    dcAkShareTitle: "AKShare",
-    dcAkShareDesc:
-      "已接入：国内更稳的免费源，覆盖 A 股与美股；auto 回退链中的首选。",
-    dcStooqTitle: "Stooq",
-    dcStooqDesc:
-      "免费 CSV 源，覆盖美股/港股/欧股；若触发浏览器校验则自动跳过。",
-    dcCoinGeckoTitle: "CoinGecko",
-    dcCoinGeckoDesc:
-      "规划用于加密货币。未来用途：市值、成交量与历史加密市场数据。",
-    dcCsvUploadTitle: "CSV 上传",
-    dcCsvUploadDesc: "规划用于自定义数据集。未来用途：本地实验与模型实验室。",
-    dcTushareTitle: "Tushare / BaoStock",
-    dcTushareDesc: "可选后续方案。未来用途：替代性中国市场数据。",
     dcSymbolUsStock: "美股",
     dcSymbolEtf: "ETF",
     dcSymbolHkStock: "港股",
@@ -3871,14 +3806,6 @@ export const translations = {
     dcSymbolCrypto: "Yahoo 加密货币",
     dcSymbolFx: "外汇",
     dcSymbolFutures: "期货",
-    dcArchDataSource:
-      "数据源是数据的来源。缓存是临时且可重建的。数据库保存持久研究资产。",
-    dcArchNormalize:
-      "未来所有数据提供方都应先标准化为统一 OHLCV 结构，再供策略和模型模块使用。",
-    dcArchSchema:
-      "目标标准化字段：date, open, high, low, close, volume, symbol, market, data_source, adjustment, currency。",
-    dcCachePlanned: "缓存层：已规划，尚未实现。",
-    dcDatabasePlanned: "数据库持久化：已规划用于研究资产，v1 不存储全量 OHLCV。",
     robustnessChecks: "风险评估",
     robustnessChecksDesc:
       "审阅当前真正实现的四项确定性检查。",
@@ -3958,7 +3885,7 @@ export const translations = {
     experimentsDesc:
       "保存的回测、交易日志、策略对比、模型运行记录与实验历史，由数据库持久化。",
     moduleDataCenterOverviewDesc:
-      "记录当前 Yahoo/yfinance 覆盖范围，以及规划中的 AKShare、CoinGecko 与 CSV 数据源。",
+      "查看已配置数据源、支持的资产覆盖和代码格式。",
     moduleMarketWatchOverviewDesc:
       "对标的进行信号排名，查看规则组成与指标图表。",
     moduleStrategyLabOverviewDesc:

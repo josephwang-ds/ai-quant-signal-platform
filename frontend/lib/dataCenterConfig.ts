@@ -1,6 +1,6 @@
 import type { TranslationKey } from "@/lib/i18n";
 
-export type CoverageStatus = "active" | "basic" | "planned" | "comingLater";
+export type CoverageStatus = "active" | "basic";
 
 export type AssetClassRow = {
   id: string;
@@ -12,27 +12,11 @@ export type AssetClassRow = {
   notesKey?: TranslationKey;
 };
 
-export type PlannedProviderCard = {
-  id: string;
-  titleKey: TranslationKey;
-  descKey: TranslationKey;
-  status: CoverageStatus;
-};
-
 export type SymbolFormatRow = {
   id: string;
   labelKey: TranslationKey;
   example: string;
 };
-
-export const YAHOO_USE_CASE_KEYS: TranslationKey[] = [
-  "dcYahooUseUsStocks",
-  "dcYahooUseEtfs",
-  "dcYahooUseHkStocks",
-  "dcYahooUseCnBasic",
-  "dcYahooUseCryptoBasic",
-  "dcYahooUseIndicesFxFutures",
-];
 
 export const ASSET_CLASS_ROWS: AssetClassRow[] = [
   {
@@ -75,7 +59,7 @@ export const ASSET_CLASS_ROWS: AssetClassRow[] = [
     examples: "BTC-USD, ETH-USD, SOL-USD",
     sourceKey: "dcSourceYahoo",
     status: "basic",
-    notesKey: "dcNoteCryptoCoinGecko",
+    notesKey: "dcNoteCryptoLimitations",
   },
   {
     id: "indices",
@@ -101,42 +85,6 @@ export const ASSET_CLASS_ROWS: AssetClassRow[] = [
     sourceKey: "dcSourceYahoo",
     status: "basic",
   },
-  {
-    id: "csv-upload",
-    assetClassKey: "dcAssetCsvUpload",
-    marketKey: "dcMarketCustom",
-    examples: "local CSV",
-    sourceKey: "dcSourcePlanned",
-    status: "planned",
-    notesKey: "dcNoteCsvUpload",
-  },
-];
-
-export const PLANNED_PROVIDER_CARDS: PlannedProviderCard[] = [
-  {
-    id: "stooq",
-    titleKey: "dcStooqTitle",
-    descKey: "dcStooqDesc",
-    status: "active",
-  },
-  {
-    id: "coingecko",
-    titleKey: "dcCoinGeckoTitle",
-    descKey: "dcCoinGeckoDesc",
-    status: "planned",
-  },
-  {
-    id: "csv",
-    titleKey: "dcCsvUploadTitle",
-    descKey: "dcCsvUploadDesc",
-    status: "planned",
-  },
-  {
-    id: "tushare",
-    titleKey: "dcTushareTitle",
-    descKey: "dcTushareDesc",
-    status: "comingLater",
-  },
 ];
 
 export const SYMBOL_FORMAT_ROWS: SymbolFormatRow[] = [
@@ -156,10 +104,6 @@ export function coverageStatusLabelKey(status: CoverageStatus): TranslationKey {
       return "statusActive";
     case "basic":
       return "statusBasicSupport";
-    case "planned":
-      return "statusPlanned";
-    case "comingLater":
-      return "statusComingLater";
   }
 }
 
@@ -170,9 +114,6 @@ export function coverageStatusBadgeVariant(
     case "active":
       return "success";
     case "basic":
-    case "planned":
       return "info";
-    case "comingLater":
-      return "neutral";
   }
 }
