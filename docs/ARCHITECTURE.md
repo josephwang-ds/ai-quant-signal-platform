@@ -47,6 +47,10 @@ Key conventions:
 | Validation | `backend/app/research_validation/` | OOS, parameter/cost sensitivity, data quality |
 | Evaluation | `backend/app/research_evaluation/` | Summarize validation evidence (no new metrics) |
 | Copilot | `backend/app/research_copilot/` | Evidence-grounded explanation via configured LLM |
+| Governance Agent | `backend/app/research_agent/` | LangGraph orchestration over approved deterministic tools + DeepSeek interpretation |
+| Research Rulebook | `backend/app/research_knowledge/` | Versioned methodology retrieval (lexical; no vector DB) |
+| AI Research Reviewer | `backend/app/research_copilot/reviewer_*` | Four strict-schema, research-only actions using the same provider adapter |
+| Research guidance | `backend/app/research_guidance/` | Deterministic definition templates plus optional schema-constrained LLM refinement |
 | Market data | `backend/app/data_providers/` + router | Yahoo (global) / AkShare (mainland A-shares) |
 | Legacy demos | `backend/app/main.py` routes | Market watch, backtest lab, paper trading APIs |
 
@@ -63,9 +67,31 @@ flowchart LR
 
 Backend slices calculate evidence for **execution**, **validation**, and **evaluation**. Robustness projects those implemented checks; Paper Observation and Decision persist human-authored browser-local records. Archive is a repository action. None invent fills, scores, or approvals.
 
+The runtime enforces three authority layers:
+
+1. `research_execution`, `factor_validation`, and `research_validation` own
+   deterministic evidence and benchmark checks.
+2. `research_guidance`, Research Reviewer, and `research_copilot` may propose
+   wording or explain existing evidence, but do not enter the calculation
+   dependency graph or persist changes automatically.
+3. the browser-local decision record owns the human outcome and preserves its
+   evidence snapshot reference.
+
 See [`RESEARCH_WORKFLOW.md`](RESEARCH_WORKFLOW.md).
 
 ## Module relationships
+
+```mermaid
+flowchart LR
+  UI[Browser Agent panel] --> API[Research Agent API]
+  API --> LG[LangGraph orchestration]
+  LG --> TOOLS[Approved deterministic tools]
+  TOOLS --> SNAP[Evidence snapshot]
+  SNAP --> DS[DeepSeek interpretation]
+  DS --> HUMAN[Human decision]
+  LG --> RB[Research Rulebook retrieval]
+  RB --> DS
+```
 
 ```mermaid
 flowchart LR
@@ -74,7 +100,9 @@ flowchart LR
   VAL --> EVAL[Evaluation summary]
   EVAL --> UI[Workspace centers]
   UI --> COP[Copilot interpretation]
+  UI --> AG[Governance Agent]
   COP -.->|never overrides| VAL
+  AG -.->|never overrides| VAL
 ```
 
 Bounded contexts (Architecture Bible): Research, Validation, Governance, Portfolio, Market Intelligence. Strategy remains the cross-context identity.

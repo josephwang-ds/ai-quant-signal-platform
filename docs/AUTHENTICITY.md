@@ -42,6 +42,8 @@ Static definition metadata is allowed. Calculated evidence appears only after su
 - Frontend authenticity regression tests (`frontend/lib/publicPreviewAuthenticity.test.ts` and related)
 - Backend research routes reject inventing metrics on provider failure
 - Copilot returns structured failure when the LLM is unavailable; it does not fabricate answers
+- Factor Copilot summarizes stored RankIC / ICIR / turnover / long–short evidence only; it does not forecast or recommend trades
+- Governance Agent orchestrates review with LangGraph; DeepSeek does not create quantitative truth
 
 ## Demo language
 

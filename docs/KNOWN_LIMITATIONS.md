@@ -21,5 +21,9 @@ This is not a signal generator, trading platform, or investment recommendation s
 16. **Single-asset ML sample size** — Compare Models on one symbol has limited statistical power.
 17. **Regime / cost / parameter sensitivity** — results can flip under different windows or costs.
 18. **Paper observation ≠ live capital** — paper stages are observational, not real deployment.
+19. **Governance Agent runs are process-local** — LangGraph MemorySaver / in-memory run store may be lost on Render restart.
+20. **Research Rulebook is curated local docs** — not a broad financial corpus or external paper search.
+21. **No autonomous multi-day research loops** — tool calls and planning cycles are hard-capped.
+22. **DeepSeek interpretation is imperfect** — all AI output requires human review; metrics stay deterministic.
 
-See also: [AUTHENTICITY.md](AUTHENTICITY.md), [DEMO_CONFIGURATIONS.md](DEMO_CONFIGURATIONS.md), ADR-0008.
+See also: [AUTHENTICITY.md](AUTHENTICITY.md), [AGENT_GOVERNANCE.md](AGENT_GOVERNANCE.md), [DEMO_CONFIGURATIONS.md](DEMO_CONFIGURATIONS.md), ADR-0008, ADR-0010.

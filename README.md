@@ -4,9 +4,10 @@
 
 Research and portfolio demonstration only. Not investment advice. No broker integration. No live execution.
 
-[Product](docs/PRODUCT.md) · [Workflow](docs/RESEARCH_WORKFLOW.md) · [Authenticity](docs/AUTHENTICITY.md) · [Demo script](docs/DEMO_SCRIPT.md) · [Stable demo modes](docs/DEMO_MODE.md) · [Project story](docs/PROJECT_STORY.md) · [Architecture](docs/ARCHITECTURE.md) · [Contributing](CONTRIBUTING.md)
+[Product](docs/PRODUCT.md) · [Workflow](docs/RESEARCH_WORKFLOW.md) · [Governance Agent](docs/AGENT_GOVERNANCE.md) · [AI Reviewer](docs/AI_REVIEWER.md) · [Authenticity](docs/AUTHENTICITY.md) · [Demo script](docs/DEMO_SCRIPT.md) · [Stable demo modes](docs/DEMO_MODE.md) · [Project story](docs/PROJECT_STORY.md) · [Architecture](docs/ARCHITECTURE.md) · [Contributing](CONTRIBUTING.md)
 
 > **Research First. AI Second. Decisions Last.**
+> **Evidence First · AI Second · Human Final**
 
 ## Review it in three minutes
 
@@ -54,11 +55,15 @@ The visual system adapts the MIT-licensed [Apple Bento Grid](https://github.com/
 | --- | --- |
 | Research Library | Implemented — homepage entry for research projects |
 | Research Workspace | Implemented — lifecycle tabs for one research thread |
+| Research Definition Guidance | Implemented — editable, browser-saved question / hypothesis / null / mechanism / criteria templates; fully usable without an LLM |
+| DeepSeek Research Reviewer | Implemented — four focused, strict-JSON actions for definition, hypothesis, supplied evidence, and missing-step review; no automatic save or approval |
 | Experiment | Implemented — historical execution for the canonical MA study |
+| Benchmark Framework | Implemented — same-asset Buy and Hold for Trend Following; Equal-Weight Universe plus zero RankIC/spread baselines for Factor research |
 | Validation | Implemented — deterministic OOS, sensitivity, cost, data-quality evidence |
 | Robustness Center | Implemented — four evidence-backed checks; unsupported regime, walk-forward, Monte Carlo, and capacity methods are disclosed as scope boundaries |
 | Paper Observation | Implemented — creates a browser-local plan, records dated human notes, and closes the session; no trades or P&L |
-| Decision Center | Implemented — saves a browser-local human outcome and rationale against the evidence review |
+| Decision Center | Implemented — transparent deterministic checks suggest Promote / Hold / Reject readiness; the human outcome, override rationale, and evidence snapshot remain authoritative |
+| DeepSeek Quant Research Governance Agent | Implemented — controlled LangGraph workflow with approved tools, Research Rulebook retrieval, human approval gates, and decision-review drafts; no trading authority |
 | Risk Review | Implemented — five-level risk assessment from backtest metrics; deterministic and explainable (`component_levels` + `risk_reasons`) |
 | Compare Models | Implemented — rule strategies vs XGBoost/LightGBM and other ML models on the same out-of-sample window with leakage controls; compares Return / Sharpe / Drawdown / Turnover / Cost, plus feature importance and directional accuracy |
 | Cold-start recovery | Implemented — one shared readiness gate, visible startup state, bounded retry, and automatic continuation |
@@ -92,6 +97,8 @@ Backend evidence for the sample flows through:
 - `POST /api/v1/research/execution`
 - `POST /api/v1/research/validation`
 - `POST /api/v1/research/evaluation` (summarises validation only; not a lifecycle stage)
+- `POST /api/v1/research/guidance/definition` (template-first definition guidance; optional constrained LLM refinement)
+- `POST /api/v1/research/reviewer/*` (four optional, structured DeepSeek reviewer actions)
 - `POST /api/v1/research/copilot/query` (optional evidence-grounded explanation; supporting tool)
 
 ### Cold-start behaviour
@@ -142,8 +149,9 @@ Walkthrough: [docs/DEMO_SCRIPT.md](docs/DEMO_SCRIPT.md). Narrative: [docs/PROJEC
 Browser (Next.js on Vercel)
   → FastAPI (Render)
     → Market data (Yahoo / AkShare)
-    → Deterministic backtesting and validation
-    → Optional evidence-grounded LLM explanation (backend secrets only)
+    → Deterministic evidence (backtest, benchmark, validation, decision checks)
+    → Research guidance + focused AI reviewer (one backend-only provider adapter)
+    → Human decision record (never written by the LLM)
     → Optional Supabase Postgres for durable legacy experiment records
 ```
 
@@ -163,7 +171,7 @@ Portfolio overview: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) · [docs/TECH_S
 - No broker connection and no production OMS
 - Regime, walk-forward, Monte Carlo, and liquidity/capacity methods are not implemented
 - Validation run state may be process-local on Render; a restart can invalidate in-memory run ids
-- Copilot requires backend `LLM_*` configuration; without it the route fails honestly
+- LLM refinement, Reviewer, and Copilot require backend `LLM_*` configuration; deterministic templates and evidence remain fully available without it
 
 ## Getting started
 

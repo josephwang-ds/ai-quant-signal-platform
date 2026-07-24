@@ -12,6 +12,8 @@ Authoritative numbering is sequential under the `ADR-NNNN` prefix.
 | [ADR-0006](ADR-0006-research-initial-state-draft.md) | Research initial state is Draft | Accepted |
 | [ADR-0007](ADR-0007-market-data-router.md) | Route market data by asset class behind MarketDataPort | Accepted |
 | [ADR-0008](ADR-0008-factor-validation-engine.md) | Factor Validation engine and Cross-Sectional Factor Study | Accepted |
+| [ADR-0009](ADR-0009-deepseek-research-reviewer.md) | DeepSeek as a governed research reviewer | Accepted |
+| [ADR-0010](ADR-0010-quant-research-governance-agent.md) | Controlled Quant Research Governance Agent | Accepted |
 
 ## Numbering rules
 
