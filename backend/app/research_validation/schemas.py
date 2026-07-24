@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any, Optional
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class ResearchValidationRequest(BaseModel):
@@ -22,6 +22,12 @@ class ResearchValidationRequest(BaseModel):
     transaction_cost: float = 0.001
     risk_free_rate: float = 0.0
     in_sample_ratio: float = 0.7
+    min_excess_return: float = 0.0
+    min_sharpe_difference: float = 0.0
+    min_drawdown_improvement: float = Field(default=0.05, ge=0)
+    min_cost_adjusted_return: float = 0.0
+    min_robust_parameter_ratio: float = Field(default=0.5, ge=0, le=1)
+    min_observations: int = Field(default=252, ge=1)
 
 
 class ValidationStage(BaseModel):
@@ -50,6 +56,7 @@ class ResearchValidationResponse(BaseModel):
     parameter_sensitivity: dict[str, Any]
     transaction_cost_sensitivity: dict[str, Any]
     data_quality: dict[str, Any]
+    benchmark_evaluation: dict[str, Any]
     warnings: list[str]
     generated_at: str
     # Opaque id under which this exact ValidationResult was saved. Evaluation

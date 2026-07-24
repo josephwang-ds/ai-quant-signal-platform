@@ -84,5 +84,6 @@ class AgentRunDetailResponse(BaseModel):
     recommended_next_steps: list[str] = Field(default_factory=list)
     errors: list[str] = Field(default_factory=list)
     trace: list[dict[str, Any]] = Field(default_factory=list)
+    step_count: int = 0
     started_at: Optional[str] = None
     completed_at: Optional[str] = None

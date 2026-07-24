@@ -23,6 +23,13 @@ const labels = {
   goToValidation: "Go to Validation",
   notConfigured: "Research Copilot is not configured for this deployment.",
   limitations: "The Copilot cannot approve strategies or predict returns.",
+  factorSummaryTitle: "Factor evidence summary",
+  factorRankIc: "RankIC",
+  factorIcir: "ICIR",
+  factorTurnover: "Turnover",
+  factorLongShort: "Long–short return",
+  factorStability: "Stability",
+  factorWarnings: "Warnings",
 };
 
 describe("ResearchCopilotPanel", () => {
@@ -86,6 +93,55 @@ describe("ResearchCopilotPanel", () => {
     expect(screen.getByText(/Stress testing evidence/i)).toBeInTheDocument();
     expect(screen.getByText(/Outstanding evidence/i)).toBeInTheDocument();
     expect(screen.getByText(labels.limitations)).toBeInTheDocument();
+  });
+
+  it("renders structured factor evidence summary without trade CTAs", () => {
+    render(
+      <ResearchCopilotPanel
+        labels={labels}
+        sampleQuestions={["What does the RankIC evidence show?"]}
+        status="ready"
+        result={{
+          research_id: "cross-sectional-factor-sector-etfs",
+          answer:
+            "Factor validation evidence summary (historical research only).",
+          citations: [
+            {
+              source_type: "factor_validation",
+              source_id: "val-factor-1",
+              label: "RankIC summary",
+              excerpt: "mean_rank_ic=0.12",
+            },
+          ],
+          warnings: [],
+          grounding_status: "grounded",
+          model: "fake-copilot-v1",
+          generated_at: "2026-07-15T00:00:00Z",
+          factor_summary: {
+            rank_ic: "0.12",
+            icir: "0.8",
+            turnover: "0.42",
+            long_short_return: "0.15",
+            stability: "RankIC sign consistent in both halves.",
+            warnings: ["demo_synthetic_universe"],
+            citation_ids: ["factor:rank_ic"],
+          },
+        }}
+        error={null}
+        question="What does the RankIC evidence show?"
+        onQuestionChange={vi.fn()}
+        onAsk={vi.fn()}
+        onSampleQuestion={vi.fn()}
+      />
+    );
+
+    expect(screen.getByText(labels.factorSummaryTitle)).toBeInTheDocument();
+    expect(screen.getByText("0.12")).toBeInTheDocument();
+    expect(screen.getByText("0.8")).toBeInTheDocument();
+    expect(screen.getByText("0.42")).toBeInTheDocument();
+    expect(screen.getByText("0.15")).toBeInTheDocument();
+    expect(screen.queryByText(/buy/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/sell/i)).not.toBeInTheDocument();
   });
 
   it("shows honest unavailable state without a fake answer", () => {

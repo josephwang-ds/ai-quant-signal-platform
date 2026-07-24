@@ -17,6 +17,12 @@ class ResearchExecutionRequest(BaseModel):
     long_window: int = Field(default=60, gt=0)
     transaction_cost: float = Field(default=0.001, ge=0)
     risk_free_rate: float = Field(default=0.0)
+    min_excess_return: float = Field(default=0.0)
+    min_sharpe_difference: float = Field(default=0.0)
+    min_drawdown_improvement: float = Field(default=0.05, ge=0)
+    min_observations: int = Field(default=252, ge=1)
+    min_cost_adjusted_return: float = Field(default=0.0)
+    min_robust_parameter_ratio: float = Field(default=0.5, ge=0, le=1)
 
     @field_validator("symbol", "benchmark")
     @classmethod
@@ -38,6 +44,7 @@ class ResearchExecutionResponse(BaseModel):
     provenance: dict[str, Any]
     metrics: dict[str, Any]
     benchmark_metrics: dict[str, Any]
+    benchmark_comparison: dict[str, Any]
     series: list[dict[str, Any]]
     warnings: list[str]
     generated_at: str

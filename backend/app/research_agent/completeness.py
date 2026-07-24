@@ -11,6 +11,19 @@ def _has_text(value: Any) -> bool:
     return isinstance(value, str) and bool(value.strip())
 
 
+def _active_success_criteria(definition: dict[str, Any]) -> list[dict[str, Any]]:
+    criteria = definition.get("success_criteria") or []
+    return [
+        item
+        for item in criteria
+        if isinstance(item, dict)
+        and (
+            item.get("active") is True
+            or str(item.get("status") or "").lower() == "active"
+        )
+    ]
+
+
 def assess_research_completeness(
     *,
     research_definition: dict[str, Any] | None,
@@ -22,6 +35,7 @@ def assess_research_completeness(
     snapshot = evidence_snapshot or {}
     available = snapshot.get("availability") or {}
 
+    active_criteria = _active_success_criteria(definition)
     items = [
         {
             "id": "research_question",
@@ -50,9 +64,9 @@ def assess_research_completeness(
         },
         {
             "id": "success_criteria",
-            "label": "Success Criteria",
+            "label": "Active Success Criteria",
             "status": "complete"
-            if definition.get("success_criteria")
+            if active_criteria
             else "incomplete",
         },
         {
@@ -78,18 +92,15 @@ def assess_research_completeness(
             "label": "Robustness",
             "status": "complete"
             if available.get("robustness") is True
-            else (
-                "not_applicable"
-                if research_type == "factor" and available.get("factor_validation")
-                else "incomplete"
-            ),
+            else "not_applicable"
+            if research_type == "factor"
+            else "incomplete",
         },
         {
             "id": "known_limitations",
             "label": "Known Limitations",
             "status": "complete"
             if definition.get("known_limitations")
-            or available.get("known_limitations") is True
             else "incomplete",
         },
         {
@@ -106,8 +117,12 @@ def assess_research_completeness(
             item["status"] = "blocked"
 
     countable = [i for i in items if i["status"] != "not_applicable"]
+    pre_decision = [i for i in countable if i["id"] != "decision"]
     completed = sum(1 for i in countable if i["status"] == "complete")
     total = len(countable)
+    decision_ready = bool(pre_decision) and all(
+        item["status"] == "complete" for item in pre_decision
+    )
     overall: CompletenessStatus
     if any(i["status"] == "blocked" for i in items):
         overall = "blocked"
@@ -121,6 +136,11 @@ def assess_research_completeness(
         "workflow_completion_pct": round(100.0 * completed / total, 1) if total else 0.0,
         "completed_count": completed,
         "total_count": total,
+        "decision_ready": decision_ready,
+        "pre_decision_completed_count": sum(
+            1 for item in pre_decision if item["status"] == "complete"
+        ),
+        "pre_decision_total_count": len(pre_decision),
         "items": items,
         "label": "Research Workflow Completion",
         "note": "Workflow completeness only — not probability of success or AI confidence.",

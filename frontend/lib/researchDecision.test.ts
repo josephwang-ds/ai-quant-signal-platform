@@ -182,7 +182,7 @@ describe("buildDecisionCenterModel", () => {
     );
   });
 
-  it("becomes ready when all implemented evidence is complete", () => {
+  it("remains under review when stages are complete but metric checks are unavailable", () => {
     const completedEvidence = [
       ["parameter_sensitivity", "Parameter sensitivity"],
       ["benchmark_comparison", "Benchmark comparison"],
@@ -204,8 +204,56 @@ describe("buildDecisionCenterModel", () => {
         incomplete_stages: [],
       }),
     });
-    expect(model.decisionStatus).toBe("ready");
+    expect(model.decisionStatus).toBe("under_review");
+    expect(model.suggestedDecision).toBe("hold");
+    expect(model.missingChecks.length).toBeGreaterThan(0);
     expect(model.remainingRiskIds).toEqual([]);
     expect(model.checklist.every((item) => item.status === "completed")).toBe(true);
+  });
+
+  it("prefers hold when deterministic core evidence conflicts", () => {
+    const model = buildDecisionCenterModel({
+      research,
+      validation: baseValidation({
+        benchmark_evaluation: {
+          benchmark_type: "same_asset_buy_and_hold",
+          primary_benchmark: "SPY Buy and Hold",
+          why_appropriate: "Same asset and aligned period.",
+          comparison_period: { aligned: true },
+          cost_assumption: "Configured transaction cost.",
+          risk_adjusted_method: "Sharpe difference.",
+          configured_success_criteria: {},
+          comparison: {},
+          checks: [
+            {
+              check_id: "return",
+              name: "Return",
+              status: "pass",
+              observed_value: 0.1,
+              configured_threshold: 0,
+              explanation: "passed",
+              evidence_source: "metrics.return",
+              severity: "core",
+            },
+            {
+              check_id: "oos",
+              name: "OOS",
+              status: "fail",
+              observed_value: -0.1,
+              configured_threshold: 0,
+              explanation: "failed",
+              evidence_source: "validation.oos",
+              severity: "core",
+            },
+          ],
+          verdict: "partial",
+          rationale: "Mixed evidence.",
+        },
+      }),
+      evaluation: baseEvaluation(),
+    });
+
+    expect(model.conflictingEvidence).toHaveLength(1);
+    expect(model.suggestedDecision).toBe("hold");
   });
 });

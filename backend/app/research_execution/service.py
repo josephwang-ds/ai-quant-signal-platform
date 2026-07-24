@@ -11,6 +11,7 @@ from app.research_execution.calculations import (
     run_ma_crossover_research,
     series_to_records,
 )
+from app.research_execution.benchmark import build_trend_benchmark_comparison
 from app.research_execution.market_data_port import (
     MarketDataPort,
     MarketDataError,
@@ -70,6 +71,20 @@ class ResearchExecutionService:
             long_window = int(request.get("long_window", 60))
             transaction_cost = float(request.get("transaction_cost", 0.001))
             risk_free_rate = float(request.get("risk_free_rate", 0.0))
+            min_excess_return = float(request.get("min_excess_return", 0.0))
+            min_sharpe_difference = float(
+                request.get("min_sharpe_difference", 0.0)
+            )
+            min_drawdown_improvement = float(
+                request.get("min_drawdown_improvement", 0.05)
+            )
+            min_observations = int(request.get("min_observations", 252))
+            min_cost_adjusted_return = float(
+                request.get("min_cost_adjusted_return", 0.0)
+            )
+            min_robust_parameter_ratio = float(
+                request.get("min_robust_parameter_ratio", 0.5)
+            )
         except (TypeError, ValueError) as exc:
             raise ResearchExecutionError(
                 f"Invalid numeric parameters: {exc}", status_code=400
@@ -86,6 +101,16 @@ class ResearchExecutionService:
         if transaction_cost < 0:
             raise ResearchExecutionError(
                 "transaction_cost must be >= 0.", status_code=400
+            )
+        if min_drawdown_improvement < 0 or min_observations < 1:
+            raise ResearchExecutionError(
+                "min_drawdown_improvement must be >= 0 and min_observations >= 1.",
+                status_code=400,
+            )
+        if not 0 <= min_robust_parameter_ratio <= 1:
+            raise ResearchExecutionError(
+                "min_robust_parameter_ratio must be between 0 and 1.",
+                status_code=400,
             )
         if end_date and start_date >= end_date:
             raise ResearchExecutionError(
@@ -120,6 +145,19 @@ class ResearchExecutionService:
             )
 
         series = series_to_records(backtest.frame)
+        strategy_metrics = metrics_to_dict(backtest.strategy_metrics)
+        benchmark_metrics = metrics_to_dict(backtest.benchmark_metrics)
+        benchmark_comparison = build_trend_benchmark_comparison(
+            strategy_metrics,
+            benchmark_metrics,
+            min_excess_return=min_excess_return,
+            min_sharpe_difference=min_sharpe_difference,
+            min_drawdown_improvement=min_drawdown_improvement,
+            min_observations=min_observations,
+            min_cost_adjusted_return=min_cost_adjusted_return,
+            min_robust_parameter_ratio=min_robust_parameter_ratio,
+            evidence_timestamp=utc_now_iso(),
+        )
         return {
             "research_id": research_id,
             "strategy": {
@@ -141,14 +179,17 @@ class ResearchExecutionService:
                 "price_field": "adjusted_close",
             },
             "provenance": asdict(market.provenance),
-            "metrics": metrics_to_dict(backtest.strategy_metrics),
-            "benchmark_metrics": metrics_to_dict(backtest.benchmark_metrics),
+            "metrics": strategy_metrics,
+            "benchmark_metrics": benchmark_metrics,
+            "benchmark_comparison": benchmark_comparison,
             "series": series,
             "warnings": warnings,
             "generated_at": utc_now_iso(),
             "supported_evidence": {
                 "historical_backtest": "completed",
-                "benchmark_comparison": "completed",
+                "benchmark_comparison": (
+                    "historical_comparison_completed_validation_pending"
+                ),
                 "out_of_sample": "not_started",
                 "parameter_sensitivity": "not_started",
                 "transaction_cost_review": "not_started",

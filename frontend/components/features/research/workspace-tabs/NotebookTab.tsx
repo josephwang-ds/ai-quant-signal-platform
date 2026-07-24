@@ -37,6 +37,7 @@ export type NotebookTabProps = {
   evaluation: ResearchEvaluationResult | null;
   evaluationError: string | null;
   reloadEvaluation: () => void;
+  isFactorTemplate?: boolean;
 };
 
 export default function NotebookTab(props: NotebookTabProps) {
@@ -65,6 +66,7 @@ export default function NotebookTab(props: NotebookTabProps) {
     evaluation,
     evaluationError,
     reloadEvaluation,
+    isFactorTemplate = false,
   } = props;
 
   if (section === "notebook") {
@@ -149,7 +151,8 @@ export default function NotebookTab(props: NotebookTabProps) {
 
     return (
       <div className="research-review-copilot">
-        <EvaluationBlock
+        {!isFactorTemplate ? (
+          <EvaluationBlock
             researchId={researchId}
             language={language}
             tr={tr}
@@ -159,6 +162,7 @@ export default function NotebookTab(props: NotebookTabProps) {
             evaluationError={evaluationError}
             reloadEvaluation={reloadEvaluation}
           />
+        ) : null}
         <ResearchCopilotPanel
           labels={{
             title: tr("researchCopilotTitle"),
@@ -185,6 +189,13 @@ export default function NotebookTab(props: NotebookTabProps) {
             goToValidation: tr("researchCopilotGoToValidation"),
             notConfigured: tr("researchCopilotNotConfigured"),
             limitations: tr("researchCopilotLimitations"),
+            factorSummaryTitle: tr("researchCopilotFactorSummaryTitle"),
+            factorRankIc: tr("researchCopilotFactorRankIc"),
+            factorIcir: tr("researchCopilotFactorIcir"),
+            factorTurnover: tr("researchCopilotFactorTurnover"),
+            factorLongShort: tr("researchCopilotFactorLongShort"),
+            factorStability: tr("researchCopilotFactorStability"),
+            factorWarnings: tr("researchCopilotFactorWarnings"),
           }}
           sampleQuestions={copilotSampleQuestions}
           status={

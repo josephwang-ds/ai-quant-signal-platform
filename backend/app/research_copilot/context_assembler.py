@@ -12,9 +12,12 @@ from app.research_copilot.canonical_notebook import (
     NOTEBOOK_ENTRIES,
 )
 from app.research_copilot.citations import summarize_stage
+from app.research_copilot.factor_summary import (
+    build_factor_summary,
+    is_factor_validation_evidence,
+)
 from app.research_copilot.llm_port import ContextItem
 from app.research_copilot.retrieval import DocumentChunk, RetrievalIndex
-
 
 def _sanitize(value: Any) -> Any:
     if isinstance(value, float):
@@ -89,8 +92,16 @@ class ResearchContextAssembler:
         research_id: str,
         question: str,
         validation: dict[str, Any],
-        evaluation: dict[str, Any],
+        evaluation: dict[str, Any] | None = None,
     ) -> tuple[dict[str, Any], list[ContextItem]]:
+        if is_factor_validation_evidence(validation):
+            return self._assemble_factor(
+                research_id=research_id,
+                question=question,
+                validation=validation,
+            )
+
+        evaluation = evaluation or {}
         validation_run_id = validation.get("validation_run_id", "")
         provenance = validation.get("provenance", {})
         strategy = validation.get("strategy", {})
@@ -113,7 +124,6 @@ class ResearchContextAssembler:
                 ),
             }
         )
-
         execution_stages = [
             _compact_stage(stage)
             for stage in validation.get("stages", [])
@@ -257,6 +267,151 @@ class ResearchContextAssembler:
                 source_id=entry.get("id", research_id),
                 label=entry.get("title", "Notebook entry"),
                 content=entry.get("body", ""),
+            )
+            if item:
+                context_items.append(item)
+
+        for chunk in self.retrieval.search(question):
+            context_items.append(_chunk_to_context_item(chunk))
+
+        return structured, context_items
+
+    def _assemble_factor(
+        self,
+        *,
+        research_id: str,
+        question: str,
+        validation: dict[str, Any],
+    ) -> tuple[dict[str, Any], list[ContextItem]]:
+        """Assemble Factor Validation evidence only — no MA stage fabrication."""
+        validation_run_id = validation.get("validation_run_id", "")
+        factor_summary = build_factor_summary(validation)
+        research_definition = {
+            "research_id": research_id,
+            "template": "cross_sectional_factor",
+            "universe_id": validation.get("universe_id"),
+            "factor_id": validation.get("factor_id"),
+            "rebalance_frequency": validation.get("rebalance_frequency"),
+            "holding_period_months": validation.get("holding_period_months"),
+            "scope": (
+                "Factor validation evidence only. Summarize RankIC, ICIR, "
+                "turnover, long–short return, stability, and warnings from "
+                "the stored run — never invent metrics."
+            ),
+        }
+        ic_summary = (validation.get("ic") or {}).get("summary") or {}
+        quantiles = validation.get("quantiles") or {}
+        long_short = validation.get("long_short") or {}
+        benchmark = validation.get("benchmark") or {}
+
+        structured = _sanitize(
+            {
+                "research_definition": research_definition,
+                "factor_summary": factor_summary,
+                "factor_validation_evidence": {
+                    "validation_run_id": validation_run_id,
+                    "generated_at": validation.get("generated_at"),
+                    "evidence_kind": validation.get("evidence_kind"),
+                    "validation_status": validation.get("validation_status"),
+                    "ic_summary": ic_summary,
+                    "turnover": quantiles.get("turnover"),
+                    "transaction_cost": quantiles.get("transaction_cost"),
+                    "long_short": {
+                        "cumulative_final": long_short.get("cumulative_final"),
+                        "cumulative_final_net_of_cost": long_short.get(
+                            "cumulative_final_net_of_cost"
+                        ),
+                        "note": long_short.get("note"),
+                    },
+                    "benchmark": {
+                        "rationale": benchmark.get("rationale"),
+                        "decision": benchmark.get("decision"),
+                        "checks": [
+                            {
+                                "id": check.get("check_id")
+                                or check.get("id")
+                                or check.get("name"),
+                                "status": check.get("status"),
+                                "summary": check.get("explanation")
+                                or check.get("summary")
+                                or check.get("rationale")
+                                or check.get("detail"),
+                            }
+                            for check in (benchmark.get("checks") or [])
+                            if isinstance(check, dict)
+                        ],
+                    },
+                    "warnings": validation.get("warnings", []),
+                    "provenance": validation.get("provenance", {}),
+                    "historical_disclaimer": (
+                        "Evidence is based on historical factor-validation "
+                        "data only; it is not a forecast or investment recommendation."
+                    ),
+                },
+            }
+        )
+
+        context_items: list[ContextItem] = []
+        run_id = str(validation_run_id)
+
+        definition_item = _make_item(
+            citation_id="research_definition:definition",
+            source_type="research_definition",
+            source_id=research_id,
+            label="Factor research definition",
+            content=json.dumps(structured["research_definition"], ensure_ascii=False),
+        )
+        if definition_item:
+            context_items.append(definition_item)
+
+        factor_specs = (
+            (
+                "factor:rank_ic",
+                "RankIC summary",
+                {"rank_ic": factor_summary["rank_ic"], "ic_summary": ic_summary},
+            ),
+            (
+                "factor:icir",
+                "ICIR",
+                {"icir": factor_summary["icir"], "ic_summary": ic_summary},
+            ),
+            (
+                "factor:turnover",
+                "Turnover",
+                {
+                    "turnover": factor_summary["turnover"],
+                    "turnover_evidence": quantiles.get("turnover"),
+                },
+            ),
+            (
+                "factor:long_short",
+                "Long–short return",
+                {
+                    "long_short_return": factor_summary["long_short_return"],
+                    "long_short": structured["factor_validation_evidence"]["long_short"],
+                },
+            ),
+            (
+                "factor:stability",
+                "Stability",
+                {
+                    "stability": factor_summary["stability"],
+                    "benchmark": structured["factor_validation_evidence"]["benchmark"],
+                },
+            ),
+            (
+                "factor:warnings",
+                "Factor validation warnings",
+                {"warnings": factor_summary["warnings"]},
+            ),
+        )
+        for citation_id, label, payload in factor_specs:
+            item = _make_item(
+                citation_id=citation_id,
+                source_type="factor_validation",
+                source_id=run_id,
+                label=label,
+                content=json.dumps(payload, ensure_ascii=False),
             )
             if item:
                 context_items.append(item)

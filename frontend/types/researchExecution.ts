@@ -1,4 +1,5 @@
 /** Research Execution API types (PR-008B). */
+import type { BenchmarkEvaluation } from "@/types/researchBenchmark";
 
 export type DataProvenance = {
   provider: string;
@@ -33,6 +34,8 @@ export type ExecutionMetrics = {
   win_rate: number | null;
   turnover: number | null;
   total_transaction_costs: number | null;
+  exposure_percentage?: number | null;
+  downside_capture?: number | null;
   observation_count: number;
   start_date: string | null;
   end_date: string | null;
@@ -54,6 +57,7 @@ export type ResearchExecutionResult = {
   provenance: DataProvenance;
   metrics: ExecutionMetrics;
   benchmark_metrics: ExecutionMetrics;
+  benchmark_comparison?: BenchmarkEvaluation;
   series: Array<Record<string, unknown>>;
   warnings: string[];
   generated_at: string;

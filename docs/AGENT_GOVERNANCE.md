@@ -9,13 +9,17 @@ The Governance Agent coordinates a **controlled research-review workflow**:
 
 1. Inspect research definitions
 2. Retrieve versioned Research Rulebook guidance
-3. Select approved deterministic tools
+3. Build a deterministic, research-type-specific tool plan
 4. Pause for human approval before expensive validation
 5. Interpret supplied evidence with DeepSeek (when configured)
 6. Prepare a decision-review draft
 7. Wait for an explicit human decision
 
 Core principle: **Evidence First · AI Second · Human Final**
+
+The model never chooses tools, changes workflow completeness, or produces the
+Promote / Hold / Reject suggestion. It receives a read-only normalized snapshot
+and may only explain the supplied definition and evidence.
 
 ## Prohibited behavior
 
@@ -49,6 +53,33 @@ write-sensitive actions require approval / confirmation.
 
 See `backend/app/research_agent/tools/__init__.py`.
 
+Production routes inject the existing Research Execution, Research Validation,
+and Factor Validation services. Approved tools therefore run the same
+deterministic engines and the same saved run configuration as the workspace.
+
+## Evidence contracts
+
+- Trend research requires execution, aligned benchmark, completed validation,
+  OOS, parameter sensitivity, cost sensitivity, and data-quality evidence.
+- Factor research requires completed factor validation, its benchmark, and
+  calculated RankIC evidence.
+
+Stored validation stages are normalized from the production list envelope.
+Failed or incomplete stages never count as available evidence.
+
+## Decision boundary
+
+The deterministic suggestion is derived only from the benchmark verdict,
+validation failure state, missing required evidence, and pre-decision workflow
+readiness:
+
+- failed validation or failed benchmark → `Reject`
+- missing/incomplete evidence → `Hold`
+- complete evidence with passing benchmark → `Promote`
+- otherwise → `Hold`
+
+AI interpretation is displayed separately and cannot mutate these inputs.
+
 ## Citations
 
 - **Knowledge citation**: Research Rulebook section (`knowledge_id`, version, excerpt)
@@ -72,6 +103,8 @@ Each run returns concise workflow events (node, event, detail). No raw CoT.
 | Unsupported trading/prediction ask | Fail safely |
 | Unknown tool / bad args | Rejected by registry |
 | Mixed/stale snapshot | Stop review as inconclusive/failed |
+| Provider timeout or malformed LLM JSON | Continue deterministically; mark AI interpretation unavailable |
+| Graph exceeds 24 nodes | Stop with a persisted terminal failure |
 | Process restart | In-memory graph/run state is lost |
 
 ## Limitations
@@ -80,3 +113,5 @@ Each run returns concise workflow events (node, event, detail). No raw CoT.
 - Curated local rulebook — not a broad financial corpus
 - No broker, live trading, portfolio optimization, or external paper search
 - DeepSeek interpretation remains advisory and imperfect
+- At most one LLM generation occurs in a graph pass; tool planning and decision
+  suggestion are deterministic to keep latency and authority bounded

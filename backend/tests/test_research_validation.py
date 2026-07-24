@@ -116,6 +116,12 @@ def test_request_defaults_are_the_canonical_contract() -> None:
         "transaction_cost": 0.001,
         "risk_free_rate": 0.0,
         "in_sample_ratio": 0.7,
+        "min_excess_return": 0.0,
+        "min_sharpe_difference": 0.0,
+        "min_drawdown_improvement": 0.05,
+        "min_cost_adjusted_return": 0.0,
+        "min_robust_parameter_ratio": 0.5,
+        "min_observations": 252,
     }
 
 

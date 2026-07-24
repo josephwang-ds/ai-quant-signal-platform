@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Literal
+from typing import Literal, Optional
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -37,6 +37,20 @@ class CopilotWarning(BaseModel):
     message: str
 
 
+class FactorCopilotSummary(BaseModel):
+    """Evidence-only Factor Research summary. Metrics are strings from stored evidence."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    rank_ic: str
+    icir: str
+    turnover: str
+    long_short_return: str
+    stability: str
+    warnings: list[str] = Field(default_factory=list)
+    citation_ids: list[str] = Field(default_factory=list)
+
+
 class ResearchCopilotResponse(BaseModel):
     research_id: str
     answer: str
@@ -45,3 +59,4 @@ class ResearchCopilotResponse(BaseModel):
     grounding_status: GroundingStatus
     model: str
     generated_at: str
+    factor_summary: Optional[FactorCopilotSummary] = None

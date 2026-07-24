@@ -15,9 +15,14 @@ from app.research_copilot.citations import build_context_index, resolve_selected
 from app.research_copilot.context_assembler import ResearchContextAssembler
 from app.research_copilot.fake_llm import (
     EmptyCitationFakeLlm,
+    FabricatingFactorFakeLlm,
     FabricatingFakeLlm,
     FakeLlmAdapter,
     UnknownCitationFakeLlm,
+)
+from app.research_copilot.factor_summary import (
+    build_factor_summary,
+    is_factor_validation_evidence,
 )
 from app.research_copilot.llm_port import LlmPort
 from app.research_copilot.llm_response import parse_structured_llm_response
@@ -436,3 +441,186 @@ def test_api_not_configured_without_api_key(monkeypatch: pytest.MonkeyPatch) -> 
     )
     assert response.status_code == 503
     assert "not configured" in response.json()["detail"].lower()
+
+
+FACTOR_RESEARCH_ID = "cross-sectional-factor-sector-etfs"
+
+
+def _factor_stored_payload(*, research_id: str = FACTOR_RESEARCH_ID) -> dict:
+    return {
+        "research_id": research_id,
+        "evidence_kind": "factor_validation",
+        "template": "cross_sectional_factor",
+        "universe_id": "us_sector_etfs",
+        "factor_id": "momentum",
+        "rebalance_frequency": "monthly",
+        "holding_period_months": 1,
+        "validation_status": "completed",
+        "generated_at": "2026-07-01T00:00:00Z",
+        "ic": {
+            "summary": {
+                "mean_rank_ic": 0.12,
+                "median_rank_ic": 0.1,
+                "positive_ic_pct": 0.55,
+                "icir": 0.8,
+                "n_periods": 24,
+            }
+        },
+        "quantiles": {
+            "turnover": {"mean": 0.42, "series": [1.0, 0.3, 0.4]},
+            "transaction_cost": {"total": 0.01, "cost_rate": 0.001},
+        },
+        "long_short": {
+            "cumulative_final": 0.18,
+            "cumulative_final_net_of_cost": 0.15,
+            "note": "Long–short = Q5 − Q1",
+        },
+        "benchmark": {
+            "decision": "hold",
+            "rationale": "Evidence mixed; hold for further review.",
+            "checks": [
+                {
+                    "check_id": "subperiod_stability",
+                    "status": "pass",
+                    "explanation": "RankIC sign consistent in both halves.",
+                }
+            ],
+        },
+        "warnings": ["demo_synthetic_universe"],
+        "provenance": {"provider": "test"},
+    }
+
+
+@pytest.fixture()
+def factor_validation_run_id(store: InMemoryValidationResultStore) -> str:
+    return store.save(_factor_stored_payload())
+
+
+def test_is_factor_validation_evidence_detection() -> None:
+    assert is_factor_validation_evidence(_factor_stored_payload()) is True
+    assert is_factor_validation_evidence({"template": "ma_crossover"}) is False
+    assert is_factor_validation_evidence(None) is False
+
+
+def test_build_factor_summary_from_evidence_only() -> None:
+    summary = build_factor_summary(_factor_stored_payload())
+    assert summary["rank_ic"] == "0.12"
+    assert summary["icir"] == "0.8"
+    assert summary["turnover"] == "0.42"
+    assert summary["long_short_return"] == "0.15"
+    assert "consistent" in summary["stability"].lower()
+    assert summary["warnings"] == ["demo_synthetic_universe"]
+    assert "factor:rank_ic" in summary["citation_ids"]
+
+
+def test_build_factor_summary_unavailable_when_missing() -> None:
+    summary = build_factor_summary(
+        {
+            "evidence_kind": "factor_validation",
+            "ic": {"summary": {}},
+            "quantiles": {},
+            "long_short": {},
+            "warnings": [],
+        }
+    )
+    assert summary["rank_ic"] == "unavailable"
+    assert summary["icir"] == "unavailable"
+    assert summary["turnover"] == "unavailable"
+    assert summary["long_short_return"] == "unavailable"
+    assert summary["stability"] == "unavailable"
+
+
+def test_factor_context_assembler_uses_factor_citations_only(
+    store: InMemoryValidationResultStore, factor_validation_run_id: str
+) -> None:
+    stored = store.get(factor_validation_run_id)
+    assert stored is not None
+    structured, items = ResearchContextAssembler().assemble(
+        research_id=FACTOR_RESEARCH_ID,
+        question="What does the RankIC evidence show?",
+        validation=stored,
+        evaluation=None,
+    )
+    assert structured["research_definition"]["template"] == "cross_sectional_factor"
+    assert "stages" not in structured.get("factor_validation_evidence", {})
+    citation_ids = {item.citation_id for item in items}
+    assert "factor:rank_ic" in citation_ids
+    assert "factor:icir" in citation_ids
+    assert "validation:out_of_sample" not in citation_ids
+    assert "evaluation:status" not in citation_ids
+
+
+def test_factor_copilot_returns_evidence_summary(
+    store: InMemoryValidationResultStore, factor_validation_run_id: str
+) -> None:
+    service = ResearchCopilotService(
+        store,
+        ResearchEvaluationService(store),
+        FakeLlmAdapter(),
+    )
+    result = service.execute(
+        {
+            "research_id": FACTOR_RESEARCH_ID,
+            "validation_run_id": factor_validation_run_id,
+            "question": "What does the RankIC evidence show?",
+        }
+    )
+    assert result["factor_summary"]["rank_ic"] == "0.12"
+    assert result["factor_summary"]["icir"] == "0.8"
+    assert result["factor_summary"]["turnover"] == "0.42"
+    assert result["factor_summary"]["long_short_return"] == "0.15"
+    assert "buy" not in result["answer"].lower()
+    assert "sell" not in result["answer"].lower()
+    citation_labels = {item["label"] for item in result["citations"]}
+    assert any("RankIC" in label or "ICIR" in label for label in citation_labels)
+
+
+def test_factor_copilot_skips_ma_evaluation_service(
+    store: InMemoryValidationResultStore, factor_validation_run_id: str
+) -> None:
+    class BoomEvaluation(ResearchEvaluationService):
+        def execute(self, request):  # type: ignore[no-untyped-def]
+            raise AssertionError("MA Evaluation must not run for factor evidence")
+
+    service = ResearchCopilotService(store, BoomEvaluation(store), FakeLlmAdapter())
+    result = service.execute(
+        {
+            "research_id": FACTOR_RESEARCH_ID,
+            "validation_run_id": factor_validation_run_id,
+            "question": "Summarize turnover and long–short return.",
+        }
+    )
+    assert result["factor_summary"]["turnover"] == "0.42"
+
+
+def test_fabricating_factor_metrics_are_overridden_and_trade_advice_blocked(
+    store: InMemoryValidationResultStore, factor_validation_run_id: str
+) -> None:
+    service = ResearchCopilotService(
+        store,
+        ResearchEvaluationService(store),
+        FabricatingFactorFakeLlm(),
+    )
+    result = service.execute(
+        {
+            "research_id": FACTOR_RESEARCH_ID,
+            "validation_run_id": factor_validation_run_id,
+            "question": "Should I buy the high-factor names?",
+        }
+    )
+    assert result["factor_summary"]["rank_ic"] == "0.12"
+    assert result["factor_summary"]["icir"] == "0.8"
+    assert result["factor_summary"]["rank_ic"] != "0.99"
+    assert any(
+        warning["code"].startswith("factor_summary_field_overridden:")
+        for warning in result["warnings"]
+    )
+    assert result["grounding_status"] == "unavailable"
+    assert "buy" not in result["answer"].lower() or "cannot" in result["answer"].lower()
+
+
+def test_copilot_service_has_no_factor_engine_imports() -> None:
+    source = inspect.getsource(ResearchCopilotService)
+    assert "factor_validation.rank_ic" not in source
+    assert "FactorValidationService" not in source
+    assert "quantile_portfolios" not in source

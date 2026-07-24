@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useState } from "react";
 import Button from "@/components/ui/Button";
 import ErrorAlert from "@/components/ui/ErrorAlert";
 import LoadingState from "@/components/ui/LoadingState";
@@ -15,6 +15,7 @@ import {
   resumeAgentRun,
 } from "@/lib/researchAgentApi";
 import { getResearchDecisionRecord } from "@/lib/researchDecisionRecord";
+import { buildAgentResearchDefinition } from "@/lib/researchGuidance";
 import type { ResearchDetail } from "@/types/research";
 import type {
   AgentIntent,
@@ -78,27 +79,6 @@ export default function GovernanceAgentPanel({
 
   const zh = language === "zh";
 
-  const definitionPayload = useMemo(() => {
-    const runConfig = research.runConfiguration as
-      | (Record<string, unknown> & { universeId?: string })
-      | undefined;
-    return {
-      research_question: research.researchQuestion,
-      hypothesis: research.hypothesis,
-      null_hypothesis: research.openQuestions?.[0] || "",
-      benchmark: isFactorTemplate
-        ? "Equal-weight / Q5−Q1 factor validation"
-        : "Buy-and-Hold",
-      symbol: research.configuration.symbol,
-      universe: runConfig?.universeId,
-      evaluation_period: research.configuration.parameterLines?.join("; ") || "",
-      success_criteria: [],
-      outcome_metrics: [],
-      known_limitations: research.knownWeaknesses,
-      known_weaknesses: research.knownWeaknesses,
-    };
-  }, [isFactorTemplate, research]);
-
   const refresh = useCallback(async (agentRunId: string) => {
     const detail = await getAgentRun(agentRunId);
     setRun(detail);
@@ -110,6 +90,7 @@ export default function GovernanceAgentPanel({
     setError(null);
     try {
       const previous = getResearchDecisionRecord(research.id);
+      const definitionPayload = buildAgentResearchDefinition(research);
       const summary = await createAgentRun({
         research_id: research.id,
         intent,
@@ -141,7 +122,6 @@ export default function GovernanceAgentPanel({
       setBusy(false);
     }
   }, [
-    definitionPayload,
     evidenceSnapshotId,
     intent,
     isFactorTemplate,
@@ -196,12 +176,13 @@ export default function GovernanceAgentPanel({
 
   return (
     <SectionCard>
+      <div className="governance-agent">
       <SectionHeader
-        title={zh ? "量化研究治理 Agent" : "Quant Research Governance Agent"}
+        title={zh ? "证据治理 Agent" : "Evidence Governance Agent"}
         description={
           zh
-            ? "DeepSeek 协调审查并解释证据。定量结果由确定性后端服务计算。最终决策由人类负责。"
-            : "DeepSeek coordinates review and explains evidence. Quantitative results are calculated by deterministic backend services. Final decisions remain human-owned."
+            ? "在定义、验证和基准证据准备后，用 DeepSeek 解释缺口并准备人工审查。定量结果仍由确定性后端计算。"
+            : "After definition, validation, and benchmark evidence are ready, use DeepSeek to explain gaps and prepare human review. Deterministic services still own every quantitative result."
         }
       />
       <p className="section-meta">
@@ -235,8 +216,8 @@ export default function GovernanceAgentPanel({
               ? "运行中…"
               : "Running…"
             : zh
-              ? "启动 Agent 工作流"
-              : "Start Agent workflow"}
+              ? "审查当前研究"
+              : "Review current research"}
         </Button>
         {run ? (
           <Button onClick={() => void onCancel()} disabled={busy}>
@@ -444,7 +425,12 @@ export default function GovernanceAgentPanel({
                       override_rationale: overrideRationale,
                     })
                   }
-                  disabled={busy || !rationale.trim()}
+                  disabled={
+                    busy ||
+                    !rationale.trim() ||
+                    (decision !== deterministicSuggestion &&
+                      !overrideRationale.trim())
+                  }
                 >
                   {zh ? "记录决策" : "Record decision"}
                 </Button>
@@ -469,6 +455,7 @@ export default function GovernanceAgentPanel({
           ) : null}
         </div>
       ) : null}
+      </div>
     </SectionCard>
   );
 }

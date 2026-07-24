@@ -41,8 +41,10 @@ app.research_copilot.service.ResearchCopilotService
 ```
 
 `ResearchCopilotService` has **no dependency on `ResearchValidationService`,
-`MarketDataPort`, or any financial calculation module.** It never calls
-`ResearchValidationService.execute`.
+`FactorValidationService`, `MarketDataPort`, or any financial calculation
+module.** It never calls Validation `execute`. For Factor Research runs it
+reads the stored Factor Validation payload only and **skips** MA Evaluation
+aggregation (factor evidence has no MA `stages`).
 
 Provider SDKs live only in Infrastructure (`openai_adapter.py` via stdlib
 `urllib`). Application and Domain never import provider packages.
@@ -116,6 +118,40 @@ Initial citation IDs:
 | `documentation:authenticity_policy` | Authenticity policy excerpt |
 | `documentation:project_constitution` | Project Bible excerpt |
 
+### Factor Research citations
+
+When `evidence_kind === "factor_validation"` (or template
+`cross_sectional_factor`), the assembler builds Factor citations only — it
+does **not** fabricate MA validation stages:
+
+| citation_id | Source |
+|---|---|
+| `factor:rank_ic` | Stored RankIC / IC summary |
+| `factor:icir` | Stored ICIR |
+| `factor:turnover` | Quantile turnover evidence |
+| `factor:long_short` | Long–short cumulative (prefer net of cost) |
+| `factor:stability` | Benchmark subperiod stability / rationale |
+| `factor:warnings` | Engine / data warnings on the stored run |
+
+Factor replies also return an additive `factor_summary` object on the API
+response (strings only; missing metrics are the literal `unavailable`):
+
+```json
+{
+  "rank_ic": "0.12",
+  "icir": "0.8",
+  "turnover": "0.42",
+  "long_short_return": "0.15",
+  "stability": "…from evidence…",
+  "warnings": ["…"],
+  "citation_ids": ["factor:rank_ic", "…"]
+}
+```
+
+The server always attaches evidence-built `factor_summary`. If the model
+returns different metric strings, they are overridden and warned
+(`factor_summary_field_overridden:*`).
+
 Requirements enforced in code:
 
 - NaN / Infinity removed
@@ -168,9 +204,13 @@ Response:
   "warnings": [],
   "grounding_status": "grounded",
   "model": "gpt-4o-mini",
-  "generated_at": "2026-07-15T12:00:00Z"
+  "generated_at": "2026-07-15T12:00:00Z",
+  "factor_summary": null
 }
 ```
+
+For Factor Research, `factor_summary` is populated from the stored Factor
+Validation run. MA clients may ignore the optional field.
 
 Errors:
 
@@ -194,6 +234,11 @@ The provider must return structured JSON:
   "citation_ids": ["evaluation:status", "evaluation:outstanding_evidence"]
 }
 ```
+
+For Factor Research, the model should also include the factor summary fields
+(`rank_ic`, `icir`, `turnover`, `long_short_return`, `stability`, `warnings`)
+echoing assembled context only. The service still prefers stored evidence
+values over model strings.
 
 `ResearchCopilotService` then:
 
@@ -236,8 +281,10 @@ The browser calls only `POST /api/v1/research/copilot/query` via
 ## Offline testing
 
 - `FakeLlmAdapter` injected explicitly in unit/API tests
-- `FabricatingFakeLlm`, `EmptyCitationFakeLlm`, and `UnknownCitationFakeLlm`
-  for safety and citation-resolution tests
+- `FabricatingFakeLlm`, `FabricatingFactorFakeLlm`, `EmptyCitationFakeLlm`,
+  and `UnknownCitationFakeLlm` for safety and citation-resolution tests
+- Factor path tests: evidence-only `factor_summary`, MA Evaluation skipped,
+  fabricated factor metrics overridden, buy/sell blocked
 - `evaluate_answer` unit tests for prohibited language
 - repository policy tests: no `NEXT_PUBLIC_*API_KEY`, no frontend SDK imports
 - tests proving `COPILOT_ALLOW_FAKE_LLM` cannot enable fake runtime answers
@@ -250,3 +297,5 @@ The browser calls only `POST /api/v1/research/copilot/query` via
 - external vector infrastructure (Pinecone, Weaviate, etc.)
 - strategy generation or automatic backtest execution
 - live financial news RAG
+- predicting markets or recommending trades (including Factor Research)
+- calculating or inventing RankIC / ICIR / turnover / long–short metrics

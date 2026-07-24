@@ -17,6 +17,7 @@ from app.factor_validation.factors import (
     resolve_universe,
 )
 from app.factor_validation.quantile_portfolios import compute_quantile_portfolios
+from app.factor_validation.benchmark import build_factor_benchmark
 from app.factor_validation.rank_ic import (
     compute_rank_ic_series,
     rolling_ic,
@@ -102,6 +103,23 @@ class FactorValidationService:
 
         holding = _holding_months(payload.get("holding_period_months", 1))
         cost_rate = _finite_nonneg(payload.get("transaction_cost", 0.001), "transaction_cost")
+        min_mean_rank_ic = float(payload.get("min_mean_rank_ic", 0.0))
+        min_positive_ic_ratio = float(payload.get("min_positive_ic_ratio", 0.5))
+        min_net_long_short_return = float(
+            payload.get("min_net_long_short_return", 0.0)
+        )
+        min_q5_excess_return = float(payload.get("min_q5_excess_return", 0.0))
+        max_mean_turnover = _finite_nonneg(
+            payload.get("max_mean_turnover", 2.0), "max_mean_turnover"
+        )
+        min_observations = int(payload.get("min_observations", 24))
+        min_icir = float(payload.get("min_icir", 0.0))
+        if not 0 <= min_positive_ic_ratio <= 1:
+            raise FactorValidationError(
+                "min_positive_ic_ratio must be between 0 and 1."
+            )
+        if min_observations < 1:
+            raise FactorValidationError("min_observations must be >= 1.")
         start_date = str(payload.get("start_date") or "2018-01-01").strip()
         end_date = payload.get("end_date")
         end_date_str = str(end_date).strip() if end_date else None
@@ -168,13 +186,28 @@ class FactorValidationService:
         quantiles = compute_quantile_portfolios(
             factor_aligned, forward_aligned, cost_rate=cost_rate
         )
+        generated_at = utc_now_iso()
+        benchmark = build_factor_benchmark(
+            factor_id=factor_id,
+            forward_returns=forward_aligned,
+            rank_ic=rank_ic,
+            ic_summary=ic_summary,
+            quantiles=quantiles,
+            min_mean_rank_ic=min_mean_rank_ic,
+            min_positive_ic_ratio=min_positive_ic_ratio,
+            min_net_long_short_return=min_net_long_short_return,
+            min_q5_excess_return=min_q5_excess_return,
+            max_mean_turnover=max_mean_turnover,
+            min_observations=min_observations,
+            min_icir=min_icir,
+            evidence_timestamp=generated_at,
+        )
 
         if ic_summary["n_periods"] == 0:
             warnings.append("RankIC series empty after cross-section filters.")
         if quantiles["n_rebalances"] == 0:
             warnings.append("No quantile rebalances produced.")
 
-        generated_at = utc_now_iso()
         result: dict[str, Any] = {
             "research_id": research_id,
             "template": "cross_sectional_factor",
@@ -195,6 +228,7 @@ class FactorValidationService:
                 "n_rebalances": quantiles["n_rebalances"],
             },
             "long_short": quantiles["long_short"],
+            "benchmark": benchmark,
             "warnings": warnings,
             "provenance": {
                 "universe_symbols": list(symbols),

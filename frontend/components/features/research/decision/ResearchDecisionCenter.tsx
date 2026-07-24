@@ -7,6 +7,7 @@ import ResearchBand from "@/components/features/research/ux/ResearchBand";
 import ResearchCenterHeader from "@/components/features/research/ux/ResearchCenterHeader";
 import ResearchKeyValueList from "@/components/features/research/ux/ResearchKeyValueList";
 import ResearchStatusMatrix from "@/components/features/research/ux/ResearchStatusMatrix";
+import DeepSeekEvidenceReviewerCard from "@/components/features/research/decision/DeepSeekEvidenceReviewerCard";
 import { canonicalStatusVariant } from "@/lib/researchStatusBadge";
 import {
   buildDecisionCenterModel,
@@ -18,6 +19,7 @@ import {
 } from "@/lib/researchDecision";
 import {
   getResearchDecisionRecord,
+  getResearchDecisionHistory,
   saveResearchDecisionRecord,
   type ResearchDecisionOutcome,
   type ResearchDecisionRecord,
@@ -25,6 +27,9 @@ import {
 import type { ResearchDetail } from "@/types/research";
 import type { ResearchEvaluationResult } from "@/types/researchEvaluation";
 import type { ResearchValidationResult } from "@/types/researchValidation";
+import type { ResearchExecutionResult } from "@/types/researchExecution";
+import type { FactorValidationResult } from "@/types/factorValidation";
+import type { Language } from "@/lib/i18n";
 
 export type ResearchDecisionCenterLabels = {
   title: string;
@@ -76,6 +81,9 @@ type Props = {
   factorValidationCompleted?: boolean;
   evidenceTimestamp?: string | null;
   labels: ResearchDecisionCenterLabels;
+  execution?: ResearchExecutionResult | null;
+  factorValidation?: FactorValidationResult | null;
+  language?: Language;
 };
 
 function statusLabel(
@@ -119,52 +127,73 @@ export default function ResearchDecisionCenter({
   factorValidationCompleted = false,
   evidenceTimestamp = null,
   labels,
+  execution = null,
+  factorValidation = null,
+  language = "en",
 }: Props) {
   const model = buildDecisionCenterModel({
     research,
     validation,
     evaluation,
     factorValidationCompleted,
+    execution,
+    factorValidation,
   });
+  const zh = language === "zh";
+  const currentEvidenceTimestamp =
+    evidenceTimestamp ??
+    validation?.generated_at ??
+    evaluation?.generated_at ??
+    null;
+  const benchmark =
+    factorValidation?.benchmark ??
+    validation?.benchmark_evaluation ??
+    execution?.benchmark_comparison ??
+    null;
   const [outcome, setOutcome] = useState<ResearchDecisionOutcome>("hold");
   const [rationale, setRationale] = useState("");
   const [evidenceSummary, setEvidenceSummary] = useState("");
   const [reviewerNote, setReviewerNote] = useState("");
+  const [reviewer, setReviewer] = useState("Local researcher");
   const [record, setRecord] = useState<ResearchDecisionRecord | null>(null);
+  const [historyCount, setHistoryCount] = useState(0);
 
   useEffect(() => {
     const existing = getResearchDecisionRecord(research.id);
+    setHistoryCount(getResearchDecisionHistory(research.id).length);
     setRecord(existing);
     if (existing) {
       setOutcome(existing.outcome);
       setRationale(existing.rationale);
       setEvidenceSummary(existing.evidenceSummary ?? "");
       setReviewerNote(existing.reviewerNote ?? "");
+      setReviewer(existing.reviewer);
     }
   }, [research.id]);
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (
-      !rationale.trim() ||
-      (outcome === "promote" && model.decisionStatus !== "ready")
-    ) {
+    if (!rationale.trim()) {
       return;
     }
-    setRecord(
-      saveResearchDecisionRecord({
+    const next = saveResearchDecisionRecord({
         researchId: research.id,
         outcome,
         rationale,
         evidenceTimestamp:
-          evidenceTimestamp ??
-          validation?.generated_at ??
-          evaluation?.generated_at ??
-          null,
+          currentEvidenceTimestamp,
         evidenceSummary,
         reviewerNote,
-      })
-    );
+        reviewer,
+        suggestedOutcome: model.suggestedDecision,
+        benchmarkVerdict: model.benchmarkVerdict,
+        evidenceSnapshotReference:
+          validation?.validation_run_id ??
+          factorValidation?.validation_run_id ??
+          currentEvidenceTimestamp,
+      });
+    setRecord(next);
+    setHistoryCount(getResearchDecisionHistory(research.id).length);
   }
 
   return (
@@ -208,6 +237,89 @@ export default function ResearchDecisionCenter({
               ),
             },
           ]}
+        />
+      </ResearchBand>
+
+      <hr className="overview-divider" />
+
+      <ResearchBand
+        caption={zh ? "研究决策准备度" : "Research decision readiness"}
+        glyph="progress"
+      >
+        <div className="decision-readiness">
+          <div className="decision-readiness__suggestion">
+            <div>
+              <span className="section-meta">
+                {zh ? "系统建议（非最终决定）" : "Suggested decision (not final)"}
+              </span>
+              <strong>
+                {outcomeLabel(model.suggestedDecision, labels)}
+              </strong>
+            </div>
+            <p>{model.evidenceSummary}</p>
+          </div>
+
+          <div className="decision-readiness__checks">
+            {model.checks.map((check) => (
+              <article key={check.check_id}>
+                <StatusBadge
+                  label={check.status.toUpperCase()}
+                  variant={
+                    check.status === "pass"
+                      ? "success"
+                      : check.status === "fail"
+                        ? "danger"
+                        : "warning"
+                  }
+                />
+                <div>
+                  <strong>{check.name}</strong>
+                  <p>{check.explanation}</p>
+                  <small>{check.evidence_source}</small>
+                </div>
+              </article>
+            ))}
+          </div>
+
+          {model.conflictingEvidence.length > 0 ? (
+            <div className="decision-readiness__notice">
+              <strong>{zh ? "冲突证据" : "Conflicting evidence"}</strong>
+              <ul>
+                {model.conflictingEvidence.map((item) => (
+                  <li key={item}>{item}</li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
+
+          {model.requiredNextSteps.length > 0 ? (
+            <div className="decision-readiness__notice">
+              <strong>{zh ? "下一步" : "Required next steps"}</strong>
+              <ul>
+                {model.requiredNextSteps.map((item) => (
+                  <li key={item}>{item}</li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
+        </div>
+      </ResearchBand>
+
+      <hr className="overview-divider" />
+
+      <ResearchBand
+        caption={zh ? "AI 证据解释" : "AI evidence interpretation"}
+        glyph="evidence"
+      >
+        <DeepSeekEvidenceReviewerCard
+          research={research}
+          model={model}
+          benchmark={benchmark}
+          validation={validation}
+          factorValidation={factorValidation}
+          evidenceTimestamp={currentEvidenceTimestamp}
+          language={language}
+          onApplyToNote={setReviewerNote}
         />
       </ResearchBand>
 
@@ -288,10 +400,33 @@ export default function ResearchDecisionCenter({
                 <span>
                   {labels.savedDecision} ·{" "}
                   {new Date(record.decidedAt).toLocaleString()}
+                  {` · ${record.reviewer}`}
                   {record.evidenceTimestamp
                     ? ` · evidence ${new Date(record.evidenceTimestamp).toLocaleString()}`
                     : ""}
                 </span>
+                <p className="section-meta">
+                  {zh
+                    ? `已保留 ${historyCount} 条本地决策记录 · Benchmark ${record.benchmarkVerdict ?? "unknown"}`
+                    : `${historyCount} local decision record(s) preserved · Benchmark ${record.benchmarkVerdict ?? "unknown"}`}
+                </p>
+                {record.suggestedOutcome &&
+                record.suggestedOutcome !== record.outcome ? (
+                  <p className="section-meta">
+                    {zh
+                      ? `人工决定覆盖了系统建议（${record.suggestedOutcome}）。覆盖理由已保留。`
+                      : `The human decision overrides the ${record.suggestedOutcome} suggestion. The rationale is preserved.`}
+                  </p>
+                ) : null}
+                {record.evidenceTimestamp &&
+                currentEvidenceTimestamp &&
+                record.evidenceTimestamp !== currentEvidenceTimestamp ? (
+                  <p className="decision-record__stale">
+                    {zh
+                      ? "此决定基于较旧的证据快照；新验证不会静默改写历史决定。"
+                      : "This decision is based on an older evidence snapshot; new validation never silently rewrites it."}
+                  </p>
+                ) : null}
               </div>
             ) : null}
           </div>
@@ -306,16 +441,22 @@ export default function ResearchDecisionCenter({
                   setOutcome(event.target.value as ResearchDecisionOutcome)
                 }
               >
-                <option
-                  value="promote"
-                  disabled={model.decisionStatus !== "ready"}
-                >
+                <option value="promote">
                   {labels.outcomePromote}
                 </option>
                 <option value="hold">{labels.outcomeHold}</option>
                 <option value="reject">{labels.outcomeReject}</option>
                 <option value="archive">{labels.outcomeArchive}</option>
               </select>
+            </label>
+            <label>
+              <span>{zh ? "审阅人" : "Reviewer"}</span>
+              <input
+                value={reviewer}
+                onChange={(event) => setReviewer(event.target.value)}
+                placeholder={zh ? "审阅人姓名或角色" : "Reviewer name or role"}
+                required
+              />
             </label>
             <label>
               <span>{labels.rationaleLabel}</span>
@@ -351,8 +492,7 @@ export default function ResearchDecisionCenter({
                 type="submit"
                 className="btn btn--primary"
                 disabled={
-                  !rationale.trim() ||
-                  (outcome === "promote" && model.decisionStatus !== "ready")
+                  !rationale.trim() || !reviewer.trim()
                 }
               >
                 {labels.saveDecision}

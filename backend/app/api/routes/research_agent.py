@@ -11,6 +11,9 @@ from app.research_agent.schemas import (
     AgentRunSummaryResponse,
 )
 from app.research_agent.service import GovernanceAgentService, ResearchAgentError
+from app.api.routes.factor_validation import get_factor_validation_service
+from app.api.routes.research_execution import get_research_execution_service
+from app.api.routes.research_validation import get_research_validation_service
 from app.research_validation.result_store import get_default_validation_result_store
 
 router = APIRouter(prefix="/api/v1/research/agent", tags=["research-agent"])
@@ -22,7 +25,12 @@ def get_governance_agent_service() -> GovernanceAgentService:
     global _service
     if _service is None:
         store = get_default_validation_result_store()
-        _service = GovernanceAgentService(store)
+        _service = GovernanceAgentService(
+            store,
+            validation_service=get_research_validation_service(),
+            factor_validation_service=get_factor_validation_service(),
+            execution_service=get_research_execution_service(),
+        )
     return _service
 
 

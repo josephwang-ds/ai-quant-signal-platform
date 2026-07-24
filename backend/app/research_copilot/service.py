@@ -13,6 +13,12 @@ from app.research_copilot.citations import (
     resolve_selected_citations,
 )
 from app.research_copilot.context_assembler import ResearchContextAssembler
+from app.research_copilot.factor_summary import (
+    build_factor_summary,
+    is_factor_validation_evidence,
+    prose_from_factor_summary,
+    validate_llm_factor_fields,
+)
 from app.research_copilot.llm_config import (
     LlmConfigurationError,
     resolve_llm_provider_settings,
@@ -28,7 +34,10 @@ from app.research_copilot.openai_adapter import (
 )
 from app.research_copilot.retrieval import RetrievalIndex
 from app.research_copilot.safety import evaluate_answer
-from app.research_copilot.system_policy import COPILOT_SYSTEM_POLICY
+from app.research_copilot.system_policy import (
+    COPILOT_SYSTEM_POLICY,
+    FACTOR_COPILOT_SYSTEM_POLICY,
+)
 from app.research_evaluation.service import ResearchEvaluationService
 from app.research_execution.market_data_port import utc_now_iso
 from app.research_execution.service import RESEARCH_ID_PATTERN
@@ -109,12 +118,15 @@ class ResearchCopilotService:
                 status_code=400,
             )
 
-        evaluation = self.evaluation_service.execute(
-            {
-                "research_id": research_id,
-                "validation_run_id": validation_run_id,
-            }
-        )
+        factor_mode = is_factor_validation_evidence(stored)
+        evaluation: dict[str, Any] | None = None
+        if not factor_mode:
+            evaluation = self.evaluation_service.execute(
+                {
+                    "research_id": research_id,
+                    "validation_run_id": validation_run_id,
+                }
+            )
         structured, context_items = self.assembler.assemble(
             research_id=research_id,
             question=question,
@@ -123,6 +135,9 @@ class ResearchCopilotService:
         )
         context_index = build_context_index(context_items)
         context_blob = json.dumps(structured, ensure_ascii=False)
+        evidence_factor_summary = (
+            build_factor_summary(stored) if factor_mode else None
+        )
 
         history = request.get("conversation") or []
         history_lines = []
@@ -139,9 +154,13 @@ class ResearchCopilotService:
                 + f"\n\nCurrent question:\n{question}"
             )
 
+        system_prompt = (
+            FACTOR_COPILOT_SYSTEM_POLICY if factor_mode else COPILOT_SYSTEM_POLICY
+        )
+
         try:
             llm_result = self.llm.generate(
-                system_prompt=COPILOT_SYSTEM_POLICY,
+                system_prompt=system_prompt,
                 user_prompt=user_prompt,
                 context=context_items,
             )
@@ -175,6 +194,27 @@ class ResearchCopilotService:
             ) from exc
 
         parsed = parse_structured_llm_response(llm_result.text)
+        factor_summary = evidence_factor_summary
+        override_warnings: list[str] = []
+        if factor_mode and evidence_factor_summary is not None:
+            if parsed.factor_fields:
+                factor_summary, override_warnings = validate_llm_factor_fields(
+                    parsed.factor_fields,
+                    evidence_factor_summary,
+                )
+            else:
+                factor_summary = evidence_factor_summary
+            if not parsed.answer.strip():
+                parsed.answer = prose_from_factor_summary(factor_summary)
+                if "empty_answer" in parsed.warnings:
+                    parsed.warnings = [
+                        code for code in parsed.warnings if code != "empty_answer"
+                    ]
+            if not parsed.citation_ids:
+                parsed.citation_ids = list(
+                    evidence_factor_summary.get("citation_ids") or []
+                )
+
         citations, citation_warnings = resolve_selected_citations(
             parsed.citation_ids,
             context_index,
@@ -186,7 +226,12 @@ class ResearchCopilotService:
             context_blob=context_blob,
         )
 
-        warning_codes = list(parsed.warnings) + citation_warnings + verdict.warnings
+        warning_codes = (
+            list(parsed.warnings)
+            + citation_warnings
+            + verdict.warnings
+            + override_warnings
+        )
         grounding_status = verdict.grounding_status
         if (
             parsed.citation_ids
@@ -215,11 +260,12 @@ class ResearchCopilotService:
                 "grounding_status": grounding_status,
                 "latency_ms": llm_result.latency_ms,
                 "citation_count": len(citations),
+                "factor_mode": factor_mode,
                 "failure_category": None if verdict.safe else "policy_block",
             },
         )
 
-        return {
+        payload: dict[str, Any] = {
             "research_id": research_id,
             "answer": answer,
             "citations": [item.model_dump() for item in citations],
@@ -228,6 +274,9 @@ class ResearchCopilotService:
             "model": llm_result.model,
             "generated_at": utc_now_iso(),
         }
+        if factor_summary is not None:
+            payload["factor_summary"] = factor_summary
+        return payload
 
 
 def _dedupe(items: list[str]) -> list[str]:
@@ -260,4 +309,10 @@ def _warning_message(code: str) -> str:
         return "Investment recommendation language was blocked."
     if code == "empty_answer":
         return "The language model returned an empty answer."
+    if code.startswith("factor_summary_field_overridden:"):
+        return (
+            "A factor summary field from the model was replaced with stored evidence."
+        )
+    if code == "factor_summary_unknown_warning_ignored":
+        return "Model-invented factor warnings were ignored."
     return code

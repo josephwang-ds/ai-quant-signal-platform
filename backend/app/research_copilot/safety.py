@@ -42,6 +42,7 @@ def evaluate_answer(
     *,
     citations: list[dict[str, str]],
     context_blob: str,
+    allow_governance_hold: bool = False,
 ) -> SafetyVerdict:
     warnings: list[str] = []
     normalized = answer.strip()
@@ -71,6 +72,8 @@ def evaluate_answer(
             )
 
     for match in STANDALONE_TRADE_DIRECTIVE.finditer(normalized):
+        if allow_governance_hold and match.group("word").lower() == "hold":
+            continue
         if not _allowed_buy_sell_context(normalized, match):
             return SafetyVerdict(
                 safe=False,

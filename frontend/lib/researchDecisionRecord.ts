@@ -17,12 +17,16 @@ export type ResearchDecisionRecord = {
   /** Human-selected metric summary / evidence references — not invented metrics. */
   evidenceSummary: string | null;
   reviewerNote: string | null;
+  reviewer: string;
+  suggestedOutcome: "promote" | "hold" | "reject" | null;
+  benchmarkVerdict: string | null;
+  evidenceSnapshotReference: string | null;
 };
 
 export const RESEARCH_DECISION_STORAGE_KEY =
   "quant.research.decision-records.v1";
 
-type DecisionRecordMap = Record<string, ResearchDecisionRecord>;
+type DecisionRecordMap = Record<string, ResearchDecisionRecord[]>;
 
 function normalizeOutcome(raw: unknown): ResearchDecisionOutcome | null {
   if (raw === "advance" || raw === "promote") return "promote";
@@ -54,6 +58,24 @@ function normalizeRecord(
       typeof raw.evidenceSummary === "string" ? raw.evidenceSummary : null,
     reviewerNote:
       typeof raw.reviewerNote === "string" ? raw.reviewerNote : null,
+    reviewer:
+      typeof raw.reviewer === "string" && raw.reviewer.trim()
+        ? raw.reviewer.trim()
+        : "Local researcher",
+    suggestedOutcome:
+      raw.suggestedOutcome === "promote" ||
+      raw.suggestedOutcome === "hold" ||
+      raw.suggestedOutcome === "reject"
+        ? raw.suggestedOutcome
+        : null,
+    benchmarkVerdict:
+      typeof raw.benchmarkVerdict === "string"
+        ? raw.benchmarkVerdict
+        : null,
+    evidenceSnapshotReference:
+      typeof raw.evidenceSnapshotReference === "string"
+        ? raw.evidenceSnapshotReference
+        : null,
   };
 }
 
@@ -68,10 +90,13 @@ function readAll(): DecisionRecordMap {
     for (const [key, value] of Object.entries(
       parsed as Record<string, unknown>
     )) {
-      const normalized = normalizeRecord(
-        value as Partial<ResearchDecisionRecord>
-      );
-      if (normalized) out[key] = normalized;
+      const candidates = Array.isArray(value) ? value : [value];
+      const normalized = candidates
+        .map((item) =>
+          normalizeRecord(item as Partial<ResearchDecisionRecord>)
+        )
+        .filter((item): item is ResearchDecisionRecord => Boolean(item));
+      if (normalized.length) out[key] = normalized;
     }
     return out;
   } catch {
@@ -90,7 +115,13 @@ function writeAll(records: DecisionRecordMap): void {
 export function getResearchDecisionRecord(
   researchId: string
 ): ResearchDecisionRecord | null {
-  return readAll()[researchId] ?? null;
+  return getResearchDecisionHistory(researchId).at(-1) ?? null;
+}
+
+export function getResearchDecisionHistory(
+  researchId: string
+): ResearchDecisionRecord[] {
+  return readAll()[researchId] ?? [];
 }
 
 export function saveResearchDecisionRecord(input: {
@@ -100,6 +131,10 @@ export function saveResearchDecisionRecord(input: {
   evidenceTimestamp?: string | null;
   evidenceSummary?: string | null;
   reviewerNote?: string | null;
+  reviewer?: string;
+  suggestedOutcome?: "promote" | "hold" | "reject" | null;
+  benchmarkVerdict?: string | null;
+  evidenceSnapshotReference?: string | null;
   now?: string;
 }): ResearchDecisionRecord {
   const rationale = input.rationale.trim();
@@ -118,8 +153,16 @@ export function saveResearchDecisionRecord(input: {
     evidenceTimestamp: input.evidenceTimestamp?.trim() || null,
     evidenceSummary: input.evidenceSummary?.trim() || null,
     reviewerNote: input.reviewerNote?.trim() || null,
+    reviewer: input.reviewer?.trim() || "Local researcher",
+    suggestedOutcome: input.suggestedOutcome ?? null,
+    benchmarkVerdict: input.benchmarkVerdict?.trim() || null,
+    evidenceSnapshotReference: input.evidenceSnapshotReference?.trim() || null,
   };
-  writeAll({ ...readAll(), [input.researchId]: record });
+  const current = readAll();
+  writeAll({
+    ...current,
+    [input.researchId]: [...(current[input.researchId] ?? []), record],
+  });
   return record;
 }
 

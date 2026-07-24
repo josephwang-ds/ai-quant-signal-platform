@@ -6,10 +6,8 @@ PROMPT_VERSIONS = {
     "governance_system": "governance_system_v1",
     "intent_classification": "intent_classification_v1",
     "definition_review": "definition_review_v1",
-    "tool_planning": "tool_planning_v1",
     "evidence_review": "evidence_review_v1",
     "completeness_review": "completeness_review_v1",
-    "decision_review": "decision_review_v1",
 }
 
 GOVERNANCE_SYSTEM_V1 = """You are a Quant Research Governance Agent operating inside a historical research workspace.

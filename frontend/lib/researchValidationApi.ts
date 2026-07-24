@@ -30,6 +30,41 @@ const DEFAULT_CONFIGURATION: TrendFollowingRunConfiguration = {
   riskFreeRate: 0,
 };
 
+function activeCriterionThresholds(researchId: string): Record<string, number> {
+  if (typeof window === "undefined") return {};
+  try {
+    const raw = window.localStorage.getItem(
+      "quant.research.guidance-definitions.v1"
+    );
+    const criteria = JSON.parse(raw ?? "{}")?.[researchId]?.successCriteria;
+    if (!Array.isArray(criteria)) return {};
+    const mapping: Record<string, string> = {
+      excess_return: "min_excess_return",
+      sharpe_difference: "min_sharpe_difference",
+      drawdown_improvement: "min_drawdown_improvement",
+      cost_adjusted_return: "min_cost_adjusted_return",
+      robust_parameter_ratio: "min_robust_parameter_ratio",
+      observation_count: "min_observations",
+    };
+    return Object.fromEntries(
+      criteria
+        .filter(
+          (item: { active?: boolean; threshold?: unknown; metric?: string }) =>
+            item?.active &&
+            typeof item.threshold === "number" &&
+            Number.isFinite(item.threshold) &&
+            Boolean(item.metric && mapping[item.metric])
+        )
+        .map((item: { threshold: number; metric: string }) => [
+          mapping[item.metric],
+          item.threshold,
+        ])
+    );
+  } catch {
+    return {};
+  }
+}
+
 function asTrendConfig(
   configuration?: ResearchRunConfiguration
 ): TrendFollowingRunConfiguration {
@@ -47,6 +82,7 @@ export async function fetchResearchValidation(options?: {
   configuration?: ResearchRunConfiguration;
 }): Promise<ResearchValidationResult> {
   const configuration = asTrendConfig(options?.configuration);
+  const researchId = options?.researchId ?? CANONICAL_RESEARCH_ID;
   return requestJson<ResearchValidationResult>(
     "/api/v1/research/validation",
     {
@@ -54,7 +90,7 @@ export async function fetchResearchValidation(options?: {
       headers: { "Content-Type": "application/json" },
       signal: options?.signal,
       body: JSON.stringify({
-        research_id: options?.researchId ?? CANONICAL_RESEARCH_ID,
+        research_id: researchId,
         symbol: configuration.symbol,
         benchmark: configuration.benchmark,
         start_date: configuration.startDate,
@@ -64,6 +100,7 @@ export async function fetchResearchValidation(options?: {
         transaction_cost: configuration.transactionCost,
         risk_free_rate: configuration.riskFreeRate,
         in_sample_ratio: 0.7,
+        ...activeCriterionThresholds(researchId),
       }),
     },
     { timeoutMs: API_REQUEST_TIMEOUT_MS }

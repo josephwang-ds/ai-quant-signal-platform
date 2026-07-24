@@ -6,6 +6,7 @@ import uuid
 from typing import Any, Callable, Optional
 
 from app.research_agent.completeness import assess_research_completeness
+from app.research_agent.evidence import benchmark_from_snapshot, robustness_results
 from app.research_agent.tools import ToolRegistryError, validate_tool_call
 from app.research_execution.market_data_port import utc_now_iso
 from app.research_knowledge.retrieval import retrieve_rulebook
@@ -118,7 +119,11 @@ def _handle_get_active_success_criteria(args, *, state, ctx, started_at):
     active = [
         item
         for item in criteria
-        if isinstance(item, dict) and item.get("status") == "active"
+        if isinstance(item, dict)
+        and (
+            item.get("active") is True
+            or str(item.get("status") or "").lower() == "active"
+        )
     ]
     return _result(
         tool_name="get_active_success_criteria",
@@ -164,7 +169,7 @@ def _handle_get_benchmark_evaluation(args, *, state, ctx, started_at):
             result_reference={"available": False},
             started_at=started_at,
         )
-    benchmark = stored.get("benchmark") or {}
+    benchmark = benchmark_from_snapshot(stored)
     return _result(
         tool_name="get_benchmark_evaluation",
         status="completed",
@@ -211,17 +216,7 @@ def _handle_get_robustness_results(args, *, state, ctx, started_at):
             result_reference={"available": False},
             started_at=started_at,
         )
-    stages = stored.get("stages") or {}
-    robustness = {
-        key: stages.get(key)
-        for key in (
-            "out_of_sample",
-            "parameter_sensitivity",
-            "transaction_cost_sensitivity",
-            "data_quality",
-        )
-        if key in stages
-    }
+    robustness = robustness_results(stored)
     return _result(
         tool_name="get_robustness_results",
         status="completed",
@@ -300,7 +295,9 @@ def _handle_run_validation_family(tool_name: str, args, *, state, ctx, started_a
             error="ResearchValidationService is not configured for this agent run.",
             started_at=started_at,
         )
-    result = ctx.validation_service.execute({"research_id": args.get("research_id") or state.get("research_id")})
+    result = ctx.validation_service.execute(
+        _deterministic_service_payload(state, args, factor=False)
+    )
     run_id = result.get("validation_run_id")
     return _result(
         tool_name=tool_name,
@@ -321,10 +318,7 @@ def _handle_run_factor_validation(args, *, state, ctx, started_at):
             error="FactorValidationService is not configured for this agent run.",
             started_at=started_at,
         )
-    payload = {
-        "research_id": args.get("research_id") or state.get("research_id"),
-        "factor_id": args.get("factor_id") or "momentum",
-    }
+    payload = _deterministic_service_payload(state, args, factor=True)
     result = ctx.factor_validation_service.execute(payload)
     run_id = result.get("validation_run_id")
     return _result(
@@ -346,7 +340,9 @@ def _handle_run_research_execution(args, *, state, ctx, started_at):
             error="ResearchExecutionService is not configured for this agent run.",
             started_at=started_at,
         )
-    result = ctx.execution_service.execute({"research_id": args.get("research_id") or state.get("research_id")})
+    result = ctx.execution_service.execute(
+        _deterministic_service_payload(state, args, factor=False)
+    )
     return _result(
         tool_name="run_research_execution",
         status="completed",
@@ -373,7 +369,10 @@ def _handle_run_benchmark_evaluation(args, *, state, ctx, started_at):
         tool_name="run_benchmark_evaluation",
         status="completed",
         input_parameters=args,
-        result_reference={"benchmark": stored.get("benchmark") or {}, "note": "Read from stored snapshot; metrics not recalculated by agent."},
+        result_reference={
+            "benchmark": benchmark_from_snapshot(stored),
+            "note": "Read from stored snapshot; metrics not recalculated by agent.",
+        },
         started_at=started_at,
     )
 
@@ -413,7 +412,15 @@ def _handle_record_human_decision(args, *, state, ctx, started_at):
     research_id = str(args.get("research_id") or state.get("research_id") or "")
     decision = str(args.get("decision") or "").strip()
     rationale = str(args.get("rationale") or "").strip()
-    if not decision or not rationale:
+    if decision not in {"Promote", "Hold", "Reject", "Archive"}:
+        return _result(
+            tool_name="record_human_decision",
+            status="failed",
+            input_parameters=args,
+            error="decision must be Promote, Hold, Reject, or Archive.",
+            started_at=started_at,
+        )
+    if not rationale:
         return _result(
             tool_name="record_human_decision",
             status="failed",
@@ -444,6 +451,66 @@ def _handle_record_human_decision(args, *, state, ctx, started_at):
         result_reference={"recorded": True, "decision_index": len(existing) - 1, "record": record},
         started_at=started_at,
     )
+
+
+def _deterministic_service_payload(
+    state: dict[str, Any],
+    args: dict[str, Any],
+    *,
+    factor: bool,
+) -> dict[str, Any]:
+    """Map the browser's canonical run configuration to backend request fields."""
+    definition = state.get("research_definition") or {}
+    config = definition.get("run_configuration") or {}
+    if not isinstance(config, dict):
+        config = {}
+
+    def value(snake: str, camel: str, default: Any = None) -> Any:
+        if snake in config:
+            return config[snake]
+        if camel in config:
+            return config[camel]
+        return default
+
+    research_id = args.get("research_id") or state.get("research_id")
+    if factor:
+        return {
+            "research_id": research_id,
+            "universe_id": value(
+                "universe_id", "universeId", definition.get("universe") or "us_sector_etfs"
+            ),
+            "factor_id": args.get("factor_id")
+            or value("factor_id", "factorId", "momentum"),
+            "rebalance_frequency": value(
+                "rebalance_frequency", "rebalanceFrequency", "monthly"
+            ),
+            "holding_period_months": value(
+                "holding_period_months", "holdingPeriodMonths", 1
+            ),
+            "start_date": value("start_date", "startDate", "2018-01-01"),
+            "end_date": value("end_date", "endDate"),
+            "transaction_cost": value(
+                "transaction_cost", "transactionCost", 0.001
+            ),
+        }
+
+    return {
+        "research_id": research_id,
+        "symbol": value("symbol", "symbol", definition.get("symbol") or "SPY"),
+        "benchmark": value(
+            "benchmark",
+            "benchmark",
+            definition.get("benchmark_symbol")
+            or definition.get("symbol")
+            or "SPY",
+        ),
+        "start_date": value("start_date", "startDate", "2018-01-01"),
+        "end_date": value("end_date", "endDate"),
+        "short_window": value("short_window", "shortWindow", 20),
+        "long_window": value("long_window", "longWindow", 60),
+        "transaction_cost": value("transaction_cost", "transactionCost", 0.001),
+        "risk_free_rate": value("risk_free_rate", "riskFreeRate", 0.0),
+    }
 
 
 HANDLERS: dict[str, Callable[..., dict[str, Any]]] = {

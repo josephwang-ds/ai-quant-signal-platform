@@ -193,3 +193,17 @@ Never expose keys through `NEXT_PUBLIC_*` variables or call OpenAI/Anthropic
 from the frontend. Offline tests use `FakeLlmAdapter`; production without a
 key returns HTTP 503 and the UI shows "Research Copilot is not configured
 for this deployment."
+
+### Factor Research Copilot
+
+For Cross-Sectional Factor Study runs, Copilot may summarize **completed**
+Factor Validation evidence only (RankIC, ICIR, turnover, long–short return,
+stability, warnings) via the additive `factor_summary` response field.
+
+It must not:
+
+- invent RankIC, ICIR, turnover, or long–short figures when evidence is missing
+  (use honest `unavailable`)
+- forecast future factor returns or prices
+- recommend buy / sell / hold / size of quantile baskets
+- call Factor Validation engines — it only reads the stored validation run

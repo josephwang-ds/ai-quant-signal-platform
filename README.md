@@ -63,7 +63,7 @@ The visual system adapts the MIT-licensed [Apple Bento Grid](https://github.com/
 | Robustness Center | Implemented — four evidence-backed checks; unsupported regime, walk-forward, Monte Carlo, and capacity methods are disclosed as scope boundaries |
 | Paper Observation | Implemented — creates a browser-local plan, records dated human notes, and closes the session; no trades or P&L |
 | Decision Center | Implemented — transparent deterministic checks suggest Promote / Hold / Reject readiness; the human outcome, override rationale, and evidence snapshot remain authoritative |
-| DeepSeek Quant Research Governance Agent | Implemented — controlled LangGraph workflow with approved tools, Research Rulebook retrieval, human approval gates, and decision-review drafts; no trading authority |
+| Evidence Governance Agent | Implemented — controlled LangGraph workflow with normalized Trend/Factor evidence, deterministic tool plans and decision suggestions, DeepSeek interpretation, human approval gates, and no trading authority |
 | Risk Review | Implemented — five-level risk assessment from backtest metrics; deterministic and explainable (`component_levels` + `risk_reasons`) |
 | Compare Models | Implemented — rule strategies vs XGBoost/LightGBM and other ML models on the same out-of-sample window with leakage controls; compares Return / Sharpe / Drawdown / Turnover / Cost, plus feature importance and directional accuracy |
 | Cold-start recovery | Implemented — one shared readiness gate, visible startup state, bounded retry, and automatic continuation |

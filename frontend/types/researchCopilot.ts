@@ -12,6 +12,16 @@ export type CopilotWarning = {
   message: string;
 };
 
+export type FactorCopilotSummary = {
+  rank_ic: string;
+  icir: string;
+  turnover: string;
+  long_short_return: string;
+  stability: string;
+  warnings: string[];
+  citation_ids: string[];
+};
+
 export type ResearchCopilotResult = {
   research_id: string;
   answer: string;
@@ -20,6 +30,7 @@ export type ResearchCopilotResult = {
   grounding_status: GroundingStatus;
   model: string;
   generated_at: string;
+  factor_summary?: FactorCopilotSummary | null;
 };
 
 export type ResearchCopilotRequestStatus =

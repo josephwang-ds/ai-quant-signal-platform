@@ -4,25 +4,36 @@ from __future__ import annotations
 
 import json
 import re
+from functools import wraps
 from typing import Any, Callable
 
-from app.research_agent import GRAPH_VERSION, MAX_GRAPH_STEPS, MAX_TOOL_CALLS
+from app.research_agent import (
+    GRAPH_VERSION,
+    GraphStepLimitError,
+    MAX_GRAPH_STEPS,
+    MAX_TOOL_CALLS,
+)
 from app.research_agent.completeness import assess_research_completeness
+from app.research_agent.evidence import (
+    benchmark_from_snapshot,
+    build_evidence_snapshot,
+    required_evidence,
+)
 from app.research_agent.llm_bridge import (
-    AgentLlmUnavailable,
     context_from_dicts,
     generate_structured,
 )
+from app.research_agent.llm_schemas import (
+    DefinitionReviewOutput,
+    EvidenceReviewOutput,
+)
 from app.research_agent.prompts import (
     DEFINITION_REVIEW_V1,
-    DECISION_REVIEW_V1,
     EVIDENCE_REVIEW_V1,
     GOVERNANCE_SYSTEM_V1,
     PROMPT_VERSIONS,
-    TOOL_PLANNING_V1,
 )
 from app.research_agent.state import AgentState
-from app.research_agent.tools import ToolRegistryError, validate_tool_call
 from app.research_agent.tools.handlers import ToolExecutionContext, execute_tool
 from app.research_execution.market_data_port import utc_now_iso
 from app.research_knowledge.retrieval import retrieve_rulebook
@@ -55,7 +66,7 @@ def _bump(state: AgentState, node: str) -> dict[str, Any]:
     return {
         "current_node": node,
         "step_count": step_count,
-        "status": "failed" if step_count > MAX_GRAPH_STEPS else state.get("status", "running"),
+        "status": state.get("status", "running"),
     }
 
 
@@ -161,6 +172,8 @@ def make_nodes(
                     + "\n\nDefinition JSON:\n"
                     + json.dumps(definition, ensure_ascii=False)[:6000],
                     system_prompt=GOVERNANCE_SYSTEM_V1 + "\n" + DEFINITION_REVIEW_V1,
+                    response_model=DefinitionReviewOutput,
+                    trusted_context=json.dumps(definition, ensure_ascii=False),
                 )
                 if payload.get("_safety_blocked"):
                     ai_review = {
@@ -170,8 +183,12 @@ def make_nodes(
                     }
                 else:
                     ai_review = {"available": True, "review": payload, "warnings": warnings}
-            except AgentLlmUnavailable:
-                ai_review = {"available": False, "reason": "llm_unavailable"}
+            except Exception as exc:  # Provider failures must not fail the graph.
+                ai_review = {
+                    "available": False,
+                    "reason": "llm_unavailable",
+                    "warnings": [f"llm_error:{type(exc).__name__}"],
+                }
         review = {"deterministic_checks": deterministic, "ai_review": ai_review}
         return {
             **updates,
@@ -213,26 +230,8 @@ def make_nodes(
         updates = _bump(state, "inspect_available_evidence")
         snapshot = state.get("evidence_snapshot") or {}
         availability = snapshot.get("availability") or {}
-        missing = [
-            key
-            for key, present in {
-                "execution": availability.get("execution"),
-                "benchmark": availability.get("benchmark"),
-                "validation": availability.get("validation"),
-                "factor_validation": availability.get("factor_validation"),
-                "oos": availability.get("oos"),
-                "parameter_sensitivity": availability.get("parameter_sensitivity"),
-                "cost_sensitivity": availability.get("cost_sensitivity"),
-                "data_quality": availability.get("data_quality"),
-                "rank_ic": availability.get("rank_ic"),
-            }.items()
-            if not present
-        ]
-        # For factor studies, MA stages may be N/A
-        if state.get("research_type") == "factor":
-            missing = [m for m in missing if m not in {"execution", "oos", "parameter_sensitivity", "validation"}]
-            if not availability.get("factor_validation"):
-                missing = list(dict.fromkeys(missing + ["factor_validation", "rank_ic"]))
+        required = required_evidence(state.get("research_type"))
+        missing = [key for key in required if not availability.get(key)]
         return {
             **updates,
             "missing_evidence": missing,
@@ -250,6 +249,10 @@ def make_nodes(
         cycles = int(state.get("planning_cycles") or 0) + 1
         missing = list(state.get("missing_evidence") or [])
         intent = state.get("intent")
+        definition = state.get("research_definition") or {}
+        run_configuration = definition.get("run_configuration") or {}
+        if not isinstance(run_configuration, dict):
+            run_configuration = {}
         planned: list[dict[str, Any]] = [
             {
                 "tool_name": "retrieve_research_rulebook",
@@ -287,21 +290,33 @@ def make_nodes(
                 {
                     "tool_name": "run_factor_validation",
                     "reason": "Factor validation evidence is missing.",
-                    "arguments": {"research_id": state.get("research_id"), "factor_id": "momentum"},
+                    "arguments": {
+                        "research_id": state.get("research_id"),
+                        "factor_id": run_configuration.get("factorId")
+                        or run_configuration.get("factor_id")
+                        or "momentum",
+                    },
                     "requires_approval": True,
                 }
             )
-        if "validation" in missing or "oos" in missing:
-            if state.get("research_type") == "trend_following":
-                planned.append(
-                    {
-                        "tool_name": "run_oos_validation",
-                        "reason": "OOS/validation evidence is missing.",
-                        "arguments": {"research_id": state.get("research_id")},
-                        "requires_approval": True,
-                    }
-                )
-        if "cost_sensitivity" in missing and state.get("research_type") == "trend_following":
+        full_trend_validation_planned = (
+            state.get("research_type") == "trend_following"
+            and ("validation" in missing or "oos" in missing)
+        )
+        if full_trend_validation_planned:
+            planned.append(
+                {
+                    "tool_name": "run_oos_validation",
+                    "reason": "OOS/validation evidence is missing.",
+                    "arguments": {"research_id": state.get("research_id")},
+                    "requires_approval": True,
+                }
+            )
+        if (
+            "cost_sensitivity" in missing
+            and state.get("research_type") == "trend_following"
+            and not full_trend_validation_planned
+        ):
             planned.append(
                 {
                     "tool_name": "run_cost_sensitivity",
@@ -310,42 +325,6 @@ def make_nodes(
                     "requires_approval": True,
                 }
             )
-
-        # Optional LLM refinement (bounded)
-        if state.get("llm_available") and llm is not None and cycles <= 2:
-            try:
-                payload, _, _ = generate_structured(
-                    llm,
-                    user_prompt=TOOL_PLANNING_V1
-                    + "\n\nMissing evidence:\n"
-                    + json.dumps(missing)
-                    + "\nIntent:\n"
-                    + str(intent),
-                    system_prompt=GOVERNANCE_SYSTEM_V1 + "\n" + TOOL_PLANNING_V1,
-                )
-                llm_calls = payload.get("tool_calls")
-                if isinstance(llm_calls, list):
-                    for call in llm_calls[:MAX_TOOL_CALLS]:
-                        if not isinstance(call, dict):
-                            continue
-                        name = str(call.get("tool_name") or "")
-                        try:
-                            validate_tool_call(name, call.get("arguments") or {})
-                        except ToolRegistryError:
-                            continue
-                        planned.append(
-                            {
-                                "tool_name": name,
-                                "reason": str(call.get("reason") or "LLM planned tool"),
-                                "arguments": call.get("arguments") or {},
-                                "requires_approval": bool(
-                                    call.get("requires_approval")
-                                    or validate_tool_call(name, call.get("arguments") or {}).requires_approval
-                                ),
-                            }
-                        )
-            except Exception:  # noqa: BLE001
-                pass
 
         # Dedupe by tool name, cap
         deduped: list[dict[str, Any]] = []
@@ -498,7 +477,7 @@ def make_nodes(
                 "summary": "Inconclusive: mixed evidence across runs.",
             }
         snapshot = _build_evidence_availability(stored, research_type=state.get("research_type"))
-        benchmark = stored.get("benchmark") or {}
+        benchmark = benchmark_from_snapshot(stored)
         return {
             **updates,
             "evidence_snapshot": snapshot,
@@ -549,11 +528,13 @@ def make_nodes(
                     llm,
                     user_prompt=EVIDENCE_REVIEW_V1
                     + "\n\nSnapshot:\n"
-                    + json.dumps(snapshot, ensure_ascii=False)[:8000]
+                    + json.dumps(snapshot, ensure_ascii=False)[:12000]
                     + "\n\nKnowledge IDs:\n"
                     + json.dumps(sorted(knowledge_ids)),
                     context_items=ctx_items,
                     system_prompt=GOVERNANCE_SYSTEM_V1 + "\n" + EVIDENCE_REVIEW_V1,
+                    response_model=EvidenceReviewOutput,
+                    trusted_context=json.dumps(snapshot, ensure_ascii=False),
                 )
                 if payload.get("_safety_blocked"):
                     interpretation = {
@@ -570,23 +551,21 @@ def make_nodes(
                     interpretation["warnings"] = warnings
                     if result:
                         interpretation["model"] = result.model
-            except AgentLlmUnavailable:
+            except Exception as exc:
                 interpretation = {
                     "available": False,
                     "reason": "llm_unavailable",
                     "hypothesis_assessment": "inconclusive",
+                    "warnings": [f"llm_error:{type(exc).__name__}"],
                 }
 
         return {
             **updates,
             "ai_interpretation": interpretation,
             "recommended_next_steps": list(interpretation.get("recommended_next_steps") or []),
-            "missing_evidence": list(
-                dict.fromkeys(
-                    list(state.get("missing_evidence") or [])
-                    + list(interpretation.get("missing_evidence") or [])
-                )
-            ),
+            # Governance state remains deterministic. Model-identified gaps are
+            # displayed inside ai_interpretation but never alter readiness.
+            "missing_evidence": list(state.get("missing_evidence") or []),
             "trace": _trace(state, "review_evidence", "reviewed"),
             "summary": "Completed evidence review (AI interprets; metrics unchanged).",
         }
@@ -615,35 +594,31 @@ def make_nodes(
     def prepare_decision_review(state: AgentState) -> dict[str, Any]:
         updates = _bump(state, "prepare_decision_review")
         deterministic_suggestion = _deterministic_suggestion(state)
-        agent_part: dict[str, Any] = {"available": False}
-        if state.get("llm_available") and llm is not None:
-            try:
-                payload, _, warnings = generate_structured(
-                    llm,
-                    user_prompt=DECISION_REVIEW_V1
-                    + "\n\ndeterministic_suggestion="
-                    + deterministic_suggestion
-                    + "\ncompleteness="
-                    + json.dumps(state.get("completeness") or {})
-                    + "\nai_interpretation="
-                    + json.dumps(state.get("ai_interpretation") or {})[:4000],
-                    system_prompt=GOVERNANCE_SYSTEM_V1 + "\n" + DECISION_REVIEW_V1,
-                )
-                if not payload.get("_safety_blocked"):
-                    agent_part = {
-                        "available": True,
-                        "agent_interpretation": payload.get("agent_interpretation"),
-                        "supporting_checks": payload.get("supporting_checks") or [],
-                        "failed_checks": payload.get("failed_checks") or [],
-                        "conflicting_evidence": payload.get("conflicting_evidence") or [],
-                        "missing_validation": payload.get("missing_validation") or [],
-                        "recommended_human_action": payload.get("recommended_human_action")
-                        or "review",
-                        "proposed_rationale_draft": payload.get("proposed_rationale_draft"),
-                        "warnings": warnings,
-                    }
-            except AgentLlmUnavailable:
-                agent_part = {"available": False, "reason": "llm_unavailable"}
+        interpretation = state.get("ai_interpretation") or {}
+        missing = list(state.get("missing_evidence") or [])
+        agent_part: dict[str, Any] = {
+            "available": bool(interpretation.get("available")),
+            "agent_interpretation": interpretation.get("executive_summary"),
+            "supporting_checks": [
+                item.get("claim")
+                for item in (interpretation.get("supporting_evidence") or [])
+                if isinstance(item, dict) and item.get("claim")
+            ],
+            "failed_checks": [
+                item.get("claim")
+                for item in (interpretation.get("contradicting_evidence") or [])
+                if isinstance(item, dict) and item.get("claim")
+            ],
+            "conflicting_evidence": interpretation.get("robustness_concerns") or [],
+            "missing_validation": missing,
+            "recommended_human_action": (
+                "run_additional_validation" if missing else "record_decision"
+            ),
+            "proposed_rationale_draft": (
+                f"Deterministic suggestion is {deterministic_suggestion}. "
+                "Review the supplied evidence and document the human rationale."
+            ),
+        }
 
         decision_review = {
             "deterministic_suggestion": deterministic_suggestion,
@@ -718,7 +693,15 @@ def make_nodes(
             rationale = str(payload.get("rationale") or "").strip()
             suggestion = (state.get("decision_review") or {}).get("deterministic_suggestion")
             override = str(payload.get("override_rationale") or "").strip()
-            if not decision or not rationale:
+            if decision not in {"Promote", "Hold", "Reject", "Archive"}:
+                return {
+                    **updates,
+                    "status": "awaiting_approval",
+                    "errors": list(state.get("errors") or [])
+                    + ["decision must be Promote, Hold, Reject, or Archive."],
+                    "trace": _trace(state, "await_human_decision", "invalid_decision"),
+                }
+            if not rationale:
                 return {
                     **updates,
                     "status": "awaiting_approval",
@@ -801,7 +784,7 @@ def make_nodes(
             "trace": _trace(state, "handle_agent_error", "failed"),
         }
 
-    return {
+    node_map = {
         "classify_intent": classify_intent,
         "load_research_context": load_research_context,
         "review_research_definition": review_research_definition,
@@ -818,59 +801,28 @@ def make_nodes(
         "finalize_agent_run": finalize_agent_run,
         "handle_agent_error": handle_agent_error,
     }
+    return {name: _bounded_node(fn) for name, fn in node_map.items()}
 
 
-def _build_evidence_availability(stored: dict[str, Any], *, research_type: str | None) -> dict[str, Any]:
-    stages = stored.get("stages") or {}
-    ic_summary = ((stored.get("ic") or {}).get("summary")) or {}
-    availability = {
-        "execution": bool(stored.get("execution") or stored.get("metrics")),
-        "benchmark": bool(stored.get("benchmark")),
-        "validation": stored.get("validation_status") == "completed" or bool(stages),
-        "factor_validation": stored.get("evidence_kind") == "factor_validation"
-        or stored.get("template") == "cross_sectional_factor",
-        "oos": bool(stages.get("out_of_sample")),
-        "parameter_sensitivity": bool(stages.get("parameter_sensitivity")),
-        "cost_sensitivity": bool(stages.get("transaction_cost_sensitivity")),
-        "data_quality": bool(stages.get("data_quality")),
-        "rank_ic": ic_summary.get("mean_rank_ic") is not None,
-        "robustness": bool(
-            stages.get("out_of_sample")
-            or stages.get("parameter_sensitivity")
-            or stages.get("transaction_cost_sensitivity")
-        ),
-        "known_limitations": True,
-    }
-    evidence_ids = ["snapshot:root"]
-    if availability["rank_ic"]:
-        evidence_ids.extend(["evidence:mean_rank_ic", "evidence:icir"])
-    if availability["benchmark"]:
-        evidence_ids.append("evidence:benchmark")
-    for stage_name, present in {
-        "oos": availability["oos"],
-        "parameter_sensitivity": availability["parameter_sensitivity"],
-        "cost_sensitivity": availability["cost_sensitivity"],
-        "data_quality": availability["data_quality"],
-    }.items():
-        if present:
-            evidence_ids.append(f"evidence:{stage_name}")
-    return {
-        "validation_run_id": stored.get("validation_run_id"),
-        "generated_at": stored.get("generated_at"),
-        "evidence_kind": stored.get("evidence_kind") or stored.get("template"),
-        "research_type": research_type,
-        "availability": availability,
-        "evidence_ids": evidence_ids,
-        "ic_summary": ic_summary or None,
-        "benchmark": stored.get("benchmark"),
-        "warnings": stored.get("warnings") or [],
-        # Keep metrics read-only references — agent must not edit
-        "metric_refs": {
-            "mean_rank_ic": ic_summary.get("mean_rank_ic"),
-            "icir": ic_summary.get("icir"),
-            "stages_present": sorted(stages.keys()) if isinstance(stages, dict) else [],
-        },
-    }
+def _bounded_node(
+    fn: Callable[[AgentState], dict[str, Any]]
+) -> Callable[[AgentState], dict[str, Any]]:
+    @wraps(fn)
+    def wrapped(state: AgentState) -> dict[str, Any]:
+        if int(state.get("step_count") or 0) >= MAX_GRAPH_STEPS:
+            raise GraphStepLimitError(
+                f"Governance Agent reached the {MAX_GRAPH_STEPS}-step limit."
+            )
+        return fn(state)
+
+    return wrapped
+
+
+def _build_evidence_availability(
+    stored: dict[str, Any], *, research_type: str | None
+) -> dict[str, Any]:
+    """Compatibility wrapper retained for tests and graph callers."""
+    return build_evidence_snapshot(stored, research_type=research_type)
 
 
 def _validate_evidence_review(
@@ -885,8 +837,16 @@ def _validate_evidence_review(
         for item in items:
             if not isinstance(item, dict):
                 continue
-            eids = [e for e in (item.get("evidence_ids") or []) if e in evidence_ids]
-            kids = [k for k in (item.get("knowledge_ids") or []) if k in knowledge_ids]
+            raw_eids = [str(e) for e in (item.get("evidence_ids") or [])]
+            raw_kids = [str(k) for k in (item.get("knowledge_ids") or [])]
+            if any(e not in evidence_ids for e in raw_eids):
+                continue
+            if any(k not in knowledge_ids for k in raw_kids):
+                continue
+            eids = raw_eids
+            kids = raw_kids
+            if not eids and not kids:
+                continue
             out.append(
                 {
                     "claim": str(item.get("claim") or ""),
@@ -920,16 +880,14 @@ def _validate_evidence_review(
 
 def _deterministic_suggestion(state: AgentState) -> str:
     completeness = state.get("completeness") or {}
-    overall = completeness.get("overall")
     missing = state.get("missing_evidence") or []
-    interpretation = state.get("ai_interpretation") or {}
-    assessment = interpretation.get("hypothesis_assessment")
-    if overall == "blocked":
+    benchmark = state.get("benchmark_evaluation") or {}
+    verdict = str(benchmark.get("verdict") or "").lower()
+    availability = (state.get("evidence_snapshot") or {}).get("availability") or {}
+    if availability.get("validation_failed") or verdict == "fail":
         return "Reject"
-    if missing or overall == "incomplete":
+    if missing or not completeness.get("decision_ready"):
         return "Hold"
-    if assessment == "not_supported":
-        return "Reject"
-    if assessment in {"supported", "partially_supported"} and overall == "complete":
+    if verdict == "pass":
         return "Promote"
     return "Hold"

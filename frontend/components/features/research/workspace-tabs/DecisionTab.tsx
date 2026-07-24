@@ -18,6 +18,7 @@ import type {
   FactorValidationResult,
   FactorValidationStatus,
 } from "@/types/factorValidation";
+import type { ResearchExecutionResult } from "@/types/researchExecution";
 
 export type DecisionTabProps = {
   section: Extract<ResearchWorkspaceSection, "paper" | "decision">;
@@ -31,10 +32,12 @@ export type DecisionTabProps = {
   factorValidationStatus?: FactorValidationStatus;
   factorValidation?: FactorValidationResult | null;
   navigateToSection: (section: ResearchWorkspaceSection) => void;
+  execution?: ResearchExecutionResult | null;
 };
 
 export default function DecisionTab({
   section,
+  language,
   tr,
   research,
   validationStatus,
@@ -44,6 +47,7 @@ export default function DecisionTab({
   factorValidationStatus = "idle",
   factorValidation = null,
   navigateToSection,
+  execution = null,
 }: DecisionTabProps) {
   if (!research) return null;
 
@@ -71,6 +75,9 @@ export default function DecisionTab({
       validation={validationStatus === "ready" ? validation : null}
       evaluation={evaluationStatus === "ready" ? evaluation : null}
       factorValidationCompleted={factorReady}
+      execution={execution}
+      factorValidation={factorValidationStatus === "ready" ? factorValidation : null}
+      language={language}
       evidenceTimestamp={
         factorValidation?.generated_at ??
         (validationStatus === "ready" ? validation?.generated_at : null) ??

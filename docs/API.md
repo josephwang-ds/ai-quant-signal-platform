@@ -28,12 +28,28 @@ Prefix: `/api/v1/research`
 | `POST` | `/api/v1/research/validation` | Deterministic validation evidence |
 | `POST` | `/api/v1/research/evaluation` | Summarise validation evidence (no new calculations) |
 | `POST` | `/api/v1/research/copilot/query` | Evidence-grounded Copilot Q&A |
+| `POST` | `/api/v1/research/guidance/definition` | Template-first research definition; optional constrained LLM refinement |
+| `POST` | `/api/v1/research/reviewer/draft-definition` | Strict-JSON AI research-definition draft; criteria remain inactive |
+| `POST` | `/api/v1/research/reviewer/review-hypothesis` | Testability and falsifiability review |
+| `POST` | `/api/v1/research/reviewer/review-evidence` | Interpretation of a supplied deterministic evidence snapshot |
+| `POST` | `/api/v1/research/reviewer/identify-missing-steps` | Research-completion gap review |
+| `POST` | `/api/v1/research/agent/runs` | Start a bounded Governance Agent review |
+| `GET` | `/api/v1/research/agent/runs/{agent_run_id}` | Read run state, evidence gaps, trace, and pending approval |
+| `POST` | `/api/v1/research/agent/runs/{agent_run_id}/resume` | Approve/skip tools or record a human decision |
+| `POST` | `/api/v1/research/agent/runs/{agent_run_id}/cancel` | Cancel a non-terminal Agent run |
 
 Rules:
 
 - Provider failures return error statuses; they do not invent metrics
 - Evaluation requires a prior validation run id in the request contract used by the workspace
-- Copilot requires backend `LLM_*` configuration; without it the route fails honestly
+- Definition guidance with `use_llm=false` requires no provider and returns an editable deterministic template
+- Definition guidance with `use_llm=true` and Copilot require backend `LLM_*` configuration; without it the route fails honestly
+- Reviewer endpoints reuse the same backend provider adapter as Copilot, return
+  provider/model/timestamp metadata, and never calculate or persist evidence
+- Agent tool plans, completeness, and Promote/Hold/Reject suggestions are
+  deterministic; DeepSeek only explains validated structured context
+- Agent execution tools require approval and call the existing execution or
+  validation services with the workspace's saved run configuration
 
 ---
 

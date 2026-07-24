@@ -20,7 +20,7 @@ vi.mock("@/lib/researchAgentApi", () => ({
     research_type: "trend_following",
     llm_available: false,
     prompt_versions: {},
-    graph_version: "governance_agent_graph_v1",
+    graph_version: "governance_agent_graph_v2",
     knowledge_context: [
       {
         knowledge_id: "kb.trend_following.v1",
@@ -86,7 +86,7 @@ describe("GovernanceAgentPanel", () => {
       />
     );
     expect(
-      screen.getByText("Quant Research Governance Agent")
+      screen.getByText("Evidence Governance Agent")
     ).toBeInTheDocument();
     expect(screen.getByText(/Evidence First/i)).toBeInTheDocument();
     expect(screen.getByText("Review Research Definition")).toBeInTheDocument();
@@ -102,7 +102,7 @@ describe("GovernanceAgentPanel", () => {
         language="en"
       />
     );
-    fireEvent.click(screen.getByRole("button", { name: /Start Agent workflow/i }));
+    fireEvent.click(screen.getByRole("button", { name: /Review current research/i }));
     expect(await screen.findByText(/Awaiting human approval/i)).toBeInTheDocument();
     expect(screen.getByText("Pending tool approval")).toBeInTheDocument();
     expect(screen.getByText(/kb.trend_following.v1/)).toBeInTheDocument();

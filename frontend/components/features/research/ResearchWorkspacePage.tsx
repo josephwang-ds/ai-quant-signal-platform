@@ -225,8 +225,8 @@ export default function ResearchWorkspacePage({
     reset: resetCopilot,
   } = useResearchCopilot(
     researchId,
-    activeSection === "copilot" && !isFactorTemplate,
-    validationRunId
+    activeSection === "copilot",
+    isFactorTemplate ? factorValidationRunId : validationRunId
   );
 
   const handleRunValidation = useCallback(() => {
@@ -377,12 +377,19 @@ export default function ResearchWorkspacePage({
   }, [activeSection, resetCopilot]);
 
   const copilotSampleQuestions = useMemo(
-    () => [
-      tr("researchCopilotSample1"),
-      tr("researchCopilotSample2"),
-      tr("researchCopilotSample3"),
-    ],
-    [tr]
+    () =>
+      isFactorTemplate
+        ? [
+            tr("researchCopilotFactorSample1"),
+            tr("researchCopilotFactorSample2"),
+            tr("researchCopilotFactorSample3"),
+          ]
+        : [
+            tr("researchCopilotSample1"),
+            tr("researchCopilotSample2"),
+            tr("researchCopilotSample3"),
+          ],
+    [isFactorTemplate, tr]
   );
 
   const timelineEvents = useMemo(() => {

@@ -69,12 +69,6 @@ export default function OverviewTab({
 
   return (
     <div className="overview-tab-stack">
-      <GovernanceAgentPanel
-        research={displayResearch}
-        isFactorTemplate={isFactorTemplate}
-        evidenceSnapshotId={evidenceSnapshotId}
-        language={language}
-      />
       <ResearchDefinitionSummary
         research={displayResearch}
         labels={{
@@ -184,6 +178,12 @@ export default function OverviewTab({
             nextActionLabel: tr("researchWsNextActions"),
           },
         }}
+      />
+      <GovernanceAgentPanel
+        research={displayResearch}
+        isFactorTemplate={isFactorTemplate}
+        evidenceSnapshotId={evidenceSnapshotId}
+        language={language}
       />
     </div>
   );

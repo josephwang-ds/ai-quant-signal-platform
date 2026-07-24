@@ -29,6 +29,8 @@ class MetricBundle:
     win_rate: float | None
     turnover: float | None
     total_transaction_costs: float | None
+    exposure_percentage: float | None
+    downside_capture: float | None
     observation_count: int
     start_date: str | None
     end_date: str | None
@@ -143,6 +145,16 @@ def _summarize_return_frame(
 
     start = str(pd.Timestamp(valid["date"].iloc[0]).date())
     end = str(pd.Timestamp(valid["date"].iloc[-1]).date())
+    downside_days = valid["daily_return"] < 0
+    downside_benchmark = float(valid.loc[downside_days, "daily_return"].sum())
+    downside_strategy = float(
+        valid.loc[downside_days, "net_strategy_return"].sum()
+    )
+    downside_capture = (
+        _json_safe(downside_strategy / downside_benchmark)
+        if downside_benchmark != 0
+        else None
+    )
     strategy_metrics = MetricBundle(
         total_return=_json_safe(strat_total),
         cagr=strat_cagr,
@@ -153,6 +165,8 @@ def _summarize_return_frame(
         win_rate=win_rate,
         turnover=_json_safe(float(valid["turnover"].sum())),
         total_transaction_costs=_json_safe(float(valid["transaction_cost"].sum())),
+        exposure_percentage=_json_safe(float(valid["position"].abs().mean())),
+        downside_capture=downside_capture,
         observation_count=n,
         start_date=start,
         end_date=end,
@@ -167,6 +181,8 @@ def _summarize_return_frame(
         win_rate=_json_safe(float((valid["daily_return"] > 0).mean())),
         turnover=None,
         total_transaction_costs=0.0,
+        exposure_percentage=1.0,
+        downside_capture=1.0 if downside_benchmark != 0 else None,
         observation_count=n,
         start_date=start,
         end_date=end,
@@ -288,6 +304,8 @@ def metrics_to_dict(bundle: MetricBundle) -> dict[str, Any]:
         "win_rate": bundle.win_rate,
         "turnover": bundle.turnover,
         "total_transaction_costs": bundle.total_transaction_costs,
+        "exposure_percentage": bundle.exposure_percentage,
+        "downside_capture": bundle.downside_capture,
         "observation_count": bundle.observation_count,
         "start_date": bundle.start_date,
         "end_date": bundle.end_date,

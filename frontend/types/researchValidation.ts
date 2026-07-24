@@ -1,4 +1,5 @@
 import type { DataProvenance, ExecutionMetrics } from "@/types/researchExecution";
+import type { BenchmarkEvaluation } from "@/types/researchBenchmark";
 
 export type ValidationStageStatus =
   | "completed"
@@ -109,6 +110,7 @@ export type ResearchValidationResult = {
   parameter_sensitivity: ParameterSensitivity;
   transaction_cost_sensitivity: TransactionCostSensitivity;
   data_quality: DataQualityValidation;
+  benchmark_evaluation?: BenchmarkEvaluation;
   warnings: string[];
   generated_at: string;
   // Opaque id under which the backend saved this exact result. Evaluation

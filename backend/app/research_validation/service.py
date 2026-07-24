@@ -16,6 +16,7 @@ from app.research_execution.calculations import (
     run_ma_crossover_research,
     summarize_return_segment,
 )
+from app.research_execution.benchmark import build_trend_benchmark_comparison
 from app.research_execution.market_data_port import (
     MarketDataError,
     MarketDataPort,
@@ -237,6 +238,39 @@ class ResearchValidationService:
 
         baseline_metrics = metrics_to_dict(baseline.strategy_metrics)
         benchmark_metrics = metrics_to_dict(baseline.benchmark_metrics)
+        oos_strategy_sharpe = (
+            (oos.get("out_of_sample_metrics") or {}).get("sharpe_ratio")
+        )
+        oos_benchmark_sharpe = (
+            (oos.get("oos_benchmark_metrics") or {}).get("sharpe_ratio")
+        )
+        oos_sharpe_difference = _difference(
+            oos_strategy_sharpe, oos_benchmark_sharpe
+        )
+        valid_parameter_count = sensitivity.get("valid_combination_count")
+        positive_sharpe_count = sensitivity.get("positive_sharpe_count")
+        robust_parameter_ratio = (
+            float(positive_sharpe_count) / float(valid_parameter_count)
+            if valid_parameter_count
+            and positive_sharpe_count is not None
+            else None
+        )
+        benchmark_evaluation = build_trend_benchmark_comparison(
+            baseline_metrics,
+            benchmark_metrics,
+            min_excess_return=parameters["min_excess_return"],
+            min_sharpe_difference=parameters["min_sharpe_difference"],
+            min_drawdown_improvement=parameters["min_drawdown_improvement"],
+            min_observations=parameters["min_observations"],
+            min_cost_adjusted_return=parameters["min_cost_adjusted_return"],
+            min_robust_parameter_ratio=parameters[
+                "min_robust_parameter_ratio"
+            ],
+            oos_sharpe_difference=oos_sharpe_difference,
+            robust_parameter_ratio=robust_parameter_ratio,
+            fatal_data_issue_count=len(quality.get("fatal_issues") or []),
+            evidence_timestamp=generated_at,
+        )
         historical_stage = _stage(
             name="historical_backtest",
             label="Historical backtest",
@@ -333,6 +367,7 @@ class ResearchValidationService:
             "parameter_sensitivity": sensitivity,
             "transaction_cost_sensitivity": costs,
             "data_quality": quality,
+            "benchmark_evaluation": benchmark_evaluation,
             "warnings": warnings,
             "generated_at": generated_at,
         }
@@ -389,6 +424,38 @@ class ResearchValidationService:
             raise ResearchValidationError(
                 "in_sample_ratio must be between 0.5 and 0.9 inclusive."
             )
+        min_excess_return = _finite_number(
+            request.get("min_excess_return", 0.0), "min_excess_return"
+        )
+        min_sharpe_difference = _finite_number(
+            request.get("min_sharpe_difference", 0.0),
+            "min_sharpe_difference",
+        )
+        min_drawdown_improvement = _finite_number(
+            request.get("min_drawdown_improvement", 0.05),
+            "min_drawdown_improvement",
+        )
+        min_cost_adjusted_return = _finite_number(
+            request.get("min_cost_adjusted_return", 0.0),
+            "min_cost_adjusted_return",
+        )
+        min_robust_parameter_ratio = _finite_number(
+            request.get("min_robust_parameter_ratio", 0.5),
+            "min_robust_parameter_ratio",
+        )
+        min_observations = _integer(
+            request.get("min_observations", 252), "min_observations"
+        )
+        if min_drawdown_improvement < 0:
+            raise ResearchValidationError(
+                "min_drawdown_improvement must be >= 0."
+            )
+        if not 0 <= min_robust_parameter_ratio <= 1:
+            raise ResearchValidationError(
+                "min_robust_parameter_ratio must be between 0 and 1."
+            )
+        if min_observations < 1:
+            raise ResearchValidationError("min_observations must be >= 1.")
         return {
             "research_id": research_id,
             "symbol": symbol,
@@ -400,6 +467,12 @@ class ResearchValidationService:
             "transaction_cost": transaction_cost,
             "risk_free_rate": risk_free_rate,
             "in_sample_ratio": in_sample_ratio,
+            "min_excess_return": min_excess_return,
+            "min_sharpe_difference": min_sharpe_difference,
+            "min_drawdown_improvement": min_drawdown_improvement,
+            "min_cost_adjusted_return": min_cost_adjusted_return,
+            "min_robust_parameter_ratio": min_robust_parameter_ratio,
+            "min_observations": min_observations,
         }
 
     def _build_oos(

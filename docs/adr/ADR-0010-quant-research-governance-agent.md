@@ -19,6 +19,8 @@ Introduce a single Quant Research Governance Agent orchestrated by LangGraph:
 - Approved tool registry that calls existing deterministic services
 - Versioned Research Rulebook retrieval (lightweight lexical ranking)
 - DeepSeek interpretation only over supplied evidence/knowledge context
+- Action-specific structured-output validation and whole-payload safety checks
+- Separate Trend and Factor evidence contracts over normalized stored snapshots
 - Human approval before expensive validation and before recording decisions
 - Process-local checkpointer for this portfolio iteration
 
@@ -31,10 +33,15 @@ multi-persona role-play agents. Deterministic services remain authoritative for
 metrics. Lightweight rulebook retrieval is sufficient; a vector database is not
 required. The Agent cannot trade.
 
+Tool planning, completeness, and Promote / Hold / Reject suggestions are
+deterministic. Model-generated hypothesis assessments and missing-evidence text
+are advisory display fields and cannot modify governance state.
+
 ## Consequences
 
 - Copilot `POST /api/v1/research/copilot/query` remains a focused evidence-query
   endpoint with an unchanged contract.
 - New routes: `POST/GET /api/v1/research/agent/runs` (+ resume/cancel).
 - Agent runs may be lost on process restart until durable checkpointing is added.
-- Frontend Overview hosts the Agent panel; lifecycle spine is unchanged.
+- Frontend Overview hosts the Agent after definition, readiness, and calculated
+  evidence so the information hierarchy remains evidence-first.

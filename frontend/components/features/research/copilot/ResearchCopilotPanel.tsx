@@ -29,6 +29,13 @@ export type ResearchCopilotLabels = {
   goToValidation: string;
   notConfigured: string;
   limitations: string;
+  factorSummaryTitle: string;
+  factorRankIc: string;
+  factorIcir: string;
+  factorTurnover: string;
+  factorLongShort: string;
+  factorStability: string;
+  factorWarnings: string;
 };
 
 type Props = {
@@ -146,6 +153,42 @@ export default function ResearchCopilotPanel({
                 <p className="research-copilot__answer">{result.answer}</p>
                 <p className="section-meta">{labels.limitations}</p>
               </SectionCard>
+
+              {result.factor_summary ? (
+                <SectionCard>
+                  <h3>{labels.factorSummaryTitle}</h3>
+                  <ul className="research-copilot__factor-summary">
+                    <li>
+                      <strong>{labels.factorRankIc}</strong>
+                      <span>{result.factor_summary.rank_ic}</span>
+                    </li>
+                    <li>
+                      <strong>{labels.factorIcir}</strong>
+                      <span>{result.factor_summary.icir}</span>
+                    </li>
+                    <li>
+                      <strong>{labels.factorTurnover}</strong>
+                      <span>{result.factor_summary.turnover}</span>
+                    </li>
+                    <li>
+                      <strong>{labels.factorLongShort}</strong>
+                      <span>{result.factor_summary.long_short_return}</span>
+                    </li>
+                    <li>
+                      <strong>{labels.factorStability}</strong>
+                      <span>{result.factor_summary.stability}</span>
+                    </li>
+                    <li>
+                      <strong>{labels.factorWarnings}</strong>
+                      <span>
+                        {result.factor_summary.warnings.length > 0
+                          ? result.factor_summary.warnings.join("; ")
+                          : "—"}
+                      </span>
+                    </li>
+                  </ul>
+                </SectionCard>
+              ) : null}
 
               <SectionCard>
                 <h3>{labels.citationsTitle}</h3>

@@ -18,6 +18,13 @@ class FactorValidationRequest(BaseModel):
     start_date: str = "2018-01-01"
     end_date: Optional[str] = None
     transaction_cost: float = Field(default=0.001, ge=0)
+    min_mean_rank_ic: float = 0.0
+    min_positive_ic_ratio: float = Field(default=0.5, ge=0, le=1)
+    min_net_long_short_return: float = 0.0
+    min_q5_excess_return: float = 0.0
+    max_mean_turnover: float = Field(default=2.0, ge=0)
+    min_observations: int = Field(default=24, ge=1)
+    min_icir: float = 0.0
 
 
 class FactorValidationResponse(BaseModel):
@@ -32,6 +39,7 @@ class FactorValidationResponse(BaseModel):
     ic: dict[str, Any]
     quantiles: dict[str, Any]
     long_short: dict[str, Any]
+    benchmark: dict[str, Any]
     warnings: list[str]
     provenance: dict[str, Any]
     generated_at: str

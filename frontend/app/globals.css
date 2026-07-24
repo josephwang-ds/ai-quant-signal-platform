@@ -10728,19 +10728,46 @@ h1.section-header__title {
   margin: 0.85rem 0 1rem;
 }
 
+.governance-agent {
+  position: relative;
+  overflow: hidden;
+}
+
+.governance-agent::before {
+  content: "";
+  position: absolute;
+  top: -5rem;
+  right: -4rem;
+  width: 13rem;
+  height: 13rem;
+  border-radius: 999px;
+  background: radial-gradient(
+    circle,
+    color-mix(in srgb, var(--accent, #7c3aed) 16%, transparent),
+    transparent 68%
+  );
+  pointer-events: none;
+}
+
 .governance-agent__task {
+  position: relative;
   text-align: left;
   border: 1px solid var(--border, #d6d3d1);
-  background: transparent;
-  padding: 0.65rem 0.75rem;
-  border-radius: 0.35rem;
+  background: color-mix(in srgb, var(--surface, #fff) 92%, transparent);
+  padding: 0.8rem 0.85rem;
+  border-radius: 0.75rem;
   cursor: pointer;
   font-size: 0.9rem;
+  transition:
+    border-color 160ms ease,
+    background 160ms ease,
+    transform 160ms ease;
 }
 
 .governance-agent__task.is-active {
-  border-color: var(--text, #1c1917);
-  background: color-mix(in srgb, var(--text, #1c1917) 6%, transparent);
+  border-color: color-mix(in srgb, var(--accent, #7c3aed) 55%, var(--border, #d6d3d1));
+  background: color-mix(in srgb, var(--accent, #7c3aed) 9%, var(--surface, #fff));
+  transform: translateY(-1px);
 }
 
 .governance-agent__actions {

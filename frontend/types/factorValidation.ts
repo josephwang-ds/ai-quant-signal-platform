@@ -1,4 +1,5 @@
 /** Factor Validation API result types (frontend). */
+import type { BenchmarkEvaluation } from "@/types/researchBenchmark";
 
 export type FactorIcPoint = {
   date: string;
@@ -50,6 +51,7 @@ export type FactorValidationResult = {
     cumulative_final_net_of_cost?: number | null;
     note?: string;
   };
+  benchmark?: BenchmarkEvaluation;
   warnings: string[];
   provenance: Record<string, unknown>;
   generated_at: string;

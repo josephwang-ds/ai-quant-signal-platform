@@ -61,6 +61,7 @@ export type AgentRunDetail = {
   recommended_next_steps: string[];
   errors: string[];
   trace: AgentTraceEvent[];
+  step_count: number;
   started_at?: string | null;
   completed_at?: string | null;
 };

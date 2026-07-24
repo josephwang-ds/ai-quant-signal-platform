@@ -3,11 +3,11 @@
 from __future__ import annotations
 
 import uuid
-from typing import Any, Optional
+from typing import Any
 
 from langgraph.checkpoint.memory import MemorySaver
 
-from app.research_agent import GRAPH_VERSION
+from app.research_agent import GRAPH_VERSION, GraphStepLimitError, MAX_GRAPH_STEPS
 from app.research_agent.graph import build_governance_graph
 from app.research_agent.prompts import PROMPT_VERSIONS
 from app.research_agent.run_store import InMemoryAgentRunStore, get_default_agent_run_store
@@ -137,16 +137,55 @@ class GovernanceAgentService:
             "user_question": request.get("user_question"),
         }
 
-        # Seed previous decisions append-only log for this research (do not overwrite)
+        # Seed previous decisions append-only without duplicating the same browser record.
         previous = request.get("previous_decisions") or []
         if previous:
             existing = list(self.decision_log.get(research_id) or [])
-            self.decision_log[research_id] = existing + [
-                item for item in previous if isinstance(item, dict)
-            ]
+            seen = {
+                (
+                    item.get("decision"),
+                    item.get("rationale"),
+                    item.get("recorded_at"),
+                )
+                for item in existing
+                if isinstance(item, dict)
+            }
+            for item in previous:
+                if not isinstance(item, dict):
+                    continue
+                identity = (
+                    item.get("decision"),
+                    item.get("rationale"),
+                    item.get("recorded_at"),
+                )
+                if identity not in seen:
+                    existing.append(item)
+                    seen.add(identity)
+            self.decision_log[research_id] = existing
 
         config = {"configurable": {"thread_id": agent_run_id}}
-        result_state = self.graph.invoke(initial, config)
+        try:
+            result_state = self.graph.invoke(initial, config)
+        except Exception as exc:  # Persist an inspectable failure instead of returning HTTP 500.
+            step_limited = isinstance(exc, GraphStepLimitError)
+            result_state = {
+                **initial,
+                "status": "failed",
+                "current_node": "handle_agent_error",
+                "summary": (
+                    "Governance Agent stopped at the configured graph-step limit."
+                    if step_limited
+                    else "Governance Agent stopped safely after an internal workflow error."
+                ),
+                "errors": [
+                    (
+                        f"graph_step_limit_exceeded:{MAX_GRAPH_STEPS}"
+                        if step_limited
+                        else f"agent_workflow_error:{type(exc).__name__}: {exc}"
+                    )
+                ],
+                "step_count": MAX_GRAPH_STEPS if step_limited else 0,
+            }
         detail = self._persist(agent_run_id, result_state, started_at=started_at)
         return {
             "agent_run_id": agent_run_id,
@@ -161,12 +200,31 @@ class GovernanceAgentService:
             raise ResearchAgentError(f"Unknown agent_run_id '{agent_run_id}'.", status_code=404)
         return stored
 
-    def resume_run(self, agent_run_id: str, action: str, payload: dict[str, Any] | None = None) -> dict[str, Any]:
+    def resume_run(
+        self,
+        agent_run_id: str,
+        action: str,
+        payload: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
         stored = self.get_run(agent_run_id)
         if stored.get("status") == "cancelled":
             raise ResearchAgentError("Agent run is already cancelled.")
         if stored.get("status") == "completed":
             raise ResearchAgentError("Agent run is already completed.")
+        if int(stored.get("step_count") or 0) >= MAX_GRAPH_STEPS:
+            failed = {
+                **stored,
+                "status": "failed",
+                "current_node": "handle_agent_error",
+                "summary": "Governance Agent stopped at the configured graph-step limit.",
+                "errors": list(stored.get("errors") or [])
+                + [f"graph_step_limit_exceeded:{MAX_GRAPH_STEPS}"],
+            }
+            return self._persist(
+                agent_run_id,
+                failed,
+                started_at=stored.get("started_at"),
+            )
 
         config = {"configurable": {"thread_id": agent_run_id}}
         self.graph.update_state(
@@ -177,7 +235,38 @@ class GovernanceAgentService:
                 "status": "running",
             },
         )
-        result_state = self.graph.invoke(None, config)
+        try:
+            result_state = self.graph.invoke(None, config)
+        except Exception as exc:
+            step_limited = isinstance(exc, GraphStepLimitError)
+            failed = {
+                **stored,
+                "status": "failed",
+                "current_node": "handle_agent_error",
+                "summary": (
+                    "Governance Agent stopped at the configured graph-step limit."
+                    if step_limited
+                    else "Governance Agent stopped safely after an internal workflow error."
+                ),
+                "errors": list(stored.get("errors") or [])
+                + [
+                    (
+                        f"graph_step_limit_exceeded:{MAX_GRAPH_STEPS}"
+                        if step_limited
+                        else f"agent_workflow_error:{type(exc).__name__}: {exc}"
+                    )
+                ],
+                "step_count": (
+                    MAX_GRAPH_STEPS
+                    if step_limited
+                    else int(stored.get("step_count") or 0)
+                ),
+            }
+            return self._persist(
+                agent_run_id,
+                failed,
+                started_at=stored.get("started_at"),
+            )
         return self._persist(
             agent_run_id,
             result_state,
@@ -246,6 +335,7 @@ class GovernanceAgentService:
             "recommended_next_steps": state.get("recommended_next_steps") or [],
             "errors": state.get("errors") or [],
             "trace": state.get("trace") or [],
+            "step_count": int(state.get("step_count") or 0),
             "started_at": started_at,
             "completed_at": completed_at,
         }

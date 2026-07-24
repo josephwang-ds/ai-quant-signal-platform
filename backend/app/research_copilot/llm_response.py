@@ -1,4 +1,4 @@
-"""Parse structured LLM output: answer + citation_ids."""
+"""Parse structured LLM output: answer + citation_ids (+ optional factor fields)."""
 
 from __future__ import annotations
 
@@ -12,6 +12,7 @@ class ParsedLlmResponse:
     answer: str
     citation_ids: list[str] = field(default_factory=list)
     warnings: list[str] = field(default_factory=list)
+    factor_fields: dict[str, object] | None = None
 
 
 def _strip_code_fence(raw_text: str) -> str:
@@ -61,4 +62,21 @@ def parse_structured_llm_response(raw_text: str) -> ParsedLlmResponse:
     if "citation_ids" not in payload:
         warnings.append("missing_citation_ids")
 
-    return ParsedLlmResponse(answer=answer, citation_ids=citation_ids, warnings=warnings)
+    factor_keys = (
+        "rank_ic",
+        "icir",
+        "turnover",
+        "long_short_return",
+        "stability",
+        "warnings",
+    )
+    factor_fields: dict[str, object] | None = None
+    if any(key in payload for key in factor_keys):
+        factor_fields = {key: payload.get(key) for key in factor_keys if key in payload}
+
+    return ParsedLlmResponse(
+        answer=answer,
+        citation_ids=citation_ids,
+        warnings=warnings,
+        factor_fields=factor_fields,
+    )
