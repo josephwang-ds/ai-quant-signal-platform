@@ -151,19 +151,19 @@ function baseEvaluation(
 describe("buildDecisionCenterModel", () => {
   const research = getMockResearchById(CANONICAL_RESEARCH_ID)!;
 
-  it("is Not Ready without validation and never invents notes or approval", () => {
+  it("is not ready without evidence and never invents a decision", () => {
     const model = buildDecisionCenterModel({
       research,
       validation: null,
       evaluation: null,
     });
     expect(model.decisionStatus).toBe("not_ready");
-    expect(model.decisionNotes).toBeNull();
     expect(model.evidence.every((row) => row.status === "pending")).toBe(true);
-    expect(model.nextActionKind).toBe("complete_validation");
+    expect(model).not.toHaveProperty("outcome");
+    expect(model).not.toHaveProperty("decisionNotes");
   });
 
-  it("is Under Review when validation exists but work remains", () => {
+  it("is under review and lists only unfinished implemented checks", () => {
     const model = buildDecisionCenterModel({
       research,
       validation: baseValidation(),
@@ -173,45 +173,39 @@ describe("buildDecisionCenterModel", () => {
     expect(model.evidence.find((e) => e.id === "validation")?.status).toBe(
       "pending"
     );
-    expect(model.remainingRiskIds).toContain("extreme_volatility");
-    expect(model.remainingRiskIds).toContain("forward_validation");
-    expect(model.remainingRiskIds).toContain("implemented_robustness_pending");
+    expect(model.remainingRiskIds).toEqual([
+      "benchmark_comparison",
+      "data_quality",
+    ]);
     expect(model.checklist.find((c) => c.id === "limitations_documented")?.status).toBe(
       "completed"
     );
-    expect(model.nextActionKind).toBe("complete_validation");
   });
 
-  it("maps Archived lifecycle status without inventing Rejected", () => {
-    const model = buildDecisionCenterModel({
-      research: { ...research, status: "Archived" },
-      validation: baseValidation({ validation_status: "completed" }),
-      evaluation: baseEvaluation({ evaluation_status: "completed" }),
-    });
-    expect(model.decisionStatus).toBe("archived");
-    expect(model.nextActionKind).toBe("none");
-  });
-
-  it("maps Paper Trading lifecycle to Approved for Paper Trading", () => {
-    const model = buildDecisionCenterModel({
-      research: { ...research, status: "Paper Trading" },
-      validation: baseValidation({ validation_status: "completed" }),
-      evaluation: baseEvaluation({ evaluation_status: "completed" }),
-      hasSession: true,
-    });
-    expect(model.decisionStatus).toBe("approved_for_paper");
-    expect(model.evidence.find((e) => e.id === "paper_trading")?.status).toBe(
-      "completed"
-    );
-  });
-
-  it("accepts real decision notes only when provided", () => {
+  it("becomes ready when all implemented evidence is complete", () => {
+    const completedEvidence = [
+      ["parameter_sensitivity", "Parameter sensitivity"],
+      ["benchmark_comparison", "Benchmark comparison"],
+      ["transaction_cost_sensitivity", "Transaction-cost sensitivity"],
+      ["data_quality", "Data quality"],
+    ].map(([stage, label]) => ({
+      stage,
+      label,
+      status: "completed" as const,
+      summary: "ok",
+    }));
     const model = buildDecisionCenterModel({
       research,
-      validation: null,
-      evaluation: null,
-      decisionNotes: "  Human review note.  ",
+      validation: baseValidation({ validation_status: "completed" }),
+      evaluation: baseEvaluation({
+        evaluation_status: "completed",
+        evidence_summary: completedEvidence,
+        completed_stages: completedEvidence.map((item) => item.label),
+        incomplete_stages: [],
+      }),
     });
-    expect(model.decisionNotes).toBe("Human review note.");
+    expect(model.decisionStatus).toBe("ready");
+    expect(model.remainingRiskIds).toEqual([]);
+    expect(model.checklist.every((item) => item.status === "completed")).toBe(true);
   });
 });

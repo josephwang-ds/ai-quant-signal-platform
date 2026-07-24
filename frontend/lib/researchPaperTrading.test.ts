@@ -188,37 +188,27 @@ function baseEvaluation(
 describe("buildPaperTradingCenterModel", () => {
   const research = getMockResearchById(CANONICAL_RESEARCH_ID)!;
 
-  it("shows empty session and never fabricates Active without a session", () => {
+  it("is not eligible without validation evidence", () => {
     const model = buildPaperTradingCenterModel({
       research,
       validation: null,
       evaluation: null,
     });
-    expect(model.hasSession).toBe(false);
     expect(model.eligibility).toBe("not_eligible");
-    expect(model.nextActionKind).toBe("continue_validation");
-    expect(model.reviewCriteria.every((c) => c.status === "awaiting_observation")).toBe(
-      true
-    );
+    expect(model.eligibilityReasonKey).toBe("no_validation");
+    expect(model.sessionStatus).toBeNull();
   });
 
-  it("marks Needs Review when validation/robustness work is incomplete", () => {
+  it("requires review while implemented evidence remains incomplete", () => {
     const model = buildPaperTradingCenterModel({
       research,
       validation: baseValidation(),
       evaluation: baseEvaluation(),
     });
     expect(model.eligibility).toBe("needs_review");
-    expect(model.nextActionKind).toBe("continue_robustness");
-    expect(
-      model.observationItems.find((i) => i.id === "benchmark_behaviour")?.status
-    ).toBe("pending");
-    expect(
-      model.observationItems.find((i) => i.id === "drawdown_behaviour")?.status
-    ).toBe("planned");
-    expect(
-      model.observationItems.every((i) => i.status !== "configured")
-    ).toBe(true);
+    expect(model.eligibilityReasonKey).toBe("incomplete");
+    expect(model.hasValidationEvidence).toBe(true);
+    expect(model.hasEvaluationEvidence).toBe(true);
   });
 
   it("marks Eligible when implemented checks are complete and no session exists", () => {
@@ -322,19 +312,23 @@ describe("buildPaperTradingCenterModel", () => {
       }),
     });
     expect(model.eligibility).toBe("eligible");
-    expect(model.nextActionKind).toBe("begin_observation");
-    expect(model.hasSession).toBe(false);
+    expect(model.eligibilityReasonKey).toBe("eligible");
+    expect(model.sessionStatus).toBeNull();
   });
 
-  it("fills deployment fields from research configuration only", () => {
+  it("uses the persisted session status without inventing trading results", () => {
     const model = buildPaperTradingCenterModel({
       research,
       validation: null,
       evaluation: null,
+      sessionStatus: "active",
     });
-    expect(model.deployment.researchName).toBe("Trend Following Study");
-    expect(model.deployment.benchmark).toBe("SPY Buy & Hold");
-    expect(model.deployment.strategy).toBe("Moving Average Crossover");
-    expect(model.deployment.currentStatus).toBe(research.status);
+    expect(model.eligibility).toBe("active");
+    expect(model.sessionStatus).toBe("active");
+    expect(model.researchName).toBe("Trend Following Study");
+    expect(model.benchmark).toBe("SPY Buy & Hold");
+    expect(model).not.toHaveProperty("pnl");
+    expect(model).not.toHaveProperty("orders");
+    expect(model).not.toHaveProperty("fills");
   });
 });

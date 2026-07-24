@@ -18,13 +18,10 @@ const navLabels = {
   validation: "Validation",
   evaluation: "Validation",
   robustness: "Robustness",
-  paper: "Paper Trading",
+  paper: "Paper Observation",
   decision: "Decision",
-  archive: "Archive",
   copilot: "Copilot",
   timeline: "Timeline",
-  files: "Files",
-  settings: "Settings",
 };
 
 const primaryTabLabels = {
@@ -32,9 +29,8 @@ const primaryTabLabels = {
   experiments: "Experiment",
   validation: "Validation",
   robustness: "Robustness",
-  paper: "Paper Trading",
+  paper: "Paper Observation",
   decision: "Decision",
-  archive: "Archive",
   progressCompleted: "Completed",
   progressCurrent: "Current",
   progressLocked: "Locked",
@@ -79,6 +75,34 @@ describe("ResearchPrimaryTabs", () => {
       screen.getByRole("link", { name: "Robustness, Locked" })
     ).toHaveAttribute("data-progress", "locked");
   });
+
+  it("preserves guided review mode while moving through lifecycle tabs", () => {
+    const stepStates = deriveWorkflowStepStates({
+      executionStatus: "idle",
+      execution: null,
+      validationStatus: "idle",
+      validation: null,
+      evaluationStatus: "idle",
+      evaluation: null,
+    });
+
+    render(
+      <ResearchPrimaryTabs
+        researchId={CANONICAL_RESEARCH_ID}
+        activeSection="overview"
+        stepStates={stepStates}
+        labels={primaryTabLabels}
+        reviewMode
+      />
+    );
+
+    expect(
+      screen.getByRole("link", { name: "Validation, Locked" })
+    ).toHaveAttribute(
+      "href",
+      `/research/${CANONICAL_RESEARCH_ID}?tab=validation&review=1`
+    );
+  });
 });
 
 describe("ResearchWorkspaceNavigation", () => {
@@ -100,7 +124,7 @@ describe("ResearchWorkspaceNavigation", () => {
       "href",
       `/research/${CANONICAL_RESEARCH_ID}?tab=validation`
     );
-    expect(screen.getByRole("link", { name: "Paper Trading" })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: "Paper Observation" })).toHaveAttribute(
       "href",
       `/research/${CANONICAL_RESEARCH_ID}?tab=paper`
     );

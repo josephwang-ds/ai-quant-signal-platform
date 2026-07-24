@@ -7,10 +7,10 @@ import ResearchStatusMatrix from "@/components/features/research/ux/ResearchStat
 import { canonicalStatusVariant } from "@/lib/researchStatusBadge";
 import {
   buildRobustnessCenterModel,
-  type RobustnessFailureConditionId,
   type RobustnessItemId,
   type RobustnessItemStatus,
   type RobustnessOverallStatus,
+  type RobustnessScopeBoundaryId,
 } from "@/lib/researchRobustness";
 import type { ResearchEvaluationResult } from "@/types/researchEvaluation";
 import type { ResearchValidationResult } from "@/types/researchValidation";
@@ -20,44 +20,37 @@ export type ResearchRobustnessCenterLabels = {
   summary: string;
   statusTitle: string;
   matrixTitle: string;
-  plannedTitle: string;
-  failureTitle: string;
+  boundaryTitle: string;
+  boundaryDescription: string;
   nextActionTitle: string;
   nextActionDescription: string;
   nextActionCta: string;
   statusCompleted: string;
   statusPending: string;
-  statusPlanned: string;
   statusBlocked: string;
   overallNotStarted: string;
   overallInProgress: string;
   overallBlocked: string;
-  overallPlannedRemaining: string;
   overallComplete: string;
   overallNotStartedBody: string;
   overallInProgressBody: string;
   overallBlockedBody: string;
-  overallPlannedRemainingBody: string;
   overallCompleteBody: string;
   nextResolveBlocker: string;
   nextContinue: string;
+  nextObservation: string;
   nextNone: string;
   noEvidenceTitle: string;
   noEvidenceNote: string;
-  plannedEmptyTitle: string;
-  plannedEmpty: string;
-  failureEmptyTitle: string;
-  failureEmpty: string;
   itemLabels: Record<RobustnessItemId, string>;
-  failureTitles: Record<RobustnessFailureConditionId, string>;
-  failureBodies: Record<RobustnessFailureConditionId, string>;
+  boundaryLabels: Record<RobustnessScopeBoundaryId, string>;
 };
 
 type Props = {
   validation: ResearchValidationResult | null;
   evaluation: ResearchEvaluationResult | null;
   labels: ResearchRobustnessCenterLabels;
-  onContinue?: () => void;
+  onContinue?: (target: "validation" | "paper") => void;
   showHeader?: boolean;
 };
 
@@ -67,8 +60,7 @@ function statusLabel(
 ): string {
   if (status === "completed") return labels.statusCompleted;
   if (status === "pending") return labels.statusPending;
-  if (status === "blocked") return labels.statusBlocked;
-  return labels.statusPlanned;
+  return labels.statusBlocked;
 }
 
 function overallCopy(
@@ -89,13 +81,6 @@ function overallCopy(
       tone: "pending",
     };
   }
-  if (status === "planned_remaining") {
-    return {
-      title: labels.overallPlannedRemaining,
-      body: labels.overallPlannedRemainingBody,
-      tone: "planned",
-    };
-  }
   if (status === "complete") {
     return {
       title: labels.overallComplete,
@@ -111,8 +96,9 @@ function overallCopy(
 }
 
 /**
- * Research Robustness Center — organises robustness work.
- * Presentation-only: never invents metrics or runs new tests.
+ * Evidence-backed robustness review.
+ * Only implemented deterministic checks appear in the matrix. Unsupported
+ * methods are disclosed once as a scope boundary, not rendered as fake tasks.
  */
 export default function ResearchRobustnessCenter({
   validation,
@@ -123,20 +109,19 @@ export default function ResearchRobustnessCenter({
 }: Props) {
   const model = buildRobustnessCenterModel({ validation, evaluation });
   const overall = overallCopy(model.overallStatus, labels);
-
-  const plannedItems = model.items.filter((item) => item.status === "planned");
-
   const nextItem = model.nextItemId
     ? model.items.find((item) => item.id === model.nextItemId) ?? null
     : null;
 
   const nextActionText = (() => {
+    if (model.nextActionKind === "start_observation") {
+      return labels.nextObservation;
+    }
     if (model.nextActionKind === "none" || !nextItem) return labels.nextNone;
     const name = labels.itemLabels[nextItem.id];
-    if (model.nextActionKind === "resolve_blocker") {
-      return `${labels.nextResolveBlocker}: ${name}`;
-    }
-    return `${labels.nextContinue}: ${name}`;
+    return model.nextActionKind === "resolve_blocker"
+      ? `${labels.nextResolveBlocker}: ${name}`
+      : `${labels.nextContinue}: ${name}`;
   })();
 
   return (
@@ -154,7 +139,10 @@ export default function ResearchRobustnessCenter({
       ) : null}
 
       {!model.hasValidationEvidence && !model.hasEvaluationEvidence ? (
-        <EmptyState title={labels.noEvidenceTitle} description={labels.noEvidenceNote} />
+        <EmptyState
+          title={labels.noEvidenceTitle}
+          description={labels.noEvidenceNote}
+        />
       ) : null}
 
       <ResearchBand caption={labels.statusTitle} glyph="decision">
@@ -182,46 +170,15 @@ export default function ResearchRobustnessCenter({
 
       <hr className="overview-divider" />
 
-      <ResearchBand caption={labels.plannedTitle} glyph="progress">
-        {plannedItems.length === 0 ? (
-          <EmptyState
-            title={labels.plannedEmptyTitle}
-            description={labels.plannedEmpty}
-          />
-        ) : (
-          <ul className="research-chip-list">
-            {plannedItems.map((item) => (
-              <li key={item.id}>
-                <StatusBadge
-                  label={labels.itemLabels[item.id]}
-                  variant="neutral"
-                />
-              </li>
-            ))}
-          </ul>
-        )}
-      </ResearchBand>
-
-      <hr className="overview-divider" />
-
-      <ResearchBand caption={labels.failureTitle} glyph="limitation">
-        {model.failureConditionIds.length === 0 ? (
-          <EmptyState
-            title={labels.failureEmptyTitle}
-            description={labels.failureEmpty}
-          />
-        ) : (
-          <div className="research-note-list">
-            {model.failureConditionIds.map((id) => (
-              <article key={id} className="research-note-card">
-                <h3 className="research-note-card__title">
-                  {labels.failureTitles[id]}
-                </h3>
-                <p className="research-note-card__body">{labels.failureBodies[id]}</p>
-              </article>
-            ))}
-          </div>
-        )}
+      <ResearchBand caption={labels.boundaryTitle} glyph="limitation">
+        <p className="research-status-block__body">
+          {labels.boundaryDescription}
+        </p>
+        <ul className="research-plain-list">
+          {model.scopeBoundaryIds.map((id) => (
+            <li key={id}>{labels.boundaryLabels[id]}</li>
+          ))}
+        </ul>
       </ResearchBand>
 
       <hr className="overview-divider" />
@@ -232,7 +189,16 @@ export default function ResearchRobustnessCenter({
           title={nextActionText}
           description={labels.nextActionDescription}
           cta={labels.nextActionCta}
-          onClick={onContinue}
+          onClick={
+            onContinue
+              ? () =>
+                  onContinue(
+                    model.nextActionKind === "start_observation"
+                      ? "paper"
+                      : "validation"
+                  )
+              : undefined
+          }
           disabled={!onContinue || model.nextActionKind === "none"}
         />
       </ResearchBand>

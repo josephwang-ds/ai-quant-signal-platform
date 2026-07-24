@@ -20,7 +20,7 @@ const validation = {
 } as never;
 
 describe("researchWorkflow", () => {
-  it("exposes the seven-stage product spine", () => {
+  it("exposes the six-stage evidence-to-decision spine", () => {
     expect([...WORKFLOW_STEP_ORDER]).toEqual([
       "research",
       "experiment",
@@ -28,7 +28,6 @@ describe("researchWorkflow", () => {
       "robustness",
       "paper",
       "decision",
-      "archive",
     ]);
   });
 
@@ -118,6 +117,5 @@ describe("researchWorkflow", () => {
     expect(states.robustness).toBe("unavailable");
     expect(states.paper).toBe("unavailable");
     expect(states.decision).toBe("unavailable");
-    expect(states.archive).toBe("unavailable");
   });
 });

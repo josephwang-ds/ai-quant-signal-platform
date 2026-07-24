@@ -1,9 +1,11 @@
+"use client";
+
+import { useEffect, useState, type FormEvent } from "react";
 import EmptyState from "@/components/ui/EmptyState";
 import StatusBadge from "@/components/ui/StatusBadge";
 import ResearchBand from "@/components/features/research/ux/ResearchBand";
 import ResearchCenterHeader from "@/components/features/research/ux/ResearchCenterHeader";
 import ResearchKeyValueList from "@/components/features/research/ux/ResearchKeyValueList";
-import ResearchNextAction from "@/components/features/research/ux/ResearchNextAction";
 import ResearchStatusMatrix from "@/components/features/research/ux/ResearchStatusMatrix";
 import { canonicalStatusVariant } from "@/lib/researchStatusBadge";
 import {
@@ -11,10 +13,15 @@ import {
   type DecisionChecklistId,
   type DecisionEvidenceId,
   type DecisionEvidenceStatus,
-  type DecisionNextActionKind,
   type DecisionRiskId,
   type DecisionStatus,
 } from "@/lib/researchDecision";
+import {
+  getResearchDecisionRecord,
+  saveResearchDecisionRecord,
+  type ResearchDecisionOutcome,
+  type ResearchDecisionRecord,
+} from "@/lib/researchDecisionRecord";
 import type { ResearchDetail } from "@/types/research";
 import type { ResearchEvaluationResult } from "@/types/researchEvaluation";
 import type { ResearchValidationResult } from "@/types/researchValidation";
@@ -28,9 +35,7 @@ export type ResearchDecisionCenterLabels = {
   summaryStatus: string;
   statusNotReady: string;
   statusUnderReview: string;
-  statusApprovedForPaper: string;
-  statusRejected: string;
-  statusArchived: string;
+  statusReady: string;
   evidenceTitle: string;
   evidenceCompleted: string;
   evidencePending: string;
@@ -43,18 +48,17 @@ export type ResearchDecisionCenterLabels = {
   checklistCompleted: string;
   checklistPending: string;
   checklistLabels: Record<DecisionChecklistId, string>;
-  notesTitle: string;
-  notesEmptyTitle: string;
-  notesEmpty: string;
-  nextActionTitle: string;
-  nextActionDescription: string;
-  nextActionCta: string;
-  nextCompleteValidation: string;
-  nextCompleteRobustness: string;
-  nextPreparePaper: string;
-  nextContinuePaper: string;
-  nextArchive: string;
-  nextNone: string;
+  recordTitle: string;
+  recordDescription: string;
+  outcomeLabel: string;
+  outcomeAdvance: string;
+  outcomeHold: string;
+  outcomeReject: string;
+  rationaleLabel: string;
+  rationalePlaceholder: string;
+  saveDecision: string;
+  savedDecision: string;
+  localNote: string;
   noEvidenceTitle: string;
   noEvidenceNote: string;
 };
@@ -64,7 +68,6 @@ type Props = {
   validation: ResearchValidationResult | null;
   evaluation: ResearchEvaluationResult | null;
   labels: ResearchDecisionCenterLabels;
-  onContinue?: () => void;
 };
 
 function statusLabel(
@@ -73,16 +76,12 @@ function statusLabel(
 ): string {
   if (status === "not_ready") return labels.statusNotReady;
   if (status === "under_review") return labels.statusUnderReview;
-  if (status === "approved_for_paper") return labels.statusApprovedForPaper;
-  if (status === "rejected") return labels.statusRejected;
-  return labels.statusArchived;
+  return labels.statusReady;
 }
 
 function statusTone(status: DecisionStatus): string {
-  if (status === "approved_for_paper") return "approved";
+  if (status === "ready") return "completed";
   if (status === "under_review") return "pending";
-  if (status === "rejected") return "rejected";
-  if (status === "archived") return "not_started";
   return "not_started";
 }
 
@@ -95,36 +94,51 @@ function evidenceLabel(
     : labels.evidencePending;
 }
 
-function nextActionText(
-  kind: DecisionNextActionKind,
+function outcomeLabel(
+  outcome: ResearchDecisionOutcome,
   labels: ResearchDecisionCenterLabels
 ): string {
-  if (kind === "complete_validation") return labels.nextCompleteValidation;
-  if (kind === "complete_robustness") return labels.nextCompleteRobustness;
-  if (kind === "prepare_paper_trading") return labels.nextPreparePaper;
-  if (kind === "continue_paper_observation") return labels.nextContinuePaper;
-  if (kind === "archive_research") return labels.nextArchive;
-  return labels.nextNone;
+  if (outcome === "advance") return labels.outcomeAdvance;
+  if (outcome === "reject") return labels.outcomeReject;
+  return labels.outcomeHold;
 }
 
-/**
- * Decision Center — research approval staging.
- * Presentation-only: never invents approvals, scores, or trading results.
- */
 export default function ResearchDecisionCenter({
   research,
   validation,
   evaluation,
   labels,
-  onContinue,
 }: Props) {
-  const model = buildDecisionCenterModel({
-    research,
-    validation,
-    evaluation,
-    hasSession: false,
-    decisionNotes: null,
-  });
+  const model = buildDecisionCenterModel({ research, validation, evaluation });
+  const [outcome, setOutcome] = useState<ResearchDecisionOutcome>("hold");
+  const [rationale, setRationale] = useState("");
+  const [record, setRecord] = useState<ResearchDecisionRecord | null>(null);
+
+  useEffect(() => {
+    const existing = getResearchDecisionRecord(research.id);
+    setRecord(existing);
+    if (existing) {
+      setOutcome(existing.outcome);
+      setRationale(existing.rationale);
+    }
+  }, [research.id]);
+
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (
+      !rationale.trim() ||
+      (outcome === "advance" && model.decisionStatus !== "ready")
+    ) {
+      return;
+    }
+    setRecord(
+      saveResearchDecisionRecord({
+        researchId: research.id,
+        outcome,
+        rationale,
+      })
+    );
+  }
 
   return (
     <section className="research-center" aria-labelledby="decision-center-title">
@@ -135,7 +149,10 @@ export default function ResearchDecisionCenter({
       />
 
       {!model.hasValidationEvidence && !model.hasEvaluationEvidence ? (
-        <EmptyState title={labels.noEvidenceTitle} description={labels.noEvidenceNote} />
+        <EmptyState
+          title={labels.noEvidenceTitle}
+          description={labels.noEvidenceNote}
+        />
       ) : null}
 
       <ResearchBand caption={labels.summaryTitle} glyph="decision">
@@ -157,7 +174,9 @@ export default function ResearchDecisionCenter({
               value: (
                 <StatusBadge
                   label={statusLabel(model.decisionStatus, labels)}
-                  variant={canonicalStatusVariant(statusTone(model.decisionStatus))}
+                  variant={canonicalStatusVariant(
+                    statusTone(model.decisionStatus)
+                  )}
                 />
               ),
             },
@@ -182,7 +201,10 @@ export default function ResearchDecisionCenter({
 
       <ResearchBand caption={labels.risksTitle} glyph="limitation">
         {model.remainingRiskIds.length === 0 ? (
-          <EmptyState title={labels.risksEmptyTitle} description={labels.risksEmpty} />
+          <EmptyState
+            title={labels.risksEmptyTitle}
+            description={labels.risksEmpty}
+          />
         ) : (
           <ul className="research-plain-list">
             {model.remainingRiskIds.map((id) => (
@@ -210,25 +232,77 @@ export default function ResearchDecisionCenter({
 
       <hr className="overview-divider" />
 
-      <ResearchBand caption={labels.notesTitle} glyph="action">
-        {model.decisionNotes ? (
-          <p className="research-notes-body">{model.decisionNotes}</p>
-        ) : (
-          <EmptyState title={labels.notesEmptyTitle} description={labels.notesEmpty} />
-        )}
-      </ResearchBand>
+      <ResearchBand caption={labels.recordTitle} glyph="action">
+        <div className="decision-record">
+          <div>
+            <p className="research-status-block__body">
+              {labels.recordDescription}
+            </p>
+            {record ? (
+              <div className="decision-record__saved" role="status">
+                <StatusBadge
+                  label={outcomeLabel(record.outcome, labels)}
+                  variant={
+                    record.outcome === "advance"
+                      ? "success"
+                      : record.outcome === "reject"
+                        ? "danger"
+                        : "warning"
+                  }
+                />
+                <p>{record.rationale}</p>
+                <span>
+                  {labels.savedDecision} ·{" "}
+                  {new Date(record.decidedAt).toLocaleString()}
+                </span>
+              </div>
+            ) : null}
+          </div>
 
-      <hr className="overview-divider" />
-
-      <ResearchBand caption={labels.nextActionTitle} glyph="action" action>
-        <ResearchNextAction
-          eyebrow={labels.nextActionTitle}
-          title={nextActionText(model.nextActionKind, labels)}
-          description={labels.nextActionDescription}
-          cta={labels.nextActionCta}
-          onClick={onContinue}
-          disabled={!onContinue || model.nextActionKind === "none"}
-        />
+          <form className="decision-record__form" onSubmit={handleSubmit}>
+            <label>
+              <span>{labels.outcomeLabel}</span>
+              <select
+                value={outcome}
+                onChange={(event) =>
+                  setOutcome(event.target.value as ResearchDecisionOutcome)
+                }
+              >
+                <option
+                  value="advance"
+                  disabled={model.decisionStatus !== "ready"}
+                >
+                  {labels.outcomeAdvance}
+                </option>
+                <option value="hold">{labels.outcomeHold}</option>
+                <option value="reject">{labels.outcomeReject}</option>
+              </select>
+            </label>
+            <label>
+              <span>{labels.rationaleLabel}</span>
+              <textarea
+                value={rationale}
+                onChange={(event) => setRationale(event.target.value)}
+                placeholder={labels.rationalePlaceholder}
+                rows={4}
+                required
+              />
+            </label>
+            <div className="decision-record__actions">
+              <span>{labels.localNote}</span>
+              <button
+                type="submit"
+                className="btn btn--primary"
+                disabled={
+                  !rationale.trim() ||
+                  (outcome === "advance" && model.decisionStatus !== "ready")
+                }
+              >
+                {labels.saveDecision}
+              </button>
+            </div>
+          </form>
+        </div>
       </ResearchBand>
     </section>
   );

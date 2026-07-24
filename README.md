@@ -8,7 +8,16 @@ Research and portfolio demonstration only. Not investment advice. No broker inte
 
 > **Research First. AI Second. Decisions Last.**
 
-![Research Library — product entry and guided start](docs/assets/screenshots/research-library.png)
+## Review it in three minutes
+
+Open the Research Library and choose **Start guided review**. The product walks through one sample study as four proof points:
+
+1. **Question** — a falsifiable hypothesis and fixed research protocol
+2. **Evidence** — backend-calculated results and deterministic validation
+3. **Challenge** — four implemented robustness checks are separated from unsupported methods and limitations
+4. **Decision** — evidence informs a decision record; a human retains authority
+
+This is the shortest path for customers, reviewers, and hiring teams. It demonstrates the product judgment, quantitative controls, and engineering boundaries without requiring prior knowledge of the repository.
 
 ## Why this exists
 
@@ -19,12 +28,25 @@ Research
 → Experiment
 → Validation
 → Robustness
-→ Paper Trading
+→ Paper Observation
 → Decision
-→ Archive
 ```
 
 Unlike a backtest dashboard, the product is organised around research process integrity: deterministic validation, honest empty states, and governed next steps — not charts alone.
+
+## What makes this project different
+
+| Typical quant portfolio demo | This workspace |
+| --- | --- |
+| Starts with a ticker or a promising chart | Starts with a falsifiable question and a fixed protocol |
+| Highlights one best backtest | Exposes OOS, sensitivity, cost, data-quality, and missing checks |
+| Uses AI to produce the answer | Establishes facts deterministically before AI may explain them |
+| Mixes roadmap ideas with completed evidence | Keeps implemented checks, blockers, and unsupported methods visibly separate |
+| Ends with a signal | Ends with an evidence trail and a human-owned decision |
+
+The initiative was not “add more screens.” It was to reframe the product from a signal dashboard into a reviewable research system, then carry that decision through the data contract, validation rules, UI states, cold-start recovery, and three-minute reviewer path.
+
+The visual system adapts the MIT-licensed [Apple Bento Grid](https://github.com/hubeiqiao/apple-bento-grid) principles for an interactive product: a `#f5f5f7` canvas, full-height white cards, 6px grid rhythm, restrained accent colors, and a small number of dark or gradient highlight cards. It uses the system font stack, so the production build does not depend on remote font downloads.
 
 ## What is implemented
 
@@ -34,17 +56,17 @@ Unlike a backtest dashboard, the product is organised around research process in
 | Research Workspace | Implemented — lifecycle tabs for one research thread |
 | Experiment | Implemented — historical execution for the canonical MA study |
 | Validation | Implemented — deterministic OOS, sensitivity, cost, data-quality evidence |
-| Robustness Center | Implemented — organises completed / pending / planned / blocked checks |
-| Paper Trading (Research Deployment) | Implemented — observation staging and readiness; empty when no real session |
-| Decision Center | Implemented — approval staging from existing evidence |
+| Robustness Center | Implemented — four evidence-backed checks; unsupported regime, walk-forward, Monte Carlo, and capacity methods are disclosed as scope boundaries |
+| Paper Observation | Implemented — creates a browser-local plan, records dated human notes, and closes the session; no trades or P&L |
+| Decision Center | Implemented — saves a browser-local human outcome and rationale against the evidence review |
 | Risk Review | Implemented — five-level risk assessment from backtest metrics; deterministic and explainable (`component_levels` + `risk_reasons`) |
 | Compare Models | Implemented — rule strategies vs XGBoost/LightGBM and other ML models on the same out-of-sample window with leakage controls; compares Return / Sharpe / Drawdown / Turnover / Cost, plus feature importance and directional accuracy |
 | Cold-start recovery | Implemented — one shared readiness gate, visible startup state, bounded retry, and automatic continuation |
-| Archive | Implemented as a lifecycle stage — durable archive workflows remain limited |
+| Archive | Implemented as a real action for browser-local research; no empty Archive page |
 
 **Secondary / legacy tools** (reachable, not the product spine): Strategy Lab, Markets, Compare (rules-only), Data Center, Saved Runs, and older demo routes.
 
-**Planned / not implemented:** full stress and regime engines, broker connectivity, production OMS, autonomous trading, cross-browser durable research definitions without browser-local storage.
+**Not implemented:** regime analysis, rolling walk-forward validation, Monte Carlo analysis, liquidity/capacity modelling, broker connectivity, production OMS, autonomous trading, and cross-browser durable research records.
 
 Details: [docs/ROADMAP.md](docs/ROADMAP.md).
 
@@ -58,9 +80,8 @@ Research Library
 → Review Experiment
 → Inspect Validation Evidence
 → Review Robustness
-→ Inspect Paper Trading Readiness
-→ Review Decision
-→ Archive
+→ Create or review Paper Observation
+→ Record the Human Decision
 ```
 
 Backend evidence for the sample flows through:
@@ -91,9 +112,9 @@ For interviews where the backend may be cold or unavailable, use the documented 
 - No fabricated PnL
 - No fake trades
 - No fake confidence scores
-- No fake paper-trading sessions
+- No fake paper-observation sessions, trades, or P&L
 - Calculated metrics come from backend responses only
-- Unimplemented capabilities stay Planned or Not Started — never implied complete
+- Unimplemented methods are explicit scope boundaries — never implied complete or counted as workflow tasks
 
 Policy: [docs/AUTHENTICITY.md](docs/AUTHENTICITY.md) · [docs/data/AUTHENTICITY_POLICY.md](docs/data/AUTHENTICITY_POLICY.md)
 
@@ -105,9 +126,9 @@ Captured from the live local workspace using `ma-crossover-spy` — not mocked o
 | --- | --- |
 | ![Overview](docs/assets/screenshots/research-overview.png) | Research Workspace overview — question, lifecycle progress, next action |
 | ![Validation](docs/assets/screenshots/validation.png) | Validation evidence from backend checks (OOS, sensitivity, provenance) |
-| ![Robustness](docs/assets/screenshots/robustness.png) | Robustness Center — completed / pending / planned / blocked organisation |
-| ![Paper Trading](docs/assets/screenshots/paper-trading.png) | Paper Trading research deployment — observation staging, no fake session |
-| ![Decision](docs/assets/screenshots/decision.png) | Decision Center — approval staging from existing evidence |
+| ![Robustness](docs/assets/screenshots/robustness.png) | Robustness Review — four implemented checks plus an explicit scope boundary |
+| ![Paper Observation](docs/assets/screenshots/paper-trading.png) | Paper Observation — bounded plan and dated notes, no fake session |
+| ![Decision](docs/assets/screenshots/decision.png) | Decision Center — human-authored outcome and rationale |
 
 Walkthrough: [docs/DEMO_SCRIPT.md](docs/DEMO_SCRIPT.md). Narrative: [docs/PROJECT_STORY.md](docs/PROJECT_STORY.md).
 
@@ -134,9 +155,9 @@ Portfolio overview: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) · [docs/TECH_S
 ## Current limitations
 
 - Research definitions may use browser-local persistence (`localStorage`); another browser will not see them
-- Paper Trading is a research observation interface, not live execution
+- Paper Observation is a browser-local research log, not live execution
 - No broker connection and no production OMS
-- Some robustness methods remain Planned
+- Regime, walk-forward, Monte Carlo, and liquidity/capacity methods are not implemented
 - Validation run state may be process-local on Render; a restart can invalidate in-memory run ids
 - Copilot requires backend `LLM_*` configuration; without it the route fails honestly
 

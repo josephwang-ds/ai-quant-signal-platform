@@ -108,9 +108,6 @@ export default function OverviewTab({
               "researchWsNextStepOpenDecisionDescription"
             ),
             openDecisionCta: tr("researchWsNextStepOpenDecisionCta"),
-            openArchiveTitle: tr("researchWsNextStepOpenArchiveTitle"),
-            openArchiveDescription: tr("researchWsNextStepOpenArchiveDescription"),
-            openArchiveCta: tr("researchWsNextStepOpenArchiveCta"),
           },
           conclusion: {
             title: tr("researchWsCurrentDecision"),

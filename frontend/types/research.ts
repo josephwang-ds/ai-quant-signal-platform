@@ -128,18 +128,15 @@ export const RESEARCH_WORKSPACE_SECTIONS = [
   "robustness",
   "paper",
   "decision",
-  "archive",
   "copilot",
   "timeline",
-  "files",
-  "settings",
 ] as const;
 
 export type ResearchWorkspaceSection = (typeof RESEARCH_WORKSPACE_SECTIONS)[number];
 
 /**
- * Research lifecycle spine (PR-025):
- * Research → Experiment → Validation → Robustness → Paper Trading → Decision → Archive
+ * Evidence-backed product spine:
+ * Research → Experiment → Validation → Robustness → Paper Observation → Decision
  */
 export const RESEARCH_WORKSPACE_PRIMARY_SECTIONS = [
   "overview",
@@ -148,7 +145,6 @@ export const RESEARCH_WORKSPACE_PRIMARY_SECTIONS = [
   "robustness",
   "paper",
   "decision",
-  "archive",
 ] as const satisfies readonly ResearchWorkspaceSection[];
 
 export type ResearchWorkspacePrimarySection =
@@ -159,8 +155,6 @@ export const RESEARCH_WORKSPACE_TOOL_SECTIONS = [
   "notebook",
   "copilot",
   "timeline",
-  "files",
-  "settings",
 ] as const satisfies readonly ResearchWorkspaceSection[];
 
 export type ResearchWorkspaceToolSection =

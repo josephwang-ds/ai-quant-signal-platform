@@ -28,12 +28,20 @@ export type ResearchPrimaryTabsProps = {
   activeSection: ResearchWorkspaceSection;
   stepStates: Record<WorkflowStepId, WorkflowStepState>;
   labels: ResearchPrimaryTabsLabels;
+  reviewMode?: boolean;
 };
 
-function sectionHref(researchId: string, section: ResearchWorkspaceSection): string {
-  return section === "overview"
-    ? `/research/${encodeURIComponent(researchId)}`
-    : `/research/${encodeURIComponent(researchId)}?tab=${section}`;
+function sectionHref(
+  researchId: string,
+  section: ResearchWorkspaceSection,
+  reviewMode: boolean
+): string {
+  const base = `/research/${encodeURIComponent(researchId)}`;
+  const params = new URLSearchParams();
+  if (section !== "overview") params.set("tab", section);
+  if (reviewMode) params.set("review", "1");
+  const query = params.toString();
+  return query ? `${base}?${query}` : base;
 }
 
 function isSectionActive(
@@ -106,6 +114,7 @@ export default function ResearchPrimaryTabs({
   activeSection,
   stepStates,
   labels,
+  reviewMode = false,
 }: ResearchPrimaryTabsProps) {
   return (
     <div
@@ -124,7 +133,7 @@ export default function ResearchPrimaryTabs({
         return (
           <Link
             key={section}
-            href={sectionHref(researchId, section)}
+            href={sectionHref(researchId, section, reviewMode)}
             className={[
               "research-workspace__primary-tab",
               `research-workspace__primary-tab--${progress}`,

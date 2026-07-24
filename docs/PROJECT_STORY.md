@@ -13,7 +13,7 @@ Hiring-manager-visible failure mode for “demo products”: fabricated Sharpes,
 Build a **research operating system** that makes one lifecycle explicit:
 
 ```text
-Research → Experiment → Validation → Robustness → Paper Trading → Decision → Archive
+Research → Experiment → Validation → Robustness → Paper Observation → Decision
 ```
 
 Positioning:
@@ -23,6 +23,22 @@ Positioning:
 - Explicit non-goals: broker integration, live execution, stock picking
 
 Canonical demo protocol: Trend Following Study (`ma-crossover-spy`) — SPY MA20/MA60 vs buy-and-hold.
+
+## Initiatives I drove
+
+These are product and engineering decisions with visible repository evidence, not generic ownership claims.
+
+| Initiative | Decision | Visible outcome |
+| --- | --- | --- |
+| Reframed the product | Move from a collection of quant tools to one research decision lifecycle | Research Library, six-stage workspace, guided review |
+| Defined the evidence boundary | Backend calculations and deterministic validation precede AI explanation | Execution / validation APIs, evidence-grounded Copilot |
+| Made uncertainty explicit | Separate implemented evidence from unsupported analysis methods | Robustness scope boundary, Paper Observation, Decision, and cold-start states |
+| Preserved human authority | Treat observation and approval as human-authored records, not generated scores | Browser-local observation log and Decision record; no broker / autonomous execution |
+| Designed for evaluation | Compress the product thesis into a four-stop, three-minute path | Question → Evidence → Challenge → Decision |
+| Hardened the demo path | Treat cold start as an application state, not a cascade of errors | Shared readiness gate, bounded retry, automatic continuation |
+| Unified the visual system | Adapt Apple-style Bento principles to an interactive research product | 6px card grid, evidence-focused stat cards, restrained highlights, responsive mobile composition |
+
+The connecting initiative is the **trust model**: every layer must make it clear where a claim came from, which checks were actually run, what is still unknown, and who owns the final decision.
 
 ## Technical architecture
 
@@ -43,7 +59,7 @@ Next.js (Vercel) → FastAPI (Render) → Market data (Yahoo / AkShare)
 - No fabricated performance, P&L, trades, confidence scores, or paper sessions
 - Metrics only from backend responses
 - Provider failure → error / unavailable — never substitute demo numbers
-- Unimplemented work stays Planned / Not Started
+- Unimplemented methods stay outside the executable checklist and remain explicit scope boundaries
 - AI interprets evidence; it does not create quantitative truth
 
 See [AUTHENTICITY.md](AUTHENTICITY.md).
@@ -53,9 +69,9 @@ See [AUTHENTICITY.md](AUTHENTICITY.md).
 | Choice | Why |
 | --- | --- |
 | Narrow executable template (MA crossover) | Complete vertical slice beats shallow multi-strategy theatre |
-| Management centers for Robustness / Paper / Decision | Show lifecycle organisation without inventing engines or fills |
+| Robustness / Paper / Decision workflow | Review real validation checks, record real observation notes, and save a human decision without inventing engines or fills |
 | Browser-local research definitions (today) | Unblocks demos; durability is an honest limitation |
-| Evaluation folded into Validation UX | Keep the product spine to seven stages |
+| Evaluation folded into Validation UX | Keep the product spine to six stages |
 | Copilot as supporting tool | Explanation without becoming the climax of the demo |
 
 ## What was intentionally not built

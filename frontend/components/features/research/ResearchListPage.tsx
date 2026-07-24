@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import AppShell from "@/components/layout/AppShell";
 import PageHero from "@/components/layout/PageHero";
 import DeleteResearchModal from "@/components/features/research/DeleteResearchModal";
+import GuidedReviewEntry from "@/components/features/research/GuidedReviewEntry";
 import NewResearchModal from "@/components/features/research/NewResearchModal";
 import Button from "@/components/ui/Button";
 import EmptyState from "@/components/ui/EmptyState";
@@ -21,7 +22,11 @@ import { applyExecutionToListItem } from "@/lib/applyResearchExecution";
 import { CANONICAL_RESEARCH_ID } from "@/lib/canonicalMaCrossover";
 import {
   researchNameLabel,
+  researchQuestionLabel,
   researchStatusLabel,
+  strategyLabel,
+  timelineEventSummaryLabel,
+  timelineEventTitleLabel,
 } from "@/lib/researchDisplay";
 import {
   getCurrentLibraryStage,
@@ -32,6 +37,7 @@ import {
   getWorkspaceOverviewStats,
   overviewWorkflowTab,
   selectContinueResearch,
+  selectGuidedReviewResearch,
   type LibraryLifecycleStageId,
   type OverviewWorkflowStageId,
   OVERVIEW_WORKFLOW_STAGES,
@@ -139,6 +145,11 @@ export default function ResearchListPage() {
     [executableItems]
   );
 
+  const guidedReviewResearch = useMemo(
+    () => selectGuidedReviewResearch(executableItems, CANONICAL_RESEARCH_ID),
+    [executableItems]
+  );
+
   const stats = useMemo(
     () => getWorkspaceOverviewStats(executableItems),
     [executableItems]
@@ -167,14 +178,13 @@ export default function ResearchListPage() {
     robustness: tr("researchLibraryStageRobustness"),
     paper: tr("researchLibraryStagePaper"),
     decision: tr("researchLibraryStageDecision"),
-    archive: tr("researchLibraryStageArchive"),
   };
 
   const workflowLabels: Record<OverviewWorkflowStageId, string> = {
     research: tr("researchOverviewWorkflowResearch"),
     validation: tr("researchOverviewWorkflowValidation"),
     risk_review: tr("researchOverviewWorkflowRiskReview"),
-    deployment: tr("researchOverviewWorkflowDeployment"),
+    decision: tr("researchOverviewWorkflowDecision"),
   };
 
   const activityKindLabel = (kind: ResearchTimelineEventKind): string => {
@@ -256,11 +266,14 @@ export default function ResearchListPage() {
   const continueHref = continueResearch
     ? `/research/${encodeURIComponent(continueResearch.id)}`
     : null;
+  const guidedReviewHref = guidedReviewResearch
+    ? `/research/${encodeURIComponent(guidedReviewResearch.id)}?review=1`
+    : null;
 
-  const heroCta = continueHref
+  const heroCta = guidedReviewHref
     ? {
-        label: tr("researchLibraryContinueButton"),
-        href: continueHref,
+        label: tr("guidedReviewStart"),
+        href: guidedReviewHref,
       }
     : {
         label: tr("researchListCreateResearch"),
@@ -323,10 +336,6 @@ export default function ResearchListPage() {
                     value: stats.inReview,
                   },
                   {
-                    label: tr("researchOverviewStatPaper"),
-                    value: stats.paperTrading,
-                  },
-                  {
                     label: tr("researchOverviewStatExperiments"),
                     value: stats.experiments,
                   },
@@ -360,6 +369,13 @@ export default function ResearchListPage() {
 
         {loadStatus === "ready" ? (
           <>
+            {guidedReviewHref ? (
+              <GuidedReviewEntry
+                language={language}
+                href={guidedReviewHref}
+              />
+            ) : null}
+
             <div className="research-overview__priority-grid">
               {/* 2. Continue Research */}
               <section
@@ -387,7 +403,11 @@ export default function ResearchListPage() {
                       )}
                     </h3>
                     <p className="research-overview__continue-subtitle">
-                      {continueResearch.researchQuestion}
+                      {researchQuestionLabel(
+                        continueResearch.id,
+                        continueResearch.researchQuestion,
+                        language
+                      )}
                     </p>
                     <div className="research-overview__continue-meta">
                       <StatusBadge
@@ -558,7 +578,7 @@ export default function ResearchListPage() {
                               />
                             </div>
                             <p className="research-overview__project-subtitle">
-                              {strategy}
+                              {strategyLabel(strategy, language)}
                             </p>
                             <div className="research-overview__project-meta">
                               <span>
@@ -704,10 +724,10 @@ export default function ResearchListPage() {
                           ) : null}
                         </div>
                         <p className="research-overview__timeline-title">
-                          {event.title}
+                          {timelineEventTitleLabel(event.title, language)}
                         </p>
                         <p className="research-overview__timeline-summary">
-                          {event.summary}
+                          {timelineEventSummaryLabel(event.summary, language)}
                         </p>
                       </div>
                     </li>

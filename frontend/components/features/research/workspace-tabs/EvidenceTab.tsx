@@ -344,7 +344,7 @@ export default function EvidenceTab(props: EvidenceTabProps) {
         validation={validationReadyForRobustness}
         evaluation={evaluationReadyForRobustness}
         labels={buildRobustnessCenterLabels(tr)}
-        onContinue={() => navigateToSection("paper")}
+        onContinue={navigateToSection}
       />
     );
 

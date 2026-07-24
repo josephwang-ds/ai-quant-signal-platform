@@ -13,6 +13,7 @@ const labels: ResearchWorkspaceHeaderLabels = {
   back: "Back",
   moreActions: "More actions",
   moreActionsHint: "Manage this research.",
+  archiveResearch: "Archive",
   deleteResearch: "Delete",
   owner: "Owner",
   created: "Created",
@@ -45,5 +46,25 @@ describe("ResearchWorkspaceHeader", () => {
     await user.click(screen.getByRole("menuitem", { name: "Delete" }));
 
     expect(onDeleteResearch).toHaveBeenCalledTimes(1);
+  });
+
+  it("exposes the real archive action for local research", async () => {
+    const user = userEvent.setup();
+    const onArchiveResearch = vi.fn();
+    const research = getMockResearchById(CANONICAL_RESEARCH_ID);
+
+    render(
+      <ResearchWorkspaceHeader
+        research={research!}
+        language="en"
+        labels={labels}
+        onArchiveResearch={onArchiveResearch}
+      />
+    );
+
+    await user.click(screen.getByRole("button", { name: "More actions" }));
+    await user.click(screen.getByRole("menuitem", { name: "Archive" }));
+
+    expect(onArchiveResearch).toHaveBeenCalledTimes(1);
   });
 });

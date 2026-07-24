@@ -30,7 +30,7 @@ flowchart TB
 | Area | Responsibility |
 | --- | --- |
 | Research Library (`/`) | Entry list of research projects |
-| Research Workspace (`/research/[id]`) | Lifecycle tabs: Research → Experiment → Validation → Robustness → Paper Trading → Decision → Archive |
+| Research Workspace (`/research/[id]`) | Lifecycle tabs: Research → Experiment → Validation → Robustness → Paper Observation → Decision |
 | Supporting tools | Strategy Lab, Compare, Markets, Data, Saved Runs (secondary navigation) |
 
 Key conventions:
@@ -57,12 +57,11 @@ flowchart LR
   R[Research] --> E[Experiment]
   E --> V[Validation]
   V --> Rb[Robustness]
-  Rb --> P[Paper Trading]
+  Rb --> P[Paper Observation]
   P --> D[Decision]
-  D --> A[Archive]
 ```
 
-Backend slices currently calculate evidence for **execution**, **validation**, and **evaluation**. Robustness, Paper Trading, Decision, and Archive centers in the workspace organize existing evidence and staging state; they do not invent fills, scores, or approvals.
+Backend slices calculate evidence for **execution**, **validation**, and **evaluation**. Robustness projects those implemented checks; Paper Observation and Decision persist human-authored browser-local records. Archive is a repository action. None invent fills, scores, or approvals.
 
 See [`RESEARCH_WORKFLOW.md`](RESEARCH_WORKFLOW.md).
 

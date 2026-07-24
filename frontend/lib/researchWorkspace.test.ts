@@ -75,11 +75,8 @@ describe("workspace navigation model", () => {
       "robustness",
       "paper",
       "decision",
-      "archive",
       "copilot",
       "timeline",
-      "files",
-      "settings",
     ]);
   });
 
@@ -94,6 +91,12 @@ describe("workspace navigation model", () => {
   it("maps ?tab=evaluation onto the Evidence (validation) section", () => {
     expect(resolveWorkspaceSection("evaluation", null)).toBe("validation");
     expect(resolveWorkspaceSection(null, "evaluation")).toBe("validation");
+  });
+
+  it("redirects retired placeholder sections to the overview", () => {
+    expect(resolveWorkspaceSection("files", null)).toBe("overview");
+    expect(resolveWorkspaceSection("settings", null)).toBe("overview");
+    expect(resolveWorkspaceSection("archive", null)).toBe("overview");
   });
 });
 

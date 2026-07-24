@@ -9,9 +9,10 @@ Full engineering epic tracker: [`../ROADMAP.md`](../ROADMAP.md).
 | --- | --- | --- |
 | Research Library | ✅ Done | Homepage entry for research projects |
 | Validation | ✅ Done | Deterministic backend validation + workspace Validation tab |
-| Robustness | ✅ Done | Robustness Center organises evidence-backed status (not a new stress engine) |
-| Paper Trading | ✅ Done | Research Deployment / observation staging UI |
-| Decision | ✅ Done | Decision Center approval staging from existing evidence |
+| Robustness | ✅ Done | Reviews four implemented checks and separates unsupported methods as scope boundaries |
+| Paper Observation | ✅ Done | Browser-local bounded plan, dated notes, and session completion |
+| Decision | ✅ Done | Browser-local human outcome and rationale linked to evidence review |
+| Archive | ✅ Done | Real action for browser-local research; no empty lifecycle tab |
 | Research execution | ✅ Done | `POST /api/v1/research/execution` for canonical MA study |
 | Evaluation summary | ✅ Done | `POST /api/v1/research/evaluation` (folded into Validation UX) |
 | Evidence-grounded Copilot | ✅ Done | Requires backend LLM configuration |
@@ -21,10 +22,10 @@ Full engineering epic tracker: [`../ROADMAP.md`](../ROADMAP.md).
 ## Product spine
 
 ```text
-Research → Experiment → Validation → Robustness → Paper Trading → Decision → Archive
+Research → Experiment → Validation → Robustness → Paper Observation → Decision
 ```
 
-Archive UI exists as a lifecycle tab; durable archive workflows remain limited where marked deferred in the workspace.
+Archive is an action after review. Cross-browser durable archive records remain future work.
 
 ## Future work — Not implemented
 

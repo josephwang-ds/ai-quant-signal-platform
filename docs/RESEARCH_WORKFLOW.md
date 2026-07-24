@@ -7,9 +7,8 @@ flowchart LR
   R[Research] --> E[Experiment]
   E --> V[Validation]
   V --> Rb[Robustness]
-  Rb --> P[Paper Trading]
+  Rb --> P[Paper Observation]
   P --> D[Decision]
-  D --> A[Archive]
 ```
 
 Navigation uses workspace tabs. URL `?tab=evaluation` maps to Validation for compatibility. Copilot remains a supporting tool, not a spine stage.
@@ -56,37 +55,37 @@ A related **evaluation** endpoint (`POST /api/v1/research/evaluation`) summarise
 
 **Purpose:** organise robustness work after Validation.
 
-The Robustness Center is a **management view**. Status for supported checks comes from existing Validation / Evaluation evidence. Unimplemented stress/regime/capacity work stays **Planned**.
+The Robustness Center is an **evidence review**. It shows four implemented checks from Validation / Evaluation: parameter sensitivity, benchmark comparison, transaction-cost stress, and data quality.
 
-It does not run a separate stress engine in the current demo path.
+Regime analysis, rolling walk-forward validation, Monte Carlo analysis, and liquidity/capacity modelling are disclosed separately as scope boundaries. They are not executable checklist items and are never counted as completed evidence.
 
 ---
 
-## Paper Trading
+## Paper Observation
 
-**Purpose:** observation staging after Robustness.
+**Purpose:** record a bounded forward-observation process after Robustness.
 
-The Paper Trading / Research Deployment Center shows eligibility and an observation plan derived from existing evidence. If no real paper session exists, the session area stays empty.
+When the implemented evidence is complete, a reviewer can create a browser-local session with cadence, minimum duration, and explicit exit criteria. The reviewer can then append dated notes and close the session.
 
-It is not a broker terminal and must not invent fills, positions, or session P&L.
+It is not a broker terminal and never invents fills, positions, trades, returns, or P&L.
 
 ---
 
 ## Decision
 
-**Purpose:** approval staging after Paper Trading.
+**Purpose:** preserve the human judgment after evidence review.
 
-The Decision Center lists evidence readiness, remaining risks implied by incomplete robustness coverage, and checklist state. Status stays Not Started / Pending until Validation exists.
+The Decision Center lists evidence readiness, incomplete implemented checks, and review checklist state. A reviewer selects Advance, Hold, or Reject and writes the rationale; that record is stored in browser-local storage.
 
-It never invents Approved or Rejected without lifecycle evidence.
+The system never generates an approval outcome.
 
 ---
 
-## Archive
+## Archive action
 
-**Purpose:** close a finished research thread.
+**Purpose:** remove a finished browser-local research thread from the active library.
 
-Archive preserves definition, evidence, and decision provenance. When no archived session exists, the UI states that plainly (placeholder / deferred capabilities where still unfinished).
+Archive is an action in the research header, not a lifecycle content tab. Cross-browser durable archival and server-side lineage remain outside the current implementation.
 
 ---
 

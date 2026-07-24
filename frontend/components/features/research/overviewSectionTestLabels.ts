@@ -48,9 +48,6 @@ export const overviewSectionTestLabels: OverviewSectionLabels = {
     openDecisionTitle: "Open Decision",
     openDecisionDescription: "Review approval staging for this research.",
     openDecisionCta: "Open Decision",
-    openArchiveTitle: "Open Archive",
-    openArchiveDescription: "Close out this research thread when ready.",
-    openArchiveCta: "Open Archive",
   },
   conclusion: {
     title: "Research Conclusion",

@@ -31,7 +31,6 @@ import OverviewTab from "./OverviewTab";
 import EvidenceTab from "./EvidenceTab";
 import DecisionTab from "./DecisionTab";
 import NotebookTab from "./NotebookTab";
-import SettingsTab from "./SettingsTab";
 
 export type ResearchWorkspaceMainSectionProps = {
   researchId: string;
@@ -218,8 +217,7 @@ export default function ResearchWorkspaceMainSection(
 
   if (
     activeSection === "paper" ||
-    activeSection === "decision" ||
-    activeSection === "archive"
+    activeSection === "decision"
   ) {
     return (
       <DecisionTab
@@ -269,10 +267,6 @@ export default function ResearchWorkspaceMainSection(
         reloadEvaluation={reloadEvaluation}
       />
     );
-  }
-
-  if (activeSection === "settings" || activeSection === "files") {
-    return <SettingsTab section={activeSection} tr={tr} />;
   }
 
   return null;

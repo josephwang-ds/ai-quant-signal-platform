@@ -9,6 +9,7 @@ import ResearchWorkspaceHeader from "@/components/features/research/ResearchWork
 import ResearchWorkspaceSkeleton from "@/components/features/research/ResearchWorkspaceSkeleton";
 import ResearchPrimaryTabs from "@/components/features/research/ResearchPrimaryTabs";
 import DeleteResearchModal from "@/components/features/research/DeleteResearchModal";
+import ResearchReviewGuide from "@/components/features/research/ResearchReviewGuide";
 import ResearchWorkspaceMainSection from "@/components/features/research/workspace-tabs/ResearchWorkspaceMainSection";
 import Button from "@/components/ui/Button";
 import EmptyState from "@/components/ui/EmptyState";
@@ -72,16 +73,19 @@ export default function ResearchWorkspacePage({
     searchParams.get("tab"),
     searchParams.get("section")
   );
+  const reviewMode = searchParams.get("review") === "1";
 
   const navigateToSection = useCallback(
     (section: ResearchWorkspaceSection) => {
-      const href =
-        section === "overview"
-          ? `/research/${encodeURIComponent(researchId)}`
-          : `/research/${encodeURIComponent(researchId)}?tab=${section}`;
+      const base = `/research/${encodeURIComponent(researchId)}`;
+      const params = new URLSearchParams();
+      if (section !== "overview") params.set("tab", section);
+      if (reviewMode) params.set("review", "1");
+      const query = params.toString();
+      const href = query ? `${base}?${query}` : base;
       router.push(href);
     },
-    [researchId, router]
+    [researchId, reviewMode, router]
   );
 
   const [research, setResearch] = useState<ResearchDetail | null>(null);
@@ -245,7 +249,6 @@ export default function ResearchWorkspacePage({
     if (step === "robustness") return tr("researchWsNextStepOpenRobustnessTitle");
     if (step === "paper") return tr("researchWsNextStepOpenPaperTitle");
     if (step === "decision") return tr("researchWsNextStepOpenDecisionTitle");
-    if (step === "archive") return tr("researchWsNextStepOpenArchiveTitle");
     return tr("researchWsNextStepOpenExperimentTitle");
   }, [evaluation, evaluationStatus, tr, workflowInput]);
 
@@ -373,6 +376,12 @@ export default function ResearchWorkspacePage({
     }
   }
 
+  async function handleArchiveResearch() {
+    if (researchId === CANONICAL_RESEARCH_ID) return;
+    await getResearchRepository().archive(researchId);
+    router.replace("/");
+  }
+
   return (
     <AppShell language={language} onLanguageChange={setLanguage}>
       <SectionCard className="research-workspace-shell-card">
@@ -414,6 +423,7 @@ export default function ResearchWorkspacePage({
                 back: tr("researchWsBackToList"),
                 moreActions: tr("researchWsMoreActions"),
                 moreActionsHint: tr("researchWsMoreActionsHint"),
+                archiveResearch: tr("researchListArchive"),
                 deleteResearch: tr("researchListDelete"),
                 owner: tr("researchListOwner"),
                 created: tr("researchWsCreated"),
@@ -430,7 +440,22 @@ export default function ResearchWorkspacePage({
                   ? undefined
                   : () => setDeleteModalOpen(true)
               }
+              onArchiveResearch={
+                displayResearch.id === CANONICAL_RESEARCH_ID
+                  ? undefined
+                  : () => {
+                      void handleArchiveResearch();
+                    }
+              }
             />
+
+            {reviewMode ? (
+              <ResearchReviewGuide
+                researchId={displayResearch.id}
+                activeSection={activeSection}
+                language={language}
+              />
+            ) : null}
 
             <div className="research-workspace__layout">
               <div className="research-workspace__main">
@@ -443,6 +468,7 @@ export default function ResearchWorkspacePage({
                     researchId={displayResearch.id}
                     activeSection={activeSection}
                     stepStates={workflowStepStates}
+                    reviewMode={reviewMode}
                     labels={{
                       overview: tr("researchWsNavOverview"),
                       experiments: tr("researchWsNavExperiments"),
@@ -450,7 +476,6 @@ export default function ResearchWorkspacePage({
                       robustness: tr("researchWsNavRobustness"),
                       paper: tr("researchWsNavPaper"),
                       decision: tr("researchWsNavDecision"),
-                      archive: tr("researchWsNavArchive"),
                       progressCompleted: tr("researchWsTabCompleted"),
                       progressCurrent: tr("researchWsTabCurrent"),
                       progressLocked: tr("researchWsTabLocked"),
@@ -464,7 +489,7 @@ export default function ResearchWorkspacePage({
                         <Link
                           href={`/research/${encodeURIComponent(
                             displayResearch.id
-                          )}?tab=notebook`}
+                          )}?tab=notebook${reviewMode ? "&review=1" : ""}`}
                         >
                           {tr("researchWsNavNotebook")}
                         </Link>
@@ -473,27 +498,9 @@ export default function ResearchWorkspacePage({
                         <Link
                           href={`/research/${encodeURIComponent(
                             displayResearch.id
-                          )}?tab=timeline`}
+                          )}?tab=timeline${reviewMode ? "&review=1" : ""}`}
                         >
                           {tr("researchWsNavTimeline")}
-                        </Link>
-                      </li>
-                      <li>
-                        <Link
-                          href={`/research/${encodeURIComponent(
-                            displayResearch.id
-                          )}?tab=files`}
-                        >
-                          {tr("researchWsNavFiles")}
-                        </Link>
-                      </li>
-                      <li>
-                        <Link
-                          href={`/research/${encodeURIComponent(
-                            displayResearch.id
-                          )}?tab=settings`}
-                        >
-                          {tr("researchWsNavSettings")}
                         </Link>
                       </li>
                     </ul>

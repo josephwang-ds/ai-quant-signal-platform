@@ -11,15 +11,15 @@ import type { ResearchValidationResult } from "@/types/researchValidation";
 export type RobustnessItemStatus =
   | "completed"
   | "pending"
-  | "planned"
   | "blocked";
 
 export type RobustnessItemId =
   | "parameter_sensitivity"
   | "benchmark_comparison"
   | "transaction_cost"
-  | "data_quality"
-  | "stress_test"
+  | "data_quality";
+
+export type RobustnessScopeBoundaryId =
   | "market_regime"
   | "walk_forward"
   | "monte_carlo"
@@ -33,26 +33,12 @@ export type RobustnessMatrixItem = {
   validationStage: string | null;
   /** Exact evaluation stage labels (English) when present in evaluation payloads. */
   evaluationLabels: string[];
-  /** False → always Planned until a future implementation ships. */
-  implemented: boolean;
-};
-
-export type RobustnessFailureConditionId =
-  | "extreme_volatility"
-  | "regime_shift"
-  | "forward_validation"
-  | "capacity";
-
-export type RobustnessFailureCondition = {
-  id: RobustnessFailureConditionId;
-  relatedItemId: RobustnessItemId;
 };
 
 export type RobustnessOverallStatus =
   | "not_started"
   | "in_progress"
   | "blocked"
-  | "planned_remaining"
   | "complete";
 
 export type RobustnessItemView = RobustnessMatrixItem & {
@@ -62,10 +48,13 @@ export type RobustnessItemView = RobustnessMatrixItem & {
 export type RobustnessCenterModel = {
   overallStatus: RobustnessOverallStatus;
   items: RobustnessItemView[];
-  failureConditionIds: RobustnessFailureConditionId[];
+  scopeBoundaryIds: RobustnessScopeBoundaryId[];
   nextItemId: RobustnessItemId | null;
-  /** Prefer resolving blockers before starting planned work. */
-  nextActionKind: "resolve_blocker" | "continue_item" | "none";
+  nextActionKind:
+    | "resolve_blocker"
+    | "continue_item"
+    | "start_observation"
+    | "none";
   hasEvaluationEvidence: boolean;
   hasValidationEvidence: boolean;
 };
@@ -77,74 +66,34 @@ export const ROBUSTNESS_MATRIX_ITEMS: readonly RobustnessMatrixItem[] = [
     label: "Parameter Sensitivity",
     validationStage: "parameter_sensitivity",
     evaluationLabels: ["Parameter sensitivity"],
-    implemented: true,
   },
   {
     id: "benchmark_comparison",
     label: "Benchmark Comparison",
     validationStage: "benchmark_comparison",
     evaluationLabels: ["Benchmark comparison"],
-    implemented: true,
   },
   {
     id: "transaction_cost",
     label: "Transaction Cost",
     validationStage: "transaction_cost_sensitivity",
     evaluationLabels: ["Transaction-cost sensitivity"],
-    implemented: true,
   },
   {
     id: "data_quality",
     label: "Data Quality",
     validationStage: "data_quality",
     evaluationLabels: ["Data quality"],
-    implemented: true,
-  },
-  {
-    id: "stress_test",
-    label: "Stress Test",
-    validationStage: null,
-    evaluationLabels: ["Stress testing"],
-    implemented: false,
-  },
-  {
-    id: "market_regime",
-    label: "Market Regime Analysis",
-    validationStage: null,
-    evaluationLabels: ["Regime analysis"],
-    implemented: false,
-  },
-  {
-    id: "walk_forward",
-    label: "Walk-forward Validation",
-    validationStage: null,
-    evaluationLabels: ["Walk-forward validation"],
-    implemented: false,
-  },
-  {
-    id: "monte_carlo",
-    label: "Monte Carlo Simulation",
-    validationStage: null,
-    evaluationLabels: ["Monte Carlo simulation"],
-    implemented: false,
-  },
-  {
-    id: "liquidity_capacity",
-    label: "Liquidity & Capacity",
-    validationStage: null,
-    evaluationLabels: [],
-    implemented: false,
   },
 ] as const;
 
-/** Situations where conclusions should not be generalized — no numeric claims. */
-export const ROBUSTNESS_FAILURE_CONDITIONS: readonly RobustnessFailureCondition[] =
-  [
-    { id: "extreme_volatility", relatedItemId: "stress_test" },
-    { id: "regime_shift", relatedItemId: "market_regime" },
-    { id: "forward_validation", relatedItemId: "walk_forward" },
-    { id: "capacity", relatedItemId: "liquidity_capacity" },
-  ] as const;
+/** Concise disclosure, not executable checklist items. */
+export const ROBUSTNESS_SCOPE_BOUNDARIES: readonly RobustnessScopeBoundaryId[] = [
+  "market_regime",
+  "walk_forward",
+  "monte_carlo",
+  "liquidity_capacity",
+] as const;
 
 function normalize(value: string): string {
   return value.trim().toLowerCase();
@@ -162,7 +111,7 @@ function evaluationStageStatus(
   evaluation: ResearchEvaluationResult,
   item: RobustnessMatrixItem
 ): RobustnessItemStatus | null {
-  const summary = evaluation.evidence_summary.find((row) =>
+  const summary = (evaluation.evidence_summary ?? []).find((row) =>
     matchesEvaluationLabel(item, row.label)
   );
   if (summary) {
@@ -171,11 +120,11 @@ function evaluationStageStatus(
       return "blocked";
     }
     if (summary.status === "incomplete") return "pending";
-    if (summary.status === "unavailable") return "planned";
+    if (summary.status === "unavailable") return "pending";
   }
 
   if (
-    evaluation.completed_stages.some((label) =>
+    (evaluation.completed_stages ?? []).some((label) =>
       matchesEvaluationLabel(item, label)
     )
   ) {
@@ -183,7 +132,7 @@ function evaluationStageStatus(
   }
 
   if (
-    evaluation.incomplete_stages.some((label) =>
+    (evaluation.incomplete_stages ?? []).some((label) =>
       matchesEvaluationLabel(item, label)
     )
   ) {
@@ -191,11 +140,11 @@ function evaluationStageStatus(
   }
 
   if (
-    evaluation.unavailable_stages.some((label) =>
+    (evaluation.unavailable_stages ?? []).some((label) =>
       matchesEvaluationLabel(item, label)
     )
   ) {
-    return "planned";
+    return "pending";
   }
 
   return null;
@@ -214,7 +163,7 @@ function validationStageStatus(
     if (stage.status === "completed") return "completed";
     if (stage.status === "failed") return "blocked";
     if (stage.status === "incomplete") return "pending";
-    if (stage.status === "unavailable") return "planned";
+    if (stage.status === "unavailable") return "pending";
   }
 
   // Fallback to nested stage objects when stages[] entry is missing.
@@ -253,17 +202,13 @@ function deriveItemStatus(
   validation: ResearchValidationResult | null,
   evaluation: ResearchEvaluationResult | null
 ): RobustnessItemStatus {
-  if (!item.implemented) {
-    return "planned";
-  }
-
   if (evaluation) {
     const fromEval = evaluationStageStatus(evaluation, item);
     if (fromEval) {
       if (
         fromEval === "pending" &&
         evaluation.evaluation_status === "blocked" &&
-        evaluation.blockers.length > 0
+        (evaluation.blockers?.length ?? 0) > 0
       ) {
         return "blocked";
       }
@@ -286,11 +231,7 @@ function deriveOverallStatus(
   if (items.some((item) => item.status === "blocked")) return "blocked";
   if (items.every((item) => item.status === "completed")) return "complete";
   if (items.some((item) => item.status === "pending")) return "in_progress";
-  if (items.some((item) => item.status === "completed")) {
-    return "planned_remaining";
-  }
-  if (items.every((item) => item.status === "planned")) return "not_started";
-  return "planned_remaining";
+  return "not_started";
 }
 
 export function buildRobustnessCenterModel(input: {
@@ -304,16 +245,8 @@ export function buildRobustnessCenterModel(input: {
     status: deriveItemStatus(item, validation, evaluation),
   }));
 
-  const failureConditionIds = ROBUSTNESS_FAILURE_CONDITIONS.filter(
-    (condition) => {
-      const related = items.find((item) => item.id === condition.relatedItemId);
-      return related?.status !== "completed";
-    }
-  ).map((condition) => condition.id);
-
   const blocked = items.find((item) => item.status === "blocked");
   const pending = items.find((item) => item.status === "pending");
-  const planned = items.find((item) => item.status === "planned");
 
   let nextItemId: RobustnessItemId | null = null;
   let nextActionKind: RobustnessCenterModel["nextActionKind"] = "none";
@@ -324,15 +257,15 @@ export function buildRobustnessCenterModel(input: {
   } else if (pending) {
     nextItemId = pending.id;
     nextActionKind = "continue_item";
-  } else if (planned) {
-    nextItemId = planned.id;
-    nextActionKind = "continue_item";
+  } else if (items.some((item) => item.status === "completed")) {
+    nextActionKind = "start_observation";
   }
 
   return {
-    overallStatus: deriveOverallStatus(items),
+    overallStatus:
+      !validation && !evaluation ? "not_started" : deriveOverallStatus(items),
     items,
-    failureConditionIds,
+    scopeBoundaryIds: [...ROBUSTNESS_SCOPE_BOUNDARIES],
     nextItemId,
     nextActionKind,
     hasEvaluationEvidence: Boolean(evaluation),

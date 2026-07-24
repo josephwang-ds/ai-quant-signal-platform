@@ -1,9 +1,9 @@
-# Research Deployment Center — Paper Trading (PR-025)
+# Paper Observation Center (PR-025, revised)
 
 ## Purpose
 
-Paper Trading is a **research deployment and observation interface** that sits
-after Robustness.
+Paper Observation is a **bounded forward-observation log** that sits after
+Robustness.
 
 It is **not**:
 
@@ -14,53 +14,36 @@ It is **not**:
 
 ## Inputs
 
-Eligibility and observation plan status derive only from:
+Eligibility derives only from:
 
-- Research definition (name, experiment, benchmark, strategy, lifecycle status)
+- Research definition (name, experiment, benchmark, strategy)
 - Validation / Evaluation evidence (when available)
-- Robustness Center projection (PR-024)
+- the four implemented Robustness checks
+- a real browser-local observation-session record
 
-No backend paper-session computation is added in this slice.
+No backend trading or paper-account computation is added in this slice.
 
 ## Eligibility states
 
-`Not Eligible` | `Needs Review` | `Eligible` | `Active` | `Completed` | `Stopped`
+`Not Eligible` | `Needs Review` | `Eligible` | `Active` | `Completed`
 
 Rules:
 
 - **Not Eligible** — no Validation evidence
 - **Needs Review** — Validation/Robustness blocked or incomplete supported work
-- **Eligible** — no blockers; incomplete planned work may remain; no session yet
-- **Active / Completed / Stopped** — only when a **real** paper session exists
-  (not available in this slice)
+- **Eligible** — all four implemented checks are complete; no session yet
+- **Active / Completed** — only when a persisted observation session exists
 
 ## Observation plan
 
-Monitors listed without live values:
-
-| Monitor | Without session |
-| --- | --- |
-| Signal Consistency | Pending if related evidence completed, else Planned |
-| Benchmark Behaviour | same |
-| Transaction Cost Drift | same |
-| Drawdown Behaviour | Planned |
-| Data Quality | Pending if related evidence completed, else Planned |
-| Position Changes | Planned |
-
-**Configured** only when a real session exists.
+The reviewer supplies a cadence, minimum duration, and explicit exit criteria.
+These fields are stored in browser-local storage and remain inspectable.
 
 ## Session
 
-If no real session exists, show an empty state:
-
-> Paper Trading has not started.
-> This research has not entered observation.
-
-Do not simulate trading.
-
-## Review criteria
-
-Checklist only; every item is **Awaiting Observation**. Never mark Passed.
+An active session accepts dated human notes. A reviewer can close the session,
+after which its plan and notes remain visible. The application never generates
+orders, fills, positions, returns, or PnL.
 
 ## Surfaces
 
@@ -69,9 +52,10 @@ Checklist only; every item is **Awaiting Observation**. Never mark Passed.
 
 ## Lifecycle navigation
 
-Research → Experiment → Validation → Robustness → Paper Trading → Decision → Archive
+Research → Experiment → Validation → Robustness → Paper Observation → Decision
 
-Decision and Archive are editorial placeholders until those slices ship.
+Decision stores a human-authored outcome and rationale. Archive is a real
+repository action rather than an empty page.
 
 ## Authenticity
 

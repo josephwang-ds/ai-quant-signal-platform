@@ -112,6 +112,40 @@ export function researchQuestionLabel(
     : value;
 }
 
+export function timelineEventTitleLabel(value: string, language: Language) {
+  if (language !== "zh") return value;
+  const labels: Record<string, string> = {
+    "Research Definition Created": "已创建研究定义",
+    "Research Methodology Documented": "已记录研究方法",
+    "Real Data Integration Planned": "已规划真实数据接入",
+  };
+  return labels[value] ?? value;
+}
+
+export function timelineEventSummaryLabel(value: string, language: Language) {
+  if (language !== "zh") return value;
+  const labels: Record<string, string> = {
+    "Canonical Trend Following Study defined for the public Research Hub.":
+      "已为公开研究工作区定义标准趋势跟踪案例。",
+    "MA20/MA60, lag-1 position, 0.001 cost, SPY vs buy-and-hold protocol documented as design notes.":
+      "已将 MA20/MA60、滞后一日持仓、0.001 交易成本及 SPY 买入并持有基准记录为研究设计。",
+    "Market-derived evidence deferred to the Research Execution Engine (PR-008B+).":
+      "市场数据证据由研究执行引擎计算，在此之前不展示虚构指标。",
+  };
+  return labels[value] ?? value;
+}
+
+export function timelineEventKindLabel(value: string, language: Language) {
+  if (language !== "zh") return value;
+  const labels: Record<string, string> = {
+    stage_change: "阶段变更",
+    notebook_entry: "研究记录",
+    experiment: "实验",
+    validation: "验证",
+  };
+  return labels[value] ?? value;
+}
+
 export function formatResearchTimestamp(value: string, language: Language): string {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;

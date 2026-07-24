@@ -40,11 +40,8 @@ export function isResearchWorkspaceSection(
     value === "robustness" ||
     value === "paper" ||
     value === "decision" ||
-    value === "archive" ||
     value === "copilot" ||
-    value === "timeline" ||
-    value === "files" ||
-    value === "settings"
+    value === "timeline"
   );
 }
 
@@ -58,6 +55,13 @@ export function resolveWorkspaceSection(
   const candidate = tabParam ?? sectionParam;
   if (candidate === "evaluation") {
     return "validation";
+  }
+  if (
+    candidate === "archive" ||
+    candidate === "files" ||
+    candidate === "settings"
+  ) {
+    return "overview";
   }
   return isResearchWorkspaceSection(candidate) ? candidate : "overview";
 }

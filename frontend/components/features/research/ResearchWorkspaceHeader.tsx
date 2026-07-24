@@ -31,6 +31,7 @@ export type ResearchWorkspaceHeaderLabels = {
   back: string;
   moreActions: string;
   moreActionsHint: string;
+  archiveResearch: string;
   deleteResearch: string;
   owner: string;
   created: string;
@@ -48,6 +49,7 @@ export type ResearchWorkspaceHeaderProps = {
   language: Language;
   labels: ResearchWorkspaceHeaderLabels;
   execution?: ResearchExecutionResult | null;
+  onArchiveResearch?: () => void;
   onDeleteResearch?: () => void;
 };
 
@@ -57,6 +59,7 @@ export default function ResearchWorkspaceHeader({
   language,
   labels,
   execution = null,
+  onArchiveResearch,
   onDeleteResearch,
 }: ResearchWorkspaceHeaderProps) {
   const menuId = useId();
@@ -90,6 +93,18 @@ export default function ResearchWorkspaceHeader({
               role="menu"
             >
               <p className="section-meta">{labels.moreActionsHint}</p>
+              {onArchiveResearch ? (
+                <Button
+                  className="btn--ghost"
+                  role="menuitem"
+                  onClick={() => {
+                    setMenuOpen(false);
+                    onArchiveResearch();
+                  }}
+                >
+                  {labels.archiveResearch}
+                </Button>
+              ) : null}
               {onDeleteResearch ? (
                 <Button
                   className="btn--danger-outline research-hero__delete"

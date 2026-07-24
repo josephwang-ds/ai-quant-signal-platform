@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   buildRobustnessCenterModel,
   ROBUSTNESS_MATRIX_ITEMS,
+  ROBUSTNESS_SCOPE_BOUNDARIES,
 } from "@/lib/researchRobustness";
 import type { ResearchEvaluationResult } from "@/types/researchEvaluation";
 import type { ResearchValidationResult } from "@/types/researchValidation";
@@ -110,21 +111,24 @@ function baseEvaluation(
 }
 
 describe("buildRobustnessCenterModel", () => {
-  it("marks unimplemented checks as Planned when no evidence exists", () => {
+  it("shows only implemented checks and keeps unsupported methods as scope boundaries", () => {
     const model = buildRobustnessCenterModel({
       validation: null,
       evaluation: null,
     });
 
     expect(model.items).toHaveLength(ROBUSTNESS_MATRIX_ITEMS.length);
-    expect(model.items.find((i) => i.id === "stress_test")?.status).toBe("planned");
-    expect(model.items.find((i) => i.id === "liquidity_capacity")?.status).toBe(
-      "planned"
-    );
+    expect(model.items.map((item) => item.id)).toEqual([
+      "parameter_sensitivity",
+      "benchmark_comparison",
+      "transaction_cost",
+      "data_quality",
+    ]);
+    expect(model.scopeBoundaryIds).toEqual([...ROBUSTNESS_SCOPE_BOUNDARIES]);
     expect(model.items.find((i) => i.id === "parameter_sensitivity")?.status).toBe(
       "pending"
     );
-    expect(model.overallStatus).toBe("in_progress");
+    expect(model.overallStatus).toBe("not_started");
     expect(model.nextItemId).toBe("parameter_sensitivity");
   });
 
@@ -152,7 +156,7 @@ describe("buildRobustnessCenterModel", () => {
     expect(model.items.find((i) => i.id === "benchmark_comparison")?.status).toBe(
       "pending"
     );
-    expect(model.items.find((i) => i.id === "monte_carlo")?.status).toBe("planned");
+    expect(model.scopeBoundaryIds).toContain("monte_carlo");
   });
 
   it("surfaces blockers only when evaluation is blocked", () => {
@@ -172,17 +176,20 @@ describe("buildRobustnessCenterModel", () => {
     expect(model.nextActionKind).toBe("resolve_blocker");
   });
 
-  it("lists failure conditions only for unfinished related checks", () => {
+  it("keeps unsupported analysis out of executable checklist items", () => {
     const model = buildRobustnessCenterModel({
       validation: null,
       evaluation: baseEvaluation(),
     });
 
-    expect(model.failureConditionIds).toEqual([
-      "extreme_volatility",
-      "regime_shift",
-      "forward_validation",
-      "capacity",
+    expect(model.items.some((item) => item.id === ("market_regime" as never))).toBe(
+      false
+    );
+    expect(model.scopeBoundaryIds).toEqual([
+      "market_regime",
+      "walk_forward",
+      "monte_carlo",
+      "liquidity_capacity",
     ]);
   });
 

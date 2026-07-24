@@ -1,5 +1,10 @@
 import type { ResearchTimelineEvent } from "@/types/notebook";
 import type { Language } from "@/lib/i18n";
+import {
+  timelineEventKindLabel,
+  timelineEventSummaryLabel,
+  timelineEventTitleLabel,
+} from "@/lib/researchDisplay";
 
 function formatDateTime(value: string, language: Language): string {
   const date = new Date(value);
@@ -55,9 +60,15 @@ export default function ResearchTimeline({
                 {formatDateTime(event.occurredAt, language)}
               </time>
               <div className="research-timeline__content">
-                <p className="research-timeline__event-title">{event.title}</p>
-                <p className="research-timeline__summary">{event.summary}</p>
-                <span className="research-timeline__kind">{event.kind}</span>
+                <p className="research-timeline__event-title">
+                  {timelineEventTitleLabel(event.title, language)}
+                </p>
+                <p className="research-timeline__summary">
+                  {timelineEventSummaryLabel(event.summary, language)}
+                </p>
+                <span className="research-timeline__kind">
+                  {timelineEventKindLabel(event.kind, language)}
+                </span>
               </div>
             </li>
           ))}

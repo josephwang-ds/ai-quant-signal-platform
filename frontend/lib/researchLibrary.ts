@@ -14,8 +14,7 @@ export type LibraryLifecycleStageId =
   | "validation"
   | "robustness"
   | "paper"
-  | "decision"
-  | "archive";
+  | "decision";
 
 export const LIBRARY_LIFECYCLE_STAGES: readonly LibraryLifecycleStageId[] = [
   "research",
@@ -24,7 +23,6 @@ export const LIBRARY_LIFECYCLE_STAGES: readonly LibraryLifecycleStageId[] = [
   "robustness",
   "paper",
   "decision",
-  "archive",
 ] as const;
 
 export type LibraryLifecycleProgress = {
@@ -111,6 +109,20 @@ export function selectContinueResearch(
 }
 
 /**
+ * Keep the public review path stable even when a newer local study exists.
+ * Falls back to the most recent executable research if the sample was removed.
+ */
+export function selectGuidedReviewResearch(
+  items: ResearchListItem[],
+  preferredResearchId: string
+): ResearchListItem | null {
+  return (
+    items.find((item) => item.id === preferredResearchId) ??
+    selectContinueResearch(items)
+  );
+}
+
+/**
  * Recent activity for a research id — reuses catalog timeline when present.
  * Returns [] when no real activity exists (do not invent logs).
  */
@@ -132,7 +144,7 @@ export function libraryStageLabel(
 export function getCurrentLibraryStage(
   status: ResearchLifecycleStatus
 ): LibraryLifecycleStageId {
-  return getLibraryLifecycleProgress(status).current ?? "archive";
+  return getLibraryLifecycleProgress(status).current ?? "decision";
 }
 
 /** Homepage operating spine (4 stages) — projection of the fuller library lifecycle. */
@@ -140,13 +152,13 @@ export type OverviewWorkflowStageId =
   | "research"
   | "validation"
   | "risk_review"
-  | "deployment";
+  | "decision";
 
 export const OVERVIEW_WORKFLOW_STAGES: readonly OverviewWorkflowStageId[] = [
   "research",
   "validation",
   "risk_review",
-  "deployment",
+  "decision",
 ] as const;
 
 export type OverviewWorkflowProgress = {
@@ -167,9 +179,7 @@ function libraryStageToOverview(
       return "risk_review";
     case "paper":
     case "decision":
-      return "deployment";
-    case "archive":
-      return null;
+      return "decision";
     default:
       return "research";
   }
@@ -200,7 +210,7 @@ export function getOverviewWorkflowProgress(
 /** Workspace tab target for a homepage workflow stage. */
 export function overviewWorkflowTab(
   stage: OverviewWorkflowStageId
-): "overview" | "validation" | "robustness" | "paper" {
+): "overview" | "validation" | "robustness" | "decision" {
   switch (stage) {
     case "research":
       return "overview";
@@ -208,24 +218,24 @@ export function overviewWorkflowTab(
       return "validation";
     case "risk_review":
       return "robustness";
-    case "deployment":
-      return "paper";
+    case "decision":
+      return "decision";
   }
 }
 
-/** Progress 0–1 across the non-archive spine (for library cards). */
+/** Progress 0–1 across the decision spine (for library cards). */
 export function getLibraryProgressRatio(status: ResearchLifecycleStatus): number {
   if (status === "Archived") return 1;
   const progress = getLibraryLifecycleProgress(status);
-  const spine = LIBRARY_LIFECYCLE_STAGES.filter((s) => s !== "archive");
-  const done = progress.completed.filter((s) => s !== "archive").length;
-  return Math.min(1, Math.max(0, done / spine.length));
+  return Math.min(
+    1,
+    Math.max(0, progress.completed.length / LIBRARY_LIFECYCLE_STAGES.length)
+  );
 }
 
 export type WorkspaceOverviewStats = {
   active: number;
   inReview: number;
-  paperTrading: number;
   experiments: number;
 };
 
@@ -238,7 +248,6 @@ export function getWorkspaceOverviewStats(
     inReview: items.filter((item) =>
       item.status === "Review" || item.status === "Validated"
     ).length,
-    paperTrading: items.filter((item) => item.status === "Paper Trading").length,
     experiments: items.reduce((sum, item) => sum + (item.experimentCount || 0), 0),
   };
 }

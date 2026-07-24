@@ -2,7 +2,7 @@
 
 ## What is AI Quant Research Workspace?
 
-**AI Quant Research Workspace** is a research operating space for moving quantitative ideas through a visible lifecycle: definition → experiment → validation → robustness staging → paper observation → decision → archive.
+**AI Quant Research Workspace** is a research operating space for moving quantitative ideas through a visible lifecycle: definition → experiment → validation → robustness review → paper observation → decision.
 
 It keeps hypotheses, protocols, calculated evidence, and governed next steps in one place so conclusions remain traceable.
 
@@ -28,7 +28,7 @@ Canonical product statement: **Research First. AI Second. Decisions Last.**
 ## Research lifecycle
 
 ```text
-Research → Experiment → Validation → Robustness → Paper Trading → Decision → Archive
+Research → Experiment → Validation → Robustness → Paper Observation → Decision
 ```
 
 | Stage | Intent |
@@ -36,10 +36,11 @@ Research → Experiment → Validation → Robustness → Paper Trading → Deci
 | Research | Frame the question, hypothesis, and protocol |
 | Experiment | Define and run historical execution against real market data |
 | Validation | Deterministic OOS, sensitivity, cost, and data-quality checks |
-| Robustness | Organise which robustness work is completed, pending, planned, or blocked |
-| Paper Trading | Observation staging after validation/robustness — not live brokerage |
-| Decision | Approval staging from existing evidence — no invented verdicts |
-| Archive | Close the research thread when work is complete |
+| Robustness | Review four implemented checks and disclose unsupported methods as scope boundaries |
+| Paper Observation | Create a bounded browser-local plan and record dated notes — not live brokerage |
+| Decision | Save a human-authored outcome and rationale against the evidence |
+
+Archive is a real research action after review, not an empty lifecycle page.
 
 Details: [`RESEARCH_WORKFLOW.md`](RESEARCH_WORKFLOW.md).
 

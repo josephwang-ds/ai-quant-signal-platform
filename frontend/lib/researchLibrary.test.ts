@@ -10,6 +10,7 @@ import {
   getWorkspaceOverviewStats,
   overviewWorkflowTab,
   selectContinueResearch,
+  selectGuidedReviewResearch,
 } from "@/lib/researchLibrary";
 import {
   CANONICAL_RESEARCH_ID,
@@ -65,6 +66,29 @@ describe("researchLibrary", () => {
     expect(selectContinueResearch([])).toBeNull();
   });
 
+  it("keeps the guided review on the canonical study", () => {
+    const canonical = item({
+      id: CANONICAL_RESEARCH_ID,
+      name: "Canonical",
+      updatedAt: "2026-07-01T00:00:00.000Z",
+    });
+    const newerLocalStudy = item({
+      id: "newer-local",
+      name: "Newer local",
+      updatedAt: "2026-07-20T00:00:00.000Z",
+    });
+
+    expect(
+      selectGuidedReviewResearch(
+        [newerLocalStudy, canonical],
+        CANONICAL_RESEARCH_ID
+      )?.id
+    ).toBe(CANONICAL_RESEARCH_ID);
+    expect(
+      selectGuidedReviewResearch([newerLocalStudy], CANONICAL_RESEARCH_ID)?.id
+    ).toBe("newer-local");
+  });
+
   it("keeps legacy unconfigured drafts out of portfolio focus", () => {
     const configured = item({ id: "configured", name: "Configured" });
     const legacyDraft = item({
@@ -96,7 +120,7 @@ describe("researchLibrary", () => {
 
   it("marks every stage completed when Archived", () => {
     const progress = getLibraryLifecycleProgress("Archived");
-    expect(progress.completed).toHaveLength(7);
+    expect(progress.completed).toHaveLength(6);
     expect(progress.current).toBeNull();
   });
 
@@ -141,7 +165,6 @@ describe("researchLibrary", () => {
     expect(stats).toEqual({
       active: 2,
       inReview: 1,
-      paperTrading: 1,
       experiments: 3,
     });
   });

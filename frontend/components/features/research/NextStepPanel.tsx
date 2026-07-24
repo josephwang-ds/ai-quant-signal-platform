@@ -27,9 +27,6 @@ export type NextStepPanelLabels = {
   openDecisionTitle: string;
   openDecisionDescription: string;
   openDecisionCta: string;
-  openArchiveTitle: string;
-  openArchiveDescription: string;
-  openArchiveCta: string;
 };
 
 export type NextStepPanelProps = {
@@ -96,19 +93,11 @@ export default function NextStepPanel({
         onClick: () => onOpenSection(workflowStepToSection("paper")),
       };
     }
-    if (step === "decision") {
-      return {
-        title: labels.openDecisionTitle,
-        description: labels.openDecisionDescription,
-        cta: labels.openDecisionCta,
-        onClick: () => onOpenSection(workflowStepToSection("decision")),
-      };
-    }
     return {
-      title: labels.openArchiveTitle,
-      description: labels.openArchiveDescription,
-      cta: labels.openArchiveCta,
-      onClick: () => onOpenSection(workflowStepToSection("archive")),
+      title: labels.openDecisionTitle,
+      description: labels.openDecisionDescription,
+      cta: labels.openDecisionCta,
+      onClick: () => onOpenSection(workflowStepToSection("decision")),
     };
   })();
 
