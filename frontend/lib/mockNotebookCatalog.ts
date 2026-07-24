@@ -8,7 +8,9 @@ import {
 } from "@/lib/canonicalMaCrossover";
 import {
   CANONICAL_FACTOR_RESEARCH_ID,
+  CANONICAL_LOW_VOL_FACTOR_RESEARCH_ID,
   getCanonicalFactorResearchPackage,
+  getCanonicalLowVolFactorPackage,
 } from "@/lib/canonicalCrossSectionalFactor";
 import type { NotebookEntry, ResearchTimelineEvent } from "@/types/notebook";
 import type { CanonicalResearchPackage } from "@/types/canonicalResearch";
@@ -54,6 +56,10 @@ export const MOCK_NOTEBOOK_BY_RESEARCH: Record<string, NotebookEntry[]> = {
     CANONICAL_FACTOR_RESEARCH_ID,
     getCanonicalFactorResearchPackage()
   ),
+  [CANONICAL_LOW_VOL_FACTOR_RESEARCH_ID]: buildNotebook(
+    CANONICAL_LOW_VOL_FACTOR_RESEARCH_ID,
+    getCanonicalLowVolFactorPackage()
+  ),
 };
 
 export const MOCK_TIMELINE_BY_RESEARCH: Record<string, ResearchTimelineEvent[]> = {
@@ -64,6 +70,10 @@ export const MOCK_TIMELINE_BY_RESEARCH: Record<string, ResearchTimelineEvent[]> 
   [CANONICAL_FACTOR_RESEARCH_ID]: buildTimeline(
     CANONICAL_FACTOR_RESEARCH_ID,
     getCanonicalFactorResearchPackage()
+  ),
+  [CANONICAL_LOW_VOL_FACTOR_RESEARCH_ID]: buildTimeline(
+    CANONICAL_LOW_VOL_FACTOR_RESEARCH_ID,
+    getCanonicalLowVolFactorPackage()
   ),
 };
 

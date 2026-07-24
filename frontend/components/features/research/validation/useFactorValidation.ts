@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { CANONICAL_FACTOR_RESEARCH_ID } from "@/lib/canonicalCrossSectionalFactor";
+import { isCanonicalFactorResearchId } from "@/lib/canonicalCrossSectionalFactor";
 import { getLocalizedApiDisplayMessage } from "@/lib/apiRequest";
 import { fetchFactorValidation } from "@/lib/factorValidationApi";
 import { useBackendRecovery } from "@/lib/useBackendRecovery";
@@ -20,7 +20,7 @@ export function useFactorValidation(
 ) {
   const requestEnabled =
     enabled &&
-    (researchId === CANONICAL_FACTOR_RESEARCH_ID || Boolean(configuration));
+    (isCanonicalFactorResearchId(researchId) || Boolean(configuration));
   const [status, setStatus] = useState<FactorValidationStatus>("idle");
   const [validation, setValidation] = useState<FactorValidationResult | null>(
     null

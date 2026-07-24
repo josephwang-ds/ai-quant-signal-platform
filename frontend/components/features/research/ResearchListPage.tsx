@@ -20,7 +20,10 @@ import type { ResearchListItem } from "@/types/research";
 import { useResearchExecution } from "@/components/features/research/execution/useResearchExecution";
 import { applyExecutionToListItem } from "@/lib/applyResearchExecution";
 import { CANONICAL_RESEARCH_ID } from "@/lib/canonicalMaCrossover";
-import { CANONICAL_FACTOR_RESEARCH_ID } from "@/lib/canonicalCrossSectionalFactor";
+import {
+  CANONICAL_FACTOR_RESEARCH_ID,
+  CANONICAL_LOW_VOL_FACTOR_RESEARCH_ID,
+} from "@/lib/canonicalCrossSectionalFactor";
 import {
   researchNameLabel,
   researchQuestionLabel,
@@ -33,6 +36,7 @@ import {
 const DEMO_RESEARCH_IDS = new Set([
   CANONICAL_RESEARCH_ID,
   CANONICAL_FACTOR_RESEARCH_ID,
+  CANONICAL_LOW_VOL_FACTOR_RESEARCH_ID,
 ]);
 import {
   getCurrentLibraryStage,

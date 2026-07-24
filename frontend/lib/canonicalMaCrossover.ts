@@ -18,9 +18,9 @@ export const CANONICAL_MA_CROSSOVER: CanonicalResearchPackage = {
     id: CANONICAL_RESEARCH_ID,
     name: "Trend Following Study",
     researchQuestion:
-      "Can moving average strategies consistently outperform Buy & Hold after transaction costs?",
+      "Does a simple moving-average trend rule outperform buy-and-hold on a risk-adjusted basis after transaction costs?",
     hypothesis:
-      "A medium-term moving-average crossover may reduce large drawdowns, but its performance advantage may weaken after transaction costs and during sideways markets.",
+      "Persistent medium-term price trends may allow a moving-average rule to reduce downside participation, although it may underperform during rapidly reversing markets.",
     researchObjective:
       "Study whether trend-following MA rules beat buy-and-hold after costs, using a reproducible SPY MA20/MA60 protocol and only backend-calculated evidence.",
     strategyName: "Moving Average Crossover",
@@ -44,10 +44,28 @@ export const CANONICAL_MA_CROSSOVER: CanonicalResearchPackage = {
         label: "Planned History Window",
         value: "2018-01-01 → latest complete trading day",
       },
+      {
+        key: "evaluation_protocol",
+        label: "Evaluation Protocol",
+        value:
+          "Historical backtest vs buy-and-hold; chronological OOS; parameter and cost sensitivity",
+      },
+      {
+        key: "success_criteria",
+        label: "Success Criteria",
+        value:
+          "After costs, document whether risk-adjusted returns improve versus buy-and-hold on calculated series only — do not claim success before validation runs.",
+      },
+      {
+        key: "demo_label",
+        label: "Demo Label",
+        value: "Reproducible historical demonstration — not live trading",
+      },
     ],
-    tags: ["ma-crossover", "SPY", "research-definition"],
+    tags: ["ma-crossover", "SPY", "research-definition", "demo"],
     ownerLabel: "Research Workspace",
-    publicityLabel: "Research Definition — Calculated results pending",
+    publicityLabel:
+      "Research Definition — Reproducible historical demonstration; calculated results pending",
     explanatoryText:
       "This workspace currently defines the research methodology and configuration. Market-derived evidence will be populated by the Research Execution Engine.",
     dataRequirements: [

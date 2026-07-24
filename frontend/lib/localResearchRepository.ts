@@ -6,6 +6,7 @@
 import {
   CANONICAL_RESEARCH_ID,
   CANONICAL_FACTOR_RESEARCH_ID,
+  CANONICAL_LOW_VOL_FACTOR_RESEARCH_ID,
   getMockResearchById,
   getMockResearchDetails,
 } from "@/lib/mockResearchCatalog";
@@ -27,6 +28,7 @@ export const RESEARCH_WORKSPACE_STORAGE_KEY = "quant.research.workspace.v1";
 const DEMO_RESEARCH_IDS = new Set([
   CANONICAL_RESEARCH_ID,
   CANONICAL_FACTOR_RESEARCH_ID,
+  CANONICAL_LOW_VOL_FACTOR_RESEARCH_ID,
 ]);
 
 function emptySnapshot(): ResearchWorkspaceSnapshot {

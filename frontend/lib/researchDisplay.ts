@@ -2,7 +2,10 @@ import type { Language } from "@/lib/i18n";
 import type { ExperimentStatus, ExperimentType, ValidationReadiness } from "@/types/experiment";
 import type { ResearchLifecycleStatus } from "@/types/research";
 import { CANONICAL_RESEARCH_ID } from "@/lib/canonicalMaCrossover";
-import { CANONICAL_FACTOR_RESEARCH_ID } from "@/lib/canonicalCrossSectionalFactor";
+import {
+  CANONICAL_FACTOR_RESEARCH_ID,
+  CANONICAL_LOW_VOL_FACTOR_RESEARCH_ID,
+} from "@/lib/canonicalCrossSectionalFactor";
 
 export function researchNameLabel(
   id: string,
@@ -11,7 +14,8 @@ export function researchNameLabel(
 ) {
   if (language !== "zh") return value;
   if (id === CANONICAL_RESEARCH_ID) return "趋势跟踪研究";
-  if (id === CANONICAL_FACTOR_RESEARCH_ID) return "截面权益因子研究";
+  if (id === CANONICAL_FACTOR_RESEARCH_ID) return "截面动量因子研究";
+  if (id === CANONICAL_LOW_VOL_FACTOR_RESEARCH_ID) return "截面低波动因子研究";
   return value;
 }
 

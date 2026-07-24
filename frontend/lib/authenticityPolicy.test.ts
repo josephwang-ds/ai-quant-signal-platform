@@ -48,12 +48,15 @@ function collectFrontendFixtureFiles(root: string): string[] {
 }
 
 describe("PR-008A authenticity — canonical research", () => {
-  it("publishes Trend Following and Cross-Sectional Factor research projects", () => {
+  it("publishes Trend Following, Momentum, and Low Volatility research projects", () => {
     const list = getMockResearchProjects();
-    expect(list).toHaveLength(2);
+    expect(list).toHaveLength(3);
     const trend = list.find((item) => item.id === CANONICAL_RESEARCH_ID);
-    const factor = list.find(
+    const momentum = list.find(
       (item) => item.id === "cross-sectional-factor-sector-etfs"
+    );
+    const lowVol = list.find(
+      (item) => item.id === "cross-sectional-low-vol-sector-etfs"
     );
     expect(trend?.name).toBe("Trend Following Study");
     expect(trend?.configuration.symbol).toBe("SPY");
@@ -61,16 +64,18 @@ describe("PR-008A authenticity — canonical research", () => {
     expect(trend?.status).toBe("Data Integration");
     expect(trend?.confidenceScore).toBeNull();
     expect(trend?.integrity.metricsStatus).toBe("Not Calculated");
-    expect(factor?.name).toBe("Cross-Sectional Equity Factor Study");
-    expect(factor?.integrity.metricsStatus).toBe("Not Calculated");
-    expect(factor?.integrity.validationStatus).toBe("Not Started");
-    expect(factor?.confidenceScore).toBeNull();
+    expect(momentum?.name).toBe("Cross-Sectional Momentum Factor Study");
+    expect(momentum?.integrity.metricsStatus).toBe("Not Calculated");
+    expect(momentum?.integrity.validationStatus).toBe("Not Started");
+    expect(momentum?.confidenceScore).toBeNull();
+    expect(lowVol?.name).toBe("Cross-Sectional Low Volatility Factor Study");
+    expect(lowVol?.confidenceScore).toBeNull();
   });
 
   it("keeps list/detail/notebook/experiments/validation/timeline on one id", () => {
     const detail = getMockResearchById(CANONICAL_RESEARCH_ID);
     expect(detail).not.toBeNull();
-    expect(detail?.hypothesis).toContain("transaction costs");
+    expect(detail?.hypothesis).toContain("moving-average");
     expect(getMockExperiments(CANONICAL_RESEARCH_ID).length).toBe(5);
     expect(
       getMockExperiments(CANONICAL_RESEARCH_ID).every(
@@ -147,7 +152,8 @@ describe("PR-008A authenticity — prohibited fictional titles", () => {
     expect(hits).toEqual([]);
     expect(MOCK_RESEARCH_DETAILS.map((item) => item.name)).toEqual([
       "Trend Following Study",
-      "Cross-Sectional Equity Factor Study",
+      "Cross-Sectional Momentum Factor Study",
+      "Cross-Sectional Low Volatility Factor Study",
     ]);
   });
 });

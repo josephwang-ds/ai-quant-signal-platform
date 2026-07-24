@@ -13,7 +13,11 @@ import {
   CANONICAL_CROSS_SECTIONAL_FACTOR,
   CANONICAL_FACTOR_RESEARCH_ID,
   CANONICAL_FACTOR_RUN_CONFIGURATION,
+  CANONICAL_LOW_VOL_FACTOR,
+  CANONICAL_LOW_VOL_FACTOR_RESEARCH_ID,
+  CANONICAL_LOW_VOL_RUN_CONFIGURATION,
   getCanonicalFactorResearchPackage,
+  getCanonicalLowVolFactorPackage,
 } from "@/lib/canonicalCrossSectionalFactor";
 import {
   toResearchListItem,
@@ -23,7 +27,11 @@ import {
 } from "@/types/research";
 import type { CanonicalResearchPackage } from "@/types/canonicalResearch";
 
-export { CANONICAL_RESEARCH_ID, CANONICAL_FACTOR_RESEARCH_ID };
+export {
+  CANONICAL_RESEARCH_ID,
+  CANONICAL_FACTOR_RESEARCH_ID,
+  CANONICAL_LOW_VOL_FACTOR_RESEARCH_ID,
+};
 
 function buildDetailFromPackage(
   pkg: CanonicalResearchPackage,
@@ -114,6 +122,7 @@ function buildCanonicalMaDetail(): ResearchDetail {
         "No calculated metrics until real historical data is integrated",
         "Single-asset reference study — not a multi-strategy portfolio",
         "Provider-grade research data is not an exchange feed",
+        "See docs/KNOWN_LIMITATIONS.md",
       ],
       openQuestions: [
         "Does MA20/MA60 beat SPY buy-and-hold after 0.001 costs on the planned window?",
@@ -129,7 +138,7 @@ function buildCanonicalMaDetail(): ResearchDetail {
   );
 }
 
-function buildCanonicalFactorDetail(): ResearchDetail {
+function buildCanonicalMomentumDetail(): ResearchDetail {
   return buildDetailFromPackage(
     getCanonicalFactorResearchPackage(),
     { ...CANONICAL_FACTOR_RUN_CONFIGURATION },
@@ -141,16 +150,17 @@ function buildCanonicalFactorDetail(): ResearchDetail {
       ],
       knownWeaknesses: [
         "Sector-ETF universe is a demo cross-section, not a production equity book",
-        "No fundamentals → Value unavailable in v1",
+        "Static universe may not match historical index membership",
         "No portfolio optimization or risk model by design",
+        "See docs/KNOWN_LIMITATIONS.md",
       ],
       openQuestions: [
-        "Is mean RankIC for Momentum / Low Volatility distinguishable from zero?",
+        "Is mean RankIC for Momentum distinguishable from zero?",
         "Does Q5−Q1 survive stated turnover costs?",
         "How stable is rolling IC across the sample?",
       ],
       nextActions: [
-        "Run Factor Validation for Momentum and Low Volatility",
+        "Run Factor Validation for Momentum",
         "Review RankIC, ICIR, quantile, and long–short evidence before any decision",
         "Keep Value marked Coming Soon until a fundamentals panel exists",
       ],
@@ -158,9 +168,40 @@ function buildCanonicalFactorDetail(): ResearchDetail {
   );
 }
 
+function buildCanonicalLowVolDetail(): ResearchDetail {
+  return buildDetailFromPackage(
+    getCanonicalLowVolFactorPackage(),
+    { ...CANONICAL_LOW_VOL_RUN_CONFIGURATION },
+    {
+      keyStrengths: [
+        "Separate Low Volatility demo with frozen protocol",
+        "Same universe and cost convention as Momentum for comparison",
+        "Honest ranking direction (−vol) documented in engine",
+      ],
+      knownWeaknesses: [
+        "Sector-ETF universe is a demo cross-section, not a production equity book",
+        "Low-vol factor may not produce positive raw long–short return",
+        "No institutional risk model",
+        "See docs/KNOWN_LIMITATIONS.md",
+      ],
+      openQuestions: [
+        "Is mean RankIC for Low Volatility distinguishable from zero?",
+        "Does Q5−Q1 (low-vol long) survive stated turnover costs?",
+        "Is the edge stable across regimes?",
+      ],
+      nextActions: [
+        "Run Factor Validation for Low Volatility",
+        "Compare RankIC and cost-adjusted LS against Momentum evidence",
+        "Record Hold or Reject only after reviewing calculated evidence",
+      ],
+    }
+  );
+}
+
 export const MOCK_RESEARCH_DETAILS: ResearchDetail[] = [
   buildCanonicalMaDetail(),
-  buildCanonicalFactorDetail(),
+  buildCanonicalMomentumDetail(),
+  buildCanonicalLowVolDetail(),
 ];
 
 export function getMockResearchDetails(): ResearchDetail[] {
@@ -256,11 +297,22 @@ export function assertCanonicalCatalog(): void {
     throw new Error("Canonical research id mismatch.");
   }
   if (CANONICAL_CROSS_SECTIONAL_FACTOR.definition.id !== CANONICAL_FACTOR_RESEARCH_ID) {
-    throw new Error("Canonical factor research id mismatch.");
+    throw new Error("Canonical momentum factor research id mismatch.");
   }
-  if (MOCK_RESEARCH_DETAILS.length !== 2) {
+  if (CANONICAL_LOW_VOL_FACTOR.definition.id !== CANONICAL_LOW_VOL_FACTOR_RESEARCH_ID) {
+    throw new Error("Canonical low-vol factor research id mismatch.");
+  }
+  if (MOCK_RESEARCH_DETAILS.length !== 3) {
     throw new Error(
-      "Public research catalog must contain Trend Following and Cross-Sectional Factor studies."
+      "Public research catalog must contain Trend Following, Momentum, and Low Volatility studies."
     );
+  }
+  for (const detail of MOCK_RESEARCH_DETAILS) {
+    if (detail.confidenceScore !== null) {
+      throw new Error("Demo catalog must not hard-code confidence scores.");
+    }
+    if (detail.integrity.metricsStatus !== "Not Calculated") {
+      throw new Error("Demo catalog must not store calculated metrics as evidence.");
+    }
   }
 }

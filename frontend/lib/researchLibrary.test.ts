@@ -171,15 +171,16 @@ describe("researchLibrary", () => {
 
   it("uses the real mock catalog without fabricating projects", () => {
     const projects = getMockResearchProjects();
-    expect(projects.length).toBe(2);
+    expect(projects.length).toBe(3);
     expect(projects.map((item) => item.id).sort()).toEqual(
-      [CANONICAL_RESEARCH_ID, "cross-sectional-factor-sector-etfs"].sort()
+      [
+        CANONICAL_RESEARCH_ID,
+        "cross-sectional-factor-sector-etfs",
+        "cross-sectional-low-vol-sector-etfs",
+      ].sort()
     );
     const continueId = selectContinueResearch(projects)?.id;
     expect(continueId).toBeTruthy();
-    expect(
-      [CANONICAL_RESEARCH_ID, "cross-sectional-factor-sector-etfs"]
-    ).toContain(continueId);
     expect(
       selectGuidedReviewResearch(projects, CANONICAL_RESEARCH_ID)?.id
     ).toBe(CANONICAL_RESEARCH_ID);

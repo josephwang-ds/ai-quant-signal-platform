@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   CANONICAL_RESEARCH_ID,
   CANONICAL_FACTOR_RESEARCH_ID,
+  CANONICAL_LOW_VOL_FACTOR_RESEARCH_ID,
   getMockResearchById,
   getMockResearchProjects,
   MOCK_RESEARCH_DETAILS,
@@ -13,21 +14,25 @@ import {
 } from "@/types/research";
 
 describe("mock research catalog", () => {
-  it("exposes Trend Following and Cross-Sectional Factor projects", () => {
-    expect(MOCK_RESEARCH_DETAILS).toHaveLength(2);
+  it("exposes Trend Following, Momentum, and Low Volatility projects", () => {
+    expect(MOCK_RESEARCH_DETAILS).toHaveLength(3);
     expect(MOCK_RESEARCH_DETAILS.map((item) => item.id)).toEqual([
       CANONICAL_RESEARCH_ID,
       CANONICAL_FACTOR_RESEARCH_ID,
+      CANONICAL_LOW_VOL_FACTOR_RESEARCH_ID,
     ]);
     expect(MOCK_RESEARCH_DETAILS[0].name).toBe("Trend Following Study");
     expect(MOCK_RESEARCH_DETAILS[1].name).toBe(
-      "Cross-Sectional Equity Factor Study"
+      "Cross-Sectional Momentum Factor Study"
+    );
+    expect(MOCK_RESEARCH_DETAILS[2].name).toBe(
+      "Cross-Sectional Low Volatility Factor Study"
     );
   });
 
   it("keeps list and detail projections consistent by id", () => {
     const list = getMockResearchProjects();
-    expect(list).toHaveLength(2);
+    expect(list).toHaveLength(3);
 
     for (const item of list) {
       const detail = getMockResearchById(item.id);
@@ -109,10 +114,10 @@ describe("workspace navigation model", () => {
 
 describe("research progress helpers", () => {
   it("keeps catalog authenticity constraints intact", () => {
-    expect(MOCK_RESEARCH_DETAILS).toHaveLength(2);
+    expect(MOCK_RESEARCH_DETAILS).toHaveLength(3);
     expect(MOCK_RESEARCH_DETAILS[0].name).toBe("Trend Following Study");
     expect(MOCK_RESEARCH_DETAILS[1].name).toBe(
-      "Cross-Sectional Equity Factor Study"
+      "Cross-Sectional Momentum Factor Study"
     );
   });
 });

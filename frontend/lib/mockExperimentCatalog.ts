@@ -9,7 +9,9 @@ import {
 } from "@/lib/canonicalMaCrossover";
 import {
   CANONICAL_FACTOR_RESEARCH_ID,
+  CANONICAL_LOW_VOL_FACTOR_RESEARCH_ID,
   getCanonicalFactorResearchPackage,
+  getCanonicalLowVolFactorPackage,
 } from "@/lib/canonicalCrossSectionalFactor";
 import {
   EMPTY_EXPERIMENT_METRICS,
@@ -79,6 +81,10 @@ export const MOCK_EXPERIMENTS_BY_RESEARCH: Record<string, ResearchExperiment[]> 
   [CANONICAL_FACTOR_RESEARCH_ID]: buildPlannedExperiments(
     CANONICAL_FACTOR_RESEARCH_ID,
     getCanonicalFactorResearchPackage()
+  ),
+  [CANONICAL_LOW_VOL_FACTOR_RESEARCH_ID]: buildPlannedExperiments(
+    CANONICAL_LOW_VOL_FACTOR_RESEARCH_ID,
+    getCanonicalLowVolFactorPackage()
   ),
 };
 
