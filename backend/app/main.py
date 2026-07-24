@@ -12,6 +12,7 @@ from app.api.routes.paper_trading import router as paper_trading_router
 from app.api.routes.factor_validation import router as factor_validation_router
 from app.api.routes.research_evaluation import router as research_evaluation_router
 from app.api.routes.research_copilot import router as research_copilot_router
+from app.api.routes.research_agent import router as research_agent_router
 from app.api.routes.research_execution import router as research_execution_router
 from app.api.routes.research_validation import router as research_validation_router
 from app.api.routes.risk_review import router as risk_review_router
@@ -63,6 +64,7 @@ app.include_router(research_validation_router)
 app.include_router(factor_validation_router)
 app.include_router(research_evaluation_router)
 app.include_router(research_copilot_router)
+app.include_router(research_agent_router)
 app.include_router(risk_review_router)
 app.include_router(model_comparison_router)
 app.include_router(insights_router)
