@@ -61,7 +61,8 @@ Bundled samples for demonstration:
 
 - **Trend Following Study** (`ma-crossover-spy`)
   - Protocol: SPY MA20 / MA60 vs buy-and-hold
-- **Cross-Sectional Equity Factor Study** (`cross-sectional-factor-sector-etfs`)
+- **Cross-Sectional Momentum Factor Study** (`cross-sectional-factor-sector-etfs`)
+- **Cross-Sectional Low Volatility Factor Study** (`cross-sectional-low-vol-sector-etfs`)
   - Factor validation on `us_sector_etfs` (Momentum / Low Volatility; Value Coming Soon)
   - Evidence: RankIC / ICIR and equal-weight Q1–Q5 long–short — not portfolio optimization
 

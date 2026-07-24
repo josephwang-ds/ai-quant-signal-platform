@@ -120,7 +120,7 @@ For interviews where the backend may be cold or unavailable, use the documented 
 - Calculated metrics come from backend responses only
 - Unimplemented methods are explicit scope boundaries — never implied complete or counted as workflow tasks
 
-Policy: [docs/AUTHENTICITY.md](docs/AUTHENTICITY.md) · [docs/data/AUTHENTICITY_POLICY.md](docs/data/AUTHENTICITY_POLICY.md)
+Policy: [docs/AUTHENTICITY.md](docs/AUTHENTICITY.md) · [docs/data/AUTHENTICITY_POLICY.md](docs/data/AUTHENTICITY_POLICY.md) · [docs/KNOWN_LIMITATIONS.md](docs/KNOWN_LIMITATIONS.md) · [docs/DEMO_CONFIGURATIONS.md](docs/DEMO_CONFIGURATIONS.md)
 
 ## Screenshots
 

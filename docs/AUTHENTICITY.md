@@ -29,7 +29,9 @@ Quantitative evidence is authoritative. AI may explain, summarise, or compare ev
 
 **Trend Following Study** (`ma-crossover-spy`) — SPY MA20/MA60 vs buy-and-hold.
 
-**Cross-Sectional Equity Factor Study** (`cross-sectional-factor-sector-etfs`) — sector-ETF RankIC / quantile factor validation (Momentum / Low Volatility).
+**Cross-Sectional Momentum Factor Study** (`cross-sectional-factor-sector-etfs`) — sector-ETF RankIC / quantile validation (Momentum).
+
+**Cross-Sectional Low Volatility Factor Study** (`cross-sectional-low-vol-sector-etfs`) — same universe protocol for Low Volatility.
 
 **Feature Interpretation** (Compare Models) — diagnostic importance only; does not change predictions or backtest metrics. SHAP is optional. Feature importance does not imply causality.
 

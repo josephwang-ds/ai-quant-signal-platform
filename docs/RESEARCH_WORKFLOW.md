@@ -36,7 +36,7 @@ No calculated performance belongs here until execution succeeds.
 In the current runtime, executable templates are:
 
 - **Trend Following** — MA crossover; historical metrics from `POST /api/v1/research/execution` / `.../validation`
-- **Cross-Sectional Equity Factor** — RankIC + quantile portfolios from `POST /api/v1/research/factor-validation`
+- **Cross-Sectional Momentum / Low Volatility** — RankIC + quantile portfolios from `POST /api/v1/research/factor-validation`
 
 Both use live provider data through MarketDataRouter. Metrics are never fabricated in the UI.
 
@@ -80,7 +80,7 @@ It is not a broker terminal and never invents fills, positions, trades, returns,
 
 **Purpose:** preserve the human judgment after evidence review.
 
-The Decision Center lists evidence readiness, incomplete implemented checks, and review checklist state. A reviewer selects Advance, Hold, or Reject and writes the rationale; that record is stored in browser-local storage.
+The Decision Center lists evidence readiness, incomplete implemented checks, and review checklist state. A reviewer selects Promote, Hold, Reject, or Archive and writes the rationale; that record is stored in browser-local storage and does not overwrite calculated evidence.
 
 The system never generates an approval outcome.
 
