@@ -2,10 +2,10 @@ import { ApiConfigurationError, buildApiUrl } from "@/lib/apiConfig";
 
 export const API_REQUEST_TIMEOUT_MS = 60_000;
 export const API_STATUS_TIMEOUT_MS = 5_000;
-export const BACKEND_WARMUP_TIMEOUT_MS = 90_000;
+export const BACKEND_WARMUP_TIMEOUT_MS = 180_000;
 
 const BACKEND_READY_TTL_MS = 60_000;
-const BACKEND_WARMUP_ATTEMPT_TIMEOUT_MS = 70_000;
+const BACKEND_WARMUP_ATTEMPT_TIMEOUT_MS = 45_000;
 const BACKEND_WARMUP_RETRY_BASE_MS = 1_000;
 const BACKEND_WARMUP_RETRY_MAX_MS = 5_000;
 
@@ -90,6 +90,11 @@ const backendReadinessListeners = new Set<
 function publishBackendReadiness(state: BackendReadinessState): void {
   backendReadinessState = state;
   backendReadinessListeners.forEach((listener) => listener(state));
+}
+
+function invalidateBackendReadiness(): void {
+  backendReadyUntil = 0;
+  publishBackendReadiness("unavailable");
 }
 
 export function getBackendReadinessState(): BackendReadinessState {
@@ -182,8 +187,7 @@ async function runBackendWarmup(): Promise<BackendHealth> {
     await wait(retryDelayMs);
   }
 
-  backendReadyUntil = 0;
-  publishBackendReadiness("unavailable");
+  invalidateBackendReadiness();
   throw new ApiRequestError({
     category: "backend_unavailable",
     code: "BACKEND_WARMUP_TIMEOUT",
@@ -307,6 +311,33 @@ export function getApiDisplayMessage(
     default:
       return `${error.userMessage} ${detail}`;
   }
+}
+
+const API_USER_MESSAGES_ZH: Record<ApiErrorCategory, string> = {
+  configuration: "当前部署未配置研究后端。",
+  network: "研究后端仍在启动或暂时不可用，连接恢复后本页会自动重试。",
+  timeout: "研究后端响应超时，连接恢复后本页会自动重试。",
+  backend_unavailable:
+    "研究后端仍在启动或暂时不可用，连接恢复后本页会自动重试。",
+  provider_unavailable: "无法获取历史市场数据，未使用回退或虚构数据。",
+  invalid_request: "研究参数无效，请检查当前配置。",
+  not_found: "未找到请求的研究证据。",
+  server_error: "研究后端返回异常，未展示模拟结果。",
+  unknown: "研究请求未能完成。",
+};
+
+export function getLocalizedApiDisplayMessage(
+  error: unknown,
+  language: "en" | "zh",
+  fallback: string
+): string {
+  if (language === "en") {
+    return getApiDisplayMessage(error, fallback);
+  }
+  if (!(error instanceof ApiRequestError)) {
+    return fallback;
+  }
+  return API_USER_MESSAGES_ZH[error.category];
 }
 
 type FastApiValidationError = {
@@ -433,6 +464,9 @@ export async function requestJson<T>(
 
     if (!response.ok) {
       const category = categoryForStatus(response.status);
+      if (category === "backend_unavailable") {
+        invalidateBackendReadiness();
+      }
       throw new ApiRequestError({
         category,
         code: `HTTP_${response.status}`,
@@ -467,6 +501,7 @@ export async function requestJson<T>(
       });
     }
     if (error instanceof TypeError) {
+      invalidateBackendReadiness();
       throw new ApiRequestError({
         category: "network",
         code: "NETWORK_ERROR",

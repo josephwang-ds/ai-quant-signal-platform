@@ -82,11 +82,11 @@ export const translations = {
       "The research backend is currently unavailable or starting up. Try again shortly.",
     backendStarting: "Starting research backend",
     backendStartingHint:
-      "The first visit can take about a minute. Requests will continue automatically.",
+      "A cold start can take 1–2 minutes. Evidence requests are queued and continue automatically—do not refresh.",
     backendStartupUnavailable: "Live evidence is temporarily unavailable",
     backendStartupUnavailableHint:
-      "The research story remains available. Retry the connection to calculate or refresh evidence.",
-    backendStartupRetry: "Retry connection",
+      "The research plan remains available. Retry once; failed evidence panels will resume automatically when the connection returns.",
+    backendStartupRetry: "Retry and resume",
 
     marketWatch: "AI Watchlist",
     marketWatchDesc:
@@ -844,14 +844,14 @@ export const translations = {
     researchWsNotFoundTitle: "Research not found",
     researchWsNotFoundDescription:
       "No research matches this ID. Return to the Research list to pick a valid item.",
-    researchWsNavOverview: "Research",
+    researchWsNavOverview: "Question",
     researchWsNavNotebook: "Notes",
-    researchWsNavExperiments: "Experiment",
-    researchWsNavValidation: "Performance Review",
+    researchWsNavExperiments: "Backtest",
+    researchWsNavValidation: "Validation",
     researchWsNavEvaluation: "Validation",
-    researchWsNavRobustness: "Risk Review",
+    researchWsNavRobustness: "Pressure Test",
     researchWsNavPaper: "Paper Observation",
-    researchWsNavDecision: "Decision",
+    researchWsNavDecision: "Decision Record",
     researchWsNavArchive: "Archive",
     researchWsNavCopilot: "Copilot",
     researchWsNavTimeline: "Timeline",
@@ -869,6 +869,25 @@ export const translations = {
     researchWsArchiveCap1: "Preserve definition, evidence, and decision provenance",
     researchWsArchiveCap2: "Keep archived research read-only for audit",
     researchWsArchiveCap3: "Do not fabricate archive timestamps or outcomes",
+    researchMissionEyebrow: "Research plan",
+    researchMissionTitle: "One question, one auditable path to a decision",
+    researchMissionQuestion: "What are we researching?",
+    researchMissionMethod: "How will we test it?",
+    researchMissionProtocol: "Frozen protocol:",
+    researchMissionProtocolUnavailable: "Complete the run configuration first.",
+    researchMissionNow: "What should I do now?",
+    researchMissionGuardrail:
+      "Success is not a profitable backtest. It is a conclusion that survives unseen data, costs, and nearby parameter choices.",
+    researchMissionStepBacktest:
+      "Run one reproducible historical backtest against the benchmark.",
+    researchMissionStepValidation:
+      "Check chronological out-of-sample evidence and parameter sensitivity.",
+    researchMissionStepPressure:
+      "Challenge costs, data quality, drawdowns, and regime dependence.",
+    researchMissionStepObservation:
+      "Observe forward behavior in a bounded paper session—no live broker.",
+    researchMissionStepDecision:
+      "Record continue, revise, or stop with linked evidence and rationale.",
     paperDeployTitle: "Paper Observation",
     paperDeploySummary:
       "Create a bounded forward-observation plan, record dated notes, and close the session. No orders, fills, or PnL are invented.",
@@ -1079,10 +1098,10 @@ export const translations = {
     researchWsNextStepValidateDescription:
       "Run deterministic OOS, parameter, cost, and data-quality checks.",
     researchWsNextStepValidateCta: "Run Validation",
-    researchWsNextStepEvaluateTitle: "Open Robustness",
+    researchWsNextStepEvaluateTitle: "Open Pressure Test",
     researchWsNextStepEvaluateDescription:
-      "Organise robustness work after Validation.",
-    researchWsNextStepEvaluateCta: "Open Robustness",
+      "Challenge the validated result with costs, data quality, drawdowns, and regime dependence.",
+    researchWsNextStepEvaluateCta: "Open Pressure Test",
     researchWsNextStepCopilotTitle: "Open Decision",
     researchWsNextStepCopilotDescription:
       "Review approval staging for this research.",
@@ -1091,10 +1110,10 @@ export const translations = {
     researchWsNextStepOpenExperimentDescription:
       "Review experiments for this research.",
     researchWsNextStepOpenExperimentCta: "Open Experiment",
-    researchWsNextStepOpenRobustnessTitle: "Open Robustness",
+    researchWsNextStepOpenRobustnessTitle: "Open Pressure Test",
     researchWsNextStepOpenRobustnessDescription:
-      "Organise robustness work after Validation.",
-    researchWsNextStepOpenRobustnessCta: "Open Robustness",
+      "Challenge the validated result with costs, data quality, drawdowns, and regime dependence.",
+    researchWsNextStepOpenRobustnessCta: "Open Pressure Test",
     researchWsNextStepOpenPaperTitle: "Open Paper Observation",
     researchWsNextStepOpenPaperDescription:
       "Create a bounded observation plan and record dated notes.",
@@ -2036,13 +2055,14 @@ export const translations = {
     service: "服务",
     checkBackend: "检查后端",
     checking: "检查中...",
-    backendUnreachable: "研究后端当前不可用或正在启动，请稍后重试。",
+    backendUnreachable: "研究后端仍在启动或暂时不可用，请稍后重试。",
     backendStarting: "正在启动研究后端",
-    backendStartingHint: "首次访问可能需要约一分钟，请求会在服务就绪后自动继续。",
+    backendStartingHint:
+      "冷启动可能需要 1–2 分钟。证据请求已排队，连接恢复后会自动继续，请不要反复刷新。",
     backendStartupUnavailable: "实时证据暂不可用",
     backendStartupUnavailableHint:
-      "研究流程仍可浏览；重新连接后即可计算或刷新证据。",
-    backendStartupRetry: "重试连接",
+      "研究计划仍可浏览。点击重试一次；连接恢复后，失败的证据面板会自动重新运行。",
+    backendStartupRetry: "重试并继续",
 
     marketWatch: "AI 关注列表",
     marketWatchDesc:
@@ -2768,14 +2788,14 @@ export const translations = {
     researchWsNotFoundTitle: "未找到该研究",
     researchWsNotFoundDescription:
       "没有与此 ID 匹配的研究。请返回研究列表选择有效项目。",
-    researchWsNavOverview: "研究",
+    researchWsNavOverview: "研究问题",
     researchWsNavNotebook: "笔记",
-    researchWsNavExperiments: "实验",
-    researchWsNavValidation: "业绩回顾",
+    researchWsNavExperiments: "回测实验",
+    researchWsNavValidation: "验证证据",
     researchWsNavEvaluation: "验证",
-    researchWsNavRobustness: "风险评估",
+    researchWsNavRobustness: "压力测试",
     researchWsNavPaper: "模拟观察",
-    researchWsNavDecision: "决策",
+    researchWsNavDecision: "决策记录",
     researchWsNavArchive: "归档",
     researchWsNavCopilot: "Copilot",
     researchWsNavTimeline: "时间线",
@@ -2793,6 +2813,20 @@ export const translations = {
     researchWsArchiveCap1: "保留定义、证据与决策溯源",
     researchWsArchiveCap2: "归档研究保持只读以便审计",
     researchWsArchiveCap3: "不虚构归档时间戳或结果",
+    researchMissionEyebrow: "研究计划",
+    researchMissionTitle: "围绕一个问题，沿着可审计路径做出决策",
+    researchMissionQuestion: "研究什么？",
+    researchMissionMethod: "怎么研究？",
+    researchMissionProtocol: "冻结协议：",
+    researchMissionProtocolUnavailable: "请先补全运行配置。",
+    researchMissionNow: "现在需要做什么？",
+    researchMissionGuardrail:
+      "成功不等于回测赚钱，而是结论经得住样本外数据、交易成本和相邻参数变化。",
+    researchMissionStepBacktest: "用同一协议运行历史回测，并与基准比较。",
+    researchMissionStepValidation: "检查时间顺序样本外证据和参数敏感性。",
+    researchMissionStepPressure: "挑战交易成本、数据质量、回撤和市场状态依赖。",
+    researchMissionStepObservation: "进行有边界的前向模拟观察，不连接真实券商。",
+    researchMissionStepDecision: "关联证据与理由，记录继续、修改或停止。",
     paperDeployTitle: "模拟观察",
     paperDeploySummary:
       "创建有边界的前向观察计划，记录带时间的观察，并结束会话。不虚构订单、成交或盈亏。",
@@ -2994,18 +3028,20 @@ export const translations = {
     researchWsNextStepValidateDescription:
       "运行确定性 OOS、参数、成本与数据质量检查。",
     researchWsNextStepValidateCta: "运行验证",
-    researchWsNextStepEvaluateTitle: "打开稳健性",
-    researchWsNextStepEvaluateDescription: "在验证完成后整理稳健性工作。",
-    researchWsNextStepEvaluateCta: "打开稳健性",
+    researchWsNextStepEvaluateTitle: "打开压力测试",
+    researchWsNextStepEvaluateDescription:
+      "用交易成本、数据质量、回撤和市场状态依赖挑战已验证结果。",
+    researchWsNextStepEvaluateCta: "打开压力测试",
     researchWsNextStepCopilotTitle: "打开决策",
     researchWsNextStepCopilotDescription: "审阅本研究的审批暂存。",
     researchWsNextStepCopilotCta: "打开决策",
     researchWsNextStepOpenExperimentTitle: "打开实验",
     researchWsNextStepOpenExperimentDescription: "审阅本研究的实验。",
     researchWsNextStepOpenExperimentCta: "打开实验",
-    researchWsNextStepOpenRobustnessTitle: "打开稳健性",
-    researchWsNextStepOpenRobustnessDescription: "在验证完成后整理稳健性工作。",
-    researchWsNextStepOpenRobustnessCta: "打开稳健性",
+    researchWsNextStepOpenRobustnessTitle: "打开压力测试",
+    researchWsNextStepOpenRobustnessDescription:
+      "用交易成本、数据质量、回撤和市场状态依赖挑战已验证结果。",
+    researchWsNextStepOpenRobustnessCta: "打开压力测试",
     researchWsNextStepOpenPaperTitle: "打开模拟观察",
     researchWsNextStepOpenPaperDescription: "创建有边界的观察计划并记录带日期的笔记。",
     researchWsNextStepOpenPaperCta: "打开模拟观察",

@@ -75,4 +75,36 @@ describe("useResearchExecution failure states", () => {
     );
     expect(result.current.error).not.toContain("invalid");
   });
+
+  it("localizes backend startup failures for the Chinese workspace", async () => {
+    fetchMock.mockRejectedValueOnce(
+      new ApiRequestError({
+        category: "backend_unavailable",
+        code: "BACKEND_WARMUP_TIMEOUT",
+      })
+    );
+
+    const { result } = renderHook(() =>
+      useResearchExecution("ma-crossover-spy", undefined, "zh")
+    );
+
+    await waitFor(() => expect(result.current.status).toBe("error"));
+    expect(result.current.error).toBe(
+      "研究后端仍在启动或暂时不可用，连接恢复后本页会自动重试。"
+    );
+  });
+
+  it("does not rerun backend evidence when only the display language changes", async () => {
+    fetchMock.mockResolvedValue({} as never);
+
+    const { rerender, result } = renderHook(
+      ({ language }: { language: "en" | "zh" }) =>
+        useResearchExecution("ma-crossover-spy", undefined, language),
+      { initialProps: { language: "en" as "en" | "zh" } }
+    );
+
+    await waitFor(() => expect(result.current.status).toBe("ready"));
+    rerender({ language: "zh" });
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
 });

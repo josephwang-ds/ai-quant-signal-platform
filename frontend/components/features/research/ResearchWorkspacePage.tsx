@@ -10,6 +10,7 @@ import ResearchWorkspaceSkeleton from "@/components/features/research/ResearchWo
 import ResearchPrimaryTabs from "@/components/features/research/ResearchPrimaryTabs";
 import DeleteResearchModal from "@/components/features/research/DeleteResearchModal";
 import ResearchReviewGuide from "@/components/features/research/ResearchReviewGuide";
+import ResearchMissionPanel from "@/components/features/research/ResearchMissionPanel";
 import ResearchWorkspaceMainSection from "@/components/features/research/workspace-tabs/ResearchWorkspaceMainSection";
 import Button from "@/components/ui/Button";
 import EmptyState from "@/components/ui/EmptyState";
@@ -116,7 +117,7 @@ export default function ResearchWorkspacePage({
     execution,
     error: executionError,
     reload: reloadExecution,
-  } = useResearchExecution(researchId, research?.runConfiguration);
+  } = useResearchExecution(researchId, research?.runConfiguration, language);
   const validationEvidenceActive =
     activeSection === "validation" ||
     activeSection === "robustness" ||
@@ -132,7 +133,8 @@ export default function ResearchWorkspacePage({
   } = useResearchValidation(
     researchId,
     validationEvidenceActive,
-    research?.runConfiguration
+    research?.runConfiguration,
+    language
   );
   const validationRunId = validation?.validation_run_id ?? null;
   useEffect(() => {
@@ -158,7 +160,8 @@ export default function ResearchWorkspacePage({
   } = useResearchEvaluation(
     researchId,
     evaluationRequestActive,
-    validationRunId
+    validationRunId,
+    language
   );
 
   useEffect(() => {
@@ -237,20 +240,20 @@ export default function ResearchWorkspacePage({
     () => deriveWorkflowStepStates(workflowInput),
     [workflowInput]
   );
+  const primaryWorkflowStep = useMemo(
+    () => derivePrimaryWorkflowStep(workflowInput),
+    [workflowInput]
+  );
 
   const summaryNextMilestone = useMemo(() => {
-    if (evaluationStatus === "ready" && evaluation) {
-      if (evaluation.blockers[0]) return evaluation.blockers[0];
-      if (evaluation.outstanding_evidence[0]) return evaluation.outstanding_evidence[0];
-    }
-    const step = derivePrimaryWorkflowStep(workflowInput);
+    const step = primaryWorkflowStep;
     if (step === "research") return tr("researchWsNextStepRunResearchTitle");
     if (step === "validation") return tr("researchWsNextStepValidateTitle");
     if (step === "robustness") return tr("researchWsNextStepOpenRobustnessTitle");
     if (step === "paper") return tr("researchWsNextStepOpenPaperTitle");
     if (step === "decision") return tr("researchWsNextStepOpenDecisionTitle");
     return tr("researchWsNextStepOpenExperimentTitle");
-  }, [evaluation, evaluationStatus, tr, workflowInput]);
+  }, [primaryWorkflowStep, tr]);
 
   const executedExperiments = useMemo(() => {
     if (!executionEnabled || executionStatus !== "ready" || !execution) {
@@ -447,6 +450,74 @@ export default function ResearchWorkspacePage({
                       void handleArchiveResearch();
                     }
               }
+            />
+
+            <ResearchMissionPanel
+              research={displayResearch}
+              execution={executionStatus === "ready" ? execution : null}
+              language={language}
+              primaryStep={primaryWorkflowStep}
+              primaryState={workflowStepStates[primaryWorkflowStep]}
+              onRunResearch={reloadExecution}
+              onRunValidation={handleRunValidation}
+              onOpenSection={navigateToSection}
+              labels={{
+                eyebrow: tr("researchMissionEyebrow"),
+                title: tr("researchMissionTitle"),
+                question: tr("researchMissionQuestion"),
+                method: tr("researchMissionMethod"),
+                protocol: tr("researchMissionProtocol"),
+                protocolUnavailable: tr("researchMissionProtocolUnavailable"),
+                now: tr("researchMissionNow"),
+                guardrail: tr("researchMissionGuardrail"),
+                methodSteps: [
+                  tr("researchMissionStepBacktest"),
+                  tr("researchMissionStepValidation"),
+                  tr("researchMissionStepPressure"),
+                  tr("researchMissionStepObservation"),
+                  tr("researchMissionStepDecision"),
+                ],
+                actions: {
+                  research: {
+                    title: tr("researchWsNextStepRunResearchTitle"),
+                    description: tr("researchWsNextStepRunResearchDescription"),
+                    cta: tr("researchWsNextStepRunResearchCta"),
+                  },
+                  experiment: {
+                    title: tr("researchWsNextStepOpenExperimentTitle"),
+                    description: tr(
+                      "researchWsNextStepOpenExperimentDescription"
+                    ),
+                    cta: tr("researchWsNextStepOpenExperimentCta"),
+                  },
+                  validation: {
+                    title: tr("researchWsNextStepValidateTitle"),
+                    description: tr("researchWsNextStepValidateDescription"),
+                    cta: tr("researchWsNextStepValidateCta"),
+                  },
+                  robustness: {
+                    title: tr("researchWsNextStepOpenRobustnessTitle"),
+                    description: tr(
+                      "researchWsNextStepOpenRobustnessDescription"
+                    ),
+                    cta: tr("researchWsNextStepOpenRobustnessCta"),
+                  },
+                  paper: {
+                    title: tr("researchWsNextStepOpenPaperTitle"),
+                    description: tr("researchWsNextStepOpenPaperDescription"),
+                    cta: tr("researchWsNextStepOpenPaperCta"),
+                  },
+                  decision: {
+                    title: tr("researchWsNextStepOpenDecisionTitle"),
+                    description: tr(
+                      "researchWsNextStepOpenDecisionDescription"
+                    ),
+                    cta: tr("researchWsNextStepOpenDecisionCta"),
+                  },
+                },
+                runningResearch: tr("researchWsNextStepRunResearchLoadingCta"),
+                retryResearch: tr("researchWsNextStepRunResearchRetryCta"),
+              }}
             />
 
             {reviewMode ? (

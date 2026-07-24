@@ -1,8 +1,10 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
-import { getApiUserMessage } from "@/lib/apiRequest";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { getLocalizedApiDisplayMessage } from "@/lib/apiRequest";
 import { fetchResearchEvaluation } from "@/lib/researchEvaluationApi";
+import { useBackendRecovery } from "@/lib/useBackendRecovery";
+import type { Language } from "@/lib/i18n";
 import type {
   ResearchEvaluationRequestStatus,
   ResearchEvaluationResult,
@@ -18,7 +20,8 @@ import type {
 export function useResearchEvaluation(
   researchId: string,
   enabled: boolean,
-  validationRunId: string | null
+  validationRunId: string | null,
+  language: Language = "en"
 ) {
   const requestEnabled = enabled;
   const [status, setStatus] = useState<ResearchEvaluationRequestStatus>("idle");
@@ -26,10 +29,13 @@ export function useResearchEvaluation(
     useState<ResearchEvaluationResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [reloadToken, setReloadToken] = useState(0);
+  const languageRef = useRef(language);
+  languageRef.current = language;
 
   const reload = useCallback(() => {
     setReloadToken((token) => token + 1);
   }, []);
+  useBackendRecovery(status, reload);
 
   useEffect(() => {
     if (!requestEnabled) {
@@ -68,8 +74,9 @@ export function useResearchEvaluation(
         setEvaluation(null);
         setStatus("error");
         setError(
-          getApiUserMessage(
+          getLocalizedApiDisplayMessage(
             err,
+            languageRef.current,
             "Research evaluation unavailable. No score is fabricated."
           )
         );

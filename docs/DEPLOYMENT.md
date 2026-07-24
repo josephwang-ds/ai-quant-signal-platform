@@ -54,9 +54,10 @@ Production fails closed if `NEXT_PUBLIC_API_BASE_URL` is missing or invalid.
 
 1. Deploy from `backend/` using `render.yaml` or an equivalent web service.
 2. Set environment variables (below).
-3. Cold starts on free tiers can take 30–60s; wake with `GET /health` before demos.
+3. Cold starts on free tiers can take about a minute or longer; wake with `GET /health` before demos. GitHub scheduled warmups are best-effort and do not guarantee an always-on process.
+4. For a public portfolio with no intentional sleep, upgrade the existing web service to an always-on instance instead of relying on cron traffic.
 
-CORS must include the exact Vercel origin(s) in `ALLOWED_ORIGINS`.
+CORS must include the exact Vercel origin(s) in `ALLOWED_ORIGINS`. Add `http://localhost:3000` only when intentionally testing a local frontend against the deployed backend.
 
 ---
 

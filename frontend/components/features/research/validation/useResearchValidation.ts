@@ -1,9 +1,11 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { CANONICAL_RESEARCH_ID } from "@/lib/canonicalMaCrossover";
-import { getApiUserMessage } from "@/lib/apiRequest";
+import { getLocalizedApiDisplayMessage } from "@/lib/apiRequest";
 import { fetchResearchValidation } from "@/lib/researchValidationApi";
+import { useBackendRecovery } from "@/lib/useBackendRecovery";
+import type { Language } from "@/lib/i18n";
 import type {
   ResearchValidationResult,
   ResearchValidationStatus,
@@ -13,7 +15,8 @@ import type { ResearchRunConfiguration } from "@/types/research";
 export function useResearchValidation(
   researchId: string,
   enabled: boolean,
-  configuration?: ResearchRunConfiguration
+  configuration?: ResearchRunConfiguration,
+  language: Language = "en"
 ) {
   const requestEnabled =
     enabled && (researchId === CANONICAL_RESEARCH_ID || Boolean(configuration));
@@ -22,10 +25,13 @@ export function useResearchValidation(
     useState<ResearchValidationResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [reloadToken, setReloadToken] = useState(0);
+  const languageRef = useRef(language);
+  languageRef.current = language;
 
   const reload = useCallback(() => {
     setReloadToken((token) => token + 1);
   }, []);
+  useBackendRecovery(status, reload);
 
   useEffect(() => {
     if (!requestEnabled) {
@@ -58,8 +64,9 @@ export function useResearchValidation(
         setValidation(null);
         setStatus("error");
         setError(
-          getApiUserMessage(
+          getLocalizedApiDisplayMessage(
             err,
+            languageRef.current,
             "Research validation unavailable. Invented evidence is not shown."
           )
         );

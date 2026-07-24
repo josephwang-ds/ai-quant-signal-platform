@@ -96,14 +96,15 @@ Backend evidence for the sample flows through:
 Open the product normally, even when the Render free-tier backend may be asleep. The frontend:
 
 - starts one shared `/health` readiness request instead of letting every panel fail independently;
-- shows a visible **Starting research backend** state for a bounded 90-second window;
+- shows a visible **Starting research backend** state for a bounded three-minute window;
 - merges concurrent API callers behind the same wakeup request;
 - continues pending requests automatically after the backend responds — no refresh required;
-- preserves local research content and offers **Retry connection** if the backend remains unavailable.
+- preserves local research content and offers **Retry and resume** if the backend remains unavailable;
+- automatically reruns research evidence panels that failed before the shared connection recovered.
 
-The `keep-warm` GitHub workflow runs on an offset five-minute schedule, retries transient connection failures, and touches `/api/database/status` after the process is awake. A failed health check marks the workflow red so an outdated `BACKEND_URL`, suspended Render service, or disabled schedule is visible. Scheduled warmup is an optimization, not a correctness dependency.
+The `keep-warm` GitHub workflow requests an offset five-minute schedule, retries transient connection failures, and touches `/api/database/status` after the process is awake. GitHub scheduled workflows are best-effort and can be delayed or skipped, so observed runs may be much farther apart than the cron expression. A failed health check marks the workflow red so an outdated `BACKEND_URL`, suspended Render service, or disabled schedule is visible. Scheduled warmup is an optimization, not a correctness dependency.
 
-Before an interview, confirm the latest `keep-warm` run is green and open [`/health`](https://ai-quant-signal-platform.onrender.com/health). If the startup notice appears, wait for it to clear rather than refreshing repeatedly.
+Before an interview, confirm the latest `keep-warm` run is green and open [`/health`](https://ai-quant-signal-platform.onrender.com/health). If the startup notice appears, wait for it to clear rather than refreshing repeatedly. For a no-cold-start public portfolio, use an always-on paid instance; changing the existing Render service to Starter is the lowest-migration option.
 
 For interviews where the backend may be cold or unavailable, use the documented [frontend-safe walkthrough](docs/DEMO_MODE.md). It demonstrates the product structure and honest evidence boundaries without inventing calculated output.
 

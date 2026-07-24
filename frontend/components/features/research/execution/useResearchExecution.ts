@@ -1,9 +1,11 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { CANONICAL_RESEARCH_ID } from "@/lib/canonicalMaCrossover";
-import { getApiDisplayMessage } from "@/lib/apiRequest";
+import { getLocalizedApiDisplayMessage } from "@/lib/apiRequest";
 import { fetchResearchExecution } from "@/lib/researchExecutionApi";
+import { useBackendRecovery } from "@/lib/useBackendRecovery";
+import type { Language } from "@/lib/i18n";
 import type {
   ResearchExecutionResult,
   ResearchExecutionStatus,
@@ -12,7 +14,8 @@ import type { ResearchRunConfiguration } from "@/types/research";
 
 export function useResearchExecution(
   researchId: string,
-  configuration?: ResearchRunConfiguration
+  configuration?: ResearchRunConfiguration,
+  language: Language = "en"
 ) {
   const enabled = researchId === CANONICAL_RESEARCH_ID || Boolean(configuration);
   const [status, setStatus] = useState<ResearchExecutionStatus>(
@@ -21,10 +24,13 @@ export function useResearchExecution(
   const [execution, setExecution] = useState<ResearchExecutionResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [reloadToken, setReloadToken] = useState(0);
+  const languageRef = useRef(language);
+  languageRef.current = language;
 
   const reload = useCallback(() => {
     setReloadToken((token) => token + 1);
   }, []);
+  useBackendRecovery(status, reload);
 
   useEffect(() => {
     if (!enabled) {
@@ -56,8 +62,9 @@ export function useResearchExecution(
         setExecution(null);
         setStatus("error");
         setError(
-          getApiDisplayMessage(
+          getLocalizedApiDisplayMessage(
             err,
+            languageRef.current,
             "Research execution unavailable. Invented metrics are not shown."
           )
         );
