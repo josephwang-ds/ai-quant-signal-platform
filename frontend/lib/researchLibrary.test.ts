@@ -171,8 +171,17 @@ describe("researchLibrary", () => {
 
   it("uses the real mock catalog without fabricating projects", () => {
     const projects = getMockResearchProjects();
-    expect(projects.length).toBe(1);
-    expect(projects[0].id).toBe(CANONICAL_RESEARCH_ID);
-    expect(selectContinueResearch(projects)?.id).toBe(CANONICAL_RESEARCH_ID);
+    expect(projects.length).toBe(2);
+    expect(projects.map((item) => item.id).sort()).toEqual(
+      [CANONICAL_RESEARCH_ID, "cross-sectional-factor-sector-etfs"].sort()
+    );
+    const continueId = selectContinueResearch(projects)?.id;
+    expect(continueId).toBeTruthy();
+    expect(
+      [CANONICAL_RESEARCH_ID, "cross-sectional-factor-sector-etfs"]
+    ).toContain(continueId);
+    expect(
+      selectGuidedReviewResearch(projects, CANONICAL_RESEARCH_ID)?.id
+    ).toBe(CANONICAL_RESEARCH_ID);
   });
 });

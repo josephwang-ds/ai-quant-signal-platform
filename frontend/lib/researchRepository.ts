@@ -21,7 +21,10 @@ export type CreateResearchInput = {
 };
 
 export type ResearchWorkspaceSnapshot = {
+  /** @deprecated Prefer archivedDemoIds; false means all demos archived. */
   demoVisible: boolean;
+  /** Per-demo archive; empty means catalog demos are visible unless demoVisible is false. */
+  archivedDemoIds: string[];
   userResearch: ResearchDetail[];
 };
 

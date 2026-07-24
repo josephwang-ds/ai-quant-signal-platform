@@ -33,8 +33,13 @@ import type {
   ResearchDetail,
   ResearchWorkspaceSection,
 } from "@/types/research";
+import {
+  isFactorRunConfiguration,
+  researchTemplateId,
+} from "@/types/research";
 import { useResearchExecution } from "@/components/features/research/execution/useResearchExecution";
 import { useResearchValidation } from "@/components/features/research/validation/useResearchValidation";
+import { useFactorValidation } from "@/components/features/research/validation/useFactorValidation";
 import { useResearchEvaluation } from "@/components/features/research/evaluation/useResearchEvaluation";
 import { useResearchCopilot } from "@/components/features/research/copilot/useResearchCopilot";
 import {
@@ -136,21 +141,62 @@ export default function ResearchWorkspacePage({
     research?.runConfiguration,
     language
   );
-  const validationRunId = validation?.validation_run_id ?? null;
+
+  const resolvedFactorConfig = isFactorRunConfiguration(research?.runConfiguration)
+    ? research!.runConfiguration
+    : undefined;
+
+  const isFactorTemplate = research
+    ? researchTemplateId(research) === "cross_sectional_factor"
+    : false;
+
+  const {
+    enabled: factorValidationEnabled,
+    status: factorValidationStatus,
+    validation: factorValidation,
+    error: factorValidationError,
+    reload: reloadFactorValidation,
+  } = useFactorValidation(
+    researchId,
+    validationEvidenceActive && isFactorTemplate,
+    resolvedFactorConfig,
+    language
+  );
+
+  const validationRunId = isFactorTemplate
+    ? null
+    : validation?.validation_run_id ?? null;
+  const factorValidationRunId = isFactorTemplate
+    ? factorValidation?.validation_run_id ?? null
+    : null;
+
   useEffect(() => {
+    if (isFactorTemplate) {
+      if (factorValidationStatus === "ready" && factorValidationRunId) {
+        setValidationUnlocked(true);
+      }
+      return;
+    }
     if (!validationRunId) return;
     if (validationStatus !== "ready") return;
     setValidationUnlocked(true);
-  }, [validationRunId, validationStatus]);
+  }, [
+    isFactorTemplate,
+    validationRunId,
+    validationStatus,
+    factorValidationRunId,
+    factorValidationStatus,
+  ]);
 
   const evaluationRequestActive =
-    activeSection === "validation" ||
-    activeSection === "evaluation" ||
-    activeSection === "robustness" ||
-    activeSection === "paper" ||
-    activeSection === "decision" ||
-    activeSection === "copilot" ||
-    evaluationUnlocked;
+    !isFactorTemplate &&
+    (activeSection === "validation" ||
+      activeSection === "evaluation" ||
+      activeSection === "robustness" ||
+      activeSection === "paper" ||
+      activeSection === "decision" ||
+      activeSection === "copilot" ||
+      evaluationUnlocked);
   const {
     enabled: evaluationEnabled,
     status: evaluationStatus,
@@ -179,7 +225,7 @@ export default function ResearchWorkspacePage({
     reset: resetCopilot,
   } = useResearchCopilot(
     researchId,
-    activeSection === "copilot",
+    activeSection === "copilot" && !isFactorTemplate,
     validationRunId
   );
 
@@ -594,11 +640,17 @@ export default function ResearchWorkspacePage({
                   formatMetric={formatMetric}
                   navigateToSection={navigateToSection}
                   handleRunValidation={handleRunValidation}
+                  isFactorTemplate={isFactorTemplate}
                   validationEnabled={validationEnabled}
                   validationStatus={validationStatus}
                   validation={validation}
                   validationError={validationError}
                   reloadValidation={reloadValidation}
+                  factorValidationEnabled={factorValidationEnabled}
+                  factorValidationStatus={factorValidationStatus}
+                  factorValidation={factorValidation}
+                  factorValidationError={factorValidationError}
+                  reloadFactorValidation={reloadFactorValidation}
                   evaluationEnabled={evaluationEnabled}
                   evaluationStatus={evaluationStatus}
                   evaluation={evaluation}

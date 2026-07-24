@@ -5,6 +5,7 @@
 
 import {
   CANONICAL_RESEARCH_ID,
+  CANONICAL_FACTOR_RESEARCH_ID,
   getMockResearchById,
   getMockResearchDetails,
 } from "@/lib/mockResearchCatalog";
@@ -15,6 +16,7 @@ import {
   type ResearchWorkspaceSnapshot,
 } from "@/lib/researchRepository";
 import {
+  isFactorRunConfiguration,
   toResearchListItem,
   type ResearchDetail,
   type ResearchListItem,
@@ -22,9 +24,15 @@ import {
 
 export const RESEARCH_WORKSPACE_STORAGE_KEY = "quant.research.workspace.v1";
 
+const DEMO_RESEARCH_IDS = new Set([
+  CANONICAL_RESEARCH_ID,
+  CANONICAL_FACTOR_RESEARCH_ID,
+]);
+
 function emptySnapshot(): ResearchWorkspaceSnapshot {
   return {
     demoVisible: true,
+    archivedDemoIds: [],
     userResearch: [],
   };
 }
@@ -38,9 +46,15 @@ function readSnapshot(): ResearchWorkspaceSnapshot {
     if (!raw) {
       return emptySnapshot();
     }
-    const parsed = JSON.parse(raw) as Partial<ResearchWorkspaceSnapshot>;
+    const parsed = JSON.parse(raw) as Partial<ResearchWorkspaceSnapshot> & {
+      archivedDemoIds?: string[];
+    };
+    const archivedDemoIds = Array.isArray(parsed.archivedDemoIds)
+      ? parsed.archivedDemoIds.filter((id): id is string => typeof id === "string")
+      : [];
     return {
       demoVisible: parsed.demoVisible !== false,
+      archivedDemoIds,
       userResearch: Array.isArray(parsed.userResearch) ? parsed.userResearch : [],
     };
   } catch {
@@ -73,6 +87,7 @@ function buildUserResearch(input: CreateResearchInput): ResearchDetail {
   const runConfiguration = input.runConfiguration
     ? { ...input.runConfiguration }
     : undefined;
+  const isFactor = isFactorRunConfiguration(runConfiguration);
 
   return {
     id,
@@ -82,7 +97,11 @@ function buildUserResearch(input: CreateResearchInput): ResearchDetail {
     currentStage: "Draft",
     confidenceScore: null,
     owner: input.owner?.trim() || "Research Workspace",
-    tags: tags.length ? tags : ["draft"],
+    tags: tags.length
+      ? tags
+      : isFactor
+        ? ["draft", "cross-sectional-factor"]
+        : ["draft"],
     createdAt: now,
     updatedAt: now,
     experimentCount: 0,
@@ -98,27 +117,48 @@ function buildUserResearch(input: CreateResearchInput): ResearchDetail {
         "This research question is stored in this browser. Datasets, experiments, and calculated evidence are added inside the workspace — never invented on create.",
       evaluationPendingMessage: "Evaluation pending first validation evidence",
     },
-    configuration: {
-      symbol: runConfiguration?.symbol ?? "—",
-      benchmark: runConfiguration?.benchmark ?? "—",
-      strategyName: runConfiguration
-        ? "Moving Average Crossover"
-        : "Not configured",
-      parameterLines: runConfiguration
-        ? [
-            `MA ${runConfiguration.shortWindow}/${runConfiguration.longWindow}`,
+    configuration: isFactor
+      ? {
+          symbol: "US Sector ETFs",
+          benchmark: "Equal-weight quantile long–short (Q5−Q1)",
+          strategyName: "Cross-Sectional Factor Validation",
+          parameterLines: [
+            `Universe: ${runConfiguration.universeId}`,
+            `Factor: ${runConfiguration.factorId}`,
+            `Rebalance: ${runConfiguration.rebalanceFrequency}`,
+            `Holding Period: ${runConfiguration.holdingPeriodMonths} month(s)`,
             `Transaction cost ${runConfiguration.transactionCost}`,
-          ]
-        : [],
-      dataRequirements: runConfiguration
-        ? [
-            `${runConfiguration.symbol} adjusted daily prices`,
-            `${runConfiguration.benchmark} benchmark prices`,
-          ]
-        : [
-            "Define datasets and experiment protocols inside the research workspace",
           ],
-    },
+          dataRequirements: [
+            `Universe preset ${runConfiguration.universeId}`,
+            "Daily OHLCV for each universe member",
+          ],
+        }
+      : {
+          symbol: runConfiguration && "symbol" in runConfiguration
+            ? runConfiguration.symbol
+            : "—",
+          benchmark: runConfiguration && "benchmark" in runConfiguration
+            ? runConfiguration.benchmark
+            : "—",
+          strategyName: runConfiguration
+            ? "Moving Average Crossover"
+            : "Not configured",
+          parameterLines: runConfiguration && "shortWindow" in runConfiguration
+            ? [
+                `MA ${runConfiguration.shortWindow}/${runConfiguration.longWindow}`,
+                `Transaction cost ${runConfiguration.transactionCost}`,
+              ]
+            : [],
+          dataRequirements: runConfiguration && "symbol" in runConfiguration
+            ? [
+                `${runConfiguration.symbol} adjusted daily prices`,
+                `${runConfiguration.benchmark} benchmark prices`,
+              ]
+            : [
+                "Define datasets and experiment protocols inside the research workspace",
+              ],
+        },
     runConfiguration,
     hypothesis,
     researchObjective: hypothesis || researchQuestion,
@@ -140,7 +180,11 @@ function buildUserResearch(input: CreateResearchInput): ResearchDetail {
 }
 
 function mergeList(snapshot: ResearchWorkspaceSnapshot): ResearchDetail[] {
-  const demo = snapshot.demoVisible ? getMockResearchDetails() : [];
+  const archived = new Set(snapshot.archivedDemoIds);
+  const demosHidden = snapshot.demoVisible === false;
+  const demo = demosHidden
+    ? []
+    : getMockResearchDetails().filter((item) => !archived.has(item.id));
   const user = snapshot.userResearch.map((item) => ({
     ...item,
     tags: [...item.tags],
@@ -169,9 +213,12 @@ export class LocalResearchRepository implements ResearchRepository {
   }
 
   async getById(researchId: string): Promise<ResearchDetail | null> {
-    if (researchId === CANONICAL_RESEARCH_ID) {
+    if (DEMO_RESEARCH_IDS.has(researchId)) {
       const snapshot = readSnapshot();
-      if (!snapshot.demoVisible) {
+      if (snapshot.demoVisible === false) {
+        return null;
+      }
+      if (snapshot.archivedDemoIds.includes(researchId)) {
         return null;
       }
       return getMockResearchById(researchId);
@@ -200,8 +247,10 @@ export class LocalResearchRepository implements ResearchRepository {
 
   async archive(researchId: string): Promise<void> {
     const snapshot = readSnapshot();
-    if (researchId === CANONICAL_RESEARCH_ID) {
-      snapshot.demoVisible = false;
+    if (DEMO_RESEARCH_IDS.has(researchId)) {
+      if (!snapshot.archivedDemoIds.includes(researchId)) {
+        snapshot.archivedDemoIds = [...snapshot.archivedDemoIds, researchId];
+      }
       writeSnapshot(snapshot);
       return;
     }
@@ -219,7 +268,7 @@ export class LocalResearchRepository implements ResearchRepository {
   }
 
   async deletePermanently(researchId: string): Promise<void> {
-    if (researchId === CANONICAL_RESEARCH_ID) {
+    if (DEMO_RESEARCH_IDS.has(researchId)) {
       throw new Error("The built-in demo research cannot be permanently deleted.");
     }
     const snapshot = readSnapshot();
@@ -232,6 +281,7 @@ export class LocalResearchRepository implements ResearchRepository {
   async includeDemoResearch(): Promise<void> {
     const snapshot = readSnapshot();
     snapshot.demoVisible = true;
+    snapshot.archivedDemoIds = [];
     writeSnapshot(snapshot);
   }
 

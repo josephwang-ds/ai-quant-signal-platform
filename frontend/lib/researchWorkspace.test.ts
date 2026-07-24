@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   CANONICAL_RESEARCH_ID,
+  CANONICAL_FACTOR_RESEARCH_ID,
   getMockResearchById,
   getMockResearchProjects,
   MOCK_RESEARCH_DETAILS,
@@ -12,15 +13,21 @@ import {
 } from "@/types/research";
 
 describe("mock research catalog", () => {
-  it("exposes exactly one canonical research project", () => {
-    expect(MOCK_RESEARCH_DETAILS).toHaveLength(1);
-    expect(MOCK_RESEARCH_DETAILS[0].id).toBe(CANONICAL_RESEARCH_ID);
+  it("exposes Trend Following and Cross-Sectional Factor projects", () => {
+    expect(MOCK_RESEARCH_DETAILS).toHaveLength(2);
+    expect(MOCK_RESEARCH_DETAILS.map((item) => item.id)).toEqual([
+      CANONICAL_RESEARCH_ID,
+      CANONICAL_FACTOR_RESEARCH_ID,
+    ]);
     expect(MOCK_RESEARCH_DETAILS[0].name).toBe("Trend Following Study");
+    expect(MOCK_RESEARCH_DETAILS[1].name).toBe(
+      "Cross-Sectional Equity Factor Study"
+    );
   });
 
   it("keeps list and detail projections consistent by id", () => {
     const list = getMockResearchProjects();
-    expect(list).toHaveLength(1);
+    expect(list).toHaveLength(2);
 
     for (const item of list) {
       const detail = getMockResearchById(item.id);
@@ -102,7 +109,10 @@ describe("workspace navigation model", () => {
 
 describe("research progress helpers", () => {
   it("keeps catalog authenticity constraints intact", () => {
-    expect(MOCK_RESEARCH_DETAILS).toHaveLength(1);
+    expect(MOCK_RESEARCH_DETAILS).toHaveLength(2);
     expect(MOCK_RESEARCH_DETAILS[0].name).toBe("Trend Following Study");
+    expect(MOCK_RESEARCH_DETAILS[1].name).toBe(
+      "Cross-Sectional Equity Factor Study"
+    );
   });
 });

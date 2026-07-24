@@ -48,18 +48,23 @@ function collectFrontendFixtureFiles(root: string): string[] {
 }
 
 describe("PR-008A authenticity — canonical research", () => {
-  it("publishes exactly one Trend Following research project", () => {
+  it("publishes Trend Following and Cross-Sectional Factor research projects", () => {
     const list = getMockResearchProjects();
-    expect(list).toHaveLength(1);
-    expect(list[0].id).toBe(CANONICAL_RESEARCH_ID);
-    expect(list[0].name).toBe("Trend Following Study");
-    expect(list[0].configuration.symbol).toBe("SPY");
-    expect(list[0].configuration.benchmark).toBe("SPY Buy & Hold");
-    expect(list[0].status).toBe("Data Integration");
-    expect(list[0].confidenceScore).toBeNull();
-    expect(list[0].integrity.metricsStatus).toBe("Not Calculated");
-    expect(list[0].integrity.validationStatus).toBe("Not Started");
-    expect(list[0].integrity.evaluationStatus).toBe("Not Available");
+    expect(list).toHaveLength(2);
+    const trend = list.find((item) => item.id === CANONICAL_RESEARCH_ID);
+    const factor = list.find(
+      (item) => item.id === "cross-sectional-factor-sector-etfs"
+    );
+    expect(trend?.name).toBe("Trend Following Study");
+    expect(trend?.configuration.symbol).toBe("SPY");
+    expect(trend?.configuration.benchmark).toBe("SPY Buy & Hold");
+    expect(trend?.status).toBe("Data Integration");
+    expect(trend?.confidenceScore).toBeNull();
+    expect(trend?.integrity.metricsStatus).toBe("Not Calculated");
+    expect(factor?.name).toBe("Cross-Sectional Equity Factor Study");
+    expect(factor?.integrity.metricsStatus).toBe("Not Calculated");
+    expect(factor?.integrity.validationStatus).toBe("Not Started");
+    expect(factor?.confidenceScore).toBeNull();
   });
 
   it("keeps list/detail/notebook/experiments/validation/timeline on one id", () => {
@@ -142,6 +147,7 @@ describe("PR-008A authenticity — prohibited fictional titles", () => {
     expect(hits).toEqual([]);
     expect(MOCK_RESEARCH_DETAILS.map((item) => item.name)).toEqual([
       "Trend Following Study",
+      "Cross-Sectional Equity Factor Study",
     ]);
   });
 });

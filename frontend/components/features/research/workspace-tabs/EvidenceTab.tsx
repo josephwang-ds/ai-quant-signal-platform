@@ -4,6 +4,7 @@ import Link from "next/link";
 import type { Dispatch, ReactNode, SetStateAction } from "react";
 import ResearchExperiments from "@/components/features/research/experiments/ResearchExperiments";
 import ResearchValidationPanel from "@/components/features/research/validation/ResearchValidationPanel";
+import FactorValidationPanel from "@/components/features/research/validation/FactorValidationPanel";
 import ResearchRobustnessCenter from "@/components/features/research/robustness/ResearchRobustnessCenter";
 import Button from "@/components/ui/Button";
 import ErrorAlert from "@/components/ui/ErrorAlert";
@@ -15,6 +16,10 @@ import type { NotebookEntry, ResearchTimelineEvent } from "@/types/notebook";
 import type { ResearchDetail, ResearchWorkspaceSection } from "@/types/research";
 import type { ResearchValidationResult, ResearchValidationStatus } from "@/types/researchValidation";
 import type { ResearchEvaluationResult, ResearchEvaluationRequestStatus } from "@/types/researchEvaluation";
+import type {
+  FactorValidationResult,
+  FactorValidationStatus,
+} from "@/types/factorValidation";
 import EvaluationBlock from "./EvaluationBlock";
 
 export type EvidenceTabProps = {
@@ -34,11 +39,17 @@ export type EvidenceTabProps = {
     timelineEvent: ResearchTimelineEvent;
   }) => void;
   executedExperiments: ResearchExperiment[] | null;
+  isFactorTemplate: boolean;
   validationEnabled: boolean;
   validationStatus: ResearchValidationStatus;
   validation: ResearchValidationResult | null;
   validationError: string | null;
   reloadValidation: () => void;
+  factorValidationEnabled: boolean;
+  factorValidationStatus: FactorValidationStatus;
+  factorValidation: FactorValidationResult | null;
+  factorValidationError: string | null;
+  reloadFactorValidation: () => void;
   evaluationEnabled: boolean;
   evaluationStatus: ResearchEvaluationRequestStatus;
   evaluation: ResearchEvaluationResult | null;
@@ -60,11 +71,17 @@ export default function EvidenceTab(props: EvidenceTabProps) {
     setSelectedExperimentId,
     handleExperimentDesigned,
     executedExperiments,
+    isFactorTemplate,
     validationEnabled,
     validationStatus,
     validation,
     validationError,
     reloadValidation,
+    factorValidationEnabled,
+    factorValidationStatus,
+    factorValidation,
+    factorValidationError,
+    reloadFactorValidation,
     evaluationEnabled,
     evaluationStatus,
     evaluation,
@@ -200,7 +217,66 @@ export default function EvidenceTab(props: EvidenceTabProps) {
 
   if (section === "validation") {
     let validationBlock: ReactNode = null;
-    if (!validationEnabled) {
+
+    if (isFactorTemplate) {
+      if (!factorValidationEnabled) {
+        validationBlock = (
+          <div className="research-execution-error">
+            <ErrorAlert
+              title={tr("researchValConfigurationRequiredTitle")}
+              message={tr("researchValConfigurationRequiredDescription")}
+            />
+            <Link href="/" className="btn btn--primary">
+              {tr("researchValBackToLibrary")}
+            </Link>
+          </div>
+        );
+      } else if (factorValidationStatus === "loading") {
+        validationBlock = <LoadingState message={tr("factorValLoading")} />;
+      } else if (factorValidationStatus === "error") {
+        validationBlock = (
+          <div className="research-execution-error">
+            <ErrorAlert
+              title={tr("factorValUnavailableTitle")}
+              message={factorValidationError ?? tr("factorValUnavailableDescription")}
+            />
+            <Button primary onClick={reloadFactorValidation}>
+              {tr("researchValRetry")}
+            </Button>
+          </div>
+        );
+      } else if (factorValidationStatus === "ready" && factorValidation) {
+        validationBlock = (
+          <FactorValidationPanel
+            validation={factorValidation}
+            language={language}
+            labels={{
+              title: tr("factorValTitle"),
+              summary: tr("factorValSummary"),
+              meanRankIc: tr("factorValMeanRankIc"),
+              medianRankIc: tr("factorValMedianRankIc"),
+              positiveIc: tr("factorValPositiveIc"),
+              icir: tr("factorValIcir"),
+              monthlyIc: tr("factorValMonthlyIc"),
+              rollingIc: tr("factorValRollingIc"),
+              quantileCumulative: tr("factorValQuantileCumulative"),
+              longShortCumulative: tr("factorValLongShortCumulative"),
+              q5Cumulative: tr("factorValQ5Cumulative"),
+              q1Cumulative: tr("factorValQ1Cumulative"),
+              lsCumulative: tr("factorValLsCumulative"),
+              lsNetCumulative: tr("factorValLsNetCumulative"),
+              meanTurnover: tr("factorValMeanTurnover"),
+              totalCost: tr("factorValTotalCost"),
+              warnings: tr("researchValWarnings"),
+              generated: tr("researchValGenerated"),
+              unavailable: tr("factorValUnavailable"),
+              factor: tr("factorValFactor"),
+              universe: tr("factorValUniverse"),
+            }}
+          />
+        );
+      }
+    } else if (!validationEnabled) {
       validationBlock = (
         <div className="research-execution-error">
           <ErrorAlert

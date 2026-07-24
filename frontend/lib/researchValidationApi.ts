@@ -10,25 +10,43 @@ import {
   requestJson,
 } from "@/lib/apiRequest";
 import type { ResearchValidationResult } from "@/types/researchValidation";
-import type { ResearchRunConfiguration } from "@/types/research";
+import {
+  isFactorRunConfiguration,
+  type ResearchRunConfiguration,
+  type TrendFollowingRunConfiguration,
+} from "@/types/research";
 
 export { ApiRequestError as ResearchValidationApiError };
+
+const DEFAULT_CONFIGURATION: TrendFollowingRunConfiguration = {
+  templateId: "trend_following",
+  symbol: "SPY",
+  benchmark: "SPY",
+  startDate: "2018-01-01",
+  endDate: null,
+  shortWindow: 20,
+  longWindow: 60,
+  transactionCost: 0.001,
+  riskFreeRate: 0,
+};
+
+function asTrendConfig(
+  configuration?: ResearchRunConfiguration
+): TrendFollowingRunConfiguration {
+  if (isFactorRunConfiguration(configuration)) {
+    throw new Error(
+      "MA validation does not accept cross-sectional factor configuration."
+    );
+  }
+  return configuration ?? DEFAULT_CONFIGURATION;
+}
 
 export async function fetchResearchValidation(options?: {
   signal?: AbortSignal;
   researchId?: string;
   configuration?: ResearchRunConfiguration;
 }): Promise<ResearchValidationResult> {
-  const configuration = options?.configuration ?? {
-    symbol: "SPY",
-    benchmark: "SPY",
-    startDate: "2018-01-01",
-    endDate: null,
-    shortWindow: 20,
-    longWindow: 60,
-    transactionCost: 0.001,
-    riskFreeRate: 0,
-  };
+  const configuration = asTrendConfig(options?.configuration);
   return requestJson<ResearchValidationResult>(
     "/api/v1/research/validation",
     {

@@ -1,7 +1,10 @@
 import type { Language } from "@/lib/i18n";
 import { formatMetricPercent } from "@/lib/formatters";
 import { benchmarkLabel } from "@/lib/researchDisplay";
-import type { ResearchDetail } from "@/types/research";
+import {
+  isFactorRunConfiguration,
+  type ResearchDetail,
+} from "@/types/research";
 import type { ResearchExecutionResult } from "@/types/researchExecution";
 
 export type MaWindows = {
@@ -69,9 +72,10 @@ export function buildResearchProtocolParts(
   execution: ResearchExecutionResult | null,
   language: Language
 ): ResearchProtocolParts {
+  const runConfig = research.runConfiguration;
   const symbol =
     execution?.provenance?.symbol ??
-    research.runConfiguration?.symbol ??
+    (runConfig && !isFactorRunConfiguration(runConfig) ? runConfig.symbol : null) ??
     research.configuration.symbol ??
     null;
 
@@ -80,10 +84,10 @@ export function buildResearchProtocolParts(
   const period =
     execution?.provenance?.actual_start && execution?.provenance?.actual_end
       ? `${formatIsoDateShort(execution.provenance.actual_start, language)} → ${formatIsoDateShort(execution.provenance.actual_end, language)}`
-      : research.runConfiguration
-        ? `${formatIsoDateShort(research.runConfiguration.startDate, language)} → ${
-            research.runConfiguration.endDate
-              ? formatIsoDateShort(research.runConfiguration.endDate, language)
+      : runConfig
+        ? `${formatIsoDateShort(runConfig.startDate, language)} → ${
+            runConfig.endDate
+              ? formatIsoDateShort(runConfig.endDate, language)
               : language === "zh"
                 ? "至今"
                 : "Present"
@@ -97,7 +101,7 @@ export function buildResearchProtocolParts(
       : null;
 
   const benchmarkRaw =
-    research.runConfiguration?.benchmark ??
+    (runConfig && !isFactorRunConfiguration(runConfig) ? runConfig.benchmark : null) ??
     research.configuration.benchmark ??
     null;
   const benchmark = benchmarkRaw ? benchmarkLabel(benchmarkRaw, language) : null;

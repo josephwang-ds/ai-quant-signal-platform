@@ -1,20 +1,27 @@
 /**
- * Design notes + product timeline for the canonical MA Crossover research.
+ * Design notes + product timeline for canonical research packages.
  */
 
 import {
   CANONICAL_RESEARCH_ID,
   getCanonicalResearchPackage,
 } from "@/lib/canonicalMaCrossover";
+import {
+  CANONICAL_FACTOR_RESEARCH_ID,
+  getCanonicalFactorResearchPackage,
+} from "@/lib/canonicalCrossSectionalFactor";
 import type { NotebookEntry, ResearchTimelineEvent } from "@/types/notebook";
+import type { CanonicalResearchPackage } from "@/types/canonicalResearch";
 
-function buildNotebook(): NotebookEntry[] {
-  const pkg = getCanonicalResearchPackage();
+function buildNotebook(
+  researchId: string,
+  pkg: CanonicalResearchPackage
+): NotebookEntry[] {
   const documentedAt =
     pkg.timelineEvents[0]?.occurredAt ?? "2026-07-14T04:00:00.000Z";
   return pkg.designNotes.map((note) => ({
     id: note.id,
-    researchId: CANONICAL_RESEARCH_ID,
+    researchId,
     entryType: note.entryType,
     title: note.title,
     body: note.body,
@@ -24,11 +31,13 @@ function buildNotebook(): NotebookEntry[] {
   }));
 }
 
-function buildTimeline(): ResearchTimelineEvent[] {
-  const pkg = getCanonicalResearchPackage();
+function buildTimeline(
+  researchId: string,
+  pkg: CanonicalResearchPackage
+): ResearchTimelineEvent[] {
   return pkg.timelineEvents.map((event) => ({
     id: event.id,
-    researchId: CANONICAL_RESEARCH_ID,
+    researchId,
     occurredAt: event.occurredAt,
     title: event.title,
     summary: event.summary,
@@ -37,11 +46,25 @@ function buildTimeline(): ResearchTimelineEvent[] {
 }
 
 export const MOCK_NOTEBOOK_BY_RESEARCH: Record<string, NotebookEntry[]> = {
-  [CANONICAL_RESEARCH_ID]: buildNotebook(),
+  [CANONICAL_RESEARCH_ID]: buildNotebook(
+    CANONICAL_RESEARCH_ID,
+    getCanonicalResearchPackage()
+  ),
+  [CANONICAL_FACTOR_RESEARCH_ID]: buildNotebook(
+    CANONICAL_FACTOR_RESEARCH_ID,
+    getCanonicalFactorResearchPackage()
+  ),
 };
 
 export const MOCK_TIMELINE_BY_RESEARCH: Record<string, ResearchTimelineEvent[]> = {
-  [CANONICAL_RESEARCH_ID]: buildTimeline(),
+  [CANONICAL_RESEARCH_ID]: buildTimeline(
+    CANONICAL_RESEARCH_ID,
+    getCanonicalResearchPackage()
+  ),
+  [CANONICAL_FACTOR_RESEARCH_ID]: buildTimeline(
+    CANONICAL_FACTOR_RESEARCH_ID,
+    getCanonicalFactorResearchPackage()
+  ),
 };
 
 export function getMockNotebookEntries(researchId: string): NotebookEntry[] {
@@ -68,7 +91,9 @@ export class MockNotebookError extends Error {
 
 function delay(ms: number): Promise<void> {
   return new Promise((resolve) => {
-    setTimeout(resolve, ms);
+    setTimeout(() => {
+      resolve();
+    }, ms);
   });
 }
 

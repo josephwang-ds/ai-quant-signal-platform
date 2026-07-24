@@ -2,6 +2,18 @@ import type { Language } from "@/lib/i18n";
 import type { ExperimentStatus, ExperimentType, ValidationReadiness } from "@/types/experiment";
 import type { ResearchLifecycleStatus } from "@/types/research";
 import { CANONICAL_RESEARCH_ID } from "@/lib/canonicalMaCrossover";
+import { CANONICAL_FACTOR_RESEARCH_ID } from "@/lib/canonicalCrossSectionalFactor";
+
+export function researchNameLabel(
+  id: string,
+  value: string,
+  language: Language
+) {
+  if (language !== "zh") return value;
+  if (id === CANONICAL_RESEARCH_ID) return "趋势跟踪研究";
+  if (id === CANONICAL_FACTOR_RESEARCH_ID) return "截面权益因子研究";
+  return value;
+}
 
 const RESEARCH_STATUS_ZH: Record<ResearchLifecycleStatus, string> = {
   Draft: "草稿",
@@ -81,9 +93,10 @@ export function evidenceStatusLabel(status: string, language: Language) {
 }
 
 export function strategyLabel(value: string, language: Language) {
-  return language === "zh" && value === "Moving Average Crossover"
-    ? "移动平均线交叉"
-    : value;
+  if (language !== "zh") return value;
+  if (value === "Moving Average Crossover") return "移动平均线交叉";
+  if (value === "Cross-Sectional Factor Validation") return "截面因子验证";
+  return value;
 }
 
 export function parameterLineLabel(value: string, language: Language) {
@@ -94,12 +107,6 @@ export function parameterLineLabel(value: string, language: Language) {
     .replace("Transaction Cost", "交易成本")
     .replace("Start Date", "开始日期")
     .replace("End Date", "结束日期");
-}
-
-export function researchNameLabel(id: string, value: string, language: Language) {
-  return language === "zh" && id === CANONICAL_RESEARCH_ID
-    ? "趋势跟踪研究"
-    : value;
 }
 
 export function researchQuestionLabel(

@@ -50,8 +50,13 @@ export type ResearchConfigurationDisplay = {
   dataRequirements: string[];
 };
 
-/** Structured inputs for the one supported executable template: MA Crossover. */
-export type ResearchRunConfiguration = {
+/** Structured inputs for executable research templates. */
+export type ResearchTemplateId = "trend_following" | "cross_sectional_factor";
+
+export type FactorId = "momentum" | "low_volatility" | "value";
+
+export type TrendFollowingRunConfiguration = {
+  templateId?: "trend_following";
   symbol: string;
   benchmark: string;
   startDate: string;
@@ -61,6 +66,27 @@ export type ResearchRunConfiguration = {
   transactionCost: number;
   riskFreeRate: number;
 };
+
+export type FactorRunConfiguration = {
+  templateId: "cross_sectional_factor";
+  universeId: string;
+  factorId: FactorId;
+  rebalanceFrequency: "monthly";
+  holdingPeriodMonths: number;
+  startDate: string;
+  endDate: string | null;
+  transactionCost: number;
+};
+
+export type ResearchRunConfiguration =
+  | TrendFollowingRunConfiguration
+  | FactorRunConfiguration;
+
+export function isFactorRunConfiguration(
+  config: ResearchRunConfiguration | undefined | null
+): config is FactorRunConfiguration {
+  return config?.templateId === "cross_sectional_factor";
+}
 
 export type ResearchListItem = {
   id: string;
@@ -206,4 +232,19 @@ export function toResearchListItem(detail: ResearchDetail): ResearchListItem {
       dataRequirements: [...detail.configuration.dataRequirements],
     },
   };
+}
+
+export function researchTemplateId(
+  detail: Pick<ResearchDetail, "runConfiguration" | "tags" | "id">
+): ResearchTemplateId {
+  if (isFactorRunConfiguration(detail.runConfiguration)) {
+    return "cross_sectional_factor";
+  }
+  if (
+    detail.id === "cross-sectional-factor-sector-etfs" ||
+    detail.tags?.includes("cross-sectional-factor")
+  ) {
+    return "cross_sectional_factor";
+  }
+  return "trend_following";
 }

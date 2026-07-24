@@ -1,32 +1,30 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { CANONICAL_RESEARCH_ID } from "@/lib/canonicalMaCrossover";
+import { CANONICAL_FACTOR_RESEARCH_ID } from "@/lib/canonicalCrossSectionalFactor";
 import { getLocalizedApiDisplayMessage } from "@/lib/apiRequest";
-import { fetchResearchExecution } from "@/lib/researchExecutionApi";
+import { fetchFactorValidation } from "@/lib/factorValidationApi";
 import { useBackendRecovery } from "@/lib/useBackendRecovery";
 import type { Language } from "@/lib/i18n";
 import type {
-  ResearchExecutionResult,
-  ResearchExecutionStatus,
-} from "@/types/researchExecution";
-import {
-  isFactorRunConfiguration,
-  type ResearchRunConfiguration,
-} from "@/types/research";
+  FactorValidationResult,
+  FactorValidationStatus,
+} from "@/types/factorValidation";
+import type { FactorRunConfiguration } from "@/types/research";
 
-export function useResearchExecution(
+export function useFactorValidation(
   researchId: string,
-  configuration?: ResearchRunConfiguration,
+  enabled: boolean,
+  configuration: FactorRunConfiguration | undefined,
   language: Language = "en"
 ) {
-  const enabled =
-    !isFactorRunConfiguration(configuration) &&
-    (researchId === CANONICAL_RESEARCH_ID || Boolean(configuration));
-  const [status, setStatus] = useState<ResearchExecutionStatus>(
-    enabled ? "loading" : "idle"
+  const requestEnabled =
+    enabled &&
+    (researchId === CANONICAL_FACTOR_RESEARCH_ID || Boolean(configuration));
+  const [status, setStatus] = useState<FactorValidationStatus>("idle");
+  const [validation, setValidation] = useState<FactorValidationResult | null>(
+    null
   );
-  const [execution, setExecution] = useState<ResearchExecutionResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [reloadToken, setReloadToken] = useState(0);
   const languageRef = useRef(language);
@@ -38,46 +36,53 @@ export function useResearchExecution(
   useBackendRecovery(status, reload);
 
   useEffect(() => {
-    if (!enabled) {
+    if (!requestEnabled || !configuration) {
       setStatus("idle");
-      setExecution(null);
+      setValidation(null);
       setError(null);
       return;
     }
 
     const controller = new AbortController();
     setStatus("loading");
+    setValidation(null);
     setError(null);
 
     void (async () => {
       try {
-        const result = await fetchResearchExecution({
+        const result = await fetchFactorValidation({
           signal: controller.signal,
           researchId,
           configuration,
         });
         if (!controller.signal.aborted) {
-          setExecution(result);
+          setValidation(result);
           setStatus("ready");
         }
       } catch (err) {
         if (controller.signal.aborted) {
           return;
         }
-        setExecution(null);
+        setValidation(null);
         setStatus("error");
         setError(
           getLocalizedApiDisplayMessage(
             err,
             languageRef.current,
-            "Research execution unavailable. Invented metrics are not shown."
+            "Factor validation unavailable. Invented evidence is not shown."
           )
         );
       }
     })();
 
     return () => controller.abort();
-  }, [configuration, enabled, reloadToken, researchId]);
+  }, [configuration, reloadToken, requestEnabled, researchId]);
 
-  return { enabled, status, execution, error, reload };
+  return {
+    enabled: requestEnabled,
+    status,
+    validation,
+    error,
+    reload,
+  };
 }

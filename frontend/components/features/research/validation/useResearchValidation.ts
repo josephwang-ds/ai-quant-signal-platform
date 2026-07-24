@@ -10,7 +10,10 @@ import type {
   ResearchValidationResult,
   ResearchValidationStatus,
 } from "@/types/researchValidation";
-import type { ResearchRunConfiguration } from "@/types/research";
+import {
+  isFactorRunConfiguration,
+  type ResearchRunConfiguration,
+} from "@/types/research";
 
 export function useResearchValidation(
   researchId: string,
@@ -19,7 +22,9 @@ export function useResearchValidation(
   language: Language = "en"
 ) {
   const requestEnabled =
-    enabled && (researchId === CANONICAL_RESEARCH_ID || Boolean(configuration));
+    enabled &&
+    !isFactorRunConfiguration(configuration) &&
+    (researchId === CANONICAL_RESEARCH_ID || Boolean(configuration));
   const [status, setStatus] = useState<ResearchValidationStatus>("idle");
   const [validation, setValidation] =
     useState<ResearchValidationResult | null>(null);

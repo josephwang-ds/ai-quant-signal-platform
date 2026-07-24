@@ -20,6 +20,7 @@ import type { ResearchListItem } from "@/types/research";
 import { useResearchExecution } from "@/components/features/research/execution/useResearchExecution";
 import { applyExecutionToListItem } from "@/lib/applyResearchExecution";
 import { CANONICAL_RESEARCH_ID } from "@/lib/canonicalMaCrossover";
+import { CANONICAL_FACTOR_RESEARCH_ID } from "@/lib/canonicalCrossSectionalFactor";
 import {
   researchNameLabel,
   researchQuestionLabel,
@@ -28,6 +29,11 @@ import {
   timelineEventSummaryLabel,
   timelineEventTitleLabel,
 } from "@/lib/researchDisplay";
+
+const DEMO_RESEARCH_IDS = new Set([
+  CANONICAL_RESEARCH_ID,
+  CANONICAL_FACTOR_RESEARCH_ID,
+]);
 import {
   getCurrentLibraryStage,
   hasExecutableProtocol,
@@ -125,7 +131,7 @@ export default function ResearchListPage() {
     () =>
       items.filter(
         (item) =>
-          item.status === "Archived" && item.id !== CANONICAL_RESEARCH_ID
+          item.status === "Archived" && !DEMO_RESEARCH_IDS.has(item.id)
       ),
     [items]
   );
@@ -607,11 +613,11 @@ export default function ResearchListPage() {
                             <Link href={href} className="btn">
                               {tr("researchOverviewOpen")}
                             </Link>
-                            {item.id !== CANONICAL_RESEARCH_ID ? (
+                            {DEMO_RESEARCH_IDS.has(item.id) ? null : (
                               <Button onClick={() => requestDelete(item)}>
                                 {tr("researchListDelete")}
                               </Button>
-                            ) : null}
+                            )}
                           </div>
                         </article>
                       </li>
@@ -776,8 +782,13 @@ export default function ResearchListPage() {
           hypothesis: tr("researchListModalHypothesis"),
           tags: tr("researchWsTags"),
           tagsHint: tr("researchListModalTagsHint"),
+          template: tr("researchListModalTemplate"),
+          templateTrend: tr("researchListModalTemplateTrend"),
+          templateFactor: tr("researchListModalTemplateFactor"),
           executionTitle: tr("researchListModalExecutionTitle"),
           executionHint: tr("researchListModalExecutionHint"),
+          factorDefinitionTitle: tr("researchListModalFactorDefinitionTitle"),
+          factorDefinitionHint: tr("researchListModalFactorDefinitionHint"),
           symbol: tr("researchListModalSymbol"),
           benchmark: tr("researchListModalBenchmark"),
           startDate: tr("researchListModalStartDate"),
@@ -785,6 +796,14 @@ export default function ResearchListPage() {
           shortWindow: tr("researchListModalShortWindow"),
           longWindow: tr("researchListModalLongWindow"),
           transactionCost: tr("researchListModalTransactionCost"),
+          universe: tr("researchListModalUniverse"),
+          factor: tr("researchListModalFactor"),
+          factorMomentum: tr("researchListModalFactorMomentum"),
+          factorLowVol: tr("researchListModalFactorLowVol"),
+          factorValue: tr("researchListModalFactorValue"),
+          factorValueComingSoon: tr("researchListModalFactorValueComingSoon"),
+          rebalance: tr("researchListModalRebalance"),
+          holdingPeriod: tr("researchListModalHoldingPeriod"),
           create: tr("researchListModalCreate"),
           cancel: tr("researchListModalCancel"),
           errorName: tr("researchListModalNameRequired"),
@@ -795,6 +814,8 @@ export default function ResearchListPage() {
           errorLongWindow: tr("researchListModalLongInvalid"),
           errorDateRange: tr("researchListModalDateInvalid"),
           errorTransactionCost: tr("researchListModalCostInvalid"),
+          errorHoldingPeriod: tr("researchListModalHoldingInvalid"),
+          errorFactorValue: tr("researchListModalFactorValueBlocked"),
         }}
       />
       <DeleteResearchModal

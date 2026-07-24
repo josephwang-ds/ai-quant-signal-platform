@@ -20,6 +20,10 @@ import type {
   ResearchValidationStatus,
 } from "@/types/researchValidation";
 import type {
+  FactorValidationResult,
+  FactorValidationStatus,
+} from "@/types/factorValidation";
+import type {
   ResearchEvaluationResult,
   ResearchEvaluationRequestStatus,
 } from "@/types/researchEvaluation";
@@ -48,11 +52,17 @@ export type ResearchWorkspaceMainSectionProps = {
   formatMetric: (value: number | null, kind: "pct" | "num" | "raw") => string;
   navigateToSection: (section: ResearchWorkspaceSection) => void;
   handleRunValidation: () => void;
+  isFactorTemplate: boolean;
   validationEnabled: boolean;
   validationStatus: ResearchValidationStatus;
   validation: ResearchValidationResult | null;
   validationError: string | null;
   reloadValidation: () => void;
+  factorValidationEnabled: boolean;
+  factorValidationStatus: FactorValidationStatus;
+  factorValidation: FactorValidationResult | null;
+  factorValidationError: string | null;
+  reloadFactorValidation: () => void;
   evaluationEnabled: boolean;
   evaluationStatus: ResearchEvaluationRequestStatus;
   evaluation: ResearchEvaluationResult | null;
@@ -106,11 +116,17 @@ export default function ResearchWorkspaceMainSection(
     reloadExecution,
     navigateToSection,
     handleRunValidation,
+    isFactorTemplate,
     validationEnabled,
     validationStatus,
     validation,
     validationError,
     reloadValidation,
+    factorValidationEnabled,
+    factorValidationStatus,
+    factorValidation,
+    factorValidationError,
+    reloadFactorValidation,
     evaluationEnabled,
     evaluationStatus,
     evaluation,
@@ -201,11 +217,17 @@ export default function ResearchWorkspaceMainSection(
         setSelectedExperimentId={setSelectedExperimentId}
         handleExperimentDesigned={handleExperimentDesigned}
         executedExperiments={executedExperiments}
+        isFactorTemplate={isFactorTemplate}
         validationEnabled={validationEnabled}
         validationStatus={validationStatus}
         validation={validation}
         validationError={validationError}
         reloadValidation={reloadValidation}
+        factorValidationEnabled={factorValidationEnabled}
+        factorValidationStatus={factorValidationStatus}
+        factorValidation={factorValidation}
+        factorValidationError={factorValidationError}
+        reloadFactorValidation={reloadFactorValidation}
         evaluationEnabled={evaluationEnabled}
         evaluationStatus={evaluationStatus}
         evaluation={evaluation}

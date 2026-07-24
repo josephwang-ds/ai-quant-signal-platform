@@ -10,11 +10,16 @@ import {
   requestJson,
 } from "@/lib/apiRequest";
 import type { ResearchExecutionResult } from "@/types/researchExecution";
-import type { ResearchRunConfiguration } from "@/types/research";
+import {
+  isFactorRunConfiguration,
+  type ResearchRunConfiguration,
+  type TrendFollowingRunConfiguration,
+} from "@/types/research";
 
 export { ApiRequestError as ResearchExecutionApiError };
 
-const DEFAULT_CONFIGURATION: ResearchRunConfiguration = {
+const DEFAULT_CONFIGURATION: TrendFollowingRunConfiguration = {
+  templateId: "trend_following",
   symbol: "SPY",
   benchmark: "SPY",
   startDate: "2018-01-01",
@@ -25,12 +30,23 @@ const DEFAULT_CONFIGURATION: ResearchRunConfiguration = {
   riskFreeRate: 0,
 };
 
+function asTrendConfig(
+  configuration?: ResearchRunConfiguration
+): TrendFollowingRunConfiguration {
+  if (isFactorRunConfiguration(configuration)) {
+    throw new Error(
+      "MA research execution does not accept cross-sectional factor configuration."
+    );
+  }
+  return configuration ?? DEFAULT_CONFIGURATION;
+}
+
 export async function fetchResearchExecution(options?: {
   signal?: AbortSignal;
   researchId?: string;
   configuration?: ResearchRunConfiguration;
 }): Promise<ResearchExecutionResult> {
-  const configuration = options?.configuration ?? DEFAULT_CONFIGURATION;
+  const configuration = asTrendConfig(options?.configuration);
   return requestJson<ResearchExecutionResult>(
     "/api/v1/research/execution",
     {

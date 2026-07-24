@@ -1,5 +1,5 @@
 /**
- * Research Workspace catalog — projections from the canonical MA Crossover package.
+ * Research Workspace catalog — projections from canonical research packages.
  *
  * TODO(backend): 替换为 GET /api/research 与 GET /api/research/{id}。
  */
@@ -10,15 +10,31 @@ import {
   getCanonicalResearchPackage,
 } from "@/lib/canonicalMaCrossover";
 import {
+  CANONICAL_CROSS_SECTIONAL_FACTOR,
+  CANONICAL_FACTOR_RESEARCH_ID,
+  CANONICAL_FACTOR_RUN_CONFIGURATION,
+  getCanonicalFactorResearchPackage,
+} from "@/lib/canonicalCrossSectionalFactor";
+import {
   toResearchListItem,
   type ResearchDetail,
   type ResearchListItem,
+  type ResearchRunConfiguration,
 } from "@/types/research";
+import type { CanonicalResearchPackage } from "@/types/canonicalResearch";
 
-export { CANONICAL_RESEARCH_ID };
+export { CANONICAL_RESEARCH_ID, CANONICAL_FACTOR_RESEARCH_ID };
 
-function buildCanonicalDetail(): ResearchDetail {
-  const pkg = getCanonicalResearchPackage();
+function buildDetailFromPackage(
+  pkg: CanonicalResearchPackage,
+  runConfiguration: ResearchRunConfiguration,
+  extras: {
+    keyStrengths: string[];
+    knownWeaknesses: string[];
+    openQuestions: string[];
+    nextActions: string[];
+  }
+): ResearchDetail {
   const { definition: def, integrity, plannedExperiments, plannedValidationStages } =
     pkg;
 
@@ -54,42 +70,17 @@ function buildCanonicalDetail(): ResearchDetail {
       ),
       dataRequirements: [...def.dataRequirements],
     },
-    runConfiguration: {
-      symbol: def.symbol,
-      benchmark: def.symbol,
-      startDate: "2018-01-01",
-      endDate: null,
-      shortWindow: 20,
-      longWindow: 60,
-      transactionCost: 0.001,
-      riskFreeRate: 0,
-    },
+    runConfiguration,
     hypothesis: def.hypothesis,
     researchObjective: def.researchObjective,
     researchSummary: def.explanatoryText,
     evidenceSummary:
-      "No calculated evidence yet. Evidence packages will be produced by the Research Execution Engine from real historical prices.",
+      "No calculated evidence yet. Evidence packages will be produced by the research validation engines from real historical prices.",
     validationSummary: `Validation status: ${integrity.validationStatus}. Stages remain Not Started or Awaiting Data until market data arrives.`,
-    keyStrengths: [
-      "Single clear research question and frozen protocol parameters",
-      "Explicit SPY instrument and SPY buy-and-hold benchmark",
-      "Separation of design metadata from calculated results",
-    ],
-    knownWeaknesses: [
-      "No calculated metrics until real historical data is integrated",
-      "Single-asset reference study — not a multi-strategy portfolio",
-      "Provider-grade research data is not an exchange feed",
-    ],
-    openQuestions: [
-      "Does MA20/MA60 beat SPY buy-and-hold after 0.001 costs on the planned window?",
-      "Does chronological OOS preserve the sign of any apparent edge?",
-      "How fragile is the protocol across a bounded short/long MA grid?",
-    ],
-    nextActions: [
-      "Keep protocol parameters frozen until execution exists",
-      "Integrate Research Execution Engine with real historical prices",
-      "Populate validation before any Evaluation recommendation",
-    ],
+    keyStrengths: extras.keyStrengths,
+    knownWeaknesses: extras.knownWeaknesses,
+    openQuestions: extras.openQuestions,
+    nextActions: extras.nextActions,
     evidenceItems: plannedValidationStages.map((stage) => ({
       id: stage.id,
       label: stage.name,
@@ -99,7 +90,78 @@ function buildCanonicalDetail(): ResearchDetail {
   };
 }
 
-export const MOCK_RESEARCH_DETAILS: ResearchDetail[] = [buildCanonicalDetail()];
+function buildCanonicalMaDetail(): ResearchDetail {
+  return buildDetailFromPackage(
+    getCanonicalResearchPackage(),
+    {
+      templateId: "trend_following",
+      symbol: CANONICAL_MA_CROSSOVER.definition.symbol,
+      benchmark: CANONICAL_MA_CROSSOVER.definition.symbol,
+      startDate: "2018-01-01",
+      endDate: null,
+      shortWindow: 20,
+      longWindow: 60,
+      transactionCost: 0.001,
+      riskFreeRate: 0,
+    },
+    {
+      keyStrengths: [
+        "Single clear research question and frozen protocol parameters",
+        "Explicit SPY instrument and SPY buy-and-hold benchmark",
+        "Separation of design metadata from calculated results",
+      ],
+      knownWeaknesses: [
+        "No calculated metrics until real historical data is integrated",
+        "Single-asset reference study — not a multi-strategy portfolio",
+        "Provider-grade research data is not an exchange feed",
+      ],
+      openQuestions: [
+        "Does MA20/MA60 beat SPY buy-and-hold after 0.001 costs on the planned window?",
+        "Does chronological OOS preserve the sign of any apparent edge?",
+        "How fragile is the protocol across a bounded short/long MA grid?",
+      ],
+      nextActions: [
+        "Keep protocol parameters frozen until execution exists",
+        "Integrate Research Execution Engine with real historical prices",
+        "Populate validation before any Evaluation recommendation",
+      ],
+    }
+  );
+}
+
+function buildCanonicalFactorDetail(): ResearchDetail {
+  return buildDetailFromPackage(
+    getCanonicalFactorResearchPackage(),
+    { ...CANONICAL_FACTOR_RUN_CONFIGURATION },
+    {
+      keyStrengths: [
+        "Factor validation framing — not a trading strategy",
+        "Deterministic RankIC and equal-weight Q1–Q5 protocol",
+        "Value factor explicitly deferred (Coming Soon)",
+      ],
+      knownWeaknesses: [
+        "Sector-ETF universe is a demo cross-section, not a production equity book",
+        "No fundamentals → Value unavailable in v1",
+        "No portfolio optimization or risk model by design",
+      ],
+      openQuestions: [
+        "Is mean RankIC for Momentum / Low Volatility distinguishable from zero?",
+        "Does Q5−Q1 survive stated turnover costs?",
+        "How stable is rolling IC across the sample?",
+      ],
+      nextActions: [
+        "Run Factor Validation for Momentum and Low Volatility",
+        "Review RankIC, ICIR, quantile, and long–short evidence before any decision",
+        "Keep Value marked Coming Soon until a fundamentals panel exists",
+      ],
+    }
+  );
+}
+
+export const MOCK_RESEARCH_DETAILS: ResearchDetail[] = [
+  buildCanonicalMaDetail(),
+  buildCanonicalFactorDetail(),
+];
 
 export function getMockResearchDetails(): ResearchDetail[] {
   return MOCK_RESEARCH_DETAILS.map((item) => ({
@@ -117,7 +179,7 @@ export function getMockResearchDetails(): ResearchDetail[] {
       dataRequirements: [...item.configuration.dataRequirements],
     },
     runConfiguration: item.runConfiguration
-      ? { ...item.runConfiguration }
+      ? ({ ...item.runConfiguration } as ResearchRunConfiguration)
       : undefined,
   }));
 }
@@ -147,7 +209,9 @@ export class MockResearchListError extends MockResearchError {
 
 function delay(ms: number): Promise<void> {
   return new Promise((resolve) => {
-    setTimeout(resolve, ms);
+    setTimeout(() => {
+      resolve();
+    }, ms);
   });
 }
 
@@ -186,12 +250,17 @@ export async function loadMockResearchById(
 export const MOCK_RESEARCH_PROJECTS: ResearchListItem[] =
   MOCK_RESEARCH_DETAILS.map(toResearchListItem);
 
-/** Guarantees catalog remains keyed to the canonical package. */
+/** Guarantees catalog remains keyed to the canonical packages. */
 export function assertCanonicalCatalog(): void {
   if (CANONICAL_MA_CROSSOVER.definition.id !== CANONICAL_RESEARCH_ID) {
     throw new Error("Canonical research id mismatch.");
   }
-  if (MOCK_RESEARCH_DETAILS.length !== 1) {
-    throw new Error("Public research catalog must contain exactly one project.");
+  if (CANONICAL_CROSS_SECTIONAL_FACTOR.definition.id !== CANONICAL_FACTOR_RESEARCH_ID) {
+    throw new Error("Canonical factor research id mismatch.");
+  }
+  if (MOCK_RESEARCH_DETAILS.length !== 2) {
+    throw new Error(
+      "Public research catalog must contain Trend Following and Cross-Sectional Factor studies."
+    );
   }
 }
