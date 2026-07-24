@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import Button from "@/components/ui/Button";
 import DataTable from "@/components/ui/DataTable";
 import EmptyState from "@/components/ui/EmptyState";
@@ -704,6 +705,11 @@ export default function ModelComparisonPage() {
               </button>
             </div>
           </div>
+
+          <p className="feature-interpretation-disclaimer">
+            {tr("featureInterpCausality")}{" "}
+            <Link href="/feature-interpretation">{tr("navFeatureInterpretation")}</Link>
+          </p>
 
           {resultsView === "charts" ? (
             <ModelComparisonCharts

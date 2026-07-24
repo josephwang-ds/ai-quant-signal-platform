@@ -383,6 +383,54 @@ export type ModelComparisonMetrics = {
   win_rate?: number | null;
 };
 
+export type FeatureImportanceMethodBlock = {
+  available: boolean;
+  values: Record<string, number>;
+  signed?: Record<string, number>;
+  note?: string;
+};
+
+export type FeatureImportanceRankingRow = {
+  rank: number;
+  feature: string;
+  score: number;
+  method: string;
+};
+
+export type FeatureImportanceStability = {
+  available: boolean;
+  n_folds: number;
+  consistent_features: string[];
+  unstable_features: string[];
+  per_feature: Record<
+    string,
+    {
+      mean: number;
+      std: number;
+      cv: number | null;
+      rank_mean: number;
+      rank_std: number;
+      consistent: boolean;
+      unstable: boolean;
+    }
+  >;
+  note?: string;
+  disclaimer?: string;
+};
+
+export type FeatureImportanceResearch = {
+  disclaimer: string;
+  methods: {
+    native?: FeatureImportanceMethodBlock;
+    permutation?: FeatureImportanceMethodBlock;
+    shap?: FeatureImportanceMethodBlock;
+    coefficient?: FeatureImportanceMethodBlock;
+  };
+  ranking: FeatureImportanceRankingRow[];
+  stability: FeatureImportanceStability | null;
+  limitations?: string[];
+};
+
 export type ModelComparisonResult = {
   label: string;
   kind: ModelComparisonKind;
@@ -393,6 +441,8 @@ export type ModelComparisonResult = {
   directional_accuracy?: number;
   directional_accuracy_note?: string;
   feature_importance?: Record<string, number>;
+  importance_research?: FeatureImportanceResearch;
+  uses_features?: boolean;
   /** Present for offline LSTM/CNN/RL artifact rows. */
   source?: "offline_artifact" | string;
   trained_at?: string;
