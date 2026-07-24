@@ -190,6 +190,8 @@ export default function ResearchWorkspaceMainSection(
         validation={validation}
         evaluationStatus={evaluationStatus}
         evaluation={evaluation}
+        factorValidationStatus={factorValidationStatus}
+        factorValidation={factorValidation}
         reloadExecution={reloadExecution}
         handleRunValidation={handleRunValidation}
         navigateToSection={navigateToSection}
@@ -251,6 +253,8 @@ export default function ResearchWorkspaceMainSection(
         validation={validation}
         evaluationStatus={evaluationStatus}
         evaluation={evaluation}
+        factorValidationStatus={factorValidationStatus}
+        factorValidation={factorValidation}
         navigateToSection={navigateToSection}
       />
     );

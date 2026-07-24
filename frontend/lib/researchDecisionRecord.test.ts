@@ -26,7 +26,7 @@ describe("research decision records", () => {
     expect(() =>
       saveResearchDecisionRecord({
         researchId: "study-1",
-        outcome: "advance",
+        outcome: "promote",
         rationale: "   ",
       })
     ).toThrow("Decision rationale is required.");

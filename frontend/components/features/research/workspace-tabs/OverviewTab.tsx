@@ -1,11 +1,18 @@
 "use client";
 
 import OverviewSection from "@/components/features/research/OverviewSection";
+import ResearchDefinitionSummary from "@/components/features/research/ResearchDefinitionSummary";
+import ResearchReadinessSummary from "@/components/features/research/ResearchReadinessSummary";
+import { buildResearchReadinessModel } from "@/lib/researchReadiness";
 import type { Language, TranslationKey } from "@/lib/i18n";
 import type { ResearchDetail } from "@/types/research";
 import type { ResearchExecutionResult, ResearchExecutionStatus } from "@/types/researchExecution";
 import type { ResearchValidationResult, ResearchValidationStatus } from "@/types/researchValidation";
 import type { ResearchEvaluationResult, ResearchEvaluationRequestStatus } from "@/types/researchEvaluation";
+import type {
+  FactorValidationResult,
+  FactorValidationStatus,
+} from "@/types/factorValidation";
 import type { ResearchWorkspaceSection } from "@/types/research";
 import type { ReactNode } from "react";
 
@@ -20,6 +27,8 @@ export type OverviewTabProps = {
   validation: ResearchValidationResult | null;
   evaluationStatus: ResearchEvaluationRequestStatus;
   evaluation: ResearchEvaluationResult | null;
+  factorValidationStatus?: FactorValidationStatus;
+  factorValidation?: FactorValidationResult | null;
   reloadExecution: () => void;
   handleRunValidation: () => void;
   navigateToSection: (section: ResearchWorkspaceSection) => void;
@@ -36,11 +45,51 @@ export default function OverviewTab({
   validation,
   evaluationStatus,
   evaluation,
+  factorValidationStatus = "idle",
+  factorValidation = null,
   reloadExecution,
   handleRunValidation,
   navigateToSection,
 }: OverviewTabProps) {
-    return (
+  const readiness = buildResearchReadinessModel({
+    research: displayResearch,
+    validation: validationStatus === "ready" ? validation : null,
+    evaluation: evaluationStatus === "ready" ? evaluation : null,
+    factorValidation:
+      factorValidationStatus === "ready" ? factorValidation : null,
+  });
+
+  return (
+    <div className="overview-tab-stack">
+      <ResearchDefinitionSummary
+        research={displayResearch}
+        labels={{
+          title: tr("researchDefinitionTitle"),
+          researchQuestion: tr("researchDefinitionQuestion"),
+          hypothesis: tr("researchDefinitionHypothesis"),
+          dataUniverse: tr("researchDefinitionData"),
+          evaluationProtocol: tr("researchDefinitionProtocol"),
+          successCriteria: tr("researchDefinitionSuccess"),
+          knownLimitations: tr("researchDefinitionLimitations"),
+          unavailable: tr("researchDefinitionUnavailable"),
+        }}
+      />
+      <ResearchReadinessSummary
+        model={readiness}
+        labels={{
+          title: tr("researchReadinessTitle"),
+          description: tr("researchReadinessDescription"),
+          yes: tr("researchReadinessYes"),
+          no: tr("researchReadinessNo"),
+          researchQuestion: tr("researchReadinessQuestion"),
+          hypothesis: tr("researchReadinessHypothesis"),
+          protocol: tr("researchReadinessProtocol"),
+          validation: tr("researchReadinessValidation"),
+          robustness: tr("researchReadinessRobustness"),
+          decision: tr("researchReadinessDecision"),
+          limitations: tr("researchReadinessLimitations"),
+        }}
+      />
       <OverviewSection
         language={language}
         research={displayResearch}
@@ -122,5 +171,6 @@ export default function OverviewTab({
           },
         }}
       />
-    );
+    </div>
+  );
 }

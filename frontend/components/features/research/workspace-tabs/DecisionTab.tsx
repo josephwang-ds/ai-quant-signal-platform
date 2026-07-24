@@ -14,6 +14,10 @@ import type {
   ResearchEvaluationResult,
   ResearchEvaluationRequestStatus,
 } from "@/types/researchEvaluation";
+import type {
+  FactorValidationResult,
+  FactorValidationStatus,
+} from "@/types/factorValidation";
 
 export type DecisionTabProps = {
   section: Extract<ResearchWorkspaceSection, "paper" | "decision">;
@@ -24,6 +28,8 @@ export type DecisionTabProps = {
   validation: ResearchValidationResult | null;
   evaluationStatus: ResearchEvaluationRequestStatus;
   evaluation: ResearchEvaluationResult | null;
+  factorValidationStatus?: FactorValidationStatus;
+  factorValidation?: FactorValidationResult | null;
   navigateToSection: (section: ResearchWorkspaceSection) => void;
 };
 
@@ -35,6 +41,8 @@ export default function DecisionTab({
   validation,
   evaluationStatus,
   evaluation,
+  factorValidationStatus = "idle",
+  factorValidation = null,
   navigateToSection,
 }: DecisionTabProps) {
   if (!research) return null;
@@ -51,11 +59,23 @@ export default function DecisionTab({
     );
   }
 
+  const factorReady =
+    factorValidationStatus === "ready" &&
+    Boolean(factorValidation) &&
+    (factorValidation?.validation_status === "completed" ||
+      (factorValidation?.ic.summary.n_periods ?? 0) > 0);
+
   return (
     <ResearchDecisionCenter
       research={research}
       validation={validationStatus === "ready" ? validation : null}
       evaluation={evaluationStatus === "ready" ? evaluation : null}
+      factorValidationCompleted={factorReady}
+      evidenceTimestamp={
+        factorValidation?.generated_at ??
+        (validationStatus === "ready" ? validation?.generated_at : null) ??
+        null
+      }
       labels={buildDecisionCenterLabels(tr)}
     />
   );

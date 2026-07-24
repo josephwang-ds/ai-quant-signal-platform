@@ -58,9 +58,11 @@ function buildExperimentLabel(research: ResearchDetail): string {
 
 function validationEvidenceCompleted(
   validation: ResearchValidationResult | null,
-  evaluation: ResearchEvaluationResult | null
+  evaluation: ResearchEvaluationResult | null,
+  factorValidationCompleted = false
 ): boolean {
   return (
+    factorValidationCompleted ||
     evaluation?.evaluation_status === "completed" ||
     validation?.validation_status === "completed"
   );
@@ -70,29 +72,37 @@ export function buildDecisionCenterModel(input: {
   research: ResearchDetail;
   validation: ResearchValidationResult | null;
   evaluation: ResearchEvaluationResult | null;
+  /** Factor studies use RankIC/quantile completion instead of MA stages. */
+  factorValidationCompleted?: boolean;
 }): DecisionCenterModel {
   const robustness = buildRobustnessCenterModel({
     validation: input.validation,
     evaluation: input.evaluation,
   });
+  const factorDone = Boolean(input.factorValidationCompleted);
   const validationDone = validationEvidenceCompleted(
     input.validation,
-    input.evaluation
+    input.evaluation,
+    factorDone
   );
-  const robustnessDone = robustness.items.every(
-    (item) => item.status === "completed"
-  );
+  // Factor path has no MA robustness stages; treat validation completion as reviewed.
+  const robustnessDone = factorDone
+    ? validationDone
+    : robustness.items.every((item) => item.status === "completed");
 
   const evidence: DecisionEvidenceView[] = [
     { id: "validation", status: validationDone ? "completed" : "pending" },
     { id: "robustness", status: robustnessDone ? "completed" : "pending" },
   ];
 
-  const remainingRiskIds = robustness.items
-    .filter((item) => item.status !== "completed")
-    .map((item) => item.id);
+  const remainingRiskIds = factorDone
+    ? []
+    : robustness.items
+        .filter((item) => item.status !== "completed")
+        .map((item) => item.id);
 
   const limitationsDocumented =
+    input.research.knownWeaknesses.length > 0 ||
     robustness.scopeBoundaryIds.length > 0 ||
     Boolean(input.evaluation?.limitations.length);
 
@@ -111,7 +121,9 @@ export function buildDecisionCenterModel(input: {
     },
   ];
 
-  const decisionStatus: DecisionStatus = !input.validation
+  const hasAnyEvidence = Boolean(input.validation) || factorDone;
+
+  const decisionStatus: DecisionStatus = !hasAnyEvidence
     ? "not_ready"
     : validationDone && robustnessDone
       ? "ready"
@@ -124,7 +136,7 @@ export function buildDecisionCenterModel(input: {
     evidence,
     remainingRiskIds,
     checklist,
-    hasValidationEvidence: Boolean(input.validation),
+    hasValidationEvidence: hasAnyEvidence,
     hasEvaluationEvidence: Boolean(input.evaluation),
   };
 }

@@ -51,14 +51,20 @@ export type ResearchDecisionCenterLabels = {
   recordTitle: string;
   recordDescription: string;
   outcomeLabel: string;
-  outcomeAdvance: string;
+  outcomePromote: string;
   outcomeHold: string;
   outcomeReject: string;
+  outcomeArchive: string;
   rationaleLabel: string;
   rationalePlaceholder: string;
+  evidenceSummaryLabel: string;
+  evidenceSummaryPlaceholder: string;
+  reviewerNoteLabel: string;
+  reviewerNotePlaceholder: string;
   saveDecision: string;
   savedDecision: string;
   localNote: string;
+  humanDecisionNote: string;
   noEvidenceTitle: string;
   noEvidenceNote: string;
 };
@@ -67,6 +73,8 @@ type Props = {
   research: ResearchDetail;
   validation: ResearchValidationResult | null;
   evaluation: ResearchEvaluationResult | null;
+  factorValidationCompleted?: boolean;
+  evidenceTimestamp?: string | null;
   labels: ResearchDecisionCenterLabels;
 };
 
@@ -98,8 +106,9 @@ function outcomeLabel(
   outcome: ResearchDecisionOutcome,
   labels: ResearchDecisionCenterLabels
 ): string {
-  if (outcome === "advance") return labels.outcomeAdvance;
+  if (outcome === "promote") return labels.outcomePromote;
   if (outcome === "reject") return labels.outcomeReject;
+  if (outcome === "archive") return labels.outcomeArchive;
   return labels.outcomeHold;
 }
 
@@ -107,11 +116,20 @@ export default function ResearchDecisionCenter({
   research,
   validation,
   evaluation,
+  factorValidationCompleted = false,
+  evidenceTimestamp = null,
   labels,
 }: Props) {
-  const model = buildDecisionCenterModel({ research, validation, evaluation });
+  const model = buildDecisionCenterModel({
+    research,
+    validation,
+    evaluation,
+    factorValidationCompleted,
+  });
   const [outcome, setOutcome] = useState<ResearchDecisionOutcome>("hold");
   const [rationale, setRationale] = useState("");
+  const [evidenceSummary, setEvidenceSummary] = useState("");
+  const [reviewerNote, setReviewerNote] = useState("");
   const [record, setRecord] = useState<ResearchDecisionRecord | null>(null);
 
   useEffect(() => {
@@ -120,6 +138,8 @@ export default function ResearchDecisionCenter({
     if (existing) {
       setOutcome(existing.outcome);
       setRationale(existing.rationale);
+      setEvidenceSummary(existing.evidenceSummary ?? "");
+      setReviewerNote(existing.reviewerNote ?? "");
     }
   }, [research.id]);
 
@@ -127,7 +147,7 @@ export default function ResearchDecisionCenter({
     event.preventDefault();
     if (
       !rationale.trim() ||
-      (outcome === "advance" && model.decisionStatus !== "ready")
+      (outcome === "promote" && model.decisionStatus !== "ready")
     ) {
       return;
     }
@@ -136,6 +156,13 @@ export default function ResearchDecisionCenter({
         researchId: research.id,
         outcome,
         rationale,
+        evidenceTimestamp:
+          evidenceTimestamp ??
+          validation?.generated_at ??
+          evaluation?.generated_at ??
+          null,
+        evidenceSummary,
+        reviewerNote,
       })
     );
   }
@@ -243,23 +270,34 @@ export default function ResearchDecisionCenter({
                 <StatusBadge
                   label={outcomeLabel(record.outcome, labels)}
                   variant={
-                    record.outcome === "advance"
+                    record.outcome === "promote"
                       ? "success"
-                      : record.outcome === "reject"
+                      : record.outcome === "reject" ||
+                          record.outcome === "archive"
                         ? "danger"
                         : "warning"
                   }
                 />
                 <p>{record.rationale}</p>
+                {record.evidenceSummary ? (
+                  <p className="section-meta">{record.evidenceSummary}</p>
+                ) : null}
+                {record.reviewerNote ? (
+                  <p className="section-meta">{record.reviewerNote}</p>
+                ) : null}
                 <span>
                   {labels.savedDecision} ·{" "}
                   {new Date(record.decidedAt).toLocaleString()}
+                  {record.evidenceTimestamp
+                    ? ` · evidence ${new Date(record.evidenceTimestamp).toLocaleString()}`
+                    : ""}
                 </span>
               </div>
             ) : null}
           </div>
 
           <form className="decision-record__form" onSubmit={handleSubmit}>
+            <p className="section-meta">{labels.humanDecisionNote}</p>
             <label>
               <span>{labels.outcomeLabel}</span>
               <select
@@ -269,13 +307,14 @@ export default function ResearchDecisionCenter({
                 }
               >
                 <option
-                  value="advance"
+                  value="promote"
                   disabled={model.decisionStatus !== "ready"}
                 >
-                  {labels.outcomeAdvance}
+                  {labels.outcomePromote}
                 </option>
                 <option value="hold">{labels.outcomeHold}</option>
                 <option value="reject">{labels.outcomeReject}</option>
+                <option value="archive">{labels.outcomeArchive}</option>
               </select>
             </label>
             <label>
@@ -288,6 +327,24 @@ export default function ResearchDecisionCenter({
                 required
               />
             </label>
+            <label>
+              <span>{labels.evidenceSummaryLabel}</span>
+              <textarea
+                value={evidenceSummary}
+                onChange={(event) => setEvidenceSummary(event.target.value)}
+                placeholder={labels.evidenceSummaryPlaceholder}
+                rows={2}
+              />
+            </label>
+            <label>
+              <span>{labels.reviewerNoteLabel}</span>
+              <textarea
+                value={reviewerNote}
+                onChange={(event) => setReviewerNote(event.target.value)}
+                placeholder={labels.reviewerNotePlaceholder}
+                rows={2}
+              />
+            </label>
             <div className="decision-record__actions">
               <span>{labels.localNote}</span>
               <button
@@ -295,7 +352,7 @@ export default function ResearchDecisionCenter({
                 className="btn btn--primary"
                 disabled={
                   !rationale.trim() ||
-                  (outcome === "advance" && model.decisionStatus !== "ready")
+                  (outcome === "promote" && model.decisionStatus !== "ready")
                 }
               >
                 {labels.saveDecision}
