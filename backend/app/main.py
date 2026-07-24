@@ -9,6 +9,7 @@ from app.api.routes.data_sources import router as data_sources_router
 from app.api.routes.database import router as database_router
 from app.api.routes.experiments import router as experiments_router
 from app.api.routes.paper_trading import router as paper_trading_router
+from app.api.routes.factor_validation import router as factor_validation_router
 from app.api.routes.research_evaluation import router as research_evaluation_router
 from app.api.routes.research_copilot import router as research_copilot_router
 from app.api.routes.research_execution import router as research_execution_router
@@ -59,6 +60,7 @@ app.include_router(experiments_router)
 app.include_router(paper_trading_router)
 app.include_router(research_execution_router)
 app.include_router(research_validation_router)
+app.include_router(factor_validation_router)
 app.include_router(research_evaluation_router)
 app.include_router(research_copilot_router)
 app.include_router(risk_review_router)
