@@ -16,6 +16,22 @@ const labels: NewResearchModalLabels = {
   template: "Template",
   templateTrend: "Trend Following Study",
   templateFactor: "Cross-Sectional Equity Factor Study",
+  templateTrendHint: "Test one asset.",
+  templateFactorHint: "Rank an ETF universe.",
+  stepDefine: "Define the idea",
+  stepDefineHint: "Start with a testable question.",
+  stepConfigure: "Review the protocol",
+  stepConfigureHint: "Review executable defaults.",
+  next: "Continue to protocol",
+  back: "Back to idea",
+  close: "Close",
+  useExample: "Use this example",
+  exampleApplied: "Example applied",
+  namePlaceholder: "Short label",
+  questionPlaceholderTrend: "Does the rule improve drawdown?",
+  questionPlaceholderFactor: "Does momentum predict returns?",
+  hypothesisPlaceholderTrend: "The rule may reduce drawdown.",
+  hypothesisPlaceholderFactor: "Higher momentum may outperform.",
   executionTitle: "Executable protocol",
   executionHint: "Inputs for validation.",
   factorDefinitionTitle: "Factor definition",
@@ -70,6 +86,9 @@ describe("NewResearchModal", () => {
     await user.type(
       screen.getByLabelText("Hypothesis *"),
       "The rule may reduce drawdown."
+    );
+    await user.click(
+      screen.getByRole("button", { name: "Continue to protocol" })
     );
     await user.click(screen.getByRole("button", { name: "Create" }));
 

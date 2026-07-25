@@ -50,7 +50,6 @@ export const WORKSPACE_NAV_GROUPS: WorkspaceNavGroup[] = [
   {
     id: "tools",
     labelKey: "navGroupTools",
-    collapsible: true,
     items: [
       { href: "/market-watch", labelKey: "navMarketWatch" },
       { href: "/ai-insights", labelKey: "navAiInsights" },
@@ -61,7 +60,6 @@ export const WORKSPACE_NAV_GROUPS: WorkspaceNavGroup[] = [
   {
     id: "archive",
     labelKey: "navGroupArchive",
-    collapsible: true,
     items: [
       { href: "/data-center", labelKey: "navDataCenter" },
       { href: "/experiments", labelKey: "navExperiments" },

@@ -789,6 +789,30 @@ export default function ResearchListPage() {
           template: tr("researchListModalTemplate"),
           templateTrend: tr("researchListModalTemplateTrend"),
           templateFactor: tr("researchListModalTemplateFactor"),
+          templateTrendHint: tr("researchListModalTemplateTrendHint"),
+          templateFactorHint: tr("researchListModalTemplateFactorHint"),
+          stepDefine: tr("researchListModalStepDefine"),
+          stepDefineHint: tr("researchListModalStepDefineHint"),
+          stepConfigure: tr("researchListModalStepConfigure"),
+          stepConfigureHint: tr("researchListModalStepConfigureHint"),
+          next: tr("researchListModalNext"),
+          back: tr("researchListModalBack"),
+          close: tr("researchListModalClose"),
+          useExample: tr("researchListModalUseExample"),
+          exampleApplied: tr("researchListModalExampleApplied"),
+          namePlaceholder: tr("researchListModalNamePlaceholder"),
+          questionPlaceholderTrend: tr(
+            "researchListModalQuestionPlaceholderTrend"
+          ),
+          questionPlaceholderFactor: tr(
+            "researchListModalQuestionPlaceholderFactor"
+          ),
+          hypothesisPlaceholderTrend: tr(
+            "researchListModalHypothesisPlaceholderTrend"
+          ),
+          hypothesisPlaceholderFactor: tr(
+            "researchListModalHypothesisPlaceholderFactor"
+          ),
           executionTitle: tr("researchListModalExecutionTitle"),
           executionHint: tr("researchListModalExecutionHint"),
           factorDefinitionTitle: tr("researchListModalFactorDefinitionTitle"),

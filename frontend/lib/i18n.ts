@@ -821,6 +821,31 @@ export const translations = {
     researchListModalTemplate: "Research template",
     researchListModalTemplateTrend: "Trend Following Study",
     researchListModalTemplateFactor: "Cross-Sectional Equity Factor Study",
+    researchListModalTemplateTrendHint:
+      "Test one asset with a transparent short/long moving-average rule.",
+    researchListModalTemplateFactorHint:
+      "Rank a defined ETF universe by momentum or low volatility.",
+    researchListModalStepDefine: "Define the idea",
+    researchListModalStepDefineHint:
+      "Start with one testable question. You can use the example and edit it.",
+    researchListModalStepConfigure: "Review the protocol",
+    researchListModalStepConfigureHint:
+      "Defaults are ready to run. Change them only when your test requires it.",
+    researchListModalNext: "Continue to protocol",
+    researchListModalBack: "Back to idea",
+    researchListModalClose: "Close new research",
+    researchListModalUseExample: "Use this example",
+    researchListModalExampleApplied: "Example added — edit any wording you need.",
+    researchListModalNamePlaceholder:
+      "A short label, e.g. SPY 20/60 trend test",
+    researchListModalQuestionPlaceholderTrend:
+      "Example: Does a 20/60-day moving-average rule improve SPY drawdown versus buy-and-hold?",
+    researchListModalQuestionPlaceholderFactor:
+      "Example: Does 12-month momentum rank US sector ETFs with persistent forward returns?",
+    researchListModalHypothesisPlaceholderTrend:
+      "Example: The rule may reduce major drawdowns, even if it gives up some upside in choppy markets.",
+    researchListModalHypothesisPlaceholderFactor:
+      "Example: Higher-momentum sectors may outperform lower-momentum sectors over the next month.",
     researchListModalFactorDefinitionTitle: "Factor research definition",
     researchListModalFactorDefinitionHint:
       "Universe, factor, rebalance frequency, and holding period. This is factor validation — not a trading strategy.",
@@ -2842,6 +2867,30 @@ export const translations = {
     researchListModalTemplate: "研究模板",
     researchListModalTemplateTrend: "趋势跟踪研究",
     researchListModalTemplateFactor: "截面权益因子研究",
+    researchListModalTemplateTrendHint:
+      "用透明的短期/长期均线规则检验单一标的。",
+    researchListModalTemplateFactorHint:
+      "在明确的 ETF 股票池中按动量或低波动排序。",
+    researchListModalStepDefine: "先说清研究想法",
+    researchListModalStepDefineHint:
+      "先写一个可以被数据验证的问题；不确定时可直接套用示例再修改。",
+    researchListModalStepConfigure: "确认执行参数",
+    researchListModalStepConfigureHint:
+      "系统已给出可运行的默认值；只有研究需要时才调整。",
+    researchListModalNext: "下一步：确认参数",
+    researchListModalBack: "返回研究想法",
+    researchListModalClose: "关闭新建研究",
+    researchListModalUseExample: "一键填入示例",
+    researchListModalExampleApplied: "示例已填入，可直接修改其中任何内容。",
+    researchListModalNamePlaceholder: "简短名称，例如：SPY 20/60 趋势检验",
+    researchListModalQuestionPlaceholderTrend:
+      "示例：与买入持有相比，20/60 日均线规则能否降低 SPY 的最大回撤？",
+    researchListModalQuestionPlaceholderFactor:
+      "示例：12 个月动量能否持续预测美国行业 ETF 下一月收益？",
+    researchListModalHypothesisPlaceholderTrend:
+      "示例：该规则可能降低大幅回撤，但在震荡市场中会牺牲部分上涨收益。",
+    researchListModalHypothesisPlaceholderFactor:
+      "示例：高动量行业在未来一个月的收益可能高于低动量行业。",
     researchListModalFactorDefinitionTitle: "因子研究定义",
     researchListModalFactorDefinitionHint:
       "Universe、因子、再平衡频率与持有期。这是因子验证流程，不是交易策略。",

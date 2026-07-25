@@ -465,6 +465,383 @@ th.num,
   }
 }
 
+/* 2026-07 guided workspace refinement: compact hierarchy and visible actions. */
+@media (min-width: 768px) {
+  :root {
+    --sidebar-width: 11.5rem;
+    --container: 90rem;
+  }
+
+  .workspace-sidebar {
+    padding-inline: 0.6rem;
+  }
+
+  .workspace-sidenav {
+    gap: 0.42rem;
+  }
+
+  .workspace-sidenav__group {
+    gap: 0;
+    padding-top: 0.35rem;
+  }
+
+  .workspace-sidenav__group-label {
+    padding: 0 0.55rem 0.18rem;
+    font-size: 0.56rem;
+  }
+
+  .workspace-sidenav__item {
+    padding: 0.35rem 0.55rem;
+    font-size: 0.78rem;
+  }
+}
+
+.workspace-home-hero {
+  grid-template-rows: repeat(2, minmax(6.6rem, auto));
+}
+
+.workspace-home-hero__copy {
+  justify-content: flex-start;
+  padding: clamp(1.35rem, 2.25vw, 2rem);
+}
+
+.workspace-home-hero__title {
+  max-width: 14ch;
+  font-size: clamp(1.9rem, 3.1vw, 3.15rem);
+  line-height: 1.02;
+}
+
+.workspace-home-hero__sentence {
+  margin-top: 0.7rem;
+  font-size: 0.86rem;
+}
+
+.workspace-home-hero__stat {
+  padding: 1rem 1.2rem;
+}
+
+.workspace-home-hero__stat dd {
+  font-size: clamp(1.9rem, 3vw, 2.8rem);
+}
+
+.workspace-home-hero__cta .btn--primary {
+  padding: 1.2rem;
+  font-size: 1rem;
+}
+
+.research-overview__section {
+  padding: clamp(1rem, 1.7vw, 1.3rem);
+}
+
+.research-overview__workflow-step {
+  min-height: 4.25rem;
+}
+
+/* The new-research flow teaches the input model before exposing parameters. */
+.research-modal {
+  z-index: 100;
+  padding: clamp(0.5rem, 2vw, 1.25rem);
+  background: rgba(20, 22, 26, 0.58);
+  backdrop-filter: blur(8px);
+}
+
+.research-modal__panel--guided {
+  width: min(58rem, 100%);
+  max-height: min(92vh, 50rem);
+  padding: 0;
+  border: 0;
+  border-radius: 22px;
+  overflow: auto;
+  box-shadow: 0 30px 90px rgba(0, 0, 0, 0.24);
+}
+
+.research-modal__panel--guided .research-modal__header {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  margin: 0;
+  padding: 1.15rem 1.35rem 0.9rem;
+  background: rgba(255, 255, 255, 0.94);
+  border-bottom: 1px solid var(--border-subtle);
+  backdrop-filter: blur(18px);
+}
+
+.research-modal__eyebrow {
+  margin: 0 0 0.15rem;
+  color: var(--accent);
+  font-size: 0.68rem;
+  font-weight: 750;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.research-modal__panel--guided .research-modal__title {
+  font-size: clamp(1.25rem, 2vw, 1.65rem);
+  letter-spacing: -0.03em;
+}
+
+.research-modal__panel--guided .research-modal__header .section-meta {
+  max-width: 42rem;
+  margin-top: 0.25rem;
+  font-size: 0.82rem;
+}
+
+.research-modal__close {
+  display: grid;
+  flex: 0 0 auto;
+  place-items: center;
+  width: 2.15rem;
+  height: 2.15rem;
+  border: 0;
+  border-radius: 999px;
+  background: #f0f0f2;
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: 1.35rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.research-modal__steps {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.35rem;
+  margin: 0;
+  padding: 0.8rem 1.35rem 0;
+  list-style: none;
+}
+
+.research-modal__steps li {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.5rem 0.65rem;
+  border-radius: 10px;
+  color: var(--text-muted);
+  background: #f5f5f7;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.research-modal__steps li span {
+  display: grid;
+  place-items: center;
+  width: 1.35rem;
+  height: 1.35rem;
+  border-radius: 999px;
+  background: #e5e5e7;
+  font-size: 0.68rem;
+}
+
+.research-modal__steps li.is-active {
+  color: #0059b3;
+  background: #eaf3ff;
+}
+
+.research-modal__steps li.is-active span,
+.research-modal__steps li.is-complete span {
+  color: #fff;
+  background: var(--accent);
+}
+
+.research-modal__panel--guided .research-modal__form {
+  gap: 0;
+}
+
+.research-modal__step-content {
+  display: grid;
+  gap: 0.85rem;
+  padding: 1rem 1.35rem 1.1rem;
+}
+
+.research-modal__template-picker {
+  min-width: 0;
+  border: 0;
+}
+
+.research-modal__template-picker legend {
+  margin-bottom: 0.45rem;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.research-modal__template-options {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.5rem;
+}
+
+.research-modal__template-option {
+  display: grid;
+  gap: 0.2rem;
+  min-width: 0;
+  padding: 0.75rem 0.85rem;
+  border: 1px solid var(--border-subtle);
+  border-radius: 14px;
+  background: #fff;
+  color: var(--text-primary);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.research-modal__template-option span {
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  line-height: 1.4;
+}
+
+.research-modal__template-option.is-selected {
+  border-color: var(--accent);
+  background: #f2f7ff;
+  box-shadow: inset 0 0 0 1px var(--accent);
+}
+
+.research-modal__example-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.7rem 0.8rem;
+  border-radius: 12px;
+  background: #f5f5f7;
+}
+
+.research-modal__example-bar p {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 0.78rem;
+  line-height: 1.4;
+}
+
+.research-modal__example-bar .btn {
+  flex: 0 0 auto;
+  min-height: 2rem;
+  padding: 0.4rem 0.75rem;
+  color: #0059b3;
+  background: #fff;
+}
+
+.research-modal__panel--guided .form-label {
+  font-size: 0.78rem;
+}
+
+.research-modal__panel--guided .form-input {
+  min-height: 2.7rem;
+  padding: 0.65rem 0.75rem;
+  border-radius: 12px;
+  font-size: 0.9rem;
+}
+
+.research-modal__panel--guided textarea.form-input {
+  min-height: 6rem;
+  resize: vertical;
+}
+
+.research-modal__panel--guided .form-hint {
+  max-width: 38rem;
+  margin-top: 0.28rem;
+  font-size: 0.7rem;
+  line-height: 1.35;
+}
+
+.research-modal__tags {
+  max-width: 32rem;
+}
+
+.research-modal__definition-summary {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(12rem, 0.8fr) minmax(0, 1.2fr) auto;
+  gap: 0.7rem 1rem;
+  padding: 0.8rem 0.9rem;
+  border-radius: 14px;
+  background: #f5f5f7;
+}
+
+.research-modal__definition-summary div {
+  display: grid;
+  align-content: start;
+  gap: 0.1rem;
+}
+
+.research-modal__definition-summary span {
+  color: var(--text-muted);
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.research-modal__definition-summary strong,
+.research-modal__definition-summary p {
+  margin: 0;
+  font-size: 0.8rem;
+  line-height: 1.4;
+}
+
+.research-modal__definition-summary button {
+  align-self: start;
+  border: 0;
+  background: transparent;
+  color: var(--accent);
+  font: inherit;
+  font-size: 0.75rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.research-modal__panel--guided .research-modal__fieldset {
+  order: initial;
+  margin: 0;
+  padding: 0.9rem;
+  background: #fafafa;
+}
+
+.research-modal__error {
+  margin: 0 1.35rem 0.7rem;
+  padding: 0.65rem 0.75rem;
+  border-radius: 10px;
+  background: var(--danger-bg);
+  color: var(--danger);
+  font-size: 0.78rem;
+}
+
+.research-modal__panel--guided .research-modal__actions {
+  position: sticky;
+  bottom: 0;
+  z-index: 3;
+  margin: 0;
+  padding: 0.8rem 1.35rem;
+  border-top: 1px solid var(--border-subtle);
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(18px);
+}
+
+@media (max-width: 640px) {
+  .workspace-home-hero__copy {
+    min-height: 12rem;
+  }
+
+  .workspace-home-hero__title {
+    font-size: clamp(1.8rem, 9vw, 2.5rem);
+  }
+
+  .research-modal__template-options,
+  .research-modal__definition-summary {
+    grid-template-columns: 1fr;
+  }
+
+  .research-modal__example-bar {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .research-modal__definition-summary button {
+    justify-self: start;
+  }
+}
+
 /* Research operating overview (homepage) */
 .research-overview {
   display: grid;
@@ -10839,4 +11216,102 @@ h1.section-header__title {
 .overview-tab-stack {
   display: grid;
   gap: 1rem;
+}
+
+/* Final cascade layer for the compact homepage and guided creation flow. */
+@media (min-width: 768px) {
+  :root {
+    --sidebar-width: 11.5rem;
+    --container: 90rem;
+  }
+
+  .workspace-sidebar {
+    padding-inline: 0.6rem;
+  }
+
+  .workspace-sidenav {
+    gap: 0.42rem;
+  }
+
+  .workspace-sidenav__group {
+    gap: 0;
+    padding-top: 0.35rem;
+  }
+
+  .workspace-sidenav__group-label {
+    padding: 0 0.55rem 0.18rem;
+    font-size: 0.56rem;
+  }
+
+  .workspace-sidenav__item {
+    padding: 0.35rem 0.55rem;
+    font-size: 0.78rem;
+  }
+}
+
+.workspace-home-hero {
+  grid-template-rows: repeat(2, minmax(6.6rem, auto));
+}
+
+.workspace-home-hero__copy {
+  justify-content: flex-start;
+  padding: clamp(1.35rem, 2.25vw, 2rem);
+}
+
+.workspace-home-hero__title {
+  max-width: 14ch;
+  font-size: clamp(1.9rem, 3.1vw, 3.15rem);
+  line-height: 1.02;
+}
+
+.workspace-home-hero__sentence {
+  margin-top: 0.7rem;
+  font-size: 0.86rem;
+}
+
+.workspace-home-hero__stat {
+  padding: 1rem 1.2rem;
+}
+
+.workspace-home-hero__stat dd {
+  font-size: clamp(1.9rem, 3vw, 2.8rem);
+}
+
+.workspace-home-hero__cta .btn--primary {
+  padding: 1.2rem;
+  font-size: 1rem;
+}
+
+.research-overview__section {
+  padding: clamp(1rem, 1.7vw, 1.3rem);
+}
+
+.research-overview__workflow-step {
+  min-height: 4.25rem;
+}
+
+.research-modal {
+  z-index: 100;
+  padding: clamp(0.5rem, 2vw, 1.25rem);
+  background: rgba(20, 22, 26, 0.58);
+  backdrop-filter: blur(8px);
+}
+
+.research-modal__error {
+  margin: 0 1.35rem 0.7rem;
+  padding: 0.65rem 0.75rem;
+  border-radius: 10px;
+  background: var(--danger-bg);
+  color: var(--danger);
+  font-size: 0.78rem;
+}
+
+@media (max-width: 640px) {
+  .workspace-home-hero__copy {
+    min-height: 12rem;
+  }
+
+  .workspace-home-hero__title {
+    font-size: clamp(1.8rem, 9vw, 2.5rem);
+  }
 }
