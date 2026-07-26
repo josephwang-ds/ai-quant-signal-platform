@@ -29,6 +29,21 @@ export default function PageHero({ title, sentence, stats, primaryCta }: PageHer
       <div className="workspace-home-hero__copy">
         <h1 className="workspace-home-hero__title">{title}</h1>
         <p className="workspace-home-hero__sentence">{sentence}</p>
+        <div className="workspace-home-hero__actions">
+          {"href" in primaryCta && primaryCta.href ? (
+            <Link href={primaryCta.href} className="btn btn--primary">
+              {primaryCta.label}
+            </Link>
+          ) : (
+            <button
+              type="button"
+              className="btn btn--primary"
+              onClick={primaryCta.onClick}
+            >
+              {primaryCta.label}
+            </button>
+          )}
+        </div>
       </div>
 
       {stats.length > 0 ? (
@@ -41,18 +56,6 @@ export default function PageHero({ title, sentence, stats, primaryCta }: PageHer
           ))}
         </dl>
       ) : null}
-
-      <div className="workspace-home-hero__cta">
-        {"href" in primaryCta && primaryCta.href ? (
-          <Link href={primaryCta.href} className="btn btn--primary">
-            {primaryCta.label}
-          </Link>
-        ) : (
-          <button type="button" className="btn btn--primary" onClick={primaryCta.onClick}>
-            {primaryCta.label}
-          </button>
-        )}
-      </div>
     </header>
   );
 }

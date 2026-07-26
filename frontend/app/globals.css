@@ -11315,3 +11315,225 @@ h1.section-header__title {
     font-size: clamp(1.8rem, 9vw, 2.5rem);
   }
 }
+
+/* Homepage hierarchy: one primary story, useful status, one quiet review map. */
+.workspace-home-hero {
+  grid-template-columns: minmax(0, 1.65fr) minmax(16rem, 0.65fr);
+  grid-template-rows: auto;
+  gap: 6px;
+}
+
+.workspace-home-hero__copy {
+  grid-column: 1;
+  grid-row: 1;
+  min-height: 20rem;
+  justify-content: center;
+  padding: clamp(1.75rem, 3.2vw, 3rem);
+}
+
+.workspace-home-hero__title {
+  max-width: 13ch;
+  font-size: clamp(2.35rem, 4vw, 4rem);
+  line-height: 1.03;
+}
+
+.workspace-home-hero__sentence {
+  max-width: 35rem;
+  margin-top: 0.9rem;
+  font-size: 0.94rem;
+}
+
+.workspace-home-hero__actions {
+  display: flex;
+  margin-top: 1.45rem;
+}
+
+.workspace-home-hero__actions .btn--primary {
+  width: fit-content;
+  min-height: 2.75rem;
+  padding: 0.72rem 1.15rem;
+  border: 0;
+  border-radius: 999px;
+  background: #0071e3;
+  box-shadow: none;
+  color: #fff;
+}
+
+.workspace-home-hero__actions .btn--primary:hover {
+  background: #0077ed;
+  color: #fff;
+}
+
+.workspace-home-hero__stats {
+  display: grid;
+  grid-column: 2;
+  grid-row: 1;
+  grid-template-columns: 1fr;
+  gap: 6px;
+  margin: 0;
+}
+
+.workspace-home-hero__stat {
+  min-height: 0;
+  padding: 1.2rem 1.35rem;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.workspace-home-hero__stat dt {
+  margin: 0 0 0.45rem;
+  color: var(--text-muted);
+  font-size: 0.68rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.workspace-home-hero__stat dd,
+.workspace-home-hero__stat:nth-child(1) dd,
+.workspace-home-hero__stat:nth-child(2) dd,
+.workspace-home-hero__stat:nth-child(3) dd {
+  color: #0071e3;
+  font-size: clamp(1.45rem, 2.2vw, 2.2rem);
+  letter-spacing: -0.045em;
+  line-height: 1.05;
+}
+
+.guided-review-entry {
+  display: grid;
+  grid-template-columns: minmax(14rem, 0.72fr) minmax(0, 1.6fr);
+  grid-template-rows: auto;
+  gap: 6px;
+}
+
+.guided-review-entry__intro {
+  grid-column: 1;
+  grid-row: 1;
+  min-height: 0;
+  justify-content: flex-start;
+  padding: 1.35rem 1.5rem;
+  background: #fff;
+  color: var(--text-primary);
+}
+
+.guided-review-entry__eyebrow {
+  color: #0071e3;
+}
+
+.guided-review-entry__intro h2 {
+  margin-top: 0.55rem;
+  color: var(--text-primary);
+  font-size: clamp(1.2rem, 1.55vw, 1.5rem);
+  letter-spacing: -0.025em;
+  line-height: 1.18;
+}
+
+.guided-review-entry__intro > p:not(.guided-review-entry__eyebrow) {
+  margin-top: 0.65rem;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  line-height: 1.5;
+}
+
+.guided-review-entry__steps {
+  display: grid;
+  grid-column: 2;
+  grid-row: 1;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+}
+
+.guided-review-entry__steps li {
+  display: flex;
+  min-height: 9rem;
+  padding: 1.1rem;
+  flex-direction: column;
+  gap: 0.8rem;
+  border: 0;
+  border-radius: 20px;
+  background: #f5f5f7;
+  box-shadow: none;
+}
+
+.guided-review-entry__steps li:nth-child(1) .guided-review-entry__index,
+.guided-review-entry__steps li:nth-child(2) .guided-review-entry__index,
+.guided-review-entry__steps li:nth-child(3) .guided-review-entry__index,
+.guided-review-entry__steps li:nth-child(4) .guided-review-entry__index {
+  color: #0071e3;
+  background: #eaf3ff;
+}
+
+.guided-review-entry__steps strong {
+  font-size: 0.86rem;
+}
+
+.guided-review-entry__steps div > span {
+  margin-top: 0.35rem;
+  font-size: 0.74rem;
+  line-height: 1.45;
+}
+
+@media (max-width: 1020px) {
+  .workspace-home-hero {
+    grid-template-columns: 1fr;
+  }
+
+  .workspace-home-hero__copy,
+  .workspace-home-hero__stats {
+    grid-column: 1;
+    grid-row: auto;
+  }
+
+  .workspace-home-hero__copy {
+    min-height: 17rem;
+  }
+
+  .workspace-home-hero__stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .guided-review-entry {
+    grid-template-columns: 1fr;
+  }
+
+  .guided-review-entry__intro,
+  .guided-review-entry__steps {
+    grid-column: 1;
+    grid-row: auto;
+  }
+
+  .guided-review-entry__steps {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .workspace-home-hero__copy {
+    min-height: auto;
+  }
+
+  .workspace-home-hero__title {
+    font-size: clamp(2rem, 10vw, 2.75rem);
+  }
+
+  .workspace-home-hero__stat {
+    min-height: 6.5rem;
+  }
+
+  .workspace-home-hero__stat:last-child:nth-child(odd) {
+    grid-column: 1 / -1;
+  }
+
+  .guided-review-entry__intro {
+    min-height: 0;
+  }
+
+  .guided-review-entry__steps {
+    grid-template-columns: 1fr;
+  }
+
+  .guided-review-entry__steps li {
+    min-height: 0;
+  }
+}

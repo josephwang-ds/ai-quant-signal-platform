@@ -4,45 +4,32 @@ import GuidedReviewEntry from "@/components/features/research/GuidedReviewEntry"
 
 describe("GuidedReviewEntry", () => {
   it("presents one bounded reviewer path without claiming results", () => {
-    render(
-      <GuidedReviewEntry
-        language="en"
-        href="/research/ma-crossover-spy?review=1"
-      />
-    );
+    render(<GuidedReviewEntry language="en" />);
 
     expect(
       screen.getByRole("heading", {
-        name: "One research question. Four proof points.",
+        name: "From question to decision, in four checks.",
       })
     ).toBeInTheDocument();
-    expect(screen.getAllByRole("listitem")).toHaveLength(8);
+    expect(screen.getAllByRole("listitem")).toHaveLength(4);
     expect(
-      screen.getByRole("link", { name: "Start guided review" })
-    ).toHaveAttribute("href", "/research/ma-crossover-spy?review=1");
-    expect(screen.getByText("Why this is different")).toBeInTheDocument();
-    expect(
-      screen.getByText("Deterministic checks before AI")
+      screen.getByText("Backend-calculated results and deterministic checks")
     ).toBeInTheDocument();
-    expect(screen.getByText("Unknowns stay visible")).toBeInTheDocument();
+    expect(
+      screen.queryByRole("link", { name: "Start guided review" })
+    ).not.toBeInTheDocument();
     expect(screen.queryByText(/guaranteed return/i)).not.toBeInTheDocument();
   });
 
   it("renders a complete Chinese experience", () => {
-    render(
-      <GuidedReviewEntry
-        language="zh"
-        href="/research/ma-crossover-spy?review=1"
-      />
-    );
+    render(<GuidedReviewEntry language="zh" />);
 
     expect(
-      screen.getByRole("heading", { name: "一个研究问题，四个证明点。" })
+      screen.getByRole("heading", { name: "从问题到决策，四步完成审阅。" })
     ).toBeInTheDocument();
+    expect(screen.getAllByRole("listitem")).toHaveLength(4);
     expect(
-      screen.getByRole("link", { name: "开始引导式审阅" })
+      screen.getByText("人的决策权与分析严格分离")
     ).toBeInTheDocument();
-    expect(screen.getByText("它为什么不同")).toBeInTheDocument();
-    expect(screen.getByText("人工保留决策权")).toBeInTheDocument();
   });
 });

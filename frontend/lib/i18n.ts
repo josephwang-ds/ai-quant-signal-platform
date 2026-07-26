@@ -694,6 +694,7 @@ export const translations = {
     researchOverviewHeroSentence:
       "Define the hypothesis, test it on market data, challenge the result, then let a human decide.",
     researchOverviewStatActive: "Active",
+    researchOverviewStatStage: "Current stage",
     researchOverviewStatReview: "In review",
     researchOverviewStatPaper: "Paper",
     researchOverviewStatExperiments: "Experiments",
@@ -724,9 +725,9 @@ export const translations = {
       "No active research threads. Create a project to begin the research lifecycle.",
     researchOverviewAiActionResume: "Resume research",
     guidedReviewEyebrow: "Recommended review · 3 minutes",
-    guidedReviewTitle: "One research question. Four proof points.",
+    guidedReviewTitle: "From question to decision, in four checks.",
     guidedReviewDescription:
-      "Follow the sample study from a falsifiable question to a governed decision. Every screen has one point to inspect and one point to explain.",
+      "Inspect the sample study’s question, evidence, robustness limits, and human decision boundary.",
     guidedReviewStart: "Start guided review",
     guidedReviewStepQuestion: "Question",
     guidedReviewStepQuestionDetail: "A testable hypothesis and fixed protocol",
@@ -2747,6 +2748,7 @@ export const translations = {
     researchOverviewHeroSentence:
       "定义假设，用市场数据检验，主动挑战结果，最后由人做决定。",
     researchOverviewStatActive: "进行中",
+    researchOverviewStatStage: "当前阶段",
     researchOverviewStatReview: "审阅中",
     researchOverviewStatPaper: "模拟盘",
     researchOverviewStatExperiments: "实验",
@@ -2776,9 +2778,9 @@ export const translations = {
       "暂无活跃研究线程。创建项目以开始研究生命周期。",
     researchOverviewAiActionResume: "恢复研究",
     guidedReviewEyebrow: "推荐审阅路径 · 3 分钟",
-    guidedReviewTitle: "一个研究问题，四个证明点。",
+    guidedReviewTitle: "从问题到决策，四步完成审阅。",
     guidedReviewDescription:
-      "跟随示例研究，从可证伪问题走到受治理的决策。每一屏只需要看一个重点、讲清一个观点。",
+      "依次检查示例研究的问题、证据、稳健性限制与人工决策边界。",
     guidedReviewStart: "开始引导式审阅",
     guidedReviewStepQuestion: "问题",
     guidedReviewStepQuestionDetail: "可检验假设与预先固定的研究协议",

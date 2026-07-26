@@ -1,11 +1,7 @@
-"use client";
-
-import Link from "next/link";
 import { t, type Language } from "@/lib/i18n";
 
 type GuidedReviewEntryProps = {
   language: Language;
-  href: string;
 };
 
 /**
@@ -15,7 +11,6 @@ type GuidedReviewEntryProps = {
  */
 export default function GuidedReviewEntry({
   language,
-  href,
 }: GuidedReviewEntryProps) {
   const steps = [
     {
@@ -42,7 +37,7 @@ export default function GuidedReviewEntry({
       aria-labelledby="guided-review-entry-title"
       data-testid="guided-review-entry"
     >
-      <div className="guided-review-entry__intro">
+      <header className="guided-review-entry__intro">
         <p className="guided-review-entry__eyebrow">
           {t(language, "guidedReviewEyebrow")}
         </p>
@@ -50,10 +45,7 @@ export default function GuidedReviewEntry({
           {t(language, "guidedReviewTitle")}
         </h2>
         <p>{t(language, "guidedReviewDescription")}</p>
-        <Link href={href} className="btn btn--primary">
-          {t(language, "guidedReviewStart")}
-        </Link>
-      </div>
+      </header>
 
       <ol className="guided-review-entry__steps">
         {steps.map((step, index) => (
@@ -68,19 +60,6 @@ export default function GuidedReviewEntry({
           </li>
         ))}
       </ol>
-
-      <div className="guided-review-entry__difference">
-        <p>{t(language, "guidedReviewDifferenceTitle")}</p>
-        <ul
-          className="guided-review-entry__trust"
-          aria-label={t(language, "guidedReviewTrustLabel")}
-        >
-          <li>{t(language, "guidedReviewTrustSource")}</li>
-          <li>{t(language, "guidedReviewTrustDeterministic")}</li>
-          <li>{t(language, "guidedReviewTrustUnknowns")}</li>
-          <li>{t(language, "guidedReviewTrustHuman")}</li>
-        </ul>
-      </div>
     </section>
   );
 }

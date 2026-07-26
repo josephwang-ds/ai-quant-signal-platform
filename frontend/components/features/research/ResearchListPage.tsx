@@ -290,6 +290,35 @@ export default function ResearchListPage() {
         onClick: handleNewResearch,
       };
 
+  const heroStats =
+    loadStatus === "ready"
+      ? [
+          {
+            label: tr("researchOverviewStatActive"),
+            value: stats.active,
+          },
+          ...(continueResearch
+            ? [
+                {
+                  label: tr("researchOverviewStatStage"),
+                  value:
+                    stageLabels[
+                      getCurrentLibraryStage(continueResearch.status)
+                    ],
+                },
+              ]
+            : []),
+          ...(stats.experiments > 0
+            ? [
+                {
+                  label: tr("researchOverviewStatExperiments"),
+                  value: stats.experiments,
+                },
+              ]
+            : []),
+        ]
+      : [];
+
   const aiSummary =
     continueResearch && continueHref
       ? tr("researchOverviewAiSummaryFocus")
@@ -334,24 +363,7 @@ export default function ResearchListPage() {
         <PageHero
           title={tr("researchOverviewHeroTitle")}
           sentence={tr("researchOverviewHeroSentence")}
-          stats={
-            loadStatus === "ready"
-              ? [
-                  {
-                    label: tr("researchOverviewStatActive"),
-                    value: stats.active,
-                  },
-                  {
-                    label: tr("researchOverviewStatReview"),
-                    value: stats.inReview,
-                  },
-                  {
-                    label: tr("researchOverviewStatExperiments"),
-                    value: stats.experiments,
-                  },
-                ]
-              : []
-          }
+          stats={heroStats}
           primaryCta={heroCta}
         />
 
@@ -379,13 +391,6 @@ export default function ResearchListPage() {
 
         {loadStatus === "ready" ? (
           <>
-            {guidedReviewHref ? (
-              <GuidedReviewEntry
-                language={language}
-                href={guidedReviewHref}
-              />
-            ) : null}
-
             <div className="research-overview__priority-grid">
               {/* 2. Continue Research */}
               <section
@@ -517,6 +522,10 @@ export default function ResearchListPage() {
               </ol>
               </section>
             </div>
+
+            {guidedReviewHref ? (
+              <GuidedReviewEntry language={language} />
+            ) : null}
 
             <div className="research-overview__operations-grid">
               {/* 4. Research Library */}
