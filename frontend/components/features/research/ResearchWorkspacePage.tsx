@@ -4,13 +4,12 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import AppShell from "@/components/layout/AppShell";
-import ResearchSummaryRail from "@/components/features/research/ResearchSummaryRail";
 import ResearchWorkspaceHeader from "@/components/features/research/ResearchWorkspaceHeader";
+import ResearchWorkspaceOrientation from "@/components/features/research/ResearchWorkspaceOrientation";
 import ResearchWorkspaceSkeleton from "@/components/features/research/ResearchWorkspaceSkeleton";
 import ResearchPrimaryTabs from "@/components/features/research/ResearchPrimaryTabs";
 import DeleteResearchModal from "@/components/features/research/DeleteResearchModal";
 import ResearchReviewGuide from "@/components/features/research/ResearchReviewGuide";
-import ResearchMissionPanel from "@/components/features/research/ResearchMissionPanel";
 import ResearchWorkspaceMainSection from "@/components/features/research/workspace-tabs/ResearchWorkspaceMainSection";
 import Button from "@/components/ui/Button";
 import EmptyState from "@/components/ui/EmptyState";
@@ -505,71 +504,13 @@ export default function ResearchWorkspacePage({
               }
             />
 
-            <ResearchMissionPanel
-              research={displayResearch}
-              execution={executionStatus === "ready" ? execution : null}
-              language={language}
-              primaryStep={primaryWorkflowStep}
-              primaryState={workflowStepStates[primaryWorkflowStep]}
-              onRunResearch={reloadExecution}
-              onRunValidation={handleRunValidation}
-              onOpenSection={navigateToSection}
+            <ResearchWorkspaceOrientation
+              nextMilestone={summaryNextMilestone}
               labels={{
-                eyebrow: tr("researchMissionEyebrow"),
-                title: tr("researchMissionTitle"),
-                question: tr("researchMissionQuestion"),
-                method: tr("researchMissionMethod"),
-                protocol: tr("researchMissionProtocol"),
-                protocolUnavailable: tr("researchMissionProtocolUnavailable"),
-                now: tr("researchMissionNow"),
-                guardrail: tr("researchMissionGuardrail"),
-                methodSteps: [
-                  tr("researchMissionStepBacktest"),
-                  tr("researchMissionStepValidation"),
-                  tr("researchMissionStepPressure"),
-                  tr("researchMissionStepObservation"),
-                  tr("researchMissionStepDecision"),
-                ],
-                actions: {
-                  research: {
-                    title: tr("researchWsNextStepRunResearchTitle"),
-                    description: tr("researchWsNextStepRunResearchDescription"),
-                    cta: tr("researchWsNextStepRunResearchCta"),
-                  },
-                  experiment: {
-                    title: tr("researchWsNextStepOpenExperimentTitle"),
-                    description: tr(
-                      "researchWsNextStepOpenExperimentDescription"
-                    ),
-                    cta: tr("researchWsNextStepOpenExperimentCta"),
-                  },
-                  validation: {
-                    title: tr("researchWsNextStepValidateTitle"),
-                    description: tr("researchWsNextStepValidateDescription"),
-                    cta: tr("researchWsNextStepValidateCta"),
-                  },
-                  robustness: {
-                    title: tr("researchWsNextStepOpenRobustnessTitle"),
-                    description: tr(
-                      "researchWsNextStepOpenRobustnessDescription"
-                    ),
-                    cta: tr("researchWsNextStepOpenRobustnessCta"),
-                  },
-                  paper: {
-                    title: tr("researchWsNextStepOpenPaperTitle"),
-                    description: tr("researchWsNextStepOpenPaperDescription"),
-                    cta: tr("researchWsNextStepOpenPaperCta"),
-                  },
-                  decision: {
-                    title: tr("researchWsNextStepOpenDecisionTitle"),
-                    description: tr(
-                      "researchWsNextStepOpenDecisionDescription"
-                    ),
-                    cta: tr("researchWsNextStepOpenDecisionCta"),
-                  },
-                },
-                runningResearch: tr("researchWsNextStepRunResearchLoadingCta"),
-                retryResearch: tr("researchWsNextStepRunResearchRetryCta"),
+                eyebrow: tr("researchWorkspaceGuideEyebrow"),
+                title: tr("researchWorkspaceGuideTitle"),
+                description: tr("researchWorkspaceGuideDescription"),
+                next: tr("researchWorkspaceGuideNext"),
               }}
             />
 
@@ -683,22 +624,6 @@ export default function ResearchWorkspacePage({
                 />
               </div>
 
-              <ResearchSummaryRail
-                research={displayResearch}
-                language={language}
-                execution={executionStatus === "ready" ? execution : null}
-                nextMilestone={summaryNextMilestone}
-                labels={{
-                  title: tr("researchSummaryTitle"),
-                  status: tr("researchSummaryStatus"),
-                  nextMilestone: tr("researchSummaryNextMilestone"),
-                  experiment: tr("researchWsHeroExperiment"),
-                  benchmark: tr("researchListBenchmark"),
-                  updated: tr("researchListUpdated"),
-                  noMilestone: tr("researchSummaryNoMilestone"),
-                  experimentNotConfigured: tr("researchWsExperimentNotConfigured"),
-                }}
-              />
             </div>
           </div>
         ) : null}

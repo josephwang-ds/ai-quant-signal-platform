@@ -127,11 +127,23 @@ class OpenAiCompatibleLlmAdapter(LlmPort):
             )
 
         latency_ms = int((time.perf_counter() - started) * 1000)
+        token_usage = None
+        raw_usage = body.get("usage")
+        if isinstance(raw_usage, dict):
+            token_usage = {}
+            for key in ("prompt_tokens", "completion_tokens", "total_tokens"):
+                value = raw_usage.get(key)
+                if isinstance(value, int):
+                    token_usage[key] = value
+            if not token_usage:
+                token_usage = None
+
         return LlmResult(
             text=text,
             model=str(model),
             latency_ms=latency_ms,
             raw_finish_reason=finish_reason,
+            token_usage=token_usage,
         )
 
 

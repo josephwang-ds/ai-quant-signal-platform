@@ -35,8 +35,22 @@ def validate_research(
     body: ResearchValidationRequest,
 ) -> ResearchValidationResponse:
     """Run deterministic validation; provider failures never fabricate evidence."""
+    from app.security.settings import get_demo_protection_settings
+    from app.security.timeouts import OperationTimeoutError, run_with_timeout
+
+    payload = body.model_dump()
+    timeout = get_demo_protection_settings().validation_timeout_seconds
     try:
-        result = get_research_validation_service().execute(body.model_dump())
+        result = run_with_timeout(
+            lambda: get_research_validation_service().execute(payload),
+            timeout_seconds=timeout,
+            message=(
+                "Validation exceeded the demo time budget. "
+                "Narrow the date range or retry shortly."
+            ),
+        )
+    except OperationTimeoutError as exc:
+        raise HTTPException(status_code=exc.status_code, detail=exc.message) from exc
     except ResearchValidationError as exc:
         raise HTTPException(status_code=exc.status_code, detail=exc.message) from exc
     return ResearchValidationResponse(**result)

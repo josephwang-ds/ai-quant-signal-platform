@@ -32,6 +32,7 @@ IMPLEMENTED_STAGE_LABELS: dict[str, str] = {
     "historical_backtest": "Historical backtest",
     "benchmark_comparison": "Benchmark comparison",
     "out_of_sample": "Out-of-sample validation",
+    "rolling_walk_forward": "Walk-forward validation",
     "parameter_sensitivity": "Parameter sensitivity",
     "transaction_cost_sensitivity": "Transaction-cost sensitivity",
     "data_quality": "Data quality",
@@ -42,7 +43,6 @@ IMPLEMENTED_STAGE_LABELS: dict[str, str] = {
 UNAVAILABLE_STAGES: tuple[str, ...] = (
     "Stress testing",
     "Regime analysis",
-    "Walk-forward validation",
     "Monte Carlo simulation",
 )
 
@@ -58,7 +58,10 @@ LIMITATIONS: tuple[str, ...] = (
     "uses same-asset buy-and-hold only.",
     "Stress testing is not implemented.",
     "Regime analysis is not implemented.",
-    "Walk-forward validation is not implemented.",
+    "Walk-forward reduces but does not eliminate overfitting risk and does "
+    "not represent future returns.",
+    "Canonical trend walk-forward uses fixed MA parameters; it is not "
+    "per-fold parameter tuning.",
     "Monte Carlo simulation is not implemented.",
     "Research has not been published.",
     "Paper trading is unavailable.",

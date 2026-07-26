@@ -32,7 +32,7 @@ def get_db_connection() -> Generator[psycopg.Connection, None, None]:
   """
     url = get_database_url()
     if not url:
-        raise RuntimeError("SUPABASE_DB_URL is not configured")
+        raise RuntimeError("Database is not configured")
 
     conn = psycopg.connect(url, prepare_threshold=None)
     try:
@@ -51,7 +51,7 @@ def check_database_connection() -> dict:
         return {
             "configured": False,
             "connected": False,
-            "message": "Database is not configured. Set SUPABASE_DB_URL.",
+            "message": "Database is not configured.",
             "database": DATABASE_NAME,
         }
 

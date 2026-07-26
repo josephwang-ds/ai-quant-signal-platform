@@ -32,6 +32,8 @@ from app.research_copilot.openai_adapter import (
     ProviderTimeoutError,
     ProviderUnavailableError,
 )
+from app.security.concurrency import LlmConcurrencyFullError
+from app.security.limits import MAX_QUESTION_LENGTH
 from app.research_copilot.retrieval import RetrievalIndex
 from app.research_copilot.safety import evaluate_answer
 from app.research_copilot.system_policy import (
@@ -44,8 +46,6 @@ from app.research_execution.service import RESEARCH_ID_PATTERN
 from app.research_validation.result_store import ValidationResultStore
 
 logger = logging.getLogger(__name__)
-
-MAX_QUESTION_LENGTH = 1000
 
 
 class ResearchCopilotError(Exception):
@@ -61,7 +61,15 @@ def resolve_llm_adapter() -> LlmPort:
         settings = resolve_llm_provider_settings()
     except LlmConfigurationError as exc:
         raise ResearchCopilotError(str(exc), status_code=503) from exc
-    return OpenAiCompatibleLlmAdapter(settings=settings)
+    from app.security.llm_guard import apply_llm_timeout, wrap_llm_adapter
+    from app.security.settings import get_demo_protection_settings
+
+    protection = get_demo_protection_settings()
+    adapter = OpenAiCompatibleLlmAdapter(
+        settings=settings,
+        timeout_seconds=protection.llm_timeout_seconds,
+    )
+    return wrap_llm_adapter(apply_llm_timeout(adapter))
 
 
 class ResearchCopilotService:
@@ -164,6 +172,8 @@ class ResearchCopilotService:
                 user_prompt=user_prompt,
                 context=context_items,
             )
+        except LlmConcurrencyFullError as exc:
+            raise ResearchCopilotError(exc.message, status_code=exc.status_code) from exc
         except ProviderTimeoutError as exc:
             raise ResearchCopilotError(
                 "Research Copilot timed out while waiting for the language model.",

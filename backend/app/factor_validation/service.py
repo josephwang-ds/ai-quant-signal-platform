@@ -28,6 +28,7 @@ from app.research_execution.market_data_port import (
     MarketDataPort,
     utc_now_iso,
 )
+from app.research_reproducibility import build_reproducibility_manifest, hash_ohlcv_frame
 from app.research_validation.result_store import (
     InMemoryValidationResultStore,
     ValidationResultStore,
@@ -127,6 +128,10 @@ class FactorValidationService:
         warnings: list[str] = []
         price_map: dict[str, pd.Series] = {}
         symbol_provenance: list[dict[str, Any]] = []
+        hash_frames: list[pd.DataFrame] = []
+        retrieval_timestamps: list[str] = []
+        adjustments: list[str] = []
+        providers: list[str] = []
 
         for symbol in symbols:
             try:
@@ -149,6 +154,22 @@ class FactorValidationService:
                     "rows": int(len(close)),
                 }
             )
+            frame = getattr(series, "frame", None)
+            if isinstance(frame, pd.DataFrame) and not frame.empty:
+                piece = frame.copy()
+                if "symbol" not in piece.columns:
+                    piece["symbol"] = symbol
+                hash_frames.append(piece)
+            if prov is not None:
+                retrieved = getattr(prov, "retrieved_at", None)
+                if retrieved:
+                    retrieval_timestamps.append(str(retrieved))
+                adjustment = getattr(prov, "adjustment", None)
+                if adjustment:
+                    adjustments.append(str(adjustment))
+                provider = getattr(prov, "provider", None)
+                if provider:
+                    providers.append(str(provider))
 
         if len(price_map) < 5:
             raise FactorValidationError(
@@ -208,6 +229,50 @@ class FactorValidationService:
         if quantiles["n_rebalances"] == 0:
             warnings.append("No quantile rebalances produced.")
 
+        combined_frame = (
+            pd.concat(hash_frames, ignore_index=True) if hash_frames else None
+        )
+        actual_start = None
+        actual_end = None
+        if combined_frame is not None and "date" in combined_frame.columns:
+            dates = pd.to_datetime(combined_frame["date"], errors="coerce").dropna()
+            if not dates.empty:
+                actual_start = dates.min().date().isoformat()
+                actual_end = dates.max().date().isoformat()
+        unique_providers = sorted(set(providers))
+        unique_adjustments = sorted(set(adjustments))
+        reproducibility_manifest = build_reproducibility_manifest(
+            data_source=unique_providers[0] if len(unique_providers) == 1 else (
+                unique_providers or None
+            ),
+            symbol=None,
+            universe={
+                "universe_id": universe_id,
+                "symbols": sorted(price_map.keys()),
+            },
+            requested_start_date=start_date,
+            requested_end_date=end_date_str,
+            actual_start_date=actual_start,
+            actual_end_date=actual_end,
+            retrieval_timestamp=sorted(retrieval_timestamps)[0]
+            if retrieval_timestamps
+            else None,
+            row_count=int(len(combined_frame)) if combined_frame is not None else 0,
+            adjustment_mode=unique_adjustments[0]
+            if len(unique_adjustments) == 1
+            else (unique_adjustments or None),
+            protocol={
+                "research_id": research_id,
+                "template": "cross_sectional_factor",
+                "universe_id": universe_id,
+                "factor_id": factor_id,
+                "rebalance_frequency": rebalance,
+                "holding_period_months": holding,
+                "transaction_cost": cost_rate,
+            },
+            data_hash=hash_ohlcv_frame(combined_frame),
+            created_at=generated_at,
+        )
         result: dict[str, Any] = {
             "research_id": research_id,
             "template": "cross_sectional_factor",
@@ -238,6 +303,7 @@ class FactorValidationService:
                 "end_date": end_date_str,
                 "n_factor_periods": int(len(factor_aligned)),
             },
+            "reproducibility_manifest": reproducibility_manifest,
             "generated_at": generated_at,
             # Shape marker so Copilot / Evaluation can detect factor evidence
             "evidence_kind": "factor_validation",

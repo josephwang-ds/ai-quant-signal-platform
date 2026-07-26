@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import AppShell from "@/components/layout/AppShell";
 import SectionCard from "@/components/ui/SectionCard";
 import SectionHeader from "@/components/ui/SectionHeader";
@@ -18,6 +19,13 @@ export default function AiInsightsPage() {
           description={tr("aiInsightsPageDesc")}
         />
         <p className="ai-insights-hero__note">{tr("newsSentimentDisclaimerFull")}</p>
+        <div className="ai-insights-hero__watchlist">
+          <p className="section-meta">{tr("aiInsightsWatchlistHint")}</p>
+          <p className="section-meta">{tr("aiInsightsWatchlistContrast")}</p>
+          <Link href="/market-watch" className="btn btn--ghost">
+            {tr("aiInsightsWatchlistCta")}
+          </Link>
+        </div>
       </SectionCard>
 
       <SectionCard className="ai-insights-workbench">

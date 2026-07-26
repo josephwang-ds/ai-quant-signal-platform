@@ -13,6 +13,7 @@ from app.research_copilot.openai_adapter import (
     ProviderTimeoutError,
     ProviderUnavailableError,
 )
+from app.security.concurrency import LlmConcurrencyFullError
 from app.research_copilot.reviewer_prompt import RESEARCH_REVIEWER_SYSTEM_POLICY
 from app.research_copilot.reviewer_schemas import (
     CompletionReviewRequest,
@@ -156,6 +157,10 @@ class ResearchReviewerService:
                     )
                 ],
             )
+        except LlmConcurrencyFullError as exc:
+            raise ResearchReviewerError(
+                exc.message, status_code=exc.status_code
+            ) from exc
         except ProviderTimeoutError as exc:
             raise ResearchReviewerError(
                 "AI Research Reviewer timed out.", status_code=504

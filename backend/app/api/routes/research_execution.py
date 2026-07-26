@@ -33,9 +33,23 @@ def execute_research(body: ResearchExecutionRequest) -> ResearchExecutionRespons
 
     Synchronous MVP. Provider failures never invent fallback metrics.
     """
+    from app.security.settings import get_demo_protection_settings
+    from app.security.timeouts import OperationTimeoutError, run_with_timeout
+
     service = get_research_execution_service()
+    payload = body.model_dump()
+    timeout = get_demo_protection_settings().validation_timeout_seconds
     try:
-        result = service.execute(body.model_dump())
+        result = run_with_timeout(
+            lambda: service.execute(payload),
+            timeout_seconds=timeout,
+            message=(
+                "Research execution exceeded the demo time budget. "
+                "Retry shortly or narrow the date range."
+            ),
+        )
+    except OperationTimeoutError as exc:
+        raise HTTPException(status_code=exc.status_code, detail=exc.message) from exc
     except ResearchExecutionError as exc:
         raise HTTPException(status_code=exc.status_code, detail=exc.message) from exc
     return ResearchExecutionResponse(**result)

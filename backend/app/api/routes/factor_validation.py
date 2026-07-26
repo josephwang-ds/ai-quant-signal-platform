@@ -35,8 +35,22 @@ def validate_factor_research(
     body: FactorValidationRequest,
 ) -> FactorValidationResponse:
     """Run deterministic factor validation; never fabricates evidence."""
+    from app.security.settings import get_demo_protection_settings
+    from app.security.timeouts import OperationTimeoutError, run_with_timeout
+
+    payload = body.model_dump()
+    timeout = get_demo_protection_settings().validation_timeout_seconds
     try:
-        result = get_factor_validation_service().execute(body.model_dump())
+        result = run_with_timeout(
+            lambda: get_factor_validation_service().execute(payload),
+            timeout_seconds=timeout,
+            message=(
+                "Factor validation exceeded the demo time budget. "
+                "Narrow the universe or date range and retry shortly."
+            ),
+        )
+    except OperationTimeoutError as exc:
+        raise HTTPException(status_code=exc.status_code, detail=exc.message) from exc
     except FactorValidationError as exc:
         raise HTTPException(status_code=exc.status_code, detail=exc.message) from exc
     return FactorValidationResponse(**result)

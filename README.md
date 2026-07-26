@@ -10,7 +10,7 @@
 [![FastAPI](https://img.shields.io/badge/FastAPI-Research_API-009688?logo=fastapi&logoColor=white)](backend/app/main.py)
 [![LangGraph](https://img.shields.io/badge/Agent-LangGraph-3578e5)](backend/app/research_agent)
 
-![AI Quant Research Workspace — Trend Following Study](docs/assets/readme/research-workspace-hero.jpg)
+![AI Quant Research Workspace — Research Home](docs/assets/readme/research-workspace-hero.jpg)
 
 > **Research First · Evidence Before Interpretation · Human Final**
 
@@ -46,8 +46,8 @@ Open the [live demo](https://signals.josephjwang.com), select **Trend Following 
 
 1. **Question** — inspect the hypothesis, frozen protocol, benchmark, and success criteria.
 2. **Evidence** — run the historical experiment and review deterministic validation.
-3. **Challenge** — inspect OOS, parameter, cost, data-quality, and robustness evidence alongside explicit scope boundaries.
-4. **Decision** — ask the Governance Agent to review the available evidence, then record the human outcome and rationale.
+3. **Challenge** — inspect OOS, fixed-protocol rolling walk-forward, parameter, cost, data-quality, and robustness evidence alongside explicit scope boundaries.
+4. **Decision** — ask the Governance Agent to review the available evidence (expand Execution trace if needed), then record the human outcome and rationale.
 
 The shortest interview route is documented in [docs/DEMO_SCRIPT.md](docs/DEMO_SCRIPT.md). If the Render backend is waking up, the UI queues the request and resumes automatically; the [frontend-safe walkthrough](docs/DEMO_MODE.md) remains available without invented results.
 
@@ -115,9 +115,10 @@ Deeper design: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) · [docs/RESEARCH_WO
 
 ## Evidence Governance Agent
 
-![Evidence Governance Agent panel](docs/assets/readme/evidence-governance-agent.jpg)
+![Evidence Governance Agent — optional expanded reviewer](docs/assets/readme/evidence-governance-agent.jpg)
 
 The Agent is a controlled reviewer inside the research lifecycle, not a chatbot pasted beside a backtest.
+It stays collapsed until a reviewer asks for it, keeping deterministic evidence and the human workflow visually primary.
 
 ```text
 Classify intent
@@ -161,7 +162,7 @@ Implementation: [`backend/app/research_agent/`](backend/app/research_agent) · A
 
 | Surface | What is real today |
 | --- | --- |
-| Research Library | entry point for canonical Trend and Factor studies |
+| Research Home | focused entry point for canonical Trend and Factor studies, guided review, and lifecycle orientation |
 | Research Definition | editable question, hypothesis, null, mechanism, criteria, and limitation templates; usable without an LLM |
 | Historical Experiment | reproducible MA crossover execution against same-asset Buy & Hold |
 | Factor Validation | RankIC and Q1–Q5 cross-sectional validation with explicit baselines |
@@ -175,7 +176,7 @@ Implementation: [`backend/app/research_agent/`](backend/app/research_agent) · A
 | Evidence Governance Agent | controlled LangGraph workflow over normalized evidence and approved tools |
 | Cold-start recovery | shared readiness gate, bounded retry, queued requests, and automatic continuation |
 
-Unsupported methods are documented rather than presented as empty product features: regime analysis, rolling walk-forward, Monte Carlo, liquidity/capacity modelling, broker connectivity, production OMS, and autonomous trading.
+Unsupported methods are documented rather than presented as empty product features: regime analysis, Monte Carlo, liquidity/capacity modelling, broker connectivity, production OMS, and autonomous trading. Canonical trend walk-forward is implemented as fixed-parameter chronological evidence; it reduces but does not eliminate overfitting risk and is not a future-return forecast.
 
 See [docs/ROADMAP.md](docs/ROADMAP.md) and [docs/KNOWN_LIMITATIONS.md](docs/KNOWN_LIMITATIONS.md).
 
@@ -194,7 +195,7 @@ Policy: [docs/AUTHENTICITY.md](docs/AUTHENTICITY.md) · [docs/data/AUTHENTICITY_
 
 ## Cold-start design
 
-The public backend runs on Render and may be asleep on a free instance. The frontend treats startup as an application state instead of allowing every evidence panel to fail independently:
+The public backend runs on Render. Free instances can sleep, and any instance can restart during a deploy; the frontend treats startup as an application state instead of allowing every evidence panel to fail independently:
 
 1. one shared `/health` request wakes the backend;
 2. concurrent API calls join the same readiness promise;
@@ -260,6 +261,8 @@ Open [http://localhost:3000](http://localhost:3000). FastAPI docs are available 
 
 The deterministic research workflow works without an LLM key. To enable DeepSeek or another OpenAI-compatible provider, configure the backend-only `LLM_PROVIDER`, `LLM_API_KEY`, `LLM_BASE_URL`, and `COPILOT_MODEL` values described in [`backend/.env.example`](backend/.env.example). Never put provider secrets in `NEXT_PUBLIC_*`.
 
+Public-demo deployments also use request-size limits, tiered in-memory rate limits, bounded LLM concurrency, and explicit LLM/provider/validation timeouts (`AGENT_RATE_LIMIT`, `LLM_MAX_CONCURRENCY`, `MAX_REQUEST_BODY_BYTES`, and related knobs in [`backend/.env.example`](backend/.env.example)). The in-memory limiter is single-instance only; see [docs/KNOWN_LIMITATIONS.md](docs/KNOWN_LIMITATIONS.md).
+
 ## Verify the project
 
 ```bash
@@ -273,9 +276,10 @@ cd frontend
 npm test
 npx tsc --noEmit
 npm run build
+npm run test:e2e
 ```
 
-Live data-provider checks are intentionally separate and manual: [docs/deployment/LIVE_DATA_VERIFICATION.md](docs/deployment/LIVE_DATA_VERIFICATION.md).
+Current local acceptance (non-live): about **252** frontend Vitest tests and **377** backend pytest tests. Playwright e2e uses port **3010** (`npx playwright install chromium` once; `npm run build` then `npm run test:e2e`).
 
 ## API map
 

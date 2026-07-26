@@ -1,3 +1,5 @@
+import type { ReproducibilityManifest } from "@/types/reproducibility";
+
 export type SignalFeatures = {
   daily_return: number;
   return_20d: number;
@@ -158,6 +160,7 @@ export type BacktestResponse = {
   };
   strategy_config?: BacktestStrategyConfig;
   metrics: BacktestMetrics;
+  reproducibility_manifest?: ReproducibilityManifest | null;
   data: BacktestRow[];
   trade_log: TradeLogRow[];
 };
@@ -290,6 +293,14 @@ export type DataSourceStatusResponse = {
   };
 };
 
+export type DatabaseStatusResponse = {
+  configured: boolean;
+  connected: boolean;
+  message: string;
+  database: string;
+  persistence_mode?: "browser-local" | "persisted" | "persistence-unavailable" | string;
+};
+
 export type PriceProbeResponse = {
   ticker: string;
   start_date: string;
@@ -326,6 +337,7 @@ export type SaveBacktestRunRequest = {
   metrics: Record<string, unknown>;
   notes?: string | null;
   trade_log: SaveBacktestTradeItem[];
+  reproducibility_manifest?: ReproducibilityManifest | null;
 };
 
 export type SaveBacktestRunResponse = {
@@ -347,6 +359,7 @@ export type BacktestRunSummary = {
   notes?: string | null;
   created_at: string;
   trade_count?: number;
+  reproducibility_manifest?: ReproducibilityManifest | null;
 };
 
 export type BacktestRunTrade = {

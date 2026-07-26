@@ -1,5 +1,6 @@
 import type { DataProvenance, ExecutionMetrics } from "@/types/researchExecution";
 import type { BenchmarkEvaluation } from "@/types/researchBenchmark";
+import type { ReproducibilityManifest } from "@/types/reproducibility";
 
 export type ValidationStageStatus =
   | "completed"
@@ -32,6 +33,68 @@ export type OutOfSampleValidation = {
   out_of_sample_observation_count: number | null;
   warnings: string[];
   boundary_convention: string | null;
+};
+
+export type WalkForwardFold = {
+  fold_index: number;
+  status: ValidationStageStatus | string;
+  failure_reason: string | null;
+  warmup_start: string | null;
+  warmup_end: string | null;
+  train_start: string | null;
+  train_end: string | null;
+  oos_start: string | null;
+  oos_end: string | null;
+  strategy_return: number | null;
+  benchmark_return: number | null;
+  sharpe_ratio: number | null;
+  maximum_drawdown: number | null;
+  trade_count: number | null;
+  observation_count: number | null;
+  fixed_parameters?: Record<string, unknown> | null;
+};
+
+export type WalkForwardAggregate = {
+  completed_fold_count: number | null;
+  failed_fold_count: number | null;
+  requested_fold_count: number | null;
+  positive_return_fold_ratio: number | null;
+  benchmark_outperformance_fold_ratio: number | null;
+  median_oos_return: number | null;
+  median_oos_sharpe: number | null;
+  worst_oos_drawdown: number | null;
+};
+
+export type WalkForwardCheck = {
+  check_id: string;
+  observed_value: number | null;
+  configured_threshold: number | null;
+  status: string;
+};
+
+export type RollingWalkForwardValidation = {
+  status: ValidationStageStatus | string;
+  type?: string;
+  methodology_id?: string | null;
+  methodology_version?: string | null;
+  knowledge_id?: string | null;
+  scheme?: string | null;
+  n_folds?: number | null;
+  fixed_parameters?: Record<string, unknown> | null;
+  thresholds?: Record<string, number> | null;
+  folds?: WalkForwardFold[];
+  aggregate?: WalkForwardAggregate | null;
+  checks?: WalkForwardCheck[];
+  reason_code?: string | null;
+  reason?: string | null;
+  limitations?: string[];
+  provenance?: {
+    protocol_hash?: string | null;
+    methodology_id?: string | null;
+    methodology_version?: string | null;
+    knowledge_id?: string | null;
+    config?: Record<string, unknown> | null;
+  } | null;
 };
 
 export type ParameterSensitivityResult = {
@@ -103,10 +166,12 @@ export type ResearchValidationResult = {
   research_id: string;
   strategy: Record<string, unknown>;
   provenance: DataProvenance;
+  reproducibility_manifest?: ReproducibilityManifest | null;
   validation_status: ValidationStageStatus;
   evidence_complete: boolean;
   stages: ValidationStage[];
   oos: OutOfSampleValidation;
+  rolling_walk_forward?: RollingWalkForwardValidation | null;
   parameter_sensitivity: ParameterSensitivity;
   transaction_cost_sensitivity: TransactionCostSensitivity;
   data_quality: DataQualityValidation;

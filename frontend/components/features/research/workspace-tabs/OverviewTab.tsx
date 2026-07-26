@@ -3,17 +3,12 @@
 import OverviewSection from "@/components/features/research/OverviewSection";
 import GovernanceAgentPanel from "@/components/features/research/governance/GovernanceAgentPanel";
 import ResearchDefinitionSummary from "@/components/features/research/ResearchDefinitionSummary";
-import ResearchReadinessSummary from "@/components/features/research/ResearchReadinessSummary";
-import { buildResearchReadinessModel } from "@/lib/researchReadiness";
 import type { Language, TranslationKey } from "@/lib/i18n";
 import type { ResearchDetail } from "@/types/research";
 import type { ResearchExecutionResult, ResearchExecutionStatus } from "@/types/researchExecution";
 import type { ResearchValidationResult, ResearchValidationStatus } from "@/types/researchValidation";
 import type { ResearchEvaluationResult, ResearchEvaluationRequestStatus } from "@/types/researchEvaluation";
-import type {
-  FactorValidationResult,
-  FactorValidationStatus,
-} from "@/types/factorValidation";
+import type { FactorValidationResult } from "@/types/factorValidation";
 import type { ResearchWorkspaceSection } from "@/types/research";
 import type { ReactNode } from "react";
 
@@ -28,7 +23,6 @@ export type OverviewTabProps = {
   validation: ResearchValidationResult | null;
   evaluationStatus: ResearchEvaluationRequestStatus;
   evaluation: ResearchEvaluationResult | null;
-  factorValidationStatus?: FactorValidationStatus;
   factorValidation?: FactorValidationResult | null;
   isFactorTemplate?: boolean;
   reloadExecution: () => void;
@@ -47,21 +41,12 @@ export default function OverviewTab({
   validation,
   evaluationStatus,
   evaluation,
-  factorValidationStatus = "idle",
   factorValidation = null,
   isFactorTemplate = false,
   reloadExecution,
   handleRunValidation,
   navigateToSection,
 }: OverviewTabProps) {
-  const readiness = buildResearchReadinessModel({
-    research: displayResearch,
-    validation: validationStatus === "ready" ? validation : null,
-    evaluation: evaluationStatus === "ready" ? evaluation : null,
-    factorValidation:
-      factorValidationStatus === "ready" ? factorValidation : null,
-  });
-
   const evidenceSnapshotId =
     (isFactorTemplate
       ? factorValidation?.validation_run_id
@@ -71,6 +56,7 @@ export default function OverviewTab({
     <div className="overview-tab-stack">
       <ResearchDefinitionSummary
         research={displayResearch}
+        language={language}
         labels={{
           title: tr("researchDefinitionTitle"),
           researchQuestion: tr("researchDefinitionQuestion"),
@@ -80,22 +66,6 @@ export default function OverviewTab({
           successCriteria: tr("researchDefinitionSuccess"),
           knownLimitations: tr("researchDefinitionLimitations"),
           unavailable: tr("researchDefinitionUnavailable"),
-        }}
-      />
-      <ResearchReadinessSummary
-        model={readiness}
-        labels={{
-          title: tr("researchReadinessTitle"),
-          description: tr("researchReadinessDescription"),
-          yes: tr("researchReadinessYes"),
-          no: tr("researchReadinessNo"),
-          researchQuestion: tr("researchReadinessQuestion"),
-          hypothesis: tr("researchReadinessHypothesis"),
-          protocol: tr("researchReadinessProtocol"),
-          validation: tr("researchReadinessValidation"),
-          robustness: tr("researchReadinessRobustness"),
-          decision: tr("researchReadinessDecision"),
-          limitations: tr("researchReadinessLimitations"),
         }}
       />
       <OverviewSection
@@ -179,12 +149,20 @@ export default function OverviewTab({
           },
         }}
       />
-      <GovernanceAgentPanel
-        research={displayResearch}
-        isFactorTemplate={isFactorTemplate}
-        evidenceSnapshotId={evidenceSnapshotId}
-        language={language}
-      />
+      <details className="research-agent-disclosure">
+        <summary>
+          <span>
+            <strong>{tr("researchAgentOptionalTitle")}</strong>
+            <small>{tr("researchAgentOptionalDescription")}</small>
+          </span>
+        </summary>
+        <GovernanceAgentPanel
+          research={displayResearch}
+          isFactorTemplate={isFactorTemplate}
+          evidenceSnapshotId={evidenceSnapshotId}
+          language={language}
+        />
+      </details>
     </div>
   );
 }

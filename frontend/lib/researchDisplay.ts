@@ -123,6 +123,37 @@ export function researchQuestionLabel(
     : value;
 }
 
+export function researchHypothesisLabel(
+  id: string,
+  value: string,
+  language: Language
+) {
+  return language === "zh" && id === CANONICAL_RESEARCH_ID
+    ? "中期价格趋势可能使均线规则减少下跌参与，但在快速反转市场中也可能落后。"
+    : value;
+}
+
+export function researchDefinitionTextLabel(
+  value: string,
+  language: Language
+) {
+  if (language !== "zh") return value;
+  const labels: Record<string, string> = {
+    "Historical backtest vs buy-and-hold; chronological OOS; parameter and cost sensitivity":
+      "历史回测对比买入并持有；按时间顺序进行样本外验证；检查参数与成本敏感性",
+    "After costs, document whether risk-adjusted returns improve versus buy-and-hold on calculated series only — do not claim success before validation runs.":
+      "仅依据已计算序列，记录扣除成本后的风险调整收益是否优于买入并持有；验证完成前不宣称成功。",
+    "No calculated metrics until real historical data is integrated":
+      "接入真实历史数据前，不展示计算指标",
+    "Single-asset reference study — not a multi-strategy portfolio":
+      "这是单一资产参考研究，不是多策略组合",
+    "Provider-grade research data is not an exchange feed":
+      "研究级数据源不是交易所级行情",
+    "See docs/KNOWN_LIMITATIONS.md": "更多限制见 docs/KNOWN_LIMITATIONS.md",
+  };
+  return labels[value] ?? value;
+}
+
 export function timelineEventTitleLabel(value: string, language: Language) {
   if (language !== "zh") return value;
   const labels: Record<string, string> = {

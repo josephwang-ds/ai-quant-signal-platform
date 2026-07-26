@@ -83,6 +83,10 @@ function localizeEvaluationText(value: string, language: Language): string {
     "Stress testing is not implemented.": "尚未完成压力测试。",
     "Regime analysis is not implemented.": "尚未完成市场状态分析。",
     "Walk-forward validation is not implemented.": "尚未完成滚动前向验证。",
+    "Walk-forward reduces but does not eliminate overfitting risk and does not represent future returns.":
+      "Walk-forward 降低但不能消除过拟合风险，也不代表未来收益。",
+    "Canonical trend walk-forward uses fixed MA parameters; it is not per-fold parameter tuning.":
+      "标准趋势 walk-forward 使用固定均线参数，不是逐折调参。",
     "Monte Carlo simulation is not implemented.": "尚未完成蒙特卡洛模拟。",
     "Research has not been published.": "研究尚未发布。",
     "Paper trading is unavailable.": "尚未进入模拟试盘。",

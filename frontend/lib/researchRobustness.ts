@@ -3,10 +3,14 @@
  *
  * Derives checklist status from existing Validation / Evaluation evidence.
  * Does not invent metrics, run stress tests, or invent failure frequencies.
+ * Pass/fail thresholds for walk-forward live in backend methodology config.
  */
 
 import type { ResearchEvaluationResult } from "@/types/researchEvaluation";
-import type { ResearchValidationResult } from "@/types/researchValidation";
+import type {
+  ResearchValidationResult,
+  RollingWalkForwardValidation,
+} from "@/types/researchValidation";
 
 export type RobustnessItemStatus =
   | "completed"
@@ -17,11 +21,11 @@ export type RobustnessItemId =
   | "parameter_sensitivity"
   | "benchmark_comparison"
   | "transaction_cost"
-  | "data_quality";
+  | "data_quality"
+  | "walk_forward";
 
 export type RobustnessScopeBoundaryId =
   | "market_regime"
-  | "walk_forward"
   | "monte_carlo"
   | "liquidity_capacity";
 
@@ -45,6 +49,22 @@ export type RobustnessItemView = RobustnessMatrixItem & {
   status: RobustnessItemStatus;
 };
 
+export type WalkForwardResultView = {
+  runState: "not_run" | "unavailable" | "failed" | "completed" | "incomplete";
+  statusLabel: string;
+  reason: string | null;
+  reasonCode: string | null;
+  scheme: string | null;
+  nFolds: number | null;
+  methodologyId: string | null;
+  methodologyVersion: string | null;
+  protocolHash: string | null;
+  aggregate: RollingWalkForwardValidation["aggregate"];
+  folds: NonNullable<RollingWalkForwardValidation["folds"]>;
+  checks: NonNullable<RollingWalkForwardValidation["checks"]>;
+  limitations: string[];
+};
+
 export type RobustnessCenterModel = {
   overallStatus: RobustnessOverallStatus;
   items: RobustnessItemView[];
@@ -57,6 +77,7 @@ export type RobustnessCenterModel = {
     | "none";
   hasEvaluationEvidence: boolean;
   hasValidationEvidence: boolean;
+  walkForward: WalkForwardResultView;
 };
 
 /** Fixed catalogue — order matches the product matrix. */
@@ -85,12 +106,17 @@ export const ROBUSTNESS_MATRIX_ITEMS: readonly RobustnessMatrixItem[] = [
     validationStage: "data_quality",
     evaluationLabels: ["Data quality"],
   },
+  {
+    id: "walk_forward",
+    label: "Walk-forward Validation",
+    validationStage: "rolling_walk_forward",
+    evaluationLabels: ["Walk-forward validation"],
+  },
 ] as const;
 
 /** Concise disclosure, not executable checklist items. */
 export const ROBUSTNESS_SCOPE_BOUNDARIES: readonly RobustnessScopeBoundaryId[] = [
   "market_regime",
-  "walk_forward",
   "monte_carlo",
   "liquidity_capacity",
 ] as const;
@@ -193,6 +219,17 @@ function validationStageStatus(
     if (fromStages?.status === "failed") return "blocked";
     if (fromStages?.status === "incomplete") return "pending";
   }
+  if (item.validationStage === "rolling_walk_forward") {
+    const walkForward = validation.rolling_walk_forward;
+    if (walkForward?.status === "completed") return "completed";
+    if (walkForward?.status === "failed") return "blocked";
+    if (
+      walkForward?.status === "incomplete" ||
+      walkForward?.status === "unavailable"
+    ) {
+      return "pending";
+    }
+  }
 
   return null;
 }
@@ -234,6 +271,62 @@ function deriveOverallStatus(
   return "not_started";
 }
 
+export function buildWalkForwardResultView(
+  validation: ResearchValidationResult | null
+): WalkForwardResultView {
+  const walkForward = validation?.rolling_walk_forward ?? null;
+  if (!validation || !walkForward) {
+    return {
+      runState: "not_run",
+      statusLabel: "Not run",
+      reason: null,
+      reasonCode: null,
+      scheme: null,
+      nFolds: null,
+      methodologyId: null,
+      methodologyVersion: null,
+      protocolHash: null,
+      aggregate: null,
+      folds: [],
+      checks: [],
+      limitations: [],
+    };
+  }
+
+  const status = String(walkForward.status || "unavailable").toLowerCase();
+  const runState =
+    status === "completed"
+      ? "completed"
+      : status === "failed"
+        ? "failed"
+        : status === "incomplete"
+          ? "incomplete"
+          : "unavailable";
+
+  return {
+    runState,
+    statusLabel:
+      runState === "completed"
+        ? "Completed"
+        : runState === "failed"
+          ? "Failed"
+          : runState === "incomplete"
+            ? "Incomplete"
+            : "Unavailable",
+    reason: walkForward.reason ?? null,
+    reasonCode: walkForward.reason_code ?? null,
+    scheme: walkForward.scheme ?? null,
+    nFolds: walkForward.n_folds ?? null,
+    methodologyId: walkForward.methodology_id ?? null,
+    methodologyVersion: walkForward.methodology_version ?? null,
+    protocolHash: walkForward.provenance?.protocol_hash ?? null,
+    aggregate: walkForward.aggregate ?? null,
+    folds: walkForward.folds ?? [],
+    checks: walkForward.checks ?? [],
+    limitations: walkForward.limitations ?? [],
+  };
+}
+
 export function buildRobustnessCenterModel(input: {
   validation: ResearchValidationResult | null;
   evaluation: ResearchEvaluationResult | null;
@@ -270,5 +363,6 @@ export function buildRobustnessCenterModel(input: {
     nextActionKind,
     hasEvaluationEvidence: Boolean(evaluation),
     hasValidationEvidence: Boolean(validation),
+    walkForward: buildWalkForwardResultView(validation),
   };
 }

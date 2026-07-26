@@ -111,7 +111,7 @@ export default function AppShell({
         aria-hidden={drawerHidden || undefined}
         {...(drawerHidden ? ({ inert: true } as { inert: boolean }) : {})}
       >
-        <Link href="/overview" className="workspace-brand">
+        <Link href="/" className="workspace-brand">
           <span className="workspace-brand__name">{t(language, "appTitleShort")}</span>
           <span className="workspace-brand__version">v{PRODUCT_VERSION}</span>
         </Link>

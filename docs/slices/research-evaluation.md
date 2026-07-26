@@ -270,9 +270,11 @@ buy/sell recommendation. This is enforced by a frontend test.
 
 No AI/LLM summarization, no strategy ranking, no portfolio integration, no
 Publish Strategy, no Paper Trading execution, no stress testing, no regime
-analysis, no walk-forward optimization, no Monte Carlo simulation. These
-remain future validation stages (Epic C/D) or future bounded contexts
-(Portfolio, Governance) per `ROADMAP.md`.
+analysis, no walk-forward parameter optimization, no Monte Carlo simulation.
+Fixed-parameter chronological walk-forward for the canonical trend study is
+implemented in Validation and summarised here. Remaining items stay future
+validation stages (Epic C/D) or future bounded contexts (Portfolio,
+Governance) per `ROADMAP.md`.
 
 ## Local verification
 
@@ -296,6 +298,6 @@ HTTP layer.
 - Replace the in-memory `ValidationResultStore` with a durable store
   (e.g. Postgres-backed `ValidationRun` table) so evidence survives a
   backend restart. Deferred pending an ADR; out of scope for this slice.
-- Stress testing, regime analysis, walk-forward validation, and Monte
-  Carlo simulation remain unimplemented validation stages; they will change
+- Stress testing, regime analysis, and Monte Carlo simulation remain
+  unimplemented validation stages; they will change
   `IMPLEMENTED_STAGE_LABELS` and the coverage denominator when added.

@@ -12,6 +12,10 @@ import {
   mapLifecycleStatusToProgressStage,
   RESEARCH_WORKSPACE_SECTIONS,
 } from "@/types/research";
+import {
+  isWorkspaceNavItemActive,
+  WORKSPACE_NAV_GROUPS,
+} from "@/lib/workspaceNav";
 
 describe("mock research catalog", () => {
   it("exposes Trend Following, Momentum, and Low Volatility projects", () => {
@@ -77,6 +81,34 @@ describe("lifecycle progress helpers", () => {
 });
 
 describe("workspace navigation model", () => {
+  it("uses one research entry point instead of separate overview and current-study links", () => {
+    const entryHrefs = WORKSPACE_NAV_GROUPS.flatMap((group) =>
+      group.items.map((item) => item.href)
+    );
+
+    expect(entryHrefs).toEqual([
+      "/",
+      "/compare-models",
+      "/strategy-lab",
+      "/ai-insights",
+      "/data-center",
+    ]);
+    expect(entryHrefs).not.toContain("/overview");
+    expect(entryHrefs.some((href) => href.startsWith("/research/"))).toBe(false);
+    expect(entryHrefs).not.toContain("/feature-interpretation");
+    expect(entryHrefs).not.toContain("/robustness");
+    expect(entryHrefs).not.toContain("/risk-gate-review");
+    expect(entryHrefs).not.toContain("/market-watch");
+    expect(entryHrefs).not.toContain("/paper-trading");
+    expect(entryHrefs).not.toContain("/experiments");
+  });
+
+  it("keeps Research Home active while a research workspace is open", () => {
+    expect(isWorkspaceNavItemActive("/", "/")).toBe(true);
+    expect(isWorkspaceNavItemActive("/research/ma-crossover-spy", "/")).toBe(true);
+    expect(isWorkspaceNavItemActive("/strategy-lab", "/")).toBe(false);
+  });
+
   it("exposes the lifecycle workspace sections", () => {
     expect(RESEARCH_WORKSPACE_SECTIONS).toEqual([
       "overview",

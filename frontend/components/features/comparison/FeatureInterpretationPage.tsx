@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import Button from "@/components/ui/Button";
 import EmptyState from "@/components/ui/EmptyState";
@@ -8,13 +9,17 @@ import ErrorAlert from "@/components/ui/ErrorAlert";
 import LoadingState from "@/components/ui/LoadingState";
 import SectionCard from "@/components/ui/SectionCard";
 import SectionHeader from "@/components/ui/SectionHeader";
-import FeatureInterpretationPanels from "@/components/features/comparison/FeatureInterpretationPanels";
 import {
   runModelComparison,
   type ModelComparisonResponse,
 } from "@/lib/api";
 import { getApiDisplayMessage } from "@/lib/apiRequest";
 import { useWorkspaceLanguage } from "@/lib/useWorkspaceLanguage";
+
+const FeatureInterpretationPanels = dynamic(
+  () => import("@/components/features/comparison/FeatureInterpretationPanels"),
+  { ssr: false, loading: () => <LoadingState message="Loading interpretation…" /> }
+);
 
 const DEFAULT_TICKER = "SPY";
 const DEFAULT_START_DATE = "2020-01-01";
@@ -73,6 +78,7 @@ export default function FeatureInterpretationPage() {
     <div className="page-stack">
       <SectionCard>
         <SectionHeader
+          level={1}
           title={tr("featureInterpTitle")}
           description={tr("featureInterpDescription")}
         />

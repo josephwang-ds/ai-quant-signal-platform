@@ -30,9 +30,9 @@ No backend computation is added in this slice.
 | Benchmark Comparison | Yes | Validation / Evaluation |
 | Transaction Cost | Yes | Validation / Evaluation |
 | Data Quality | Yes | Validation / Evaluation |
+| Walk-forward Validation | Yes (canonical trend, fixed MA params) | Validation / Evaluation |
 | Stress Test | No | Always Planned |
 | Market Regime Analysis | No | Always Planned |
-| Walk-forward Validation | No | Always Planned |
 | Monte Carlo Simulation | No | Always Planned |
 | Liquidity & Capacity | No | Always Planned |
 

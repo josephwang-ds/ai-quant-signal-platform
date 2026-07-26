@@ -151,11 +151,13 @@ incomplete or unavailable, otherwise `completed`.
 
 ## Limitations
 
-Yahoo Finance remains research/demo grade, not exchange grade. This slice does
-not implement stress testing, regime analysis, walk-forward optimization,
-parameter selection, independent benchmarks, full robustness evaluation,
-Research Confidence, Publish Strategy, or portfolio eligibility. Positive
-returns or Sharpe do not establish robustness or future performance.
+Yahoo Finance remains research/demo grade, not exchange grade. This slice
+implements fixed-parameter chronological walk-forward for the canonical trend
+study; it does not implement walk-forward parameter optimization, stress
+testing, regime analysis, independent benchmarks, Research Confidence, Publish
+Strategy, or portfolio eligibility. Walk-forward reduces but does not eliminate
+overfitting risk and does not represent future returns. Positive returns or
+Sharpe do not establish robustness or future performance.
 
 Evidence aggregation over this slice's output is implemented separately in
 PR-010 (`docs/slices/research-evaluation.md`); it is not part of this slice

@@ -21,6 +21,8 @@ class LlmResult:
     model: str
     latency_ms: int = 0
     raw_finish_reason: str | None = None
+    # Optional provider usage counters for operational logs (never prompts).
+    token_usage: dict[str, int] | None = None
 
 
 class LlmPort(Protocol):

@@ -4,7 +4,7 @@ Interview and portfolio walkthrough for **AI Quant Research Workspace**.
 Canonical sample: **Trend Following Study** (`ma-crossover-spy`).
 
 ```text
-Research Library
+Research Home
 → Trend Following Study
 → Experiment
 → Validation
@@ -27,10 +27,10 @@ Calculated metrics come from the backend. Empty states stay empty. There is no b
 
 ## 3-minute walkthrough
 
-1. **Research Library (`/`)** — Click **Start guided review**. Frame the product as one question, four proof points, and a human-owned decision.
+1. **Research Home (`/`)** — Click **Start guided review**. Frame the product as one question, four proof points, and a human-owned decision.
 2. **Question** — Show the falsifiable hypothesis and fixed protocol. Say: “This starts with a research question, not a stock recommendation.”
 3. **Evidence** — Point at backend-derived OOS / sensitivity status. Say: “Deterministic checks run before AI explains evidence.”
-4. **Challenge** — Show the four implemented robustness checks and the separate scope boundary. Say: “Unknowns remain visible, but unsupported methods do not masquerade as workflow tasks.”
+4. **Challenge** — Show the implemented robustness checks including chronological walk-forward, plus the remaining scope boundary. Say: “Unknowns remain visible, but unsupported methods do not masquerade as workflow tasks.”
 5. **Decision** — Save a human outcome and rationale. Say: “The system supports judgment; it does not own approval or execute a trade.”
 
 Close with: **Research First. AI Second. Decisions Last.**
@@ -57,11 +57,11 @@ Anchor the answer in five visible initiatives:
 
 | Minute | Screen | What to say |
 | --- | --- | --- |
-| 0–1 | Library | Problem: research trails scatter. Product: one lifecycle workspace. Demo constraints: research only. |
-| 1–2 | Overview | Canonical `ma-crossover-spy` protocol (SPY MA20/60). Spine tabs map to product stages. |
+| 0–1 | Research Home | Problem: research trails scatter. Product: one focused entry into a lifecycle workspace. Demo constraints: research only. |
+| 1–2 | Research workspace | Canonical `ma-crossover-spy` protocol (SPY MA20/60). Spine tabs map to product stages. |
 | 2–3 | Experiment | Historical execution against real market data via FastAPI. Browser does not invent metrics. |
 | 3–4 | Validation | Deterministic checks. Show provenance (e.g. Yahoo). Evaluation summarises evidence; it is not a spine stage. |
-| 4–5 | Robustness | What the four implemented checks prove, plus the explicit scope boundary. |
+| 4–5 | Robustness | What the implemented checks prove (including fixed-parameter walk-forward), plus the explicit scope boundary. |
 | 5–6 | Paper Observation | Create a bounded plan and add a dated human note. No fake fills or P&L. |
 | 6–7 | Decision | Save the reviewer’s outcome and rationale. No generated approval. |
 | 7–8 | Wrap | Architecture: Next.js + FastAPI + Vercel/Render. Trade-off: honesty over demo theatre. |
@@ -76,7 +76,7 @@ Anchor the answer in five visible initiatives:
 4. Exit the guide only when deeper inspection is requested
 5. Open **Experiment** or **Paper Observation** as supporting detail—not as required stops
 
-If the Render free tier is cold, hit `/health` first. Prefer one browser session when research definitions are localStorage-backed.
+If the Render backend is waking or restarting, let the shared readiness gate recover before opening evidence-heavy stages. Prefer one browser session when research definitions are localStorage-backed.
 
 If the backend does not recover in time, switch to the [frontend-safe walkthrough](DEMO_MODE.md) and present the visible unavailable state as an intentional authenticity boundary.
 
@@ -108,7 +108,7 @@ If the backend does not recover in time, switch to the [frontend-safe walkthroug
 ## Current limitations
 
 - Research definitions may use browser-local persistence
-- Regime, walk-forward, Monte Carlo, and capacity methods remain outside the implemented evidence boundary
+- Regime, Monte Carlo, and capacity methods remain outside the implemented evidence boundary; canonical trend walk-forward is implemented with fixed MA parameters
 - Paper Observation is a research log, not live execution
 - No broker / OMS
 - Validation run ids may be process-local on Render

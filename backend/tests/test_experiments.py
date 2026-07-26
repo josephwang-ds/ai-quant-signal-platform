@@ -52,7 +52,9 @@ def test_save_backtest_run_when_db_unconfigured(monkeypatch) -> None:
     response = client.post(EXPERIMENTS_URL, json=SAMPLE_SAVE_PAYLOAD)
 
     assert response.status_code == 503
-    assert "SUPABASE_DB_URL" in response.json()["detail"]
+    detail = response.json()["detail"]
+    assert "not configured" in detail.lower() or "unavailable" in detail.lower()
+    assert "SUPABASE_DB_URL" not in detail
 
 
 def test_list_backtest_runs_when_db_unconfigured(monkeypatch) -> None:

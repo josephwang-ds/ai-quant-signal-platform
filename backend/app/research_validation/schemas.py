@@ -22,6 +22,8 @@ class ResearchValidationRequest(BaseModel):
     transaction_cost: float = 0.001
     risk_free_rate: float = 0.0
     in_sample_ratio: float = 0.7
+    walk_forward_scheme: str = "expanding"
+    walk_forward_n_folds: int = Field(default=4, ge=3, le=5)
     min_excess_return: float = 0.0
     min_sharpe_difference: float = 0.0
     min_drawdown_improvement: float = Field(default=0.05, ge=0)
@@ -49,10 +51,12 @@ class ResearchValidationResponse(BaseModel):
     research_id: str
     strategy: dict[str, Any]
     provenance: dict[str, Any]
+    reproducibility_manifest: dict[str, Any] = Field(default_factory=dict)
     validation_status: str
     evidence_complete: bool
     stages: list[ValidationStage]
     oos: dict[str, Any]
+    rolling_walk_forward: dict[str, Any]
     parameter_sensitivity: dict[str, Any]
     transaction_cost_sensitivity: dict[str, Any]
     data_quality: dict[str, Any]

@@ -10,6 +10,7 @@ from pydantic import BaseModel, ValidationError
 from app.research_copilot.llm_port import ContextItem, LlmPort, LlmResult
 from app.research_copilot.safety import evaluate_answer
 from app.research_agent.prompts import GOVERNANCE_SYSTEM_V1
+from app.security.concurrency import LlmConcurrencyFullError
 
 OutputModel = TypeVar("OutputModel", bound=BaseModel)
 
@@ -70,11 +71,14 @@ def generate_structured(
     if llm is None:
         raise AgentLlmUnavailable("Governance Agent LLM is not configured.")
 
-    result = llm.generate(
-        system_prompt=system_prompt,
-        user_prompt=user_prompt,
-        context=context_items or [],
-    )
+    try:
+        result = llm.generate(
+            system_prompt=system_prompt,
+            user_prompt=user_prompt,
+            context=context_items or [],
+        )
+    except LlmConcurrencyFullError as exc:
+        raise AgentLlmUnavailable(exc.message) from exc
     raw_payload = _json_object(result.text)
     try:
         payload = (

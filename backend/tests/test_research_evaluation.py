@@ -314,7 +314,7 @@ def test_coverage_is_implementation_only_not_confidence(
 ) -> None:
     result = service.execute({"validation_run_id": validation_run_id})
     coverage = result["evidence_coverage"]
-    assert coverage["implemented_stage_count"] == 6
+    assert coverage["implemented_stage_count"] == 7
     assert coverage["completed_stage_count"] == len(result["completed_stages"])
     expected_percentage = round(
         coverage["completed_stage_count"] / coverage["implemented_stage_count"] * 100,
@@ -331,7 +331,7 @@ def test_completed_and_status_are_completed_when_all_stages_completed(
 ) -> None:
     result = service.execute({"validation_run_id": validation_run_id})
     assert result["evaluation_status"] in {"completed", "incomplete", "blocked"}
-    assert len(result["completed_stages"]) + len(result["incomplete_stages"]) == 6
+    assert len(result["completed_stages"]) + len(result["incomplete_stages"]) == 7
     if result["evaluation_status"] == "completed":
         assert result["incomplete_stages"] == []
         assert result["evidence_coverage"]["coverage_percentage"] == 100.0
@@ -492,7 +492,7 @@ def test_api_success_uses_isolated_router(
     body = response.json()
     assert body["research_id"] == "ma-crossover-spy"
     assert body["evaluation_status"] in {"completed", "incomplete", "blocked"}
-    assert len(body["evidence_summary"]) == 6
+    assert len(body["evidence_summary"]) == 7
     assert body["provenance"]["validation_run_id"] == validation_run_id
 
 
@@ -529,5 +529,6 @@ def test_api_invalid_research_id_is_400(
 
 def test_evaluation_never_imports_implemented_stage_labels_count_from_stages() -> None:
     """Guard against silently drifting the coverage denominator: implemented
-    stage count must stay pinned to the six PR-009 stages."""
-    assert len(IMPLEMENTED_STAGE_LABELS) == 6
+    stage count must stay pinned to the current PR-009 stage set."""
+    assert len(IMPLEMENTED_STAGE_LABELS) == 7
+    assert "rolling_walk_forward" in IMPLEMENTED_STAGE_LABELS

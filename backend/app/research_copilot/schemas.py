@@ -6,6 +6,11 @@ from typing import Literal, Optional
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from app.security.limits import (
+    MAX_CONVERSATION_TURN_LENGTH,
+    MAX_QUESTION_LENGTH,
+)
+
 GroundingStatus = Literal["grounded", "partially_grounded", "unavailable"]
 
 
@@ -13,7 +18,7 @@ class CopilotConversationTurn(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     role: Literal["user", "assistant"]
-    content: str = Field(min_length=1, max_length=2000)
+    content: str = Field(min_length=1, max_length=MAX_CONVERSATION_TURN_LENGTH)
 
 
 class ResearchCopilotRequest(BaseModel):
@@ -21,7 +26,7 @@ class ResearchCopilotRequest(BaseModel):
 
     research_id: str = "ma-crossover-spy"
     validation_run_id: str = Field(min_length=1)
-    question: str = Field(min_length=1, max_length=1000)
+    question: str = Field(min_length=1, max_length=MAX_QUESTION_LENGTH)
     conversation: list[CopilotConversationTurn] = Field(default_factory=list, max_length=6)
 
 

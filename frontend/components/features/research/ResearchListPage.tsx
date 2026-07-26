@@ -16,6 +16,7 @@ import StatusBadge, { researchLifecycleVariant } from "@/components/ui/StatusBad
 import { getResearchRepository } from "@/lib/localResearchRepository";
 import type { CreateResearchInput } from "@/lib/researchRepository";
 import { useWorkspaceLanguage } from "@/lib/useWorkspaceLanguage";
+import { useRunArchiveCapability } from "@/lib/useRunArchiveCapability";
 import type { ResearchListItem } from "@/types/research";
 import { useResearchExecution } from "@/components/features/research/execution/useResearchExecution";
 import { applyExecutionToListItem } from "@/lib/applyResearchExecution";
@@ -84,6 +85,7 @@ function formatOccurredAt(value: string, language: Language): string | null {
  */
 export default function ResearchListPage() {
   const { language, setLanguage, tr } = useWorkspaceLanguage();
+  const { availability: persistenceAvailability } = useRunArchiveCapability();
   const router = useRouter();
   const repository = useMemo(() => getResearchRepository(), []);
   const [items, setItems] = useState<ResearchListItem[]>([]);
@@ -349,7 +351,9 @@ export default function ResearchListPage() {
 
   function workflowHref(stage: OverviewWorkflowStageId): string {
     if (!continueResearch) {
-      if (stage === "risk_review") return "/risk-gate-review";
+      if (stage === "risk_review") {
+        return `/research/${encodeURIComponent(CANONICAL_RESEARCH_ID)}?tab=robustness`;
+      }
       if (stage === "research") return "/strategy-lab";
       return "#research-library-projects";
     }
@@ -366,6 +370,26 @@ export default function ResearchListPage() {
           stats={heroStats}
           primaryCta={heroCta}
         />
+        <p
+          className="research-overview__persistence"
+          data-testid="research-persistence-mode"
+          data-mode={
+            persistenceAvailability === "available"
+              ? "persisted"
+              : persistenceAvailability === "unavailable"
+                ? "persistence-unavailable"
+                : "browser-local"
+          }
+        >
+          <strong>
+            {persistenceAvailability === "available"
+              ? tr("researchPersistencePersisted")
+              : persistenceAvailability === "unavailable"
+                ? tr("researchPersistenceUnavailable")
+                : tr("researchPersistenceLocal")}
+          </strong>
+          <span className="section-meta"> {tr("researchPersistenceHint")}</span>
+        </p>
 
         {actionNotice ? (
           <p className="research-overview__notice">{actionNotice}</p>

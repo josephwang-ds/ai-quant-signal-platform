@@ -1,5 +1,6 @@
 /** Factor Validation API result types (frontend). */
 import type { BenchmarkEvaluation } from "@/types/researchBenchmark";
+import type { ReproducibilityManifest } from "@/types/reproducibility";
 
 export type FactorIcPoint = {
   date: string;
@@ -54,6 +55,7 @@ export type FactorValidationResult = {
   benchmark?: BenchmarkEvaluation;
   warnings: string[];
   provenance: Record<string, unknown>;
+  reproducibility_manifest?: ReproducibilityManifest | null;
   generated_at: string;
   validation_run_id: string;
   evidence_kind?: string;

@@ -7,7 +7,7 @@ import SectionHeader from "@/components/ui/SectionHeader";
 import { useWorkspaceLanguage } from "@/lib/useWorkspaceLanguage";
 
 const DESTINATIONS = [
-  { href: "/", en: "Research Library", zh: "研究库" },
+  { href: "/", en: "Research Home", zh: "研究首页" },
   { href: "/strategy-lab", en: "Strategy Studio", zh: "策略工作室" },
   { href: "/market-watch", en: "AI Watchlist", zh: "AI 关注列表" },
   { href: "/compare-models", en: "Model Comparison", zh: "模型对比" },

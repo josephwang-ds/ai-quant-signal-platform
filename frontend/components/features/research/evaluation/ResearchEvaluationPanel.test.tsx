@@ -70,16 +70,15 @@ function buildEvaluation(
       },
     ],
     evidence_coverage: {
-      implemented_stage_count: 6,
+      implemented_stage_count: 7,
       completed_stage_count: 5,
-      coverage_percentage: 83.33,
+      coverage_percentage: 71.43,
     },
     completed_stages: ["Historical backtest", "Benchmark comparison"],
     incomplete_stages: ["Out-of-sample validation"],
     unavailable_stages: [
       "Stress testing",
       "Regime analysis",
-      "Walk-forward validation",
       "Monte Carlo simulation",
     ],
     blockers: ["Insufficient OOS history: need at least 252 valid return rows; got 150."],
@@ -91,7 +90,6 @@ function buildEvaluation(
     outstanding_evidence: [
       "Stress testing",
       "Regime analysis",
-      "Walk-forward validation",
       "Monte Carlo simulation",
       "Paper trading",
     ],
@@ -125,12 +123,19 @@ describe("ResearchEvaluationPanel", () => {
   });
 
   it("shows evaluation status, coverage, and evidence summary from backend evidence", () => {
-    render(
+    const { container } = render(
       <ResearchEvaluationPanel evaluation={buildEvaluation()} labels={labels} language="en" />
     );
 
     expect(screen.getAllByText("Incomplete").length).toBeGreaterThan(0);
-    expect(screen.getAllByText("83.33%").length).toBeGreaterThan(0);
+    const details = container.querySelector(
+      "details.validation-evidence-disclosure"
+    ) as HTMLDetailsElement | null;
+    expect(details).toBeTruthy();
+    if (details) {
+      details.open = true;
+    }
+    expect(screen.getAllByText("71.43%").length).toBeGreaterThan(0);
   });
 
   it("lists completed, incomplete, outstanding evidence, limitations, and blockers", () => {
@@ -172,13 +177,14 @@ describe("ResearchEvaluationPanel", () => {
             "Historical backtest",
             "Benchmark comparison",
             "Out-of-sample validation",
+            "Walk-forward validation",
             "Parameter sensitivity",
             "Transaction-cost sensitivity",
             "Data quality",
           ],
           evidence_summary: [],
           evidence_coverage: {
-            implemented_stage_count: 6,
+            implemented_stage_count: 7,
             completed_stage_count: 0,
             coverage_percentage: 0,
           },

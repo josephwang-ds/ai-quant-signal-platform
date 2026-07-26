@@ -1,6 +1,7 @@
 "use client";
 
 import type { Dispatch, SetStateAction } from "react";
+import dynamic from "next/dynamic";
 import Button from "@/components/ui/Button";
 import ErrorAlert from "@/components/ui/ErrorAlert";
 import LoadingState from "@/components/ui/LoadingState";
@@ -11,6 +12,7 @@ import type { ResearchDetail, ResearchWorkspaceSection } from "@/types/research"
 import ProvenanceBanner, {
   type ProvenanceBannerLabels,
 } from "@/components/features/research/execution/ProvenanceBanner";
+import ReproducibilityManifestPanel from "@/components/features/research/ReproducibilityManifestPanel";
 import type {
   ResearchExecutionResult,
   ResearchExecutionStatus,
@@ -32,9 +34,19 @@ import type {
   ResearchCopilotResult,
 } from "@/types/researchCopilot";
 import OverviewTab from "./OverviewTab";
-import EvidenceTab from "./EvidenceTab";
-import DecisionTab from "./DecisionTab";
-import NotebookTab from "./NotebookTab";
+
+const EvidenceTab = dynamic(() => import("./EvidenceTab"), {
+  ssr: false,
+  loading: () => <LoadingState message="Loading evidence…" />,
+});
+const DecisionTab = dynamic(() => import("./DecisionTab"), {
+  ssr: false,
+  loading: () => <LoadingState message="Loading decision…" />,
+});
+const NotebookTab = dynamic(() => import("./NotebookTab"), {
+  ssr: false,
+  loading: () => <LoadingState message="Loading notebook…" />,
+});
 
 export type ResearchWorkspaceMainSectionProps = {
   researchId: string;
@@ -155,14 +167,26 @@ export default function ResearchWorkspaceMainSection(
     return null;
   }
 
+  const manifest =
+    execution?.reproducibility_manifest ??
+    validation?.reproducibility_manifest ??
+    factorValidation?.reproducibility_manifest ??
+    null;
+
   const provenanceSlot =
     executionEnabled && executionStatus === "ready" && execution ? (
-      <ProvenanceBanner
-        provenance={execution.provenance}
-        labels={provenanceLabels}
-        warnings={execution.warnings}
-        language={language}
-      />
+      <>
+        <ProvenanceBanner
+          provenance={execution.provenance}
+          labels={provenanceLabels}
+          warnings={execution.warnings}
+          language={language}
+        />
+        <ReproducibilityManifestPanel
+          manifest={manifest}
+          language={language}
+        />
+      </>
     ) : executionEnabled && executionStatus === "error" ? (
       <div className="research-execution-error">
         <ErrorAlert
@@ -175,6 +199,8 @@ export default function ResearchWorkspaceMainSection(
       </div>
     ) : executionEnabled && executionStatus === "loading" ? (
       <LoadingState message={tr("researchExecLoading")} />
+    ) : manifest ? (
+      <ReproducibilityManifestPanel manifest={manifest} language={language} />
     ) : null;
 
   if (activeSection === "overview") {
@@ -190,7 +216,6 @@ export default function ResearchWorkspaceMainSection(
         validation={validation}
         evaluationStatus={evaluationStatus}
         evaluation={evaluation}
-        factorValidationStatus={factorValidationStatus}
         factorValidation={factorValidation}
         isFactorTemplate={isFactorTemplate}
         reloadExecution={reloadExecution}

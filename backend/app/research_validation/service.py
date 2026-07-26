@@ -31,6 +31,9 @@ from app.research_validation.result_store import (
     InMemoryValidationResultStore,
     ValidationResultStore,
 )
+from app.research_validation.walk_forward import run_rolling_walk_forward
+from app.research_validation.walk_forward_config import WALK_FORWARD_CONFIG
+from app.research_reproducibility import build_reproducibility_manifest
 
 CANONICAL_RESEARCH_ID = "ma-crossover-spy"
 PARAMETER_SHORT_WINDOWS = (10, 20, 30)
@@ -40,6 +43,7 @@ STAGE_ORDER = (
     "historical_backtest",
     "benchmark_comparison",
     "out_of_sample",
+    "rolling_walk_forward",
     "parameter_sensitivity",
     "transaction_cost_sensitivity",
     "data_quality",
@@ -216,6 +220,12 @@ class ResearchValidationService:
             generated_at,
             provenance,
         )
+        walk_forward, walk_forward_stage = self._build_rolling_walk_forward(
+            baseline,
+            parameters,
+            generated_at,
+            provenance,
+        )
         sensitivity, sensitivity_stage = self._build_parameter_sensitivity(
             market.frame,
             parameters,
@@ -321,6 +331,7 @@ class ResearchValidationService:
             historical_stage,
             benchmark_stage,
             oos_stage,
+            walk_forward_stage,
             sensitivity_stage,
             cost_stage,
             quality_stage,
@@ -331,7 +342,7 @@ class ResearchValidationService:
             "failed"
             if "failed" in statuses
             else "incomplete"
-            if "incomplete" in statuses
+            if "incomplete" in statuses or "unavailable" in statuses
             else "completed"
         )
         evidence_complete = validation_status == "completed"
@@ -340,6 +351,42 @@ class ResearchValidationService:
         warnings = _deduplicate(
             list(baseline.warnings)
             + [warning for stage in stages for warning in stage["warnings"]]
+        )
+        reproducibility_manifest = build_reproducibility_manifest(
+            data_source=provenance.get("provider") or provenance.get("source"),
+            symbol=provenance.get("canonical_symbol")
+            or provenance.get("symbol")
+            or parameters["symbol"],
+            universe=None,
+            requested_start_date=provenance.get("requested_start")
+            or parameters.get("start_date"),
+            requested_end_date=provenance.get("requested_end")
+            if provenance.get("requested_end") is not None
+            else parameters.get("end_date"),
+            actual_start_date=provenance.get("actual_start"),
+            actual_end_date=provenance.get("actual_end"),
+            retrieval_timestamp=provenance.get("retrieved_at"),
+            row_count=provenance.get("row_count") or len(market.frame),
+            adjustment_mode=provenance.get("adjustment"),
+            protocol={
+                "research_id": parameters["research_id"],
+                "strategy_type": "ma_crossover",
+                "symbol": parameters["symbol"],
+                "benchmark": parameters["benchmark"],
+                "short_window": parameters["short_window"],
+                "long_window": parameters["long_window"],
+                "transaction_cost": parameters["transaction_cost"],
+                "risk_free_rate": parameters["risk_free_rate"],
+                "in_sample_ratio": parameters["in_sample_ratio"],
+                "walk_forward_scheme": parameters["walk_forward_scheme"],
+                "walk_forward_n_folds": parameters["walk_forward_n_folds"],
+                "position_lag_days": 1,
+                "annualization_trading_days": 252,
+                "price_field": "adjusted_close",
+                "fixed_parameters": True,
+            },
+            frame=market.frame,
+            created_at=generated_at,
         )
         result = {
             "research_id": parameters["research_id"],
@@ -360,10 +407,12 @@ class ResearchValidationService:
                 "fixed_parameters": True,
             },
             "provenance": provenance,
+            "reproducibility_manifest": reproducibility_manifest,
             "validation_status": validation_status,
             "evidence_complete": evidence_complete,
             "stages": stages,
             "oos": oos,
+            "rolling_walk_forward": walk_forward,
             "parameter_sensitivity": sensitivity,
             "transaction_cost_sensitivity": costs,
             "data_quality": quality,
@@ -456,6 +505,31 @@ class ResearchValidationService:
             )
         if min_observations < 1:
             raise ResearchValidationError("min_observations must be >= 1.")
+
+        protocol = WALK_FORWARD_CONFIG["protocol"]
+        walk_forward_scheme = str(
+            request.get("walk_forward_scheme", protocol["default_scheme"])
+            or protocol["default_scheme"]
+        ).strip().lower()
+        if walk_forward_scheme not in protocol["supported_schemes"]:
+            raise ResearchValidationError(
+                'walk_forward_scheme must be "expanding" or "rolling".'
+            )
+        walk_forward_n_folds = _integer(
+            request.get("walk_forward_n_folds", protocol["default_n_folds"]),
+            "walk_forward_n_folds",
+        )
+        if not (
+            int(protocol["min_n_folds"])
+            <= walk_forward_n_folds
+            <= int(protocol["max_n_folds"])
+        ):
+            raise ResearchValidationError(
+                "walk_forward_n_folds must be between "
+                f"{protocol['min_n_folds']} and {protocol['max_n_folds']} "
+                "inclusive."
+            )
+
         return {
             "research_id": research_id,
             "symbol": symbol,
@@ -467,6 +541,8 @@ class ResearchValidationService:
             "transaction_cost": transaction_cost,
             "risk_free_rate": risk_free_rate,
             "in_sample_ratio": in_sample_ratio,
+            "walk_forward_scheme": walk_forward_scheme,
+            "walk_forward_n_folds": walk_forward_n_folds,
             "min_excess_return": min_excess_return,
             "min_sharpe_difference": min_sharpe_difference,
             "min_drawdown_improvement": min_drawdown_improvement,
@@ -604,6 +680,94 @@ class ResearchValidationService:
             warnings=[],
             blockers=blockers,
             generated_at=generated_at,
+            provenance=provenance,
+        )
+        return payload, stage
+
+    def _build_rolling_walk_forward(
+        self,
+        baseline: BacktestResult,
+        parameters: dict[str, Any],
+        generated_at: str,
+        provenance: dict[str, Any],
+    ) -> tuple[dict[str, Any], dict[str, Any]]:
+        payload = run_rolling_walk_forward(
+            baseline.frame,
+            short_window=parameters["short_window"],
+            long_window=parameters["long_window"],
+            transaction_cost=parameters["transaction_cost"],
+            risk_free_rate=parameters["risk_free_rate"],
+            n_folds=parameters["walk_forward_n_folds"],
+            scheme=parameters["walk_forward_scheme"],
+        )
+        status = str(payload.get("status") or "unavailable")
+        blockers: list[str] = []
+        warnings: list[str] = []
+        if status == "unavailable":
+            reason = payload.get("reason") or "Walk-forward evidence unavailable."
+            blockers.append(str(reason))
+        elif status == "failed":
+            reason = payload.get("reason") or "Walk-forward evidence failed."
+            blockers.append(str(reason))
+            for item in payload.get("failed_fold_reasons") or []:
+                if isinstance(item, dict) and item.get("failure_reason"):
+                    blockers.append(
+                        f"Fold {item.get('fold_index')}: {item['failure_reason']}"
+                    )
+        warnings.extend(str(item) for item in (payload.get("limitations") or []))
+
+        if status == "completed":
+            summary = (
+                f"Chronological {payload.get('scheme')} walk-forward completed with "
+                f"{(payload.get('aggregate') or {}).get('completed_fold_count', 0)} "
+                f"OOS folds and fixed MA parameters."
+            )
+        elif status == "failed":
+            summary = "Chronological walk-forward failed; failed folds were retained."
+        else:
+            summary = (
+                "Chronological walk-forward unavailable due to insufficient data "
+                "or invalid protocol inputs."
+            )
+
+        stage = _stage(
+            name="rolling_walk_forward",
+            label="Walk-forward validation",
+            status=status,
+            summary=summary,
+            evidence={
+                "type": "rolling_walk_forward",
+                "methodology_id": payload.get("methodology_id"),
+                "methodology_version": payload.get("methodology_version"),
+                "knowledge_id": payload.get("knowledge_id"),
+                "scheme": payload.get("scheme"),
+                "n_folds": payload.get("n_folds"),
+                "fixed_parameters": payload.get("fixed_parameters"),
+                "thresholds": payload.get("thresholds"),
+                "folds": payload.get("folds") or [],
+                "aggregate": payload.get("aggregate"),
+                "checks": payload.get("checks") or [],
+                "reason_code": payload.get("reason_code"),
+                "reason": payload.get("reason"),
+                "limitations": payload.get("limitations") or [],
+                "provenance": payload.get("provenance") or {},
+            },
+            rules=[
+                "Do not shuffle the time series.",
+                "Keep MA windows and transaction cost fixed across folds.",
+                "Do not reselect best parameters inside each fold.",
+                "Aggregate only OOS fold metrics; retain failed folds in evidence.",
+                (
+                    "Thresholds come from versioned methodology config "
+                    f"{WALK_FORWARD_CONFIG['methodology_id']} "
+                    f"{WALK_FORWARD_CONFIG['methodology_version']}."
+                ),
+            ],
+            warnings=warnings,
+            blockers=blockers,
+            generated_at=generated_at,
+            # Keep stage provenance aligned with market-data provenance; protocol
+            # identity lives under evidence.provenance / payload.provenance.
             provenance=provenance,
         )
         return payload, stage

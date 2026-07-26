@@ -42,6 +42,7 @@ class ResearchExecutionResponse(BaseModel):
     research_id: str
     strategy: dict[str, Any]
     provenance: dict[str, Any]
+    reproducibility_manifest: dict[str, Any] = Field(default_factory=dict)
     metrics: dict[str, Any]
     benchmark_metrics: dict[str, Any]
     benchmark_comparison: dict[str, Any]

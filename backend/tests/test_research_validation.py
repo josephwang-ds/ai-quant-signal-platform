@@ -36,6 +36,7 @@ STAGE_ORDER = [
     "historical_backtest",
     "benchmark_comparison",
     "out_of_sample",
+    "rolling_walk_forward",
     "parameter_sensitivity",
     "transaction_cost_sensitivity",
     "data_quality",
@@ -122,6 +123,8 @@ def test_request_defaults_are_the_canonical_contract() -> None:
         "min_cost_adjusted_return": 0.0,
         "min_robust_parameter_ratio": 0.5,
         "min_observations": 252,
+        "walk_forward_scheme": "expanding",
+        "walk_forward_n_folds": 4,
     }
 
 
@@ -290,7 +293,8 @@ def test_partial_cost_grid_is_incomplete_without_aborting_response(
         item for item in costs["results"] if item["transaction_cost"] == 0.002
     )
     assert costs["status"] == "incomplete"
-    assert result["stages"][4]["status"] == "incomplete"
+    assert result["stages"][5]["stage"] == "transaction_cost_sensitivity"
+    assert result["stages"][5]["status"] == "incomplete"
     assert result["validation_status"] == "incomplete"
     assert failed_row["total_return"] is None
     assert failed_row["return_degradation_from_zero"] is None

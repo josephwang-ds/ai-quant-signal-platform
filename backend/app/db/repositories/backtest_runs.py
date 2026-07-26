@@ -23,7 +23,7 @@ class DatabaseUnavailableError(RuntimeError):
 def _require_database() -> None:
     if not is_database_configured():
         raise DatabaseUnavailableError(
-            "Database is not configured. Set SUPABASE_DB_URL."
+            "Database is not configured."
         )
 
 

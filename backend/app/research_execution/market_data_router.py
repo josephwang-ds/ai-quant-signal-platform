@@ -117,4 +117,12 @@ class MarketDataRouter:
 
 def build_default_market_data_port() -> MarketDataPort:
     """Production router wiring for research execution and validation."""
-    return MarketDataRouter()
+    from app.security.settings import get_demo_protection_settings
+
+    timeout = get_demo_protection_settings().provider_fetch_timeout_seconds
+    cache = PriceCache()
+    return MarketDataRouter(
+        yahoo=YahooFinanceMarketDataAdapter(cache=cache, timeout_seconds=timeout),
+        akshare=AkShareMarketDataAdapter(cache=cache),
+        cache=cache,
+    )

@@ -129,7 +129,7 @@ Rules that remain in force:
 - No Research Confidence score, star rating, quality grade, or buy/sell
   recommendation is shown anywhere in the Evaluation view.
 - Evidence coverage is implementation completeness only, never confidence.
-- Stress testing, regime analysis, walk-forward validation, Monte Carlo
+- Stress testing, regime analysis, Monte Carlo
   simulation, Publish Strategy, and Paper Trading remain unavailable and
   are listed as outstanding evidence, not as pending scores.
 - See `docs/slices/research-evaluation.md`.

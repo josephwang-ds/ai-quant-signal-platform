@@ -75,7 +75,6 @@ export default function DeleteResearchModal({
             className="btn--danger"
             onClick={() => void onConfirm()}
             disabled={busy}
-            autoFocus
           >
             {busy ? labels.deleting : labels.confirm}
           </Button>

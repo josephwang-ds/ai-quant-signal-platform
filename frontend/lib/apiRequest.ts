@@ -15,6 +15,7 @@ export type ApiErrorCategory =
   | "timeout"
   | "backend_unavailable"
   | "provider_unavailable"
+  | "rate_limited"
   | "invalid_request"
   | "not_found"
   | "server_error"
@@ -30,6 +31,8 @@ export const API_USER_MESSAGES: Record<ApiErrorCategory, string> = {
     "The research backend is currently unavailable or starting up. Try again shortly.",
   provider_unavailable:
     "Historical market data could not be retrieved. No fallback values were used.",
+  rate_limited:
+    "This demo is busy right now. Please wait a moment and try again.",
   invalid_request:
     "The research request is invalid. Review the configured parameters.",
   not_found: "The requested research evidence could not be found.",
@@ -265,6 +268,14 @@ const UNSAFE_DETAIL_PATTERNS = [
   /\bat\s+\S+\.py:\d+/i,
   /exception/i,
   /error:\s*\d+/i,
+  /rate.?limiter/i,
+  /semaphore/i,
+  /InMemoryRateLimiter/i,
+  /BoundedSemaphore/i,
+  /stack/i,
+  /SUPABASE_DB_URL/i,
+  /LLM_API_KEY/i,
+  /postgres(?:ql)?:\/\//i,
 ];
 
 function isSafeBackendDetail(detail: string): boolean {
@@ -302,6 +313,9 @@ export function getApiDisplayMessage(
       return `The research request is invalid: ${detail}`;
     case "provider_unavailable":
       return `Historical market data could not be retrieved. ${detail} No fallback values were used.`;
+    case "rate_limited":
+      // Keep the friendly retry copy; never surface limiter internals.
+      return error.userMessage;
     case "backend_unavailable":
     case "network":
     case "timeout":
@@ -320,6 +334,7 @@ const API_USER_MESSAGES_ZH: Record<ApiErrorCategory, string> = {
   backend_unavailable:
     "研究后端仍在启动或暂时不可用，连接恢复后本页会自动重试。",
   provider_unavailable: "无法获取历史市场数据，未使用回退或虚构数据。",
+  rate_limited: "当前演示流量较高，请稍后再试。",
   invalid_request: "研究参数无效，请检查当前配置。",
   not_found: "未找到请求的研究证据。",
   server_error: "研究后端返回异常，未展示模拟结果。",
@@ -391,6 +406,7 @@ async function readBackendDetail(response: Response): Promise<string | undefined
 function categoryForStatus(status: number): ApiErrorCategory {
   if (status === 400 || status === 422) return "invalid_request";
   if (status === 404) return "not_found";
+  if (status === 429) return "rate_limited";
   if (status === 502) return "provider_unavailable";
   if (status === 503) return "backend_unavailable";
   if (status >= 500) return "server_error";

@@ -87,3 +87,31 @@ def offline_test_guards(request: pytest.FixtureRequest, monkeypatch: pytest.Monk
         _fake_load_price_data,
     )
     yield
+
+
+@pytest.fixture(autouse=True)
+def reset_demo_protection_state(monkeypatch: pytest.MonkeyPatch):
+    """
+    Keep process-local rate/concurrency gates from poisoning the suite.
+
+    Individual protection tests re-enable low limits after this fixture runs.
+    """
+    from app.security.concurrency import reset_llm_concurrency_for_tests
+    from app.security.rate_limit import reset_rate_limiter_for_tests
+    from app.security.settings import clear_demo_protection_settings_cache
+
+    # Generous defaults so business-logic tests are not flaky under the
+    # single-instance in-memory limiter. Protection tests override these.
+    monkeypatch.setenv("RATE_LIMIT_ENABLED", "true")
+    monkeypatch.setenv("AGENT_RATE_LIMIT", "10000")
+    monkeypatch.setenv("EXPENSIVE_RATE_LIMIT", "10000")
+    monkeypatch.setenv("WRITE_RATE_LIMIT", "10000")
+    monkeypatch.setenv("READ_RATE_LIMIT", "10000")
+    monkeypatch.setenv("LLM_MAX_CONCURRENCY", "8")
+    clear_demo_protection_settings_cache()
+    reset_rate_limiter_for_tests()
+    reset_llm_concurrency_for_tests()
+    yield
+    clear_demo_protection_settings_cache()
+    reset_rate_limiter_for_tests()
+    reset_llm_concurrency_for_tests()

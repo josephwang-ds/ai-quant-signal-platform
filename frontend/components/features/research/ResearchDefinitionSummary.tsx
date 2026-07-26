@@ -1,5 +1,12 @@
 "use client";
 
+import {
+  benchmarkLabel,
+  researchDefinitionTextLabel,
+  researchHypothesisLabel,
+  researchQuestionLabel,
+} from "@/lib/researchDisplay";
+import type { Language } from "@/lib/i18n";
 import type { ResearchDetail } from "@/types/research";
 
 export type ResearchDefinitionSummaryLabels = {
@@ -15,6 +22,7 @@ export type ResearchDefinitionSummaryLabels = {
 
 type Props = {
   research: ResearchDetail;
+  language: Language;
   labels: ResearchDefinitionSummaryLabels;
 };
 
@@ -34,6 +42,7 @@ function findParameter(research: ResearchDetail, keys: string[]): string | null 
 
 export default function ResearchDefinitionSummary({
   research,
+  language,
   labels,
 }: Props) {
   const protocolLine =
@@ -45,7 +54,7 @@ export default function ResearchDefinitionSummary({
     labels.unavailable;
   const dataUniverse = [
     research.configuration.symbol,
-    research.configuration.benchmark,
+    benchmarkLabel(research.configuration.benchmark, language),
   ]
     .filter(Boolean)
     .join(" · ");
@@ -59,11 +68,23 @@ export default function ResearchDefinitionSummary({
       <dl className="research-definition-summary__dl">
         <div>
           <dt>{labels.researchQuestion}</dt>
-          <dd>{research.researchQuestion || labels.unavailable}</dd>
+          <dd>
+            {researchQuestionLabel(
+              research.id,
+              research.researchQuestion,
+              language
+            ) || labels.unavailable}
+          </dd>
         </div>
         <div>
           <dt>{labels.hypothesis}</dt>
-          <dd>{research.hypothesis || labels.unavailable}</dd>
+          <dd>
+            {researchHypothesisLabel(
+              research.id,
+              research.hypothesis,
+              language
+            ) || labels.unavailable}
+          </dd>
         </div>
         <div>
           <dt>{labels.dataUniverse}</dt>
@@ -71,11 +92,11 @@ export default function ResearchDefinitionSummary({
         </div>
         <div>
           <dt>{labels.evaluationProtocol}</dt>
-          <dd>{protocol}</dd>
+          <dd>{researchDefinitionTextLabel(protocol, language)}</dd>
         </div>
         <div>
           <dt>{labels.successCriteria}</dt>
-          <dd>{success}</dd>
+          <dd>{researchDefinitionTextLabel(success, language)}</dd>
         </div>
         <div>
           <dt>{labels.knownLimitations}</dt>
@@ -83,7 +104,9 @@ export default function ResearchDefinitionSummary({
             {research.knownWeaknesses.length > 0 ? (
               <ul>
                 {research.knownWeaknesses.map((item) => (
-                  <li key={item}>{item}</li>
+                  <li key={item}>
+                    {researchDefinitionTextLabel(item, language)}
+                  </li>
                 ))}
               </ul>
             ) : (

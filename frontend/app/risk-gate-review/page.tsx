@@ -1,15 +1,12 @@
-"use client";
+import { permanentRedirect } from "next/navigation";
+import { CANONICAL_RESEARCH_ID } from "@/lib/canonicalMaCrossover";
 
-import AppShell from "@/components/layout/AppShell";
-import RiskGateReview from "@/components/features/risk/RiskGateReview";
-import { useWorkspaceLanguage } from "@/lib/useWorkspaceLanguage";
-
+/**
+ * Standalone Risk Gate Review form is retired.
+ * Pressure-test / robustness evidence lives on the canonical study workspace.
+ */
 export default function RiskGateReviewPage() {
-  const { language, setLanguage } = useWorkspaceLanguage();
-
-  return (
-    <AppShell language={language} onLanguageChange={setLanguage}>
-      <RiskGateReview />
-    </AppShell>
+  permanentRedirect(
+    `/research/${encodeURIComponent(CANONICAL_RESEARCH_ID)}?tab=robustness`
   );
 }

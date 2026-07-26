@@ -19,6 +19,16 @@ export type AgentResumeAction =
   | "record_decision"
   | "run_additional_validation";
 
+export type AgentTraceAuthority = "system" | "deterministic" | "llm" | "human";
+
+export type AgentTraceStatus =
+  | "pending"
+  | "running"
+  | "completed"
+  | "blocked"
+  | "unavailable"
+  | "failed";
+
 export type AgentRunSummary = {
   agent_run_id: string;
   status: AgentStatus;
@@ -27,9 +37,20 @@ export type AgentRunSummary = {
 };
 
 export type AgentTraceEvent = {
-  step: number;
+  id?: string;
+  sequence?: number;
+  timestamp?: string | null;
   node: string;
   event: string;
+  label?: string;
+  authority?: AgentTraceAuthority;
+  status?: AgentTraceStatus;
+  summary?: string;
+  evidence_ids?: string[];
+  methodology_citations?: string[];
+  tool_name?: string | null;
+  approval_required?: boolean;
+  step: number;
   detail?: string;
   at?: string;
 };
@@ -43,10 +64,18 @@ export type AgentRunDetail = {
   summary: string;
   research_type: string;
   llm_available: boolean;
+  llm_used?: boolean;
+  llm_interpretation_status?: string | null;
   llm_provider?: string | null;
   llm_model?: string | null;
   prompt_versions: Record<string, string>;
   graph_version: string;
+  rulebook_version?: string | null;
+  protocol_version?: string | null;
+  tool_plan?: Array<Record<string, unknown>>;
+  approval_required?: boolean;
+  deterministic_suggestion?: string | null;
+  final_human_decision?: Record<string, unknown> | null;
   evidence_snapshot_id?: string | null;
   knowledge_context: Array<Record<string, unknown>>;
   requested_tools: Array<Record<string, unknown>>;
@@ -61,6 +90,7 @@ export type AgentRunDetail = {
   recommended_next_steps: string[];
   errors: string[];
   trace: AgentTraceEvent[];
+  events?: AgentTraceEvent[];
   step_count: number;
   started_at?: string | null;
   completed_at?: string | null;

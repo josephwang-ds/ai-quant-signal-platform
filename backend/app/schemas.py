@@ -1,8 +1,10 @@
-from pydantic import BaseModel, field_validator, model_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 from typing import Optional
 
+from app.security.limits import MAX_NOTES_LENGTH, MAX_SYMBOL_LIST_LENGTH
+
 # 单次请求允许的最大 ticker 数量
-MAX_TICKERS = 20
+MAX_TICKERS = MAX_SYMBOL_LIST_LENGTH
 
 # lookback 交易日窗口范围
 MIN_LOOKBACK_DAYS = 80
@@ -633,8 +635,9 @@ class SaveBacktestRunRequest(BaseModel):
     end_date: Optional[str] = None
     transaction_cost: Optional[float] = None
     metrics: dict
-    notes: Optional[str] = None
+    notes: Optional[str] = Field(default=None, max_length=MAX_NOTES_LENGTH)
     trade_log: list[SaveBacktestTradeItem] = []
+    reproducibility_manifest: Optional[dict] = None
 
     @field_validator("ticker")
     @classmethod
@@ -686,7 +689,7 @@ class PaperTradingRequest(BacktestRequest):
     """模拟试盘请求体（复用回测参数）。"""
 
     account_id: str = "default"
-    notes: Optional[str] = None
+    notes: Optional[str] = Field(default=None, max_length=MAX_NOTES_LENGTH)
 
     @field_validator("account_id")
     @classmethod

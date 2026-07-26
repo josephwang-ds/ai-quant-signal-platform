@@ -4,6 +4,7 @@ import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import ReproducibilityManifestPanel from "@/components/features/research/ReproducibilityManifestPanel";
 import AppShell from "@/components/layout/AppShell";
 import Button from "@/components/ui/Button";
 import DataTable from "@/components/ui/DataTable";
@@ -18,6 +19,7 @@ import StatusBadge from "@/components/ui/StatusBadge";
 import { runBacktest, saveBacktestRun } from "@/lib/api";
 import { getApiDisplayMessage } from "@/lib/apiRequest";
 import { generateBacktestInterpretation } from "@/lib/backtestInterpretation";
+import { useRunArchiveCapability } from "@/lib/useRunArchiveCapability";
 import {
   formatDateSeriesRange,
   formatMetricPercent,
@@ -107,9 +109,21 @@ export default function StrategyLabPage() {
   const [saveLoading, setSaveLoading] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saveSuccess, setSaveSuccess] = useState<string | null>(null);
+  const {
+    availability: archiveAvailability,
+    canSave: archiveCanSave,
+    isChecking: archiveChecking,
+    refresh: refreshArchiveCapability,
+  } = useRunArchiveCapability();
 
   const chartLabels = getChartLabels(language);
   const backtestMetricHelp = getBacktestMetricHelp(language);
+
+  const saveDisabled =
+    saveLoading ||
+    !backtestResult ||
+    !archiveCanSave ||
+    archiveChecking;
 
   async function handleRunBacktest() {
     const normalizedTicker = backtestTicker.trim().toUpperCase();
@@ -192,6 +206,10 @@ export default function StrategyLabPage() {
       setSaveError(tr("saveRequiresResult"));
       return;
     }
+    if (!archiveCanSave) {
+      setSaveError(tr("strategyLabArchiveSaveDisabled"));
+      return;
+    }
 
     setSaveLoading(true);
     setSaveError(null);
@@ -223,6 +241,8 @@ export default function StrategyLabPage() {
           position_after: trade.position_after,
           reason: trade.reason,
         })),
+        reproducibility_manifest:
+          backtestResult.reproducibility_manifest ?? null,
       });
 
       router.push(`/experiments?saved=${encodeURIComponent(response.id)}`);
@@ -243,6 +263,10 @@ export default function StrategyLabPage() {
             description={tr("strategyLabDesc")}
           />
           <p className="strategy-lab-hero__note">{tr("strategyLabSimulatedNote")}</p>
+          <p className="section-meta">{tr("strategyLabRuleCompareHint")}</p>
+          <Link href="/comparison" className="btn btn--ghost">
+            {tr("strategyLabRuleCompareCta")}
+          </Link>
         </header>
 
         <div className="strategy-lab-config-grid">
@@ -404,14 +428,38 @@ export default function StrategyLabPage() {
             <p className="strategy-lab-run-bar__title">{tr("strategyLabReadyTitle")}</p>
             <p className="strategy-lab-run-bar__description">{tr("strategyLabReadyHint")}</p>
           </div>
-          <Button primary onClick={handleRunBacktest} disabled={backtestLoading}>
+          <Button
+            primary
+            onClick={handleRunBacktest}
+            disabled={backtestLoading}
+            data-testid="strategy-lab-run-backtest"
+          >
             {backtestLoading ? tr("running") : tr("runBacktest")}
           </Button>
         </div>
 
-        <section className="strategy-lab-archive-panel">
+        <section
+          className="strategy-lab-archive-panel"
+          data-testid="strategy-lab-archive-panel"
+          data-archive-availability={archiveAvailability}
+        >
           <div className="strategy-lab-archive-panel__copy">
             <p className="strategy-lab-archive-panel__title">{tr("strategyLabArchiveTitle")}</p>
+            {archiveAvailability === "checking" ? (
+              <p className="section-meta" data-testid="strategy-lab-archive-status">
+                {tr("strategyLabArchiveChecking")}
+              </p>
+            ) : null}
+            {archiveAvailability === "not-configured" ? (
+              <p className="section-meta" data-testid="strategy-lab-archive-status">
+                {tr("strategyLabArchiveOptional")}
+              </p>
+            ) : null}
+            {archiveAvailability === "unavailable" ? (
+              <p className="section-meta" data-testid="strategy-lab-archive-status">
+                {tr("strategyLabArchiveUnavailable")}
+              </p>
+            ) : null}
             <label className="form-field">
               <span className="form-label">{tr("experimentNotes")}</span>
               <textarea
@@ -426,10 +474,20 @@ export default function StrategyLabPage() {
           <div className="strategy-lab-archive-panel__actions">
             <Button
               onClick={handleSaveBacktestRun}
-              disabled={saveLoading || !backtestResult}
+              disabled={saveDisabled}
+              data-testid="strategy-lab-save-run"
             >
               {saveLoading ? tr("savingBacktestRun") : tr("saveBacktestRun")}
             </Button>
+            {archiveAvailability === "unavailable" ? (
+              <Button
+                type="button"
+                onClick={() => void refreshArchiveCapability()}
+                data-testid="strategy-lab-archive-retry"
+              >
+                {tr("strategyLabArchiveRetry")}
+              </Button>
+            ) : null}
             <Link href="/experiments" className="btn btn--ghost">
               {tr("openExperiments")}
             </Link>
@@ -468,6 +526,10 @@ export default function StrategyLabPage() {
 
           {backtestResult && (
             <>
+            <ReproducibilityManifestPanel
+              manifest={backtestResult.reproducibility_manifest}
+              language={language}
+            />
             <div className="metric-grid">
               <MetricCard
                 label={tr("totalReturn")}

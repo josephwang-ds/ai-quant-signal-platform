@@ -85,9 +85,9 @@ A related **evaluation** endpoint (`POST /api/v1/research/evaluation`) summarise
 
 **Purpose:** organise robustness work after Validation.
 
-The Robustness Center is an **evidence review**. It shows four implemented checks from Validation / Evaluation: parameter sensitivity, benchmark comparison, transaction-cost stress, and data quality.
+The Robustness Center is an **evidence review**. It shows implemented checks from Validation / Evaluation: parameter sensitivity, benchmark comparison, transaction-cost stress, data quality, and fixed-parameter chronological walk-forward for the canonical Trend Following Study.
 
-Regime analysis, rolling walk-forward validation, Monte Carlo analysis, and liquidity/capacity modelling are disclosed separately as scope boundaries. They are not executable checklist items and are never counted as completed evidence.
+Regime analysis, Monte Carlo analysis, and liquidity/capacity modelling remain scope boundaries. They are not executable checklist items and are never counted as completed evidence. Walk-forward reduces but does not eliminate overfitting risk and does not represent future returns; the canonical protocol uses fixed MA parameters rather than per-fold retuning.
 
 ---
 

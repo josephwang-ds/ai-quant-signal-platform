@@ -29,6 +29,7 @@ export function buildDecisionCenterLabels(
       benchmark_comparison: tr("decisionCenterRiskBenchmark"),
       transaction_cost: tr("decisionCenterRiskCost"),
       data_quality: tr("decisionCenterRiskDataQuality"),
+      walk_forward: tr("decisionCenterRiskWalkForward"),
     },
     checklistTitle: tr("decisionCenterChecklistTitle"),
     checklistCompleted: tr("decisionCenterChecklistCompleted"),

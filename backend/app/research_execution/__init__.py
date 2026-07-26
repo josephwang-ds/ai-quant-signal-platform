@@ -1,5 +1,6 @@
 """Research execution package."""
 
-from app.research_execution.service import ResearchExecutionService
-
-__all__ = ["ResearchExecutionService"]
+# Keep package import side-effect free so submodules (e.g. market_data_port)
+# can load without pulling the application service and creating import cycles
+# with research_reproducibility.
+__all__: list[str] = []

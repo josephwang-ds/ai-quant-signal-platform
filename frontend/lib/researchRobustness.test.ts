@@ -93,7 +93,6 @@ function baseEvaluation(
     unavailable_stages: [
       "Stress testing",
       "Regime analysis",
-      "Walk-forward validation",
       "Monte Carlo simulation",
     ],
     blockers: [],
@@ -123,11 +122,15 @@ describe("buildRobustnessCenterModel", () => {
       "benchmark_comparison",
       "transaction_cost",
       "data_quality",
+      "walk_forward",
     ]);
     expect(model.scopeBoundaryIds).toEqual([...ROBUSTNESS_SCOPE_BOUNDARIES]);
+    expect(model.scopeBoundaryIds).not.toContain("walk_forward");
     expect(model.items.find((i) => i.id === "parameter_sensitivity")?.status).toBe(
       "pending"
     );
+    expect(model.walkForward.runState).toBe("not_run");
+    expect(model.walkForward.statusLabel).toBe("Not run");
     expect(model.overallStatus).toBe("not_started");
     expect(model.nextItemId).toBe("parameter_sensitivity");
   });
@@ -187,7 +190,6 @@ describe("buildRobustnessCenterModel", () => {
     );
     expect(model.scopeBoundaryIds).toEqual([
       "market_regime",
-      "walk_forward",
       "monte_carlo",
       "liquidity_capacity",
     ]);

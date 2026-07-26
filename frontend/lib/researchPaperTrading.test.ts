@@ -168,7 +168,6 @@ function baseEvaluation(
     unavailable_stages: [
       "Stress testing",
       "Regime analysis",
-      "Walk-forward validation",
       "Monte Carlo simulation",
     ],
     blockers: [],
@@ -272,7 +271,37 @@ describe("buildPaperTradingCenterModel", () => {
             generated_at: null,
             provenance: null,
           },
+          {
+            stage: "rolling_walk_forward",
+            label: "Walk-forward validation",
+            status: "completed",
+            summary: "ok",
+            evidence: {},
+            rules: [],
+            warnings: [],
+            blockers: [],
+            generated_at: null,
+            provenance: null,
+          },
         ],
+        rolling_walk_forward: {
+          status: "completed",
+          scheme: "expanding",
+          n_folds: 4,
+          aggregate: {
+            completed_fold_count: 4,
+            failed_fold_count: 0,
+            requested_fold_count: 4,
+            positive_return_fold_ratio: 0.5,
+            benchmark_outperformance_fold_ratio: 0.5,
+            median_oos_return: 0.01,
+            median_oos_sharpe: 0.1,
+            worst_oos_drawdown: -0.1,
+          },
+          folds: [],
+          checks: [],
+          limitations: [],
+        },
       }),
       evaluation: baseEvaluation({
         evaluation_status: "completed",
@@ -282,6 +311,7 @@ describe("buildPaperTradingCenterModel", () => {
           "Benchmark comparison",
           "Transaction-cost sensitivity",
           "Data quality",
+          "Walk-forward validation",
         ],
         evidence_summary: [
           {
@@ -305,6 +335,12 @@ describe("buildPaperTradingCenterModel", () => {
           {
             stage: "data_quality",
             label: "Data quality",
+            status: "completed",
+            summary: "ok",
+          },
+          {
+            stage: "rolling_walk_forward",
+            label: "Walk-forward validation",
             status: "completed",
             summary: "ok",
           },

@@ -1,11 +1,14 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ExperimentRunCard } from "@/components/features/experiments/ExperimentRunCard";
+import ReproducibilityManifestPanel from "@/components/features/research/ReproducibilityManifestPanel";
 import AppShell from "@/components/layout/AppShell";
 import Button from "@/components/ui/Button";
 import DataTable from "@/components/ui/DataTable";
+import EmptyState from "@/components/ui/EmptyState";
 import ErrorAlert from "@/components/ui/ErrorAlert";
 import LoadingState from "@/components/ui/LoadingState";
 import MetricCard from "@/components/ui/MetricCard";
@@ -46,6 +49,7 @@ import {
   translateBackendText,
   translateStrategyName,
 } from "@/lib/i18n";
+import { useRunArchiveCapability } from "@/lib/useRunArchiveCapability";
 import { useWorkspaceLanguage } from "@/lib/useWorkspaceLanguage";
 import type { BacktestRunDetail, BacktestRunSummary } from "@/types/market";
 import type { Language } from "@/lib/i18n";
@@ -152,6 +156,13 @@ function ExperimentDetailPanel({
             </>
           ) : null}
 
+          {detail.reproducibility_manifest ? (
+            <ReproducibilityManifestPanel
+              manifest={detail.reproducibility_manifest}
+              language={language}
+            />
+          ) : null}
+
           <h3 className="module-card__title">{tr("experimentsConfig")}</h3>
           <pre className="experiments-detail-panel__config font-mono">
             {JSON.stringify(detail.strategy_config, null, 2)}
@@ -203,6 +214,10 @@ export default function ExperimentsPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { language, setLanguage, tr } = useWorkspaceLanguage();
+  const {
+    availability: archiveAvailability,
+    refresh: refreshArchiveCapability,
+  } = useRunArchiveCapability({ autoCheck: false });
   const [items, setItems] = useState<BacktestRunSummary[]>([]);
   const [listLoading, setListLoading] = useState(true);
   const [listError, setListError] = useState<string | null>(null);
@@ -246,17 +261,13 @@ export default function ExperimentsPage() {
     setListLoading(true);
     setListError(null);
     try {
-      const response = await listBacktestRuns(50, 0);
-      setItems(response.items);
-      setCompareIds((current) =>
-        current.filter((id) => response.items.some((item) => item.id === id))
-      );
-    } catch (error) {
-      setListError(
-        error instanceof Error ? error.message : tr("experimentsLoadFailed")
-      );
-    } finally {
+      await refreshArchiveCapability();
+    } catch {
+      setItems([]);
+      setCompareIds([]);
+      setListError(tr("experimentsStorageUnavailableDesc"));
       setListLoading(false);
+      return;
     }
   }
 
@@ -265,6 +276,52 @@ export default function ExperimentsPage() {
     // 仅挂载时加载一次
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadRunsWhenAvailable() {
+      if (archiveAvailability === "checking") {
+        return;
+      }
+      if (archiveAvailability !== "available") {
+        setItems([]);
+        setCompareIds([]);
+        setListLoading(false);
+        if (archiveAvailability === "unavailable") {
+          setListError(tr("experimentsStorageUnavailableDesc"));
+        } else {
+          setListError(null);
+        }
+        return;
+      }
+
+      setListLoading(true);
+      setListError(null);
+      try {
+        const response = await listBacktestRuns(50, 0);
+        if (cancelled) return;
+        setItems(response.items);
+        setCompareIds((current) =>
+          current.filter((id) => response.items.some((item) => item.id === id))
+        );
+      } catch {
+        if (cancelled) return;
+        setItems([]);
+        setCompareIds([]);
+        setListError(tr("experimentsStorageUnavailableDesc"));
+      } finally {
+        if (!cancelled) {
+          setListLoading(false);
+        }
+      }
+    }
+
+    void loadRunsWhenAvailable();
+    return () => {
+      cancelled = true;
+    };
+  }, [archiveAvailability, tr]);
 
   useEffect(() => {
     setListFilters((current) => sanitizeExperimentListFilters(current, items));
@@ -376,14 +433,32 @@ export default function ExperimentsPage() {
         <section className="experiments-library-panel">
 
         {listLoading ? <LoadingState message={tr("experimentsLoading")} /> : null}
-        {listError ? (
-          <ErrorAlert title={tr("experimentsLoadFailed")} message={listError} />
+        {!listLoading && archiveAvailability === "not-configured" ? (
+          <EmptyState
+            title={tr("experimentsStorageOptionalTitle")}
+            description={tr("experimentsStorageOptionalDesc")}
+            action={
+              <Link href="/strategy-lab" className="btn btn--primary">
+                {tr("experimentsOpenStrategyLab")}
+              </Link>
+            }
+          />
         ) : null}
-        {!listLoading && !listError && items.length === 0 ? (
+        {!listLoading && archiveAvailability === "unavailable" ? (
+          <ErrorAlert
+            title={tr("experimentsStorageUnavailableTitle")}
+            message={listError ?? tr("experimentsStorageUnavailableDesc")}
+          />
+        ) : null}
+        {!listLoading &&
+        archiveAvailability === "available" &&
+        items.length === 0 ? (
           <p className="section-meta">{tr("experimentsEmpty")}</p>
         ) : null}
 
-        {!listLoading && items.length > 0 ? (
+        {!listLoading &&
+        archiveAvailability === "available" &&
+        items.length > 0 ? (
           <>
             <div className="experiments-filter-bar">
               <label className="form-field">

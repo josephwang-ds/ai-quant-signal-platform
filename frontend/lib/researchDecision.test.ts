@@ -131,7 +131,6 @@ function baseEvaluation(
     unavailable_stages: [
       "Stress testing",
       "Regime analysis",
-      "Walk-forward validation",
       "Monte Carlo simulation",
     ],
     blockers: [],
@@ -176,6 +175,7 @@ describe("buildDecisionCenterModel", () => {
     expect(model.remainingRiskIds).toEqual([
       "benchmark_comparison",
       "data_quality",
+      "walk_forward",
     ]);
     expect(model.checklist.find((c) => c.id === "limitations_documented")?.status).toBe(
       "completed"
@@ -188,6 +188,7 @@ describe("buildDecisionCenterModel", () => {
       ["benchmark_comparison", "Benchmark comparison"],
       ["transaction_cost_sensitivity", "Transaction-cost sensitivity"],
       ["data_quality", "Data quality"],
+      ["rolling_walk_forward", "Walk-forward validation"],
     ].map(([stage, label]) => ({
       stage,
       label,
@@ -196,7 +197,35 @@ describe("buildDecisionCenterModel", () => {
     }));
     const model = buildDecisionCenterModel({
       research,
-      validation: baseValidation({ validation_status: "completed" }),
+      validation: baseValidation({
+        validation_status: "completed",
+        rolling_walk_forward: {
+          status: "completed",
+          folds: [],
+          aggregate: null,
+          checks: [],
+          limitations: [],
+        },
+        data_quality: {
+          status: "completed",
+          fatal_issues: [],
+          warnings: [],
+          informational: {},
+          checks: [],
+        },
+        parameter_sensitivity: {
+          status: "completed",
+          results: [],
+          valid_combination_count: null,
+          profitable_combination_count: null,
+          positive_sharpe_count: null,
+          median_sharpe: null,
+          sharpe_range: [null, null],
+          median_max_drawdown: null,
+          canonical_percentile_by_sharpe: null,
+          warnings: [],
+        },
+      }),
       evaluation: baseEvaluation({
         evaluation_status: "completed",
         evidence_summary: completedEvidence,

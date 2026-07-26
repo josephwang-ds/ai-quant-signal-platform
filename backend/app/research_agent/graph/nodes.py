@@ -35,6 +35,7 @@ from app.research_agent.prompts import (
 )
 from app.research_agent.state import AgentState
 from app.research_agent.tools.handlers import ToolExecutionContext, execute_tool
+from app.research_agent.trace_events import append_trace_event
 from app.research_execution.market_data_port import utc_now_iso
 from app.research_knowledge.retrieval import retrieve_rulebook
 
@@ -47,18 +48,27 @@ UNSUPPORTED_PATTERNS = (
 )
 
 
-def _trace(state: AgentState, node: str, event: str, detail: str = "") -> list[dict[str, Any]]:
-    trace = list(state.get("trace") or [])
-    trace.append(
-        {
-            "step": len(trace) + 1,
-            "node": node,
-            "event": event,
-            "detail": detail,
-            "at": utc_now_iso(),
-        }
+def _trace(
+    state: AgentState,
+    node: str,
+    event: str,
+    detail: str = "",
+    *,
+    evidence_ids: list[str] | None = None,
+    methodology_citations: list[str] | None = None,
+    tool_name: str | None = None,
+    approval_required: bool = False,
+) -> list[dict[str, Any]]:
+    return append_trace_event(
+        dict(state),
+        node,
+        event,
+        detail,
+        evidence_ids=evidence_ids,
+        methodology_citations=methodology_citations,
+        tool_name=tool_name,
+        approval_required=approval_required,
     )
-    return trace
 
 
 def _bump(state: AgentState, node: str) -> dict[str, Any]:

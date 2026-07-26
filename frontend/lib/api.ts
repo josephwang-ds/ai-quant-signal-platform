@@ -6,6 +6,7 @@ import type {
   CombinedMode,
   CompareChartResponse,
   DataSourceStatusResponse,
+  DatabaseStatusResponse,
   IndicatorsResponse,
   MarketWatchResponse,
   OOSResponse,
@@ -64,6 +65,40 @@ export async function getDataSourceStatus(): Promise<DataSourceStatusResponse> {
     { cache: "no-store" },
     { timeoutMs: API_STATUS_TIMEOUT_MS }
   );
+}
+
+/**
+ * 获取可选实验存档数据库的配置与连通状态。
+ *
+ * 后端在数据库已配置但暂时离线时会返回 503，并仍携带结构化状态。
+ * 这里保留该状态，让页面显示产品级能力提示，而不是暴露连接错误。
+ */
+export async function getDatabaseStatus(): Promise<DatabaseStatusResponse> {
+  const response = await fetchWithBackendReady(
+    buildApiUrl("/api/database/status"),
+    { cache: "no-store" }
+  );
+
+  let status: DatabaseStatusResponse | null = null;
+  try {
+    const body = (await response.json()) as Partial<DatabaseStatusResponse>;
+    if (
+      typeof body.configured === "boolean" &&
+      typeof body.connected === "boolean" &&
+      typeof body.message === "string" &&
+      typeof body.database === "string"
+    ) {
+      status = body as DatabaseStatusResponse;
+    }
+  } catch {
+    status = null;
+  }
+
+  if (status) {
+    return status;
+  }
+
+  throw new Error(`Database status request failed with status ${response.status}`);
 }
 
 /**

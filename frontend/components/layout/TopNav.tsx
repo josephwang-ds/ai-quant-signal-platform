@@ -40,7 +40,7 @@ export default function TopNav({
         </span>
       </button>
 
-      <Link href="/overview" className="workspace-brand workspace-brand--compact">
+      <Link href="/" className="workspace-brand workspace-brand--compact">
         <span className="workspace-brand__name">{t(language, "appTitleShort")}</span>
         <span className="workspace-brand__version">v{PRODUCT_VERSION}</span>
       </Link>

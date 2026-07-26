@@ -14,7 +14,7 @@ OpenAPI: `http://127.0.0.1:8000/docs` when the server is running.
 | --- | --- | --- |
 | `GET` | `/health` | Process liveness |
 | `GET` | `/api/data-sources/status` | Configured data-source status (not a live ping of every provider) |
-| `GET` | `/api/database/status` | Postgres connectivity when `SUPABASE_DB_URL` is set |
+| `GET` | `/api/database/status` | Postgres connectivity + `persistence_mode` when optional DB is used |
 
 ---
 
@@ -25,8 +25,16 @@ Prefix: `/api/v1/research`
 | Method | Path | Purpose |
 | --- | --- | --- |
 | `POST` | `/api/v1/research/execution` | Historical MA crossover execution + benchmark metrics |
-| `POST` | `/api/v1/research/validation` | Deterministic validation evidence |
+| `POST` | `/api/v1/research/validation` | Deterministic validation evidence (includes fixed-parameter chronological walk-forward for the canonical trend study) |
 | `POST` | `/api/v1/research/evaluation` | Summarise validation evidence (no new calculations) |
+| `GET` | `/api/v1/research/persistence/mode` | Browser-local / persisted / unavailable mode label |
+| `PUT` | `/api/v1/research/persistence/projects` | Optional durable research project upsert |
+| `POST` | `/api/v1/research/persistence/protocol-versions` | Publish immutable protocol version |
+| `POST` | `/api/v1/research/persistence/evidence-snapshots` | Persist evidence snapshot + hash |
+| `POST` | `/api/v1/research/persistence/validation-runs` | Persist validation run (idempotency key supported) |
+| `POST` | `/api/v1/research/persistence/agent-runs` | Persist agent run + ordered events |
+| `POST` | `/api/v1/research/persistence/decision-records` | Persist human decision record |
+| `GET` | `/api/v1/research/persistence/decision-records` | List decision records for a research id |
 | `POST` | `/api/v1/research/copilot/query` | Evidence-grounded Copilot Q&A |
 | `POST` | `/api/v1/research/guidance/definition` | Template-first research definition; optional constrained LLM refinement |
 | `POST` | `/api/v1/research/reviewer/draft-definition` | Strict-JSON AI research-definition draft; criteria remain inactive |
@@ -104,8 +112,13 @@ Defined primarily in `backend/app/main.py`:
 
 | Situation | Typical response |
 | --- | --- |
-| Invalid parameters | `400` |
+| Invalid parameters | `400` / `422` |
+| Request body too large | `413` |
+| Demo rate limit exceeded | `429` with `Retry-After` (friendly message; no limiter internals) |
 | Upstream market-data / provider failure | `502` (no fabricated series) |
-| Copilot provider / config unavailable | `503` / structured error — no fake answer |
+| Copilot provider / config unavailable, or LLM concurrency full | `503` / structured error — no fake answer |
+| LLM or long validation timeout | `504` |
+
+Public-demo protection knobs (`AGENT_RATE_LIMIT`, `LLM_MAX_CONCURRENCY`, `MAX_REQUEST_BODY_BYTES`, timeouts, `TRUSTED_PROXY_IPS`) are documented in [`backend/.env.example`](../backend/.env.example). The in-memory rate limiter is single-instance only.
 
 For request/response schemas, use the live OpenAPI docs or the Pydantic models under `backend/app/research_*/schemas.py`.

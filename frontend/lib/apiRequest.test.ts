@@ -96,6 +96,7 @@ describe("shared API request transport", () => {
     [400, "invalid_request"],
     [422, "invalid_request"],
     [404, "not_found"],
+    [429, "rate_limited"],
     [502, "provider_unavailable"],
     [503, "backend_unavailable"],
     [500, "server_error"],
@@ -211,5 +212,40 @@ describe("shared API request transport", () => {
     );
 
     expect(message).toBe(API_USER_MESSAGES.server_error);
+  });
+
+  it("shows a friendly retry message for HTTP 429 without limiter internals", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(
+        jsonResponse(
+          {
+            detail:
+              "Too many requests. InMemoryRateLimiter semaphore stack overflow.",
+          },
+          429
+        )
+      )
+    );
+
+    await expect(requestJson("/api/v1/research/copilot/query")).rejects.toMatchObject({
+      category: "rate_limited",
+      status: 429,
+      userMessage: API_USER_MESSAGES.rate_limited,
+    });
+
+    const message = getApiDisplayMessage(
+      new ApiRequestError({
+        category: "rate_limited",
+        code: "HTTP_429",
+        status: 429,
+        backendDetail:
+          "Too many requests. InMemoryRateLimiter semaphore stack overflow.",
+        userMessage: API_USER_MESSAGES.rate_limited,
+      })
+    );
+    expect(message).toBe(API_USER_MESSAGES.rate_limited);
+    expect(message.toLowerCase()).not.toContain("semaphore");
+    expect(message.toLowerCase()).not.toContain("inmemoryratelimiter");
   });
 });

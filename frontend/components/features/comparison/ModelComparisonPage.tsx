@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import Button from "@/components/ui/Button";
 import DataTable from "@/components/ui/DataTable";
@@ -11,9 +12,6 @@ import LoadingState from "@/components/ui/LoadingState";
 import MetricSummaryCard from "@/components/ui/MetricSummaryCard";
 import SectionCard from "@/components/ui/SectionCard";
 import SectionHeader from "@/components/ui/SectionHeader";
-import ModelComparisonCharts from "@/components/features/comparison/ModelComparisonCharts";
-import ModelComparisonInsightPanels from "@/components/features/comparison/ModelComparisonInsightPanels";
-import ModelComparisonPreprocessingPanel from "@/components/features/comparison/ModelComparisonPreprocessingPanel";
 import {
   explainModelComparison,
   runModelComparison,
@@ -35,6 +33,20 @@ import {
   type TranslationKey,
 } from "@/lib/i18n";
 import { useWorkspaceLanguage } from "@/lib/useWorkspaceLanguage";
+
+const ModelComparisonCharts = dynamic(
+  () => import("@/components/features/comparison/ModelComparisonCharts"),
+  { ssr: false, loading: () => <LoadingState message="Loading charts…" /> }
+);
+const ModelComparisonInsightPanels = dynamic(
+  () => import("@/components/features/comparison/ModelComparisonInsightPanels"),
+  { ssr: false, loading: () => <LoadingState message="Loading insights…" /> }
+);
+const ModelComparisonPreprocessingPanel = dynamic(
+  () =>
+    import("@/components/features/comparison/ModelComparisonPreprocessingPanel"),
+  { ssr: false, loading: () => <LoadingState message="Loading…" /> }
+);
 
 const DEFAULT_TICKER = "SPY";
 const DEFAULT_START_DATE = "2020-01-01";

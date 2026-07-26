@@ -20,6 +20,7 @@ from app.research_execution.market_data_port import (
     clip_to_completed_daily_bars,
     utc_now_iso,
 )
+from app.research_reproducibility.manifest import build_reproducibility_manifest
 
 RESEARCH_ID_PATTERN = re.compile(r"^[A-Za-z0-9._-]{1,128}$")
 
@@ -147,6 +148,7 @@ class ResearchExecutionService:
         series = series_to_records(backtest.frame)
         strategy_metrics = metrics_to_dict(backtest.strategy_metrics)
         benchmark_metrics = metrics_to_dict(backtest.benchmark_metrics)
+        generated_at = utc_now_iso()
         benchmark_comparison = build_trend_benchmark_comparison(
             strategy_metrics,
             benchmark_metrics,
@@ -156,35 +158,67 @@ class ResearchExecutionService:
             min_observations=min_observations,
             min_cost_adjusted_return=min_cost_adjusted_return,
             min_robust_parameter_ratio=min_robust_parameter_ratio,
-            evidence_timestamp=utc_now_iso(),
+            evidence_timestamp=generated_at,
         )
-        return {
-            "research_id": research_id,
-            "strategy": {
-                "type": "ma_crossover",
+        strategy = {
+            "type": "ma_crossover",
+            "symbol": symbol,
+            "benchmark": symbol,
+            "benchmark_type": "same_asset_buy_and_hold",
+            "benchmark_label": f"{symbol} Buy & Hold",
+            "short_window": short_window,
+            "long_window": long_window,
+            "transaction_cost": transaction_cost,
+            "transaction_cost_convention": (
+                "Cost = |Δposition| × transaction_cost per trading day "
+                "(for 0/1 positions: charged on each entry or exit)."
+            ),
+            "position_lag_days": 1,
+            "risk_free_rate": risk_free_rate,
+            "annualization_trading_days": 252,
+            "price_field": "adjusted_close",
+        }
+        provenance = asdict(market.provenance)
+        reproducibility_manifest = build_reproducibility_manifest(
+            data_source=provenance.get("provider") or provenance.get("source"),
+            symbol=provenance.get("canonical_symbol") or provenance.get("symbol") or symbol,
+            universe=None,
+            requested_start_date=provenance.get("requested_start") or start_date,
+            requested_end_date=provenance.get("requested_end")
+            if provenance.get("requested_end") is not None
+            else end_date,
+            actual_start_date=provenance.get("actual_start"),
+            actual_end_date=provenance.get("actual_end"),
+            retrieval_timestamp=provenance.get("retrieved_at"),
+            row_count=provenance.get("row_count") or len(market.frame),
+            adjustment_mode=provenance.get("adjustment"),
+            protocol={
+                "research_id": research_id,
+                "strategy_type": "ma_crossover",
                 "symbol": symbol,
                 "benchmark": symbol,
-                "benchmark_type": "same_asset_buy_and_hold",
-                "benchmark_label": f"{symbol} Buy & Hold",
                 "short_window": short_window,
                 "long_window": long_window,
                 "transaction_cost": transaction_cost,
-                "transaction_cost_convention": (
-                    "Cost = |Δposition| × transaction_cost per trading day "
-                    "(for 0/1 positions: charged on each entry or exit)."
-                ),
-                "position_lag_days": 1,
                 "risk_free_rate": risk_free_rate,
+                "position_lag_days": 1,
                 "annualization_trading_days": 252,
                 "price_field": "adjusted_close",
             },
-            "provenance": asdict(market.provenance),
+            frame=market.frame,
+            created_at=generated_at,
+        )
+        return {
+            "research_id": research_id,
+            "strategy": strategy,
+            "provenance": provenance,
+            "reproducibility_manifest": reproducibility_manifest,
             "metrics": strategy_metrics,
             "benchmark_metrics": benchmark_metrics,
             "benchmark_comparison": benchmark_comparison,
             "series": series,
             "warnings": warnings,
-            "generated_at": utc_now_iso(),
+            "generated_at": generated_at,
             "supported_evidence": {
                 "historical_backtest": "completed",
                 "benchmark_comparison": (

@@ -9,6 +9,7 @@ TREND_REQUIRED_EVIDENCE = (
     "benchmark",
     "validation",
     "oos",
+    "rolling_walk_forward",
     "parameter_sensitivity",
     "cost_sensitivity",
     "data_quality",
@@ -24,6 +25,7 @@ _TREND_STAGE_KEYS = {
     "historical_backtest": "execution",
     "benchmark_comparison": "benchmark",
     "out_of_sample": "oos",
+    "rolling_walk_forward": "rolling_walk_forward",
     "parameter_sensitivity": "parameter_sensitivity",
     "transaction_cost_sensitivity": "cost_sensitivity",
     "data_quality": "data_quality",
@@ -107,6 +109,19 @@ def _trend_stage_summaries(
             "out_of_sample_metrics",
             "oos_benchmark_metrics",
         ),
+        "rolling_walk_forward": (
+            "methodology_id",
+            "methodology_version",
+            "scheme",
+            "n_folds",
+            "fixed_parameters",
+            "aggregate",
+            "checks",
+            "folds",
+            "reason_code",
+            "reason",
+            "provenance",
+        ),
         "parameter_sensitivity": (
             "status",
             "valid_combination_count",
@@ -189,6 +204,7 @@ def build_evidence_snapshot(
             "validation": factor_complete,
             "factor_validation": factor_complete,
             "oos": False,
+            "rolling_walk_forward": False,
             "parameter_sensitivity": False,
             "cost_sensitivity": False,
             "data_quality": False,
@@ -206,6 +222,7 @@ def build_evidence_snapshot(
             "validation": validation_status == "completed",
             "factor_validation": False,
             "oos": "out_of_sample" in completed_stages,
+            "rolling_walk_forward": "rolling_walk_forward" in completed_stages,
             "parameter_sensitivity": "parameter_sensitivity" in completed_stages,
             "cost_sensitivity": "transaction_cost_sensitivity"
             in completed_stages,
@@ -215,6 +232,7 @@ def build_evidence_snapshot(
                 name in completed_stages
                 for name in (
                     "out_of_sample",
+                    "rolling_walk_forward",
                     "parameter_sensitivity",
                     "transaction_cost_sensitivity",
                 )
@@ -232,6 +250,10 @@ def build_evidence_snapshot(
     for stage_name, availability_key in _TREND_STAGE_KEYS.items():
         if availability.get(availability_key):
             evidence_ids.append(f"evidence:{availability_key}")
+
+    reproducibility_manifest = stored.get("reproducibility_manifest")
+    if not isinstance(reproducibility_manifest, dict):
+        reproducibility_manifest = {}
 
     return {
         "validation_run_id": stored.get("validation_run_id"),
@@ -259,9 +281,32 @@ def build_evidence_snapshot(
                 },
             }
             if is_factor
-            else {"stages": _trend_stage_summaries(stages)}
+            else {
+                "stages": _trend_stage_summaries(stages),
+                "rolling_walk_forward": stored.get("rolling_walk_forward")
+                if isinstance(stored.get("rolling_walk_forward"), dict)
+                else (
+                    (stages.get("rolling_walk_forward") or {}).get("evidence")
+                    if isinstance(stages.get("rolling_walk_forward"), dict)
+                    else None
+                ),
+            }
+        ),
+        "rolling_walk_forward": (
+            None
+            if is_factor
+            else (
+                stored.get("rolling_walk_forward")
+                if isinstance(stored.get("rolling_walk_forward"), dict)
+                else (
+                    (stages.get("rolling_walk_forward") or {}).get("evidence")
+                    if isinstance(stages.get("rolling_walk_forward"), dict)
+                    else None
+                )
+            )
         ),
         "warnings": stored.get("warnings") or [],
+        "reproducibility_manifest": reproducibility_manifest,
         "metric_refs": {
             "mean_rank_ic": ic_summary.get("mean_rank_ic"),
             "icir": ic_summary.get("icir"),
@@ -274,13 +319,43 @@ def build_evidence_snapshot(
 
 def robustness_results(stored: dict[str, Any]) -> dict[str, dict[str, Any]]:
     stages = normalize_stages(stored.get("stages"))
-    return {
+    results = {
         name: stages[name]
         for name in (
             "out_of_sample",
+            "rolling_walk_forward",
             "parameter_sensitivity",
             "transaction_cost_sensitivity",
             "data_quality",
         )
         if name in stages
     }
+    # Top-level payload is also exposed so agents can read aggregates without
+    # recalculating fold metrics.
+    walk_forward = stored.get("rolling_walk_forward")
+    if isinstance(walk_forward, dict):
+        results["rolling_walk_forward_payload"] = {
+            "status": walk_forward.get("status"),
+            "summary": (stages.get("rolling_walk_forward") or {}).get("summary"),
+            "evidence": {
+                "scheme": walk_forward.get("scheme"),
+                "n_folds": walk_forward.get("n_folds"),
+                "aggregate": walk_forward.get("aggregate"),
+                "checks": walk_forward.get("checks"),
+                "folds": walk_forward.get("folds"),
+                "reason_code": walk_forward.get("reason_code"),
+                "reason": walk_forward.get("reason"),
+                "provenance": walk_forward.get("provenance"),
+                "methodology_id": walk_forward.get("methodology_id"),
+                "methodology_version": walk_forward.get("methodology_version"),
+            },
+            "warnings": (stages.get("rolling_walk_forward") or {}).get(
+                "warnings"
+            )
+            or [],
+            "blockers": (stages.get("rolling_walk_forward") or {}).get(
+                "blockers"
+            )
+            or [],
+        }
+    return results

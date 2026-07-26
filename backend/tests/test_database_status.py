@@ -23,7 +23,9 @@ def test_database_status_not_configured(monkeypatch) -> None:
     assert payload["configured"] is False
     assert payload["connected"] is False
     assert payload["database"] == "supabase_postgres"
-    assert "SUPABASE_DB_URL" in payload["message"]
+    assert "configured" in payload["message"].lower() or "not configured" in payload["message"].lower()
+    assert "SUPABASE_DB_URL" not in payload["message"]
+    assert payload.get("persistence_mode") == "browser-local"
 
 
 def test_database_status_connected_mock(monkeypatch) -> None:

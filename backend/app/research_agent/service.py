@@ -12,6 +12,7 @@ from app.research_agent.graph import build_governance_graph
 from app.research_agent.prompts import PROMPT_VERSIONS
 from app.research_agent.run_store import InMemoryAgentRunStore, get_default_agent_run_store
 from app.research_agent.tools.handlers import ToolExecutionContext
+from app.research_agent.trace_events import build_run_observability, normalize_trace
 from app.research_copilot.llm_config import LlmConfigurationError, resolve_llm_provider_settings
 from app.research_copilot.service import resolve_llm_adapter
 from app.research_execution.market_data_port import utc_now_iso
@@ -308,6 +309,7 @@ class GovernanceAgentService:
         completed_at = None
         if status in {"completed", "failed", "cancelled"}:
             completed_at = utc_now_iso()
+        observability = build_run_observability(state)
         detail = {
             "agent_run_id": agent_run_id,
             "research_id": state.get("research_id"),
@@ -317,10 +319,18 @@ class GovernanceAgentService:
             "summary": state.get("summary") or "",
             "research_type": state.get("research_type") or "trend_following",
             "llm_available": bool(state.get("llm_available")),
+            "llm_used": observability["llm_used"],
+            "llm_interpretation_status": observability["llm_interpretation_status"],
             "llm_provider": state.get("llm_provider"),
             "llm_model": state.get("llm_model"),
             "prompt_versions": state.get("prompt_versions") or dict(PROMPT_VERSIONS),
             "graph_version": state.get("graph_version") or GRAPH_VERSION,
+            "rulebook_version": observability["rulebook_version"],
+            "protocol_version": observability["protocol_version"],
+            "tool_plan": observability["tool_plan"],
+            "approval_required": observability["approval_required"],
+            "deterministic_suggestion": observability["deterministic_suggestion"],
+            "final_human_decision": observability["final_human_decision"],
             "evidence_snapshot_id": state.get("evidence_snapshot_id"),
             "knowledge_context": state.get("knowledge_context") or [],
             "requested_tools": state.get("requested_tools") or [],
@@ -334,7 +344,11 @@ class GovernanceAgentService:
             "missing_evidence": state.get("missing_evidence") or [],
             "recommended_next_steps": state.get("recommended_next_steps") or [],
             "errors": state.get("errors") or [],
-            "trace": state.get("trace") or [],
+            "trace": normalize_trace(
+                state.get("trace") or [],
+                llm_available=bool(state.get("llm_available")),
+            ),
+            "events": observability["events"],
             "step_count": int(state.get("step_count") or 0),
             "started_at": started_at,
             "completed_at": completed_at,

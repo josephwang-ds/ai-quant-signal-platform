@@ -8,13 +8,13 @@ export default function NotFound() {
       <p className="route-state-card__eyebrow">404</p>
       <h1>Page not found</h1>
       <p>
-        This route is not part of the current research workspace. Return to the research library to continue.
+        This route is not part of the current research workspace. Return to Research Home to continue.
       </p>
       <Link
         href="/"
         className="btn btn--primary"
       >
-        Open Research Library
+        Open Research Home
       </Link>
       </div>
     </main>

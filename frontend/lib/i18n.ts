@@ -18,7 +18,7 @@ export const translations = {
     landingProblem:
       "Investment analysis often scatters across notebooks and spreadsheets, so evidence and decisions lose a shared trail.",
     landingStartLabel: "Start",
-    landingStart: "Open the research library, then continue the built-in sample study.",
+    landingStart: "Open Research Home, then continue the built-in sample study.",
     educationalDemo: "Research Demo",
     dailyMarketData: "Daily Market Data",
     notFinancialAdvice: "Not Financial Advice",
@@ -32,7 +32,7 @@ export const translations = {
     demoSampleBody:
       "This workspace includes one reference research project that demonstrates the complete lifecycle. It is for review and learning — not live investment use.",
     guidedEntryTitle: "Get started",
-    guidedEntryExploreLibrary: "Explore the research library",
+    guidedEntryExploreLibrary: "Explore Research Home",
     guidedEntryExploreLibraryDesc: "See research projects and lifecycle stage.",
     guidedEntryContinueSample: "Continue the sample research",
     guidedEntryContinueSampleDesc: "Open the bundled Trend Following study workspace.",
@@ -43,17 +43,18 @@ export const translations = {
     navOverview: "Overview",
     navModuleDirectory: "Module directory",
     navDashboard: "Workspace Overview",
-    navResearchWorkspace: "Research Library",
+    navResearchWorkspace: "Research Home",
     navCurrentResearch: "Current Study",
     navAriaPrimary: "Primary navigation",
     navOpenMenu: "Open menu",
     navCloseMenu: "Close menu",
     navGroupOverview: "Overview",
     navGroupResearch: "Research",
+    navGroupWorkbench: "Workbench",
     navGroupAnalyze: "Evidence & Review",
     navGroupArchive: "Archive",
     navGroupTools: "Research Tools",
-    navGroupSupporting: "Supporting",
+    navGroupSupporting: "AI & Data",
     navRiskGateReview: "Risk Review",
     navRiskReview: "Risk Review",
     navPerformanceReview: "Performance Review",
@@ -105,7 +106,6 @@ export const translations = {
     navOos: "OOS Check",
     langEnglish: "English",
     langChinese: "中文",
-
     backendHealth: "Backend Health",
     backendHealthHint: "Checks whether the data API is alive.",
     status: "Status",
@@ -121,7 +121,6 @@ export const translations = {
     backendStartupUnavailableHint:
       "The research plan remains available. Retry once; failed evidence panels will resume automatically when the connection returns.",
     backendStartupRetry: "Retry and resume",
-
     marketWatch: "AI Watchlist",
     marketWatchDesc:
       "First pass: compare tickers with the same rules, then inspect the score, trend, risk, and rule components before looking at charts.",
@@ -141,7 +140,6 @@ export const translations = {
     enterOneTicker: "Please enter at least one ticker.",
     marketWatchFailed: "Failed to run market watch.",
     marketWatchError: "Market Watch Error",
-
     dataFreshness: "Data Freshness",
     dataFreshnessDesc:
       "Evidence starts here: stale or partial data can make every downstream signal misleading.",
@@ -151,7 +149,6 @@ export const translations = {
     dataNote: "Data Note",
     dataNoteDefault:
       "Latest date is based on the most recent available daily bar from Yahoo Finance via yfinance. Data may be delayed depending on exchange and provider.",
-
     signalRanking: "Signal Ranking",
     signalRankingDesc:
       "Professional read order: check Score, confirm Label and Trend, then look at Risk before opening a ticker.",
@@ -183,7 +180,6 @@ export const translations = {
     distanceToMa20Label: "Distance to MA20",
     distanceToMa60Label: "Distance to MA60",
     tickerErrors: "Ticker Errors",
-
     tickerDetail: "{ticker} Detail",
     select: "Select",
     metrics: "Metrics",
@@ -197,7 +193,6 @@ export const translations = {
     points: "Points",
     description: "Description",
     whatItMeans: "What it means",
-
     chartSettings: "Chart Settings",
     chartSettingsDesc:
       "Choose the date range and whether to view one ticker or compare all ranked tickers.",
@@ -220,7 +215,6 @@ export const translations = {
     compareChartTitle: "Normalized Close Comparison (Day 1 = 100)",
     compareChartCaption:
       "Normalized means every ticker starts at 100, making relative performance easier to compare even when prices are different.",
-
     strategyLab: "Strategy Studio",
     strategyLabDesc:
       "Select a decision method and compare how each rule triggers simulated position changes in backtest.",
@@ -233,6 +227,16 @@ export const translations = {
     strategyLabReadyHint:
       "Run the selected rule against the requested historical window before interpreting or saving it.",
     strategyLabArchiveTitle: "Research note and archive",
+    strategyLabArchiveChecking: "Checking whether persistent run history is available…",
+    strategyLabArchiveOptional:
+      "Persistent run history is not enabled in this deployment. Research and backtesting still work.",
+    strategyLabArchiveUnavailable:
+      "Persistent run storage is temporarily unavailable. Research and backtesting still work.",
+    strategyLabArchiveRetry: "Retry status check",
+    strategyLabArchiveSaveDisabled: "Save Run is unavailable until persistent storage is ready.",
+    strategyLabRuleCompareCta: "Open rule-strategy comparison",
+    strategyLabRuleCompareHint:
+      "Compare MA, momentum, and combined protocols on the same window — separate from ML model comparison.",
     strategyLabEvidenceTitle: "Backtest evidence",
     strategyLabEvidenceHint:
       "Return, risk, interpretation, trade events, and the equity path appear after a successful run.",
@@ -484,6 +488,11 @@ export const translations = {
     aiInsightsPageTitle: "AI Insights",
     aiInsightsPageDesc:
       "Live news sentiment — classifier first; LLM shadow labels report agreement, not authority.",
+    aiInsightsWatchlistCta: "Open deterministic watchlist",
+    aiInsightsWatchlistHint:
+      "Watchlist ranks tickers with deterministic rules and scores. This page is an interpretation layer only — not market facts.",
+    aiInsightsWatchlistContrast:
+      "AI Insights interprets headlines. The watchlist applies fixed rules without LLM authority.",
     featureReturn5d: "5d return",
     featureReturn10d: "10d return",
     featureReturn20d: "20d return",
@@ -559,7 +568,6 @@ export const translations = {
     backtestReviewWatch: "Watch Before Paper Trading",
     backtestReviewNotEligible: "Not Eligible Yet",
     backtestFailed: "Failed to run backtest.",
-
     sensitivityAnalysis: "MA Parameter Sensitivity",
     sensitivityDesc:
       "Robustness read: similar results across parameter pairs are more credible than one isolated winner.",
@@ -575,7 +583,6 @@ export const translations = {
       "This sensitivity analysis is for research demonstration only. It is not parameter optimization and not financial advice.",
     parameterSetErrors: "Parameter Set Errors",
     sensitivityFailed: "Failed to run sensitivity analysis.",
-
     oosValidation: "Out-of-Sample Validation",
     oosDesc:
       "Split the backtest into in-sample and out-of-sample periods to check whether the strategy generalizes beyond the initial research window.",
@@ -594,7 +601,6 @@ export const translations = {
       "Out-of-sample validation is for research demonstration only. It is not parameter optimization and not financial advice.",
     split: "Split",
     oosFailed: "Failed to run OOS validation.",
-
     saveBacktestRun: "Save Run",
     savingBacktestRun: "Saving...",
     experimentNotes: "Notes",
@@ -603,7 +609,6 @@ export const translations = {
     saveBacktestFailed: "Could not save backtest run.",
     saveRequiresResult: "Run a backtest before saving.",
     openExperiments: "View saved runs",
-
     experimentsPageTitle: "Saved Runs",
     experimentsPageDesc:
       "Browse saved backtests, open details, and compare results side by side.",
@@ -612,6 +617,13 @@ export const translations = {
     experimentsLoading: "Loading saved experiments...",
     experimentsEmpty: "No saved experiments yet. Save a run from Strategy Studio.",
     experimentsLoadFailed: "Could not load experiments.",
+    experimentsStorageOptionalTitle: "Saved-run storage is optional",
+    experimentsStorageOptionalDesc:
+      "Persistent run history is not enabled in this deployment. Research and backtesting still work; connect database storage only when you need to save and compare runs.",
+    experimentsStorageUnavailableTitle: "Saved runs are temporarily unavailable",
+    experimentsStorageUnavailableDesc:
+      "Persistent run storage could not be reached. Research and backtesting remain available, so you can continue without saving this run.",
+    experimentsOpenStrategyLab: "Open Strategy Studio",
     experimentsDetail: "Run Detail",
     experimentsBackToList: "Back to list",
     experimentsCreatedAt: "Saved at",
@@ -623,7 +635,6 @@ export const translations = {
     experimentsNotes: "Notes",
     experimentsConfig: "Strategy Config",
     experimentsNoTrades: "No trades saved for this run.",
-
     experimentsCompareTitle: "Compare Runs",
     experimentsCompareDesc: "Select 2–4 saved runs to compare key metrics.",
     experimentsCompareSelect: "Compare",
@@ -635,7 +646,6 @@ export const translations = {
     experimentsCompareBestSharpe: "Best Sharpe",
     experimentsCompareLowestDrawdown: "Lowest drawdown",
     experimentsCompareRunLabel: "Run",
-
     experimentsFilterTicker: "Ticker filter",
     experimentsFilterStrategy: "Strategy filter",
     experimentsFilterAll: "All",
@@ -654,12 +664,16 @@ export const translations = {
     experimentsDeleteConfirm: "Delete this saved experiment? This cannot be undone.",
     experimentsSavedRedirect: "Backtest run saved. Showing experiment detail.",
     experimentsDetailEmpty: "Select a saved run to view metrics, config, and trades.",
-
     researchListEyebrow: "Research",
     researchListTitle: "Investment Ideas",
     researchListSubtitle:
       "What research exists, where each thread stands, and what should happen next.",
     researchLibraryEyebrow: "Investment Ideas",
+    researchPersistenceLocal: "Local to this browser",
+    researchPersistencePersisted: "Persisted",
+    researchPersistenceUnavailable: "Persistence unavailable",
+    researchPersistenceHint:
+      "Research records stay in this browser unless optional database persistence is enabled. Local and remote records are never merged without confirmation.",
     researchLibraryTitle: "Research projects",
     researchLibrarySubtitle:
       "Continue a thread, check lifecycle stage, and move to the next research step.",
@@ -759,7 +773,7 @@ export const translations = {
     researchReviewCueDecision:
       "The system prepares a decision record, but a human owns approval. There is no broker or live execution.",
     researchReviewNext: "Next: {step}",
-    researchReviewFinish: "Return to research library",
+    researchReviewFinish: "Return to Research Home",
     researchListNewResearch: "New Research",
     researchListCreateResearch: "Create Research",
     researchListLoadDemo: "Load Demo Research",
@@ -931,7 +945,6 @@ export const translations = {
     researchListMetricsStatus: "Metrics status",
     researchListValidationStatus: "Validation status",
     researchListEvaluationStatus: "Evaluation status",
-
     researchWsBackToList: "Back to Research",
     researchWsMoreActions: "More actions",
     researchWsMoreActionsHint:
@@ -944,14 +957,14 @@ export const translations = {
     researchWsNotFoundTitle: "Research not found",
     researchWsNotFoundDescription:
       "No research matches this ID. Return to the Research list to pick a valid item.",
-    researchWsNavOverview: "Question",
+    researchWsNavOverview: "Plan",
     researchWsNavNotebook: "Notes",
     researchWsNavExperiments: "Backtest",
-    researchWsNavValidation: "Validation",
+    researchWsNavValidation: "Validate",
     researchWsNavEvaluation: "Validation",
-    researchWsNavRobustness: "Pressure Test",
-    researchWsNavPaper: "Paper Observation",
-    researchWsNavDecision: "Decision Record",
+    researchWsNavRobustness: "Stress test",
+    researchWsNavPaper: "Observe",
+    researchWsNavDecision: "Decide",
     researchWsNavArchive: "Archive",
     researchWsNavCopilot: "Copilot",
     researchWsNavTimeline: "Timeline",
@@ -969,25 +982,15 @@ export const translations = {
     researchWsArchiveCap1: "Preserve definition, evidence, and decision provenance",
     researchWsArchiveCap2: "Keep archived research read-only for audit",
     researchWsArchiveCap3: "Do not fabricate archive timestamps or outcomes",
-    researchMissionEyebrow: "Research plan",
-    researchMissionTitle: "One question, one auditable path to a decision",
-    researchMissionQuestion: "What are we researching?",
-    researchMissionMethod: "How will we test it?",
-    researchMissionProtocol: "Frozen protocol:",
-    researchMissionProtocolUnavailable: "Complete the run configuration first.",
-    researchMissionNow: "What should I do now?",
-    researchMissionGuardrail:
-      "Success is not a profitable backtest. It is a conclusion that survives unseen data, costs, and nearby parameter choices.",
-    researchMissionStepBacktest:
-      "Run one reproducible historical backtest against the benchmark.",
-    researchMissionStepValidation:
-      "Check chronological out-of-sample evidence and parameter sensitivity.",
-    researchMissionStepPressure:
-      "Challenge costs, data quality, drawdowns, and regime dependence.",
-    researchMissionStepObservation:
-      "Observe forward behavior in a bounded paper session—no live broker.",
-    researchMissionStepDecision:
-      "Record continue, revise, or stop with linked evidence and rationale.",
+    researchWorkspaceGuideEyebrow: "Research workflow",
+    researchWorkspaceGuideTitle:
+      "Define, test, challenge, observe, then decide.",
+    researchWorkspaceGuideDescription:
+      "Work from left to right. The highlighted step is where this study needs attention now; later steps do not imply evidence already exists.",
+    researchWorkspaceGuideNext: "Next step",
+    researchAgentOptionalTitle: "AI research reviewer · optional",
+    researchAgentOptionalDescription:
+      "Use it after reviewing deterministic evidence. It explains and challenges; it does not calculate metrics or make the decision.",
     paperDeployTitle: "Paper Observation",
     paperDeploySummary:
       "Create a bounded forward-observation plan, record dated notes, and close the session. No orders, fills, or PnL are invented.",
@@ -1110,13 +1113,13 @@ export const translations = {
       "No unresolved robustness risks are listed from current Validation and Robustness state. Revisit Robustness if coverage is still incomplete.",
     decisionCenterRiskStress: "Stress testing not completed",
     decisionCenterRiskRegime: "Market regime coverage incomplete",
-    decisionCenterRiskWalkForward: "Walk-forward validation unavailable",
     decisionCenterRiskCapacity: "Liquidity and capacity not estimated",
     decisionCenterRiskImplementedPending: "Supported robustness checks still incomplete",
     decisionCenterRiskParameter: "Parameter sensitivity evidence is incomplete",
     decisionCenterRiskBenchmark: "Benchmark comparison evidence is incomplete",
     decisionCenterRiskCost: "Transaction cost stress evidence is incomplete",
     decisionCenterRiskDataQuality: "Data quality evidence is incomplete",
+    decisionCenterRiskWalkForward: "Walk-forward robustness evidence is incomplete",
     decisionCenterChecklistTitle: "Approval checklist",
     decisionCenterChecklistCompleted: "Completed",
     decisionCenterChecklistPending: "Pending",
@@ -1152,18 +1155,6 @@ export const translations = {
     researchDefinitionSuccess: "Success criteria",
     researchDefinitionLimitations: "Known limitations",
     researchDefinitionUnavailable: "Not specified",
-    researchReadinessTitle: "Research readiness",
-    researchReadinessDescription:
-      "Workflow completeness only — not a performance or AI confidence score.",
-    researchReadinessYes: "Yes",
-    researchReadinessNo: "No",
-    researchReadinessQuestion: "Research question defined",
-    researchReadinessHypothesis: "Hypothesis defined",
-    researchReadinessProtocol: "Protocol defined",
-    researchReadinessValidation: "Validation completed",
-    researchReadinessRobustness: "Robustness reviewed",
-    researchReadinessDecision: "Decision recorded",
-    researchReadinessLimitations: "Known limitations acknowledged",
     decisionRecordRationale: "Rationale",
     decisionRecordRationalePlaceholder:
       "State which evidence drove the decision, which limitations remain, and what would change the outcome.",
@@ -1362,7 +1353,7 @@ export const translations = {
     researchValConfigurationRequiredTitle: "Executable protocol required",
     researchValConfigurationRequiredDescription:
       "This legacy local draft has no symbol, date range, or strategy parameters. Delete it or create a configured research before running Validation.",
-    researchValBackToLibrary: "Back to Research Library",
+    researchValBackToLibrary: "Back to Research Home",
     researchValRetry: "Retry validation",
     researchValStatus: "Status",
     researchValEvidenceComplete: "Evidence complete",
@@ -1551,7 +1542,6 @@ export const translations = {
     researchWsSettingsCap1: "Owner and collaborator roles",
     researchWsSettingsCap2: "Tag and naming conventions",
     researchWsSettingsCap3: "Archive / reopen policies (governed)",
-
     researchNbTitle: "Notebook",
     researchNbDesignNotesTitle: "Research Design Notes",
     researchNbEntryCount: "entries",
@@ -1593,7 +1583,6 @@ export const translations = {
     researchTlSessionNote:
       "TODO(api): replace with domain event stream from Research context.",
     researchTlEmpty: "No timeline events yet for this research project.",
-
     researchExpTitle: "Experiments",
     researchExpTotalCount: "experiments",
     researchExpActiveCount: "active",
@@ -1678,7 +1667,6 @@ export const translations = {
     researchExpMetricTrades: "Trade Count",
     researchExpMetricWinRate: "Win Rate",
     researchExpMetricCost: "Total Transaction Cost",
-
     overviewTitle: "Dashboard",
     overviewDesc:
       "Start from the three modules that carry the product story — model comparison, risk review, and investment ideas.",
@@ -1779,7 +1767,6 @@ export const translations = {
       "Full functionality is temporarily on the legacy dashboard while this module is being migrated.",
     modulePlannedStatus: "This module is not ready yet. The page is only a placeholder.",
     moduleMigratingStatus: "This module is ready to use.",
-
     dataCenter: "Data",
     dataCenterPageDesc:
       "Inspect configured providers, verify supported routing, and review research-ready asset coverage.",
@@ -1851,14 +1838,14 @@ export const translations = {
     dcSymbolFutures: "Futures",
     robustnessChecks: "Risk Review",
     robustnessChecksDesc:
-      "Review the four deterministic checks that are implemented today.",
+      "Review the deterministic checks that are implemented today, including chronological walk-forward.",
     robustnessPageDesc:
       "Evidence-backed robustness review. Only implemented checks appear in the matrix; unsupported methods are disclosed as scope boundaries.",
     robustnessEducationalNote:
       "Robustness checks help reduce overclaiming. A strategy that works only for one parameter set or only in-sample may not be reliable.",
     robustnessCenterTitle: "Robustness Review",
     robustnessCenterSummary:
-      "Four implemented checks derived from Validation evidence — no placeholder tests or invented scores.",
+      "Implemented checks derived from Validation evidence — including fixed-parameter chronological walk-forward. No placeholder tests or invented scores.",
     robustnessStatusTitle: "Current robustness status",
     robustnessMatrixTitle: "Implemented evidence checks",
     robustnessBoundaryTitle: "Current scope boundary",
@@ -1907,6 +1894,36 @@ export const translations = {
     robustnessItemStressTest: "Stress Test",
     robustnessItemMarketRegime: "Market Regime Analysis",
     robustnessItemWalkForward: "Walk-forward Validation",
+    robustnessWalkForwardTitle: "Walk-forward evidence",
+    robustnessWalkForwardNotRun: "Not run",
+    robustnessWalkForwardNotRunNote:
+      "Run Validation on the canonical Trend Following Study to produce chronological walk-forward evidence. Compare Models walk-forward is a separate path and is not substituted here.",
+    robustnessWalkForwardScheme: "Scheme",
+    robustnessWalkForwardFolds: "Requested folds",
+    robustnessWalkForwardMethodology: "Methodology",
+    robustnessWalkForwardProtocolHash: "Protocol hash",
+    robustnessWalkForwardReason: "Reason",
+    robustnessWalkForwardAggregateTitle: "Aggregate OOS metrics",
+    robustnessWalkForwardCompletedFolds: "Completed folds",
+    robustnessWalkForwardPositiveReturnRatio: "Positive-return fold ratio",
+    robustnessWalkForwardOutperformRatio: "Benchmark-outperformance fold ratio",
+    robustnessWalkForwardMedianReturn: "Median OOS return",
+    robustnessWalkForwardMedianSharpe: "Median OOS Sharpe",
+    robustnessWalkForwardWorstDrawdown: "Worst OOS drawdown",
+    robustnessWalkForwardFoldTableTitle: "Per-fold OOS results",
+    robustnessWalkForwardFold: "Fold",
+    robustnessWalkForwardTrain: "Train",
+    robustnessWalkForwardOos: "OOS",
+    robustnessWalkForwardStrategyReturn: "Strategy return",
+    robustnessWalkForwardBenchmarkReturn: "Benchmark return",
+    robustnessWalkForwardSharpe: "Sharpe",
+    robustnessWalkForwardMaxDrawdown: "Max drawdown",
+    robustnessWalkForwardTrades: "Trades",
+    robustnessWalkForwardStatus: "Status",
+    robustnessWalkForwardChecksTitle: "Configured methodology checks",
+    robustnessWalkForwardLimitationsTitle: "Protocol limitations",
+    robustnessWalkForwardThresholdsNote:
+      "Pass/fail thresholds come from the versioned backend methodology config. This card displays reported outcomes only.",
     robustnessItemMonteCarlo: "Monte Carlo Simulation",
     robustnessItemLiquidityCapacity: "Liquidity & Capacity",
     robustnessFailureExtremeVolatilityTitle: "Extreme volatility not evaluated",
@@ -1917,7 +1934,7 @@ export const translations = {
       "Market regime analysis is not implemented. Regime changes are outside the current evidence boundary.",
     robustnessFailureForwardValidationTitle: "Forward validation unavailable",
     robustnessFailureForwardValidationBody:
-      "Walk-forward validation is not implemented. Chronological OOS is not a substitute for rolling forward tests.",
+      "Walk-forward reduces but does not eliminate overfitting risk and does not represent future returns. Fixed-parameter walk-forward is not per-fold tuning.",
     robustnessFailureCapacityTitle: "Capacity not estimated",
     robustnessFailureCapacityBody:
       "Liquidity and capacity analysis is not implemented. Do not assume the protocol scales to larger notional size.",
@@ -1943,13 +1960,11 @@ export const translations = {
     systemFutureDatabase: "Future database: Supabase / Postgres",
     systemFutureCache: "Future cache: Redis / Upstash or equivalent",
     systemNotAdvice: "For research demonstration only — not financial advice.",
-
     footerLine1: "Research only.",
     footerLine2: "Not investment advice.",
     footerLine3: "No live trading.",
     footerLicense: "MIT License",
     footerRepository: "View repository",
-
     chartStrategyVsHold: "Strategy vs Buy & Hold",
     chartDrawdown: "Drawdown",
     chartStrategyVsHoldDrawdown: "Strategy vs Buy & Hold Drawdown",
@@ -1963,7 +1978,6 @@ export const translations = {
     noBacktestData: "No backtest data available.",
     noChartData: "No chart data available for the selected date range.",
     noCompareData: "No compare chart data available.",
-
     latest: "latest",
     na: "N/A",
     yes: "Yes",
@@ -1976,7 +1990,6 @@ export const translations = {
     riskLow: "Low",
     riskMedium: "Medium",
     riskHigh: "High",
-
     tickerEmpty: "Ticker cannot be empty.",
     shortLongInvalid: "Short window and long window must be valid numbers.",
     shortLessThanLong: "Short window must be less than long window.",
@@ -1985,7 +1998,6 @@ export const translations = {
     transactionCostInvalid: "Transaction cost must be zero or greater.",
     splitAfterStart: "Split date must be after backtest start date.",
     endAfterSplit: "Backtest end date must be after split date.",
-
     helpLastPrice: "Most recent close price in the downloaded data.",
     helpMa20: "Average price over the last 20 trading days.",
     helpMa60: "Average price over the last 60 trading days.",
@@ -2007,7 +2019,6 @@ export const translations = {
     helpWinRate: "Share of profitable trading days or periods.",
     helpTrades: "How often the strategy changed position.",
     helpTransactionCost: "Total drag from simulated trading costs.",
-
     whatThisDemoShows: "What This Demo Shows",
     demoDataPipeline: "Data Pipeline",
     demoDataPipelineDesc:
@@ -2024,7 +2035,6 @@ export const translations = {
     aboutThisDemo: "About This Project",
     aboutThisDemoText:
       "An investment intelligence demo for portfolio showcase and research review. It uses daily historical market data and simplified backtesting assumptions. It is not financial advice and is not intended for live trading.",
-
     tradeLog: "Trade Log",
     tradeLogDesc:
       "Shows simulated buy and sell events generated by the selected strategy. These are backtest events only, not real orders.",
@@ -2038,7 +2048,6 @@ export const translations = {
     tradeSell: "SELL",
     tradeLogEmpty: "No trades were triggered for this period and strategy.",
     tradeLogScrollHint: "More than 15 trades — scroll down to see all rows.",
-
     paperTrading: "Paper Observation",
     paperTradingDesc:
       "Create a bounded forward-observation plan after Robustness. No live orders, fabricated fills, or invented PnL.",
@@ -2129,6 +2138,7 @@ export const translations = {
     navCloseMenu: "关闭菜单",
     navGroupOverview: "概览",
     navGroupResearch: "研究",
+    navGroupWorkbench: "工作台",
     navGroupAnalyze: "证据与审阅",
     navGroupArchive: "资料",
     navGroupTools: "研究工具",
@@ -2184,7 +2194,6 @@ export const translations = {
     navOos: "样本外验证",
     langEnglish: "English",
     langChinese: "中文",
-
     backendHealth: "后端健康检查",
     backendHealthHint: "检查数据 API 是否正常运行。",
     status: "状态",
@@ -2199,7 +2208,6 @@ export const translations = {
     backendStartupUnavailableHint:
       "研究计划仍可浏览。点击重试一次；连接恢复后，失败的证据面板会自动重新运行。",
     backendStartupRetry: "重试并继续",
-
     marketWatch: "AI 关注列表",
     marketWatchDesc:
       "第一步：用相同规则对比多个标的，查看分数、趋势、风险与规则组成，再进入图表分析。",
@@ -2218,7 +2226,6 @@ export const translations = {
     enterOneTicker: "请至少输入一个标的代码。",
     marketWatchFailed: "市场观察运行失败。",
     marketWatchError: "市场观察错误",
-
     dataFreshness: "数据新鲜度",
     dataFreshnessDesc: "证据从这里开始：陈旧或不完整的数据会让后续信号产生误导。",
     dataSource: "数据来源",
@@ -2227,7 +2234,6 @@ export const translations = {
     dataNote: "数据说明",
     dataNoteDefault:
       "最新日期基于 Yahoo Finance（yfinance）最近可用的日线数据，实际数据可能因交易所与数据源而延迟。",
-
     signalRanking: "信号排名",
     signalRankingDesc:
       "建议阅读顺序：先看分数，再确认标签与趋势，最后查看风险后再点开详情。",
@@ -2256,7 +2262,6 @@ export const translations = {
     distanceToMa20Label: "相对 MA20",
     distanceToMa60Label: "相对 MA60",
     tickerErrors: "标的数据错误",
-
     tickerDetail: "{ticker} 详情",
     select: "选择",
     metrics: "指标",
@@ -2268,7 +2273,6 @@ export const translations = {
     points: "得分",
     description: "说明",
     whatItMeans: "含义",
-
     chartSettings: "图表设置",
     chartSettingsDesc: "选择日期范围，并决定查看单个标的还是对比全部排名标的。",
     chartStartDate: "图表起始日期",
@@ -2290,7 +2294,6 @@ export const translations = {
     compareChartTitle: "归一化收盘价对比（首日 = 100）",
     compareChartCaption:
       "归一化表示每个标的从 100 起步，便于在价格不同的情况下比较相对表现。",
-
     strategyLab: "策略工作室",
     strategyLabDesc:
       "选择不同决策方法，比较各规则在回测中如何触发模拟买卖事件。",
@@ -2302,6 +2305,16 @@ export const translations = {
     strategyLabReadyHint:
       "先在指定历史区间运行所选规则，再解释或保存结果。",
     strategyLabArchiveTitle: "研究备注与归档",
+    strategyLabArchiveChecking: "正在检查是否启用持久化运行历史…",
+    strategyLabArchiveOptional:
+      "此部署未启用持久化运行历史。研究与回测仍可正常使用。",
+    strategyLabArchiveUnavailable:
+      "持久化运行存储暂时不可用。研究与回测仍可正常使用。",
+    strategyLabArchiveRetry: "重试状态检查",
+    strategyLabArchiveSaveDisabled: "持久化存储就绪前无法保存运行。",
+    strategyLabRuleCompareCta: "打开规则策略对比",
+    strategyLabRuleCompareHint:
+      "在同一窗口对比均线、动量与组合协议——与机器学习模型对比相互独立。",
     strategyLabEvidenceTitle: "回测证据",
     strategyLabEvidenceHint:
       "成功运行后，这里将展示收益、风险、解释、交易事件与资金曲线。",
@@ -2543,6 +2556,11 @@ export const translations = {
     aiInsightsPageTitle: "AI Insights",
     aiInsightsPageDesc:
       "面向研究的实时新闻情感：分类器优先；LLM 影子标签只报一致率，不替代权威分。",
+    aiInsightsWatchlistCta: "打开确定性关注列表",
+    aiInsightsWatchlistHint:
+      "关注列表用确定性规则与分数排序标的。本页仅为解释层——不是市场事实。",
+    aiInsightsWatchlistContrast:
+      "AI Insights 解释新闻标题；关注列表应用固定规则，不以 LLM 为权威。",
     featureReturn5d: "5 日收益",
     featureReturn10d: "10 日收益",
     featureReturn20d: "20 日收益",
@@ -2616,7 +2634,6 @@ export const translations = {
     backtestReviewWatch: "观察后再模拟试盘",
     backtestReviewNotEligible: "暂不适合模拟试盘",
     backtestFailed: "回测运行失败。",
-
     sensitivityAnalysis: "均线参数敏感性分析",
     sensitivityDesc:
       "稳健性视角：多组参数结果相近，比单一参数表现更好更值得信任。",
@@ -2632,7 +2649,6 @@ export const translations = {
       "本敏感性分析仅供研究演示，不是参数优化，也不是投资建议。",
     parameterSetErrors: "参数组合错误",
     sensitivityFailed: "敏感性分析运行失败。",
-
     oosValidation: "样本外验证",
     oosDesc:
       "将回测切分为样本内与样本外区间，检验策略是否能超出初始研究窗口泛化。",
@@ -2651,7 +2667,6 @@ export const translations = {
       "样本外验证仅供研究演示，不是参数优化，也不是投资建议。",
     split: "切分",
     oosFailed: "样本外验证运行失败。",
-
     saveBacktestRun: "保存实验",
     savingBacktestRun: "保存中...",
     experimentNotes: "备注",
@@ -2660,7 +2675,6 @@ export const translations = {
     saveBacktestFailed: "无法保存回测实验。",
     saveRequiresResult: "请先运行回测再保存。",
     openExperiments: "查看已保存实验",
-
     experimentsPageTitle: "实验存档",
     experimentsPageDesc: "查看已保存的回测记录，打开详情或横向对比结果。",
     experimentsListTitle: "记录列表",
@@ -2668,6 +2682,11 @@ export const translations = {
     experimentsLoading: "正在加载已保存实验...",
     experimentsEmpty: "暂无已保存实验。请先在策略工作室保存一次回测。",
     experimentsLoadFailed: "无法加载实验列表。",
+    experimentsStorageOptionalTitle: "可选数据库持久化",
+    experimentsStorageOptionalDesc: "已配置数据库时可持久保存运行记录；否则仅使用当前会话。",
+    experimentsStorageUnavailableTitle: "数据库不可用",
+    experimentsStorageUnavailableDesc: "当前无法写入持久化存储。仍可在本会话内查看结果。",
+    experimentsOpenStrategyLab: "打开策略工作室",
     experimentsDetail: "记录详情",
     experimentsBackToList: "返回列表",
     experimentsCreatedAt: "保存时间",
@@ -2679,7 +2698,6 @@ export const translations = {
     experimentsNotes: "备注",
     experimentsConfig: "策略配置",
     experimentsNoTrades: "本次运行没有保存交易记录。",
-
     experimentsCompareTitle: "结果对比",
     experimentsCompareDesc: "选择 2–4 条记录，对比关键指标。",
     experimentsCompareSelect: "对比",
@@ -2691,7 +2709,6 @@ export const translations = {
     experimentsCompareBestSharpe: "最高 Sharpe",
     experimentsCompareLowestDrawdown: "最低回撤",
     experimentsCompareRunLabel: "实验",
-
     experimentsFilterTicker: "标的筛选",
     experimentsFilterStrategy: "策略筛选",
     experimentsFilterAll: "全部",
@@ -2710,12 +2727,16 @@ export const translations = {
     experimentsDeleteConfirm: "确定删除这条已保存实验吗？此操作无法撤销。",
     experimentsSavedRedirect: "回测已保存，正在显示实验详情。",
     experimentsDetailEmpty: "选择一条已保存记录，查看指标、配置与交易日志。",
-
     researchListEyebrow: "研究",
     researchListTitle: "投资想法",
     researchListSubtitle:
       "有哪些研究、各自处于哪一阶段、接下来该做什么。",
     researchLibraryEyebrow: "投资想法",
+    researchPersistenceLocal: "仅保存在本浏览器",
+    researchPersistencePersisted: "已持久化",
+    researchPersistenceUnavailable: "持久化不可用",
+    researchPersistenceHint:
+      "除非启用可选数据库持久化，研究记录仅保存在本浏览器。本地与远端记录不会在无确认时自动合并。",
     researchLibraryTitle: "研究项目",
     researchLibrarySubtitle:
       "继续一条研究线程，查看生命周期阶段，并进入下一步。",
@@ -2976,7 +2997,6 @@ export const translations = {
     researchListMetricsStatus: "指标状态",
     researchListValidationStatus: "验证状态",
     researchListEvaluationStatus: "评估状态",
-
     researchWsBackToList: "返回研究列表",
     researchWsMoreActions: "更多操作",
     researchWsMoreActionsHint:
@@ -3014,20 +3034,12 @@ export const translations = {
     researchWsArchiveCap1: "保留定义、证据与决策溯源",
     researchWsArchiveCap2: "归档研究保持只读以便审计",
     researchWsArchiveCap3: "不虚构归档时间戳或结果",
-    researchMissionEyebrow: "研究计划",
-    researchMissionTitle: "围绕一个问题，沿着可审计路径做出决策",
-    researchMissionQuestion: "研究什么？",
-    researchMissionMethod: "怎么研究？",
-    researchMissionProtocol: "冻结协议：",
-    researchMissionProtocolUnavailable: "请先补全运行配置。",
-    researchMissionNow: "现在需要做什么？",
-    researchMissionGuardrail:
-      "成功不等于回测赚钱，而是结论经得住样本外数据、交易成本和相邻参数变化。",
-    researchMissionStepBacktest: "用同一协议运行历史回测，并与基准比较。",
-    researchMissionStepValidation: "检查时间顺序样本外证据和参数敏感性。",
-    researchMissionStepPressure: "挑战交易成本、数据质量、回撤和市场状态依赖。",
-    researchMissionStepObservation: "进行有边界的前向模拟观察，不连接真实券商。",
-    researchMissionStepDecision: "关联证据与理由，记录继续、修改或停止。",
+    researchWorkspaceGuideEyebrow: "研究路径",
+    researchWorkspaceGuideTitle: "按证据推进，而不是按仪表盘推进",
+    researchWorkspaceGuideDescription: "从定义到验证、稳健性、模拟观察，再到人工决策。",
+    researchWorkspaceGuideNext: "下一步",
+    researchAgentOptionalTitle: "可选治理代理",
+    researchAgentOptionalDescription: "代理只解释已有证据，不重新计算指标，也不替代人工决策。",
     paperDeployTitle: "模拟观察",
     paperDeploySummary:
       "创建有边界的前向观察计划，记录带时间的观察，并结束会话。不虚构订单、成交或盈亏。",
@@ -3147,13 +3159,13 @@ export const translations = {
       "当前验证与稳健性状态未列出未解决风险。若覆盖仍不完整，请回到稳健性。",
     decisionCenterRiskStress: "压力测试尚未完成",
     decisionCenterRiskRegime: "市场状态覆盖不完整",
-    decisionCenterRiskWalkForward: "滚动前向验证不可用",
     decisionCenterRiskCapacity: "流动性与容量尚未估计",
     decisionCenterRiskImplementedPending: "已支持的稳健性检查仍未完成",
     decisionCenterRiskParameter: "参数敏感性证据尚未完成",
     decisionCenterRiskBenchmark: "基准对比证据尚未完成",
     decisionCenterRiskCost: "交易成本压力证据尚未完成",
     decisionCenterRiskDataQuality: "数据质量证据尚未完成",
+    decisionCenterRiskWalkForward: "滚动前向稳健性证据尚未完成",
     decisionCenterChecklistTitle: "审批清单",
     decisionCenterChecklistCompleted: "已完成",
     decisionCenterChecklistPending: "待完成",
@@ -3188,18 +3200,6 @@ export const translations = {
     researchDefinitionSuccess: "成功标准",
     researchDefinitionLimitations: "已知限制",
     researchDefinitionUnavailable: "未指定",
-    researchReadinessTitle: "研究就绪度",
-    researchReadinessDescription:
-      "仅表示工作流完整度 — 不是业绩或 AI 置信度分数。",
-    researchReadinessYes: "是",
-    researchReadinessNo: "否",
-    researchReadinessQuestion: "研究问题已定义",
-    researchReadinessHypothesis: "假设已定义",
-    researchReadinessProtocol: "协议已定义",
-    researchReadinessValidation: "验证已完成",
-    researchReadinessRobustness: "稳健性已审阅",
-    researchReadinessDecision: "决策已记录",
-    researchReadinessLimitations: "已知限制已确认",
     decisionRecordRationale: "决策理由",
     decisionRecordRationalePlaceholder:
       "说明哪些证据驱动了决策、仍有哪些限制，以及什么情况会改变结果。",
@@ -3567,7 +3567,6 @@ export const translations = {
     researchWsSettingsCap1: "负责人与协作者角色",
     researchWsSettingsCap2: "标签与命名约定",
     researchWsSettingsCap3: "归档 / 重开策略（治理约束）",
-
     researchNbTitle: "研究笔记",
     researchNbDesignNotesTitle: "研究设计笔记",
     researchNbEntryCount: "条记录",
@@ -3607,7 +3606,6 @@ export const translations = {
       "本研究聚合的活动记录。会话内保存的笔记会追加本地事件。",
     researchTlSessionNote: "TODO(api)：替换为 Research 上下文的领域事件流。",
     researchTlEmpty: "该研究项目尚无时间线事件。",
-
     researchExpTitle: "实验",
     researchExpTotalCount: "个实验",
     researchExpActiveCount: "个进行中",
@@ -3690,7 +3688,6 @@ export const translations = {
     researchExpMetricTrades: "交易次数",
     researchExpMetricWinRate: "胜率",
     researchExpMetricCost: "总交易成本",
-
     overviewTitle: "仪表盘",
     overviewDesc:
       "从三个能打的模块开始——模型对比、风险评估、投资想法，直接进入产品主线。",
@@ -3788,7 +3785,6 @@ export const translations = {
     legacyDemoHint: "本模块迁移完成前，完整功能请暂时使用旧版演示页。",
     modulePlannedStatus: "功能尚未完成，当前页面只是占位。",
     moduleMigratingStatus: "本模块已可使用。",
-
     dataCenter: "数据",
     dataCenterPageDesc:
       "检查已配置数据源、验证支持的路由方式，并查看研究可用的资产覆盖。",
@@ -3859,14 +3855,14 @@ export const translations = {
     dcSymbolFutures: "期货",
     robustnessChecks: "风险评估",
     robustnessChecksDesc:
-      "审阅当前真正实现的四项确定性检查。",
+      "审阅当前真正实现的确定性检查，包括按时间顺序的 walk-forward。",
     robustnessPageDesc:
       "基于证据的稳健性审阅。矩阵只展示已实现检查；未支持方法统一列为覆盖边界。",
     robustnessEducationalNote:
       "稳健性检查用于减少过度解读。如果一个策略只在某一组参数或样本内有效，可靠性可能不足。",
     robustnessCenterTitle: "稳健性审阅",
     robustnessCenterSummary:
-      "四项已实现检查均来自验证证据——不展示占位测试，也不虚构评分。",
+      "已实现检查均来自验证证据——包括固定参数的按时间 walk-forward。不展示占位测试，也不虚构评分。",
     robustnessStatusTitle: "当前稳健性状态",
     robustnessMatrixTitle: "已实现的证据检查",
     robustnessBoundaryTitle: "当前覆盖边界",
@@ -3915,6 +3911,36 @@ export const translations = {
     robustnessItemStressTest: "压力测试",
     robustnessItemMarketRegime: "市场状态分析",
     robustnessItemWalkForward: "滚动前向验证",
+    robustnessWalkForwardTitle: "Walk-forward 证据",
+    robustnessWalkForwardNotRun: "未运行",
+    robustnessWalkForwardNotRunNote:
+      "请在标准趋势跟踪研究上运行验证，以生成按时间顺序的 walk-forward 证据。模型对比中的 walk-forward 是独立路径，不能替代此处结果。",
+    robustnessWalkForwardScheme: "窗口方案",
+    robustnessWalkForwardFolds: "请求折数",
+    robustnessWalkForwardMethodology: "方法版本",
+    robustnessWalkForwardProtocolHash: "协议哈希",
+    robustnessWalkForwardReason: "原因",
+    robustnessWalkForwardAggregateTitle: "样本外汇总指标",
+    robustnessWalkForwardCompletedFolds: "完成折数",
+    robustnessWalkForwardPositiveReturnRatio: "正收益折占比",
+    robustnessWalkForwardOutperformRatio: "跑赢基准折占比",
+    robustnessWalkForwardMedianReturn: "样本外收益中位数",
+    robustnessWalkForwardMedianSharpe: "样本外 Sharpe 中位数",
+    robustnessWalkForwardWorstDrawdown: "最差样本外回撤",
+    robustnessWalkForwardFoldTableTitle: "各折样本外结果",
+    robustnessWalkForwardFold: "折",
+    robustnessWalkForwardTrain: "训练",
+    robustnessWalkForwardOos: "样本外",
+    robustnessWalkForwardStrategyReturn: "策略收益",
+    robustnessWalkForwardBenchmarkReturn: "基准收益",
+    robustnessWalkForwardSharpe: "Sharpe",
+    robustnessWalkForwardMaxDrawdown: "最大回撤",
+    robustnessWalkForwardTrades: "交易次数",
+    robustnessWalkForwardStatus: "状态",
+    robustnessWalkForwardChecksTitle: "方法配置检查",
+    robustnessWalkForwardLimitationsTitle: "协议限制",
+    robustnessWalkForwardThresholdsNote:
+      "通过/失败阈值来自后端版本化方法配置。此卡片只展示已报告结果，不在前端重判。",
     robustnessItemMonteCarlo: "蒙特卡洛模拟",
     robustnessItemLiquidityCapacity: "流动性与容量",
     robustnessFailureExtremeVolatilityTitle: "极端波动尚未评估",
@@ -3925,7 +3951,7 @@ export const translations = {
       "市场状态分析尚未实现。状态切换超出当前证据边界。",
     robustnessFailureForwardValidationTitle: "前向验证不可用",
     robustnessFailureForwardValidationBody:
-      "滚动前向验证尚未实现。按时间切分的样本外结果不能替代滚动前向测试。",
+      "Walk-forward 降低但不能消除过拟合风险，也不代表未来收益。固定参数协议不是逐折调参。",
     robustnessFailureCapacityTitle: "容量尚未估计",
     robustnessFailureCapacityBody:
       "流动性与容量分析尚未实现。请勿假设该协议可线性扩展到更大名义规模。",
@@ -3951,13 +3977,11 @@ export const translations = {
     systemFutureDatabase: "未来数据库：Supabase / Postgres",
     systemFutureCache: "未来缓存：Redis / Upstash 或同类方案",
     systemNotAdvice: "仅供研究演示——不构成投资建议。",
-
     footerLine1: "仅供研究。",
     footerLine2: "非投资建议。",
     footerLine3: "无实盘交易。",
     footerLicense: "MIT 许可证",
     footerRepository: "查看代码库",
-
     chartStrategyVsHold: "策略 vs 买入并持有",
     chartDrawdown: "回撤",
     chartStrategyVsHoldDrawdown: "策略 vs 买入并持有回撤",
@@ -3970,7 +3994,6 @@ export const translations = {
     noBacktestData: "暂无回测数据。",
     noChartData: "所选日期区间暂无图表数据。",
     noCompareData: "暂无对比图表数据。",
-
     latest: "最新",
     na: "无",
     yes: "是",
@@ -3983,7 +4006,6 @@ export const translations = {
     riskLow: "低",
     riskMedium: "中",
     riskHigh: "高",
-
     tickerEmpty: "标的代码不能为空。",
     shortLongInvalid: "短期窗口与长期窗口必须是有效数字。",
     shortLessThanLong: "短期窗口必须小于长期窗口。",
@@ -3992,7 +4014,6 @@ export const translations = {
     transactionCostInvalid: "交易成本必须大于等于 0。",
     splitAfterStart: "切分日期必须晚于回测起始日期。",
     endAfterSplit: "回测结束日期必须晚于切分日期。",
-
     helpLastPrice: "下载数据中最近的收盘价。",
     helpMa20: "过去 20 个交易日的平均价格。",
     helpMa60: "过去 60 个交易日的平均价格。",
@@ -4014,7 +4035,6 @@ export const translations = {
     helpWinRate: "盈利交易日或区间的占比。",
     helpTrades: "策略换仓的次数。",
     helpTransactionCost: "模拟交易成本带来的总拖累。",
-
     whatThisDemoShows: "本演示展示什么",
     demoDataPipeline: "数据流程",
     demoDataPipelineDesc: "获取日线市场数据，并计算技术指标。",
@@ -4028,7 +4048,6 @@ export const translations = {
     aboutThisDemo: "关于本项目",
     aboutThisDemoText:
       "这是一个面向作品集与研究演示的投资智能平台。项目使用历史日线数据和简化回测假设，不构成投资建议，也不用于实盘交易。",
-
     tradeLog: "交易记录",
     tradeLogDesc:
       "显示由所选策略生成的模拟买卖事件。这些仅为回测事件，不是真实订单。",
@@ -4042,7 +4061,6 @@ export const translations = {
     tradeSell: "卖出",
     tradeLogEmpty: "该区间与策略下未触发任何交易。",
     tradeLogScrollHint: "超过 15 条记录时可向下滚动查看全部。",
-
     paperTrading: "模拟观察",
     paperTradingDesc:
       "稳健性之后创建有边界的前向观察计划。无实盘下单、虚构成交或虚构盈亏。",

@@ -17,10 +17,12 @@ from app.api.routes.research_guidance import router as research_guidance_router
 from app.api.routes.research_reviewer import router as research_reviewer_router
 from app.api.routes.research_execution import router as research_execution_router
 from app.api.routes.research_validation import router as research_validation_router
+from app.api.routes.research_persistence import router as research_persistence_router
 from app.api.routes.risk_review import router as risk_review_router
 from app.api.routes.insights import router as insights_router
 from app.api.routes.model_comparison import router as model_comparison_router
 from app.config import get_allowed_origins
+from app.security.middleware import DemoProtectionMiddleware
 from app.backtest.engine import (
     run_combined_signal_backtest,
     run_ma_crossover_backtest,
@@ -32,6 +34,7 @@ from app.backtest.oos import generate_oos_interpretation, run_oos_validation
 from app.data_providers.yahoo_provider import load_price_data
 from app.features.technical_indicators import add_technical_indicators
 from app.recommendation.scoring import score_latest_signal
+from app.research_reproducibility import build_reproducibility_manifest
 from app.schemas import (
     BacktestRequest,
     ChartCompareRequest,
@@ -53,9 +56,12 @@ app = FastAPI(
 app.add_middleware(
     CORSMiddleware,
     allow_origins=get_allowed_origins(),
-    allow_methods=["GET", "POST", "DELETE"],
+    allow_methods=["GET", "POST", "PUT", "DELETE"],
     allow_headers=["*"],
 )
+# Public-demo body size + rate limits (single-instance in-memory limiter).
+# Added after CORS so this middleware is outermost for request gating.
+app.add_middleware(DemoProtectionMiddleware)
 
 app.include_router(data_sources_router)
 app.include_router(database_router)
@@ -63,6 +69,7 @@ app.include_router(experiments_router)
 app.include_router(paper_trading_router)
 app.include_router(research_execution_router)
 app.include_router(research_validation_router)
+app.include_router(research_persistence_router)
 app.include_router(factor_validation_router)
 app.include_router(research_evaluation_router)
 app.include_router(research_copilot_router)
@@ -267,6 +274,43 @@ def _backtest_parameters_dict(request: BacktestRequest) -> dict[str, Any]:
             }
         )
     return params
+
+
+def _backtest_reproducibility_manifest(
+    request: BacktestRequest,
+    price_df: Any,
+    *,
+    data_source_label: str,
+    end_date: Optional[str],
+) -> dict[str, Any]:
+    """Build reproducibility metadata for Strategy Lab historical experiments."""
+    actual_start = None
+    actual_end = None
+    if price_df is not None and not getattr(price_df, "empty", True) and "date" in price_df.columns:
+        dates = price_df["date"]
+        actual_start = str(dates.iloc[0])[:10]
+        actual_end = str(dates.iloc[-1])[:10]
+    provider = None
+    if price_df is not None and not getattr(price_df, "empty", True) and "data_source" in price_df.columns:
+        provider = str(price_df["data_source"].iloc[0]).strip().lower() or None
+    return build_reproducibility_manifest(
+        data_source=provider or data_source_label,
+        symbol=request.ticker,
+        universe=None,
+        requested_start_date=request.start_date,
+        requested_end_date=end_date,
+        actual_start_date=actual_start,
+        actual_end_date=actual_end,
+        retrieval_timestamp=None,
+        row_count=int(len(price_df)) if price_df is not None else None,
+        adjustment_mode=None,
+        protocol={
+            "strategy": request.strategy,
+            "ticker": request.ticker,
+            **_backtest_parameters_dict(request),
+        },
+        frame=price_df,
+    )
 
 
 def _sensitivity_result_row(
@@ -649,15 +693,22 @@ def run_backtest(request: BacktestRequest) -> dict:
             detail=f"Failed to run backtest for '{request.ticker}': {exc}",
         ) from exc
 
+    data_source_label = _resolve_data_source_label(price_df)
     return {
         "ticker": request.ticker,
         "strategy": request.strategy,
         "start_date": request.start_date,
         "end_date": normalized_end_date,
-        "data_source": _resolve_data_source_label(price_df),
+        "data_source": data_source_label,
         "parameters": _backtest_parameters_dict(request),
         "strategy_config": _backtest_strategy_config(request),
         "metrics": metrics,
+        "reproducibility_manifest": _backtest_reproducibility_manifest(
+            request,
+            price_df,
+            data_source_label=data_source_label,
+            end_date=normalized_end_date,
+        ),
         "data": [_backtest_row_dict(row) for _, row in backtest_df.iterrows()],
         "trade_log": _build_trade_log(backtest_df, request.ticker, request.strategy),
     }

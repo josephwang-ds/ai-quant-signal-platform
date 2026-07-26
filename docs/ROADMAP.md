@@ -33,7 +33,7 @@ State clearly as **Not implemented** unless a later PR lands:
 
 | Item | Status |
 | --- | --- |
-| Full stress / regime / Monte Carlo robustness engines | Not implemented |
+| Full stress / regime / Monte Carlo robustness engines | Not implemented (canonical trend fixed-parameter walk-forward is implemented) |
 | Broker connectivity / live order routing | Not implemented |
 | Autonomous trading agent | Not implemented |
 | Cross-browser durable research definitions without localStorage | Not implemented (persistence slice pending) |

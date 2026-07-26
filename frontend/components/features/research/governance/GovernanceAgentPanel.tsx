@@ -7,6 +7,7 @@ import LoadingState from "@/components/ui/LoadingState";
 import SectionCard from "@/components/ui/SectionCard";
 import SectionHeader from "@/components/ui/SectionHeader";
 import StatusBadge from "@/components/ui/StatusBadge";
+import AgentExecutionTrace from "@/components/features/research/governance/AgentExecutionTrace";
 import { getApiUserMessage } from "@/lib/apiRequest";
 import {
   cancelAgentRun,
@@ -251,16 +252,25 @@ export default function GovernanceAgentPanel({
             </span>
           </div>
           <p className="governance-agent__summary">{run.summary}</p>
+          {run.deterministic_suggestion || deterministicSuggestion ? (
+            <p className="section-meta" data-testid="agent-deterministic-suggestion">
+              {zh ? "确定性建议" : "Deterministic suggestion"}:{" "}
+              {String(run.deterministic_suggestion || deterministicSuggestion)}
+            </p>
+          ) : null}
+          {run.llm_interpretation_status === "unavailable" || !run.llm_available ? (
+            <p className="section-meta" data-testid="agent-llm-unavailable">
+              {zh
+                ? "LLM 解释不可用（确定性流程仍完成）"
+                : "LLM interpretation unavailable (deterministic workflow still completed)"}
+            </p>
+          ) : null}
 
-          <h4>{zh ? "运行轨迹" : "Run trace"}</h4>
-          <ol className="governance-agent__trace">
-            {(run.trace || []).map((event) => (
-              <li key={`${event.step}-${event.node}-${event.event}`}>
-                <strong>{event.node}</strong> — {event.event}
-                {event.detail ? `: ${event.detail}` : ""}
-              </li>
-            ))}
-          </ol>
+          <AgentExecutionTrace
+            events={run.events && run.events.length > 0 ? run.events : run.trace || []}
+            language={language}
+            defaultOpen={false}
+          />
 
           {(run.knowledge_context || []).length > 0 ? (
             <>

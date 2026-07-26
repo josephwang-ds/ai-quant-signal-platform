@@ -92,7 +92,17 @@ RULEBOOK_CATALOG: tuple[KnowledgeDocument, ...] = (
         version="v1",
         status="active",
         source_path="robustness_review.md",
-        tags=("robustness", "oos", "sensitivity", "data-quality"),
+        tags=("robustness", "oos", "sensitivity", "data-quality", "walk-forward"),
+    ),
+    KnowledgeDocument(
+        knowledge_id="kb.walk_forward.v1",
+        title="Walk-Forward Methodology",
+        topic="robustness",
+        research_type="trend_following",
+        version="v1",
+        status="active",
+        source_path="walk_forward_methodology.md",
+        tags=("walk-forward", "oos", "expanding", "rolling", "trend"),
     ),
     KnowledgeDocument(
         knowledge_id="kb.decision_rules.v1",

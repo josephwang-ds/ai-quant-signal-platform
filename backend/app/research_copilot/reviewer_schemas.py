@@ -4,6 +4,8 @@ from typing import Any, Literal, Optional
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
+from app.security.limits import MAX_PROMPT_LENGTH
+
 ResearchType = Literal["trend_following", "cross_sectional_factor"]
 
 
@@ -69,9 +71,9 @@ class HypothesisReviewRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     research_type: ResearchType
-    research_question: str = Field(min_length=1, max_length=2000)
-    hypothesis: str = Field(min_length=1, max_length=2000)
-    null_hypothesis: str = Field(min_length=1, max_length=2000)
+    research_question: str = Field(min_length=1, max_length=MAX_PROMPT_LENGTH)
+    hypothesis: str = Field(min_length=1, max_length=MAX_PROMPT_LENGTH)
+    null_hypothesis: str = Field(min_length=1, max_length=MAX_PROMPT_LENGTH)
     benchmark: str = Field(min_length=1, max_length=500)
     success_criteria: list[dict[str, Any]] = Field(max_length=20)
     available_validation_methods: list[str] = Field(max_length=20)

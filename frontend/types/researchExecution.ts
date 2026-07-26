@@ -1,5 +1,6 @@
 /** Research Execution API types (PR-008B). */
 import type { BenchmarkEvaluation } from "@/types/researchBenchmark";
+import type { ReproducibilityManifest } from "@/types/reproducibility";
 
 export type DataProvenance = {
   provider: string;
@@ -55,6 +56,7 @@ export type ResearchExecutionResult = {
   research_id: string;
   strategy: Record<string, unknown>;
   provenance: DataProvenance;
+  reproducibility_manifest?: ReproducibilityManifest | null;
   metrics: ExecutionMetrics;
   benchmark_metrics: ExecutionMetrics;
   benchmark_comparison?: BenchmarkEvaluation;

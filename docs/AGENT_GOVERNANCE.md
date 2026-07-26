@@ -91,9 +91,21 @@ These are visually and structurally distinct in the Agent panel.
 
 Tracked in `backend/app/research_agent/prompts.py` (`PROMPT_VERSIONS`).
 
-## Run trace
+## Run trace / execution observability
 
-Each run returns concise workflow events (node, event, detail). No raw CoT.
+Each Agent detail response includes typed `events` (and legacy `trace` aliases):
+
+- `sequence` — monotonic step order
+- `authority` — `system` | `deterministic` | `llm` | `human`
+- `status` — includes `unavailable` when LLM is not configured (not a workflow failure)
+- `summary` — short result text only
+
+The Evidence Governance Agent UI shows **Execution trace** collapsed by default.
+It does **not** return chain-of-thought, raw prompts, API keys, or connection strings.
+
+Also returned: `llm_used`, `llm_interpretation_status`, `rulebook_version`,
+`tool_plan`, `approval_required`, `deterministic_suggestion`, and
+`final_human_decision` when recorded.
 
 ## Failure modes
 

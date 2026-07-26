@@ -4,6 +4,9 @@ import ResearchBand from "@/components/features/research/ux/ResearchBand";
 import ResearchCenterHeader from "@/components/features/research/ux/ResearchCenterHeader";
 import ResearchNextAction from "@/components/features/research/ux/ResearchNextAction";
 import ResearchStatusMatrix from "@/components/features/research/ux/ResearchStatusMatrix";
+import WalkForwardResultCard, {
+  type WalkForwardResultCardLabels,
+} from "@/components/features/research/robustness/WalkForwardResultCard";
 import { canonicalStatusVariant } from "@/lib/researchStatusBadge";
 import {
   buildRobustnessCenterModel,
@@ -44,6 +47,7 @@ export type ResearchRobustnessCenterLabels = {
   noEvidenceNote: string;
   itemLabels: Record<RobustnessItemId, string>;
   boundaryLabels: Record<RobustnessScopeBoundaryId, string>;
+  walkForward: WalkForwardResultCardLabels;
 };
 
 type Props = {
@@ -165,6 +169,15 @@ export default function ResearchRobustnessCenter({
             statusLabel: statusLabel(item.status, labels),
             statusTone: item.status,
           }))}
+        />
+      </ResearchBand>
+
+      <hr className="overview-divider" />
+
+      <ResearchBand caption={labels.walkForward.title} glyph="evidence">
+        <WalkForwardResultCard
+          walkForward={model.walkForward}
+          labels={labels.walkForward}
         />
       </ResearchBand>
 

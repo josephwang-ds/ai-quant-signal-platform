@@ -46,3 +46,4 @@ class FactorValidationResponse(BaseModel):
     validation_run_id: str
     evidence_kind: str = "factor_validation"
     validation_status: str = "completed"
+    reproducibility_manifest: dict[str, Any] = Field(default_factory=dict)
