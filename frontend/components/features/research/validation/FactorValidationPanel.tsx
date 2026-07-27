@@ -12,6 +12,14 @@ import {
 } from "recharts";
 import MetricSummaryCard from "@/components/ui/MetricSummaryCard";
 import ResearchCenterHeader from "@/components/features/research/ux/ResearchCenterHeader";
+import {
+  CHART_COLORS,
+  CHART_COMPARE_LINES,
+  CHART_GRID_STROKE,
+  CHART_TICK_FILL,
+  CHART_TICK_FONT_SIZE,
+  CHART_TOOLTIP_STYLE,
+} from "@/lib/chartTheme";
 import type { Language } from "@/lib/i18n";
 import { formatResearchTimestamp } from "@/lib/researchDisplay";
 import type { FactorValidationResult } from "@/types/factorValidation";
@@ -61,12 +69,12 @@ function fmtPct(value: number | null | undefined, unavailable: string): string {
 }
 
 const Q_COLORS: Record<string, string> = {
-  Q1: "#9a3412",
-  Q2: "#c2410c",
-  Q3: "#78716c",
-  Q4: "#0f766e",
-  Q5: "#115e59",
-  LS: "#1e3a5f",
+  Q1: CHART_COMPARE_LINES[1],
+  Q2: CHART_COMPARE_LINES[4],
+  Q3: CHART_COLORS.benchmark,
+  Q4: CHART_COMPARE_LINES[3],
+  Q5: CHART_COLORS.strategy,
+  LS: CHART_COMPARE_LINES[2],
 };
 
 export default function FactorValidationPanel({
@@ -183,10 +191,18 @@ export default function FactorValidationPanel({
           <div className="chart-panel__body" style={{ width: "100%", height: 260 }}>
             <ResponsiveContainer>
               <LineChart data={icChart} margin={{ top: 8, right: 16, left: 0, bottom: 8 }}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="date" hide={icChart.length > 24} />
-                <YAxis tickFormatter={(v) => Number(v).toFixed(2)} width={48} />
-                <Tooltip />
+                <CartesianGrid stroke={CHART_GRID_STROKE} strokeDasharray="3 3" />
+                <XAxis
+                  dataKey="date"
+                  hide={icChart.length > 24}
+                  tick={{ fill: CHART_TICK_FILL, fontSize: CHART_TICK_FONT_SIZE }}
+                />
+                <YAxis
+                  tick={{ fill: CHART_TICK_FILL, fontSize: CHART_TICK_FONT_SIZE }}
+                  tickFormatter={(v) => Number(v).toFixed(2)}
+                  width={48}
+                />
+                <Tooltip {...CHART_TOOLTIP_STYLE} />
                 <Line
                   type="monotone"
                   dataKey="rankIc"
@@ -208,10 +224,18 @@ export default function FactorValidationPanel({
                 data={rollingChart}
                 margin={{ top: 8, right: 16, left: 0, bottom: 8 }}
               >
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="date" hide={rollingChart.length > 24} />
-                <YAxis tickFormatter={(v) => Number(v).toFixed(2)} width={48} />
-                <Tooltip />
+                <CartesianGrid stroke={CHART_GRID_STROKE} strokeDasharray="3 3" />
+                <XAxis
+                  dataKey="date"
+                  hide={rollingChart.length > 24}
+                  tick={{ fill: CHART_TICK_FILL, fontSize: CHART_TICK_FONT_SIZE }}
+                />
+                <YAxis
+                  tick={{ fill: CHART_TICK_FILL, fontSize: CHART_TICK_FONT_SIZE }}
+                  tickFormatter={(v) => Number(v).toFixed(2)}
+                  width={48}
+                />
+                <Tooltip {...CHART_TOOLTIP_STYLE} />
                 <Line
                   type="monotone"
                   dataKey="rollingIc"
@@ -233,13 +257,19 @@ export default function FactorValidationPanel({
                 data={quantileChart}
                 margin={{ top: 8, right: 16, left: 0, bottom: 8 }}
               >
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="date" hide={quantileChart.length > 24} />
+                <CartesianGrid stroke={CHART_GRID_STROKE} strokeDasharray="3 3" />
+                <XAxis
+                  dataKey="date"
+                  hide={quantileChart.length > 24}
+                  tick={{ fill: CHART_TICK_FILL, fontSize: CHART_TICK_FONT_SIZE }}
+                />
                 <YAxis
+                  tick={{ fill: CHART_TICK_FILL, fontSize: CHART_TICK_FONT_SIZE }}
                   tickFormatter={(v) => `${(Number(v) * 100).toFixed(0)}%`}
                   width={48}
                 />
                 <Tooltip
+                  {...CHART_TOOLTIP_STYLE}
                   formatter={(value) =>
                     typeof value === "number" ? fmtPct(value, labels.unavailable) : value
                   }
@@ -265,13 +295,19 @@ export default function FactorValidationPanel({
           <div className="chart-panel__body" style={{ width: "100%", height: 260 }}>
             <ResponsiveContainer>
               <LineChart data={lsChart} margin={{ top: 8, right: 16, left: 0, bottom: 8 }}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="date" hide={lsChart.length > 24} />
+                <CartesianGrid stroke={CHART_GRID_STROKE} strokeDasharray="3 3" />
+                <XAxis
+                  dataKey="date"
+                  hide={lsChart.length > 24}
+                  tick={{ fill: CHART_TICK_FILL, fontSize: CHART_TICK_FONT_SIZE }}
+                />
                 <YAxis
+                  tick={{ fill: CHART_TICK_FILL, fontSize: CHART_TICK_FONT_SIZE }}
                   tickFormatter={(v) => `${(Number(v) * 100).toFixed(0)}%`}
                   width={48}
                 />
                 <Tooltip
+                  {...CHART_TOOLTIP_STYLE}
                   formatter={(value) =>
                     typeof value === "number" ? fmtPct(value, labels.unavailable) : value
                   }

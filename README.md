@@ -38,7 +38,9 @@ The main initiative was not “add an agent.” It was to define a credible rese
 - benchmark-aware `Promote / Hold / Reject` suggestions calculated outside the LLM;
 - honest unavailable states instead of placeholder metrics;
 - one shared cold-start recovery path for the deployed backend;
-- a focused Apple-inspired Bento interface that makes the workflow easy to present.
+- a focused Apple-inspired Bento interface that makes the workflow easy to present;
+- a persistent light, dark, and system appearance layer shared by research cards,
+  forms, status states, and evidence charts.
 
 ## Review it in three minutes
 
@@ -175,6 +177,7 @@ Implementation: [`backend/app/research_agent/`](backend/app/research_agent) · A
 | AI Research Reviewer | four focused strict-JSON actions for definition, hypothesis, supplied evidence, and missing steps |
 | Evidence Governance Agent | controlled LangGraph workflow over normalized evidence and approved tools |
 | Cold-start recovery | shared readiness gate, bounded retry, queued requests, and automatic continuation |
+| Adaptive appearance | accessible light / dark / system themes with persisted preference, no-flash startup, responsive controls, and theme-aware Recharts |
 
 Unsupported methods are documented rather than presented as empty product features: regime analysis, Monte Carlo, liquidity/capacity modelling, broker connectivity, production OMS, and autonomous trading. Canonical trend walk-forward is implemented as fixed-parameter chronological evidence; it reduces but does not eliminate overfitting risk and is not a future-return forecast.
 

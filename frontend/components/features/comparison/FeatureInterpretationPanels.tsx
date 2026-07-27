@@ -15,6 +15,13 @@ import type {
   FeatureImportanceResearch,
   ModelComparisonResult,
 } from "@/lib/api";
+import {
+  CHART_COLORS,
+  CHART_GRID_STROKE,
+  CHART_TICK_FILL,
+  CHART_TICK_FONT_SIZE,
+  CHART_TOOLTIP_STYLE,
+} from "@/lib/chartTheme";
 import { translateModelFeatureName, type Language } from "@/lib/i18n";
 
 const CAUSALITY = "Feature importance does not imply causality.";
@@ -85,11 +92,27 @@ function MethodChart({
               data={rows}
               margin={{ top: 8, right: 16, left: 8, bottom: 8 }}
             >
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis type="number" tickFormatter={(v) => Number(v).toFixed(2)} />
-              <YAxis type="category" dataKey="name" width={120} tick={{ fontSize: 11 }} />
-              <Tooltip formatter={(value) => Number(value).toFixed(4)} />
-              <Bar dataKey="value" fill="#0f766e" radius={[0, 2, 2, 0]} />
+              <CartesianGrid stroke={CHART_GRID_STROKE} strokeDasharray="3 3" />
+              <XAxis
+                type="number"
+                tick={{ fill: CHART_TICK_FILL, fontSize: CHART_TICK_FONT_SIZE }}
+                tickFormatter={(v) => Number(v).toFixed(2)}
+              />
+              <YAxis
+                type="category"
+                dataKey="name"
+                width={120}
+                tick={{ fill: CHART_TICK_FILL, fontSize: 11 }}
+              />
+              <Tooltip
+                {...CHART_TOOLTIP_STYLE}
+                formatter={(value) => Number(value).toFixed(4)}
+              />
+              <Bar
+                dataKey="value"
+                fill={CHART_COLORS.strategy}
+                radius={[0, 2, 2, 0]}
+              />
             </BarChart>
           </ResponsiveContainer>
         </div>

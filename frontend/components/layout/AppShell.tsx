@@ -19,6 +19,7 @@ import {
 import DemoBanner from "./DemoBanner";
 import LanguageToggle from "./LanguageToggle";
 import SideNav from "./SideNav";
+import ThemeToggle from "./ThemeToggle";
 import TopNav from "./TopNav";
 
 type AppShellProps = {
@@ -117,6 +118,7 @@ export default function AppShell({
         </Link>
         <SideNav language={language} onNavigate={() => setNavOpen(false)} />
         <div className="workspace-sidebar__footer">
+          <ThemeToggle language={language} />
           <LanguageToggle language={language} onLanguageChange={onLanguageChange} />
         </div>
       </aside>

@@ -79,8 +79,12 @@ export default function BacktestChart({ data, labels }: BacktestChartProps) {
                   x={row.date}
                   y={row.cumulative_strategy}
                   r={6}
-                  fill={row.trade_action === "BUY" ? "#16a34a" : "#dc2626"}
-                  stroke="#ffffff"
+                  fill={
+                    row.trade_action === "BUY"
+                      ? "var(--positive)"
+                      : "var(--negative)"
+                  }
+                  stroke="var(--bg-card)"
                   strokeWidth={2}
                   ifOverflow="extendDomain"
                 />

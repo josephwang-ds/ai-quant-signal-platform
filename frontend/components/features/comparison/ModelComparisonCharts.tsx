@@ -50,7 +50,7 @@ import {
 
 const BUY_HOLD_LABEL = "Buy & Hold";
 const BAR_EMPHASIS = CHART_COLORS.strategy;
-const BAR_MUTED = "#94a3b8";
+const BAR_MUTED = CHART_COLORS.benchmark;
 const ML_SCATTER = CHART_COMPARE_LINES[0];
 const RULE_SCATTER = CHART_COMPARE_LINES[1];
 

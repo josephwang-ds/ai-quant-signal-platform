@@ -1,41 +1,43 @@
-/** Recharts 共享主题（浅色 + 色盲友好配色） */
+/** Recharts shared theme — CSS variables keep charts in sync with light/dark mode. */
 
 export const CHART_TOOLTIP_STYLE = {
   contentStyle: {
-    backgroundColor: "#ffffff",
-    border: "1px solid #cbd5e1",
+    backgroundColor: "var(--chart-tooltip-bg)",
+    border: "1px solid var(--chart-tooltip-border)",
+    color: "var(--text-primary)",
     borderRadius: "0.5rem",
     fontSize: "0.9375rem",
-    boxShadow: "0 4px 12px rgba(15, 23, 42, 0.08)",
+    boxShadow: "var(--shadow)",
   },
-  labelStyle: { color: "#0f172a", fontWeight: 600 },
+  labelStyle: { color: "var(--text-primary)", fontWeight: 600 },
+  itemStyle: { color: "var(--text-secondary)" },
 };
 
-export const CHART_GRID_STROKE = "#e2e8f0";
-export const CHART_TICK_FILL = "#475569";
-export const CHART_BRUSH_STROKE = "#2563eb";
+export const CHART_GRID_STROKE = "var(--chart-grid)";
+export const CHART_TICK_FILL = "var(--chart-tick)";
+export const CHART_BRUSH_STROKE = "var(--chart-accent)";
 export const CHART_TICK_FONT_SIZE = 12;
 
 /** 主序列：蓝色；对比序列：灰色；回撤策略：橙色（避免红绿配对） */
 export const CHART_COLORS = {
-  strategy: "#2563eb",
-  benchmark: "#64748b",
-  drawdownStrategy: "#ea580c",
-  drawdownBenchmark: "#475569",
-  close: "#1e293b",
-  ma20: "#2563eb",
-  ma60: "#7c3aed",
+  strategy: "var(--chart-series-1)",
+  benchmark: "var(--chart-series-2)",
+  drawdownStrategy: "var(--chart-series-3)",
+  drawdownBenchmark: "var(--chart-series-4)",
+  close: "var(--chart-series-5)",
+  ma20: "var(--chart-series-1)",
+  ma60: "var(--chart-series-6)",
 };
 
 export const CHART_COMPARE_LINES = [
-  "#2563eb",
-  "#ea580c",
-  "#7c3aed",
-  "#0891b2",
-  "#9333ea",
-  "#c2410c",
-  "#0369a1",
-  "#a16207",
-  "#4f46e5",
-  "#b45309",
+  "var(--chart-series-1)",
+  "var(--chart-series-3)",
+  "var(--chart-series-6)",
+  "var(--chart-series-7)",
+  "var(--chart-series-8)",
+  "var(--chart-series-9)",
+  "var(--chart-series-10)",
+  "var(--chart-series-11)",
+  "var(--chart-series-12)",
+  "var(--chart-series-13)",
 ];

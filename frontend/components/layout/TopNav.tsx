@@ -4,6 +4,7 @@ import Link from "next/link";
 import type { Language } from "@/lib/i18n";
 import { t } from "@/lib/i18n";
 import { PRODUCT_VERSION } from "@/lib/productIdentity";
+import ThemeToggle from "./ThemeToggle";
 
 type TopNavProps = {
   language: Language;
@@ -46,6 +47,7 @@ export default function TopNav({
       </Link>
 
       <div className="workspace-topbar__actions">
+        <ThemeToggle language={language} compact />
         <button
           type="button"
           className="workspace-language-switch"
