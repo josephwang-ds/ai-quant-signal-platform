@@ -10,6 +10,9 @@ from app.api.routes.database import router as database_router
 from app.api.routes.experiments import router as experiments_router
 from app.api.routes.paper_trading import router as paper_trading_router
 from app.api.routes.factor_validation import router as factor_validation_router
+from app.api.routes.cross_sectional_dataset import router as cross_sectional_dataset_router
+from app.api.routes.cross_sectional_factors import router as cross_sectional_factors_router
+from app.api.routes.cross_sectional_models import router as cross_sectional_models_router
 from app.api.routes.research_evaluation import router as research_evaluation_router
 from app.api.routes.research_copilot import router as research_copilot_router
 from app.api.routes.research_agent import router as research_agent_router
@@ -71,6 +74,9 @@ app.include_router(research_execution_router)
 app.include_router(research_validation_router)
 app.include_router(research_persistence_router)
 app.include_router(factor_validation_router)
+app.include_router(cross_sectional_dataset_router)
+app.include_router(cross_sectional_factors_router)
+app.include_router(cross_sectional_models_router)
 app.include_router(research_evaluation_router)
 app.include_router(research_copilot_router)
 app.include_router(research_agent_router)
