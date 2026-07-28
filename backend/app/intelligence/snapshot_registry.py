@@ -26,6 +26,7 @@ from app.intelligence.errors import (
     InvalidRunTransitionError,
     InvalidSnapshotError,
     SnapshotAlreadyExistsError,
+    SnapshotIntegrityError,
     SnapshotNotFoundError,
     SnapshotSourceError,
 )
@@ -332,6 +333,74 @@ class ResearchSnapshotRegistry:
             actual_checksum=actual_checksum,
             verified_at=stamp,
             errors=errors,
+        )
+
+    def read_snapshot_bytes(
+        self,
+        run_id: str,
+        snapshot_name_or_id: str,
+        *,
+        verify: bool = False,
+    ) -> bytes:
+        """Read registered snapshot file bytes (no free-path reads)."""
+        snapshot = self.get_snapshot(run_id, snapshot_name_or_id)
+        if verify:
+            result = self.verify_snapshot(run_id, snapshot.snapshot_id)
+            if not result.valid:
+                raise SnapshotIntegrityError(
+                    f"snapshot {snapshot.snapshot_id!r} failed integrity verification: "
+                    + "; ".join(result.errors)
+                )
+        path = self._storage.resolve_run_relative_path(run_id, snapshot.relative_path)
+        if not path.is_file():
+            raise SnapshotNotFoundError(
+                f"snapshot file missing for {snapshot.snapshot_id!r} on run {run_id}"
+            )
+        try:
+            return path.read_bytes()
+        except OSError as exc:
+            raise IntelligenceStorageError(
+                f"unable to read snapshot bytes for {snapshot.snapshot_id!r}"
+            ) from exc
+
+    def read_snapshot(
+        self,
+        run_id: str,
+        snapshot_name_or_id: str,
+        *,
+        verify: bool = False,
+    ) -> SupportedSnapshotContent:
+        """Read and validate a registered typed consumer snapshot."""
+        import json
+
+        from pydantic import ValidationError
+
+        reference = self.get_snapshot(run_id, snapshot_name_or_id)
+        raw = self.read_snapshot_bytes(run_id, reference.snapshot_id, verify=verify)
+        try:
+            payload = json.loads(raw.decode("utf-8"))
+        except UnicodeDecodeError as exc:
+            raise InvalidSnapshotError(
+                f"snapshot {reference.snapshot_id!r} is not valid UTF-8 JSON"
+            ) from exc
+        except json.JSONDecodeError as exc:
+            raise InvalidSnapshotError(
+                f"snapshot {reference.snapshot_id!r} contains invalid JSON"
+            ) from exc
+
+        try:
+            if reference.snapshot_type == ResearchSnapshotType.RESEARCH_SUMMARY:
+                return ResearchSummarySnapshot.model_validate(payload)
+            if reference.snapshot_type == ResearchSnapshotType.SIGNAL:
+                return SignalSnapshot.model_validate(payload)
+        except ValidationError as exc:
+            raise InvalidSnapshotError(
+                f"snapshot {reference.snapshot_id!r} failed "
+                f"{reference.snapshot_type.value} contract validation"
+            ) from exc
+
+        raise InvalidSnapshotError(
+            f"unsupported snapshot_type for read: {reference.snapshot_type.value!r}"
         )
 
     def _resolve_sources(

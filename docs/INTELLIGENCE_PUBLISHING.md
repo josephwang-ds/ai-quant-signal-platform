@@ -1,8 +1,8 @@
-# Intelligence Publishing — Phase 4.1 / 4.2 / 4.3 / 4.3.1 / 4.4
+# Intelligence Publishing — Phase 4.1–4.5
 
 Research Run Registry + Research Artifact Registry + Intelligence Snapshot
-Contracts + Deterministic Artifact-to-Snapshot Builders for the AI Investment
-Intelligence Platform.
+Contracts + Deterministic Artifact-to-Snapshot Builders + Read-only Intelligence
+Query Layer for the AI Investment Intelligence Platform.
 
 **Built on an Evidence-driven Quant Research Engine.**  
 Every AI insight is backed by structured research evidence. Explainable. Traceable. Reviewable.
@@ -26,7 +26,9 @@ Phase 4.4 adds deterministic builders that **read registered artifact payloads**
 and map supported evidence contracts into typed snapshots, then register via
 the snapshot registry.
 
-No HTTP API or frontend consumption is implemented in these phases.
+Phase 4.5 exposes a **read-only** HTTP query layer over published registry state
+(IntelligenceService + `/api/v1/intelligence`). No write API, Publisher, or
+frontend consumption is implemented in this phase.
 
 ## Three structure categories
 
@@ -508,20 +510,110 @@ metrics, invent findings, or convert scores into directions.
 - `require_artifact_verification=True` — source checksum/size must verify before read
 - default / permissive — registered IDs must exist; tampered bytes are not blocked unless verification is requested
 
+## Phase 4.5 — Read-only Intelligence Query Layer
+
+```text
+Published Research Run
+        ↓
+Run / Artifact / Snapshot Registries
+        ↓
+IntelligenceService
+        ↓
+Stable API DTOs
+        ↓
+FastAPI Read-only Router
+        ↓
+Research Library / Workspace / Future Agent
+```
+
+### Architecture
+
+HTTP never touches storage or builders. The read path is:
+
+`FastAPI Router → IntelligenceService → ResearchRunRegistry / ResearchArtifactRegistry / ResearchSnapshotRegistry`
+
+Package: `backend/app/intelligence_serving/`  
+Router: `backend/app/api/routes/intelligence.py` (`/api/v1/intelligence`)
+
+### Service versus Registry
+
+| Layer | Responsibility |
+| --- | --- |
+| Registries | Resolve registered resources, integrity verify, typed snapshot file read |
+| `IntelligenceService` | Publication visibility, error mapping, DTO projection |
+| Router | Query parsing + HTTP status mapping only |
+
+### Snapshot content read flow
+
+`ResearchSnapshotRegistry.read_snapshot(run_id, name_or_id, verify=?)`:
+
+1. resolve registered `ResearchSnapshotReference`
+2. optional integrity verification
+3. read registered bytes within the run directory
+4. JSON decode + validate Phase 4.3 contract by `snapshot_type`
+5. return typed `ResearchSummarySnapshot` or `SignalSnapshot`
+
+### Publication visibility policy
+
+Phase 4.5 consumer endpoints serve **only** `PUBLISHED` runs.
+
+- `ARCHIVED` is **not** consumer-readable in this phase (lifecycle documents archive as terminal; it is not defined as a public serving state).
+- There is **no** `include_unpublished` bypass.
+- List endpoints return only published runs.
+- `status` query may only request `PUBLISHED`; other values → `INVALID_QUERY`.
+
+### API endpoints
+
+| Method | Path | Response |
+| --- | --- | --- |
+| GET | `/api/v1/intelligence/runs` | `RunListDTO` |
+| GET | `/api/v1/intelligence/runs/latest` | `ResearchRunDetailDTO` |
+| GET | `/api/v1/intelligence/runs/{run_id}` | `ResearchRunDetailDTO` |
+| GET | `/api/v1/intelligence/runs/{run_id}/artifacts` | `ArtifactListDTO` |
+| GET | `/api/v1/intelligence/runs/{run_id}/snapshots` | `SnapshotListDTO` |
+| GET | `/api/v1/intelligence/runs/{run_id}/snapshots/{snapshot_name_or_id}` | `SnapshotContentDTO` |
+
+`/runs/latest` is registered before `/runs/{run_id}`.
+
+Optional query: `verify` on snapshot content (default `false`).
+
+### DTO boundary
+
+Public DTOs project registry metadata and typed snapshot **content**. They omit:
+
+- `relative_path` / absolute paths
+- raw artifact evidence payloads
+- reference `metadata` bags (not guaranteed public-safe)
+
+### Error model
+
+Stable `error_code` values in `detail`: `INVALID_RUN_ID`, `INVALID_QUERY`, `INVALID_SNAPSHOT_TYPE`, `RUN_NOT_FOUND`, `RUN_NOT_PUBLISHED`, `LATEST_NOT_FOUND`, `LATEST_POINTER_INVALID`, `SNAPSHOT_NOT_FOUND`, `SNAPSHOT_INTEGRITY_FAILED`, `SNAPSHOT_CONTENT_INVALID`, `INTELLIGENCE_STORAGE_ERROR`, `MANIFEST_VALIDATION_ERROR`.
+
+### Why raw artifact payloads are not exposed
+
+Domain research bytes remain opaque evidence. Consumer intelligence is the versioned snapshot contract. Exposing raw artifacts would bypass provenance, leak metrics, and couple clients to unstable research schemas.
+
+### Why no ResearchPublisher
+
+Write orchestration already exists on registries + Phase 4.4 builders. Phase 4.5 is read-only serving; a Publisher would duplicate write paths and blur boundaries.
+
+### Security / storage limitations
+
+- No authentication / API keys / RBAC in this phase — endpoints are as open as the rest of the demo API surface.
+- Filesystem registry limitations remain (local disk, POSIX flock, `INTELLIGENCE_OUTPUT_DIR`).
+
 ## Deliberate limitations (still deferred)
 
 - Additional snapshot contracts beyond Research Summary + Signal
 - Automatic mapping from raw domain modeling/factor JSON without evidence contracts
-- HTTP API routes / serving layer (Phase 4.5+)
 - Frontend integration / consumption (Phase 4.6+)
+- Authentication / RBAC / unpublished admin endpoints
+- Artifact file download / raw artifact JSON endpoints
+- ResearchPublisher / one-click publish pipeline / workers
 - Database / Supabase / distributed locks
-- Schedulers / background jobs / queues
 - Portfolio / risk / market snapshot types
-- Portfolio construction publishing
 - Content fingerprints / snapshot deduplication
-- Automatic CSV/Parquet row counting
 - Retraining or changes to factor/model calculations
-- Generic multi-contract snapshot framework
 
 ## Related roadmap
 
