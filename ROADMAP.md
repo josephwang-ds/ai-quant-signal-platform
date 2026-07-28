@@ -171,9 +171,17 @@ Implement domain state machines and event contracts in thin, end-to-end slices. 
 
 Prioritize evidence capture, experiment reproducibility, evaluation, and review over additional indicator widgets.
 
-### Phase 4 — Add governance and portfolio views
+### Phase 4 — Research Artifact & Intelligence Serving Layer
 
-Connect deterministic gates and decisions to monitoring, simulation, and portfolio review.
+Register completed research runs, store immutable manifests, register checksummed
+artifacts, and build consumer snapshot contracts. **Phase 4.1–4.3** are done
+(filesystem run/artifact/snapshot registries). Serving APIs, frontend
+consumption, and portfolio publishing remain deferred. Details:
+[`docs/INTELLIGENCE_PUBLISHING.md`](docs/INTELLIGENCE_PUBLISHING.md).
+
+### Phase 4 (legacy note) — Add governance and portfolio views
+
+Connect deterministic gates and decisions to monitoring, simulation, and portfolio review (still planned; not replaced by 4.1).
 
 ### Phase 5 — Introduce governed AI
 

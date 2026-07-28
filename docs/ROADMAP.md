@@ -33,6 +33,11 @@ State clearly as **Not implemented** unless a later PR lands:
 
 | Item | Status |
 | --- | --- |
+| Phase 4 — Research Artifact & Intelligence Serving Layer | In progress |
+| Phase 4.1 — Research Run Registry Foundation | ✅ Done (filesystem registry + immutable manifests; no API) |
+| Phase 4.2 — Research Artifact Registry | ✅ Done (checksummed append-only artifacts; no API) |
+| Phase 4.3 — Intelligence Snapshot Contracts | ✅ Done (ResearchSummary + Signal snapshots; no API/frontend) |
+| Phase 4.4+ — Serving APIs, portfolio publishing | Not implemented |
 | Full stress / regime / Monte Carlo robustness engines | Not implemented (canonical trend fixed-parameter walk-forward is implemented) |
 | Broker connectivity / live order routing | Not implemented |
 | Autonomous trading agent | Not implemented |
