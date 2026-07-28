@@ -1,7 +1,8 @@
-# Intelligence Publishing — Phase 4.1 / 4.2 / 4.3
+# Intelligence Publishing — Phase 4.1 / 4.2 / 4.3 / 4.3.1 / 4.4
 
 Research Run Registry + Research Artifact Registry + Intelligence Snapshot
-Contracts for the AI Investment Intelligence Platform.
+Contracts + Deterministic Artifact-to-Snapshot Builders for the AI Investment
+Intelligence Platform.
 
 **Built on an Evidence-driven Quant Research Engine.**  
 Every AI insight is backed by structured research evidence. Explainable. Traceable. Reviewable.
@@ -15,9 +16,17 @@ filesystem.
 Phase 4.2 adds append-only, checksummed research artifact registration under
 each run.
 
-Phase 4.3 defines the first **consumer-facing snapshot contracts** and builds
-them deterministically from registered artifacts. No HTTP API or frontend
-consumption is implemented in this phase.
+Phase 4.3 defines the first **consumer-facing snapshot contracts** and a
+snapshot registry with explicit-input convenience builders.
+
+Phase 4.3.1 hardens registry consistency: run-level write locking, idempotent
+publish recovery, and failed create-run cleanup.
+
+Phase 4.4 adds deterministic builders that **read registered artifact payloads**
+and map supported evidence contracts into typed snapshots, then register via
+the snapshot registry.
+
+No HTTP API or frontend consumption is implemented in these phases.
 
 ## Three structure categories
 
@@ -40,9 +49,13 @@ Domain Research Object
   → ResearchArtifactReference
   → ResearchRunManifest.artifacts
 
-Registered Research Artifacts
-  → Snapshot Builder
-  → serialized snapshot file
+Research Run
+  → Registered Artifacts
+  → Artifact Registry read / optional verification
+  → Deterministic Snapshot Builder
+  → Typed in-memory Snapshot
+  → Snapshot Registry
+  → snapshots/*.json
   → ResearchSnapshotReference
   → ResearchRunManifest.snapshots
 ```
@@ -196,12 +209,14 @@ backend/app/intelligence/
   __init__.py
   schemas.py              # enums + registry models + id generators
   errors.py               # focused domain exceptions
-  storage.py              # filesystem root, atomic writes, SHA-256
+  storage.py              # filesystem root, atomic writes, SHA-256, run locks
+  run_lock.py             # POSIX flock run-level write lock (Phase 4.3.1)
   manifest.py             # build / transition / validate
-  run_registry.py         # ResearchRunRegistry (Phase 4.1)
-  artifact_registry.py    # ResearchArtifactRegistry (Phase 4.2)
+  run_registry.py         # ResearchRunRegistry (Phase 4.1 / 4.3.1)
+  artifact_registry.py    # ResearchArtifactRegistry (Phase 4.2 / 4.4 read API)
   snapshot_contracts.py   # ResearchSummarySnapshot / SignalSnapshot (Phase 4.3)
-  snapshot_registry.py    # ResearchSnapshotRegistry + builders (Phase 4.3)
+  snapshot_registry.py    # ResearchSnapshotRegistry + convenience builders
+  snapshot_builders.py    # Artifact→Snapshot builders (Phase 4.4)
 ```
 
 ## Phase 4.2 — Research Artifact Registry
@@ -251,6 +266,7 @@ Allowed only when run status is `CREATED`, `RUNNING`, or `VALIDATED`.
 | `register_file_artifact` | Copy regular file bytes into run-owned `artifacts/` (never persist absolute source path) |
 | `get_artifact` / `list_artifacts` | Resolve by name or `artifact_id` |
 | `verify_artifact` | Read-only integrity check (`hmac.compare_digest`) |
+| `read_artifact_bytes` / `read_json_artifact` | Safe read of registered artifact content (Phase 4.4) |
 
 Artifact IDs: `artifact_<8-hex>`.
 
@@ -310,17 +326,18 @@ Snapshot content provenance also records `source_artifact_ids` and builder id.
 
 | Entry | Behaviour |
 | --- | --- |
-| `build_research_summary_snapshot` | Explicit findings / limitations + registry metadata → typed summary → file + reference |
-| `build_signal_snapshot` | Explicit normalized `SignalRecord` inputs → typed signal snapshot → file + reference |
+| `register_snapshot` | Persist an already-constructed typed snapshot (Phase 4.4 entry point) |
+| `build_research_summary_snapshot` | Explicit findings / limitations + registry metadata → typed summary → `register_snapshot` path |
+| `build_signal_snapshot` | Explicit normalized `SignalRecord` inputs → typed signal snapshot → register path |
 | `get_snapshot` / `list_snapshots` | Resolve by name or `snapshot_id` |
 | `verify_snapshot` | Read-only integrity check |
 
-Builders:
+Registration steps (under the run write lock):
 
-1. validate the run exists and status allows creation
-2. validate source artifact IDs on the same run
-3. optionally verify source artifact integrity
-4. construct the typed snapshot
+1. re-read the latest manifest
+2. re-check writable status
+3. validate source artifact IDs on the same run
+4. optionally verify source artifact integrity
 5. serialize deterministically under `snapshots/`
 6. calculate checksum and size
 7. append `ResearchSnapshotReference` to the manifest
@@ -374,15 +391,134 @@ SHA-256 and size comparison. It does not mutate the manifest.
 
 Do not apply the artifact domain-field blacklist blindly to snapshot content.
 
+## Phase 4.3.1 — Registry concurrency and publish recovery
+
+### Run-level write lock
+
+Manifest-mutating operations serialize per run via POSIX `fcntl.flock` on:
+
+```text
+runs/<run_id>/.write.lock
+```
+
+Lock scope:
+
+- per `run_id` (different runs do not share one global lock)
+- held only around read-modify-write of the run (re-read manifest inside the lock)
+- never registered as an artifact or snapshot
+
+Operations that acquire the lock:
+
+- `ResearchArtifactRegistry._register_bytes`
+- `ResearchSnapshotRegistry` registration / convenience builders
+- `ResearchRunRegistry.update_status` / `publish_run` / `archive_run` (via update)
+- `ResearchRunRegistry.create_run` (after directory creation)
+
+**Limitations:** POSIX/advisory flock on the local host filesystem. Not a
+distributed lock. Network filesystems that ignore flock are unsupported.
+
+### Idempotent publish recovery
+
+`publish_run(run_id)`:
+
+| Current status | Behaviour |
+| --- | --- |
+| `VALIDATED` | Write `PUBLISHED` manifest, then write/replace `latest.json` |
+| `PUBLISHED` | Do not mutate the published manifest; rewrite `latest.json` from it; return existing manifest |
+| Other | Reject with `InvalidRunTransitionError` |
+
+If the published manifest write succeeds but `latest.json` fails, the run stays
+`PUBLISHED`. Calling `publish_run` again repairs the pointer. `published_at`
+remains stable; artifacts and snapshots are not rewritten.
+
+### Failed create-run cleanup
+
+If initial manifest writing fails after the run directory was created by that
+call, the incomplete directory is removed when it has no committed
+`manifest.json`. Pre-existing committed runs are never deleted. The original
+exception is preserved when cleanup succeeds.
+
+## Phase 4.4 — Deterministic Artifact-to-Snapshot Builders
+
+### Artifact payload read API
+
+`ResearchArtifactRegistry` adds:
+
+| Method | Behaviour |
+| --- | --- |
+| `read_artifact_bytes` | Resolve registered reference → bytes (optional verify) |
+| `read_json_artifact` | Same + UTF-8 JSON parse; rejects non-JSON media when required |
+
+Builders must not call `Path.read_text()` on free paths.
+
+### Snapshot registration API
+
+`ResearchSnapshotRegistry.register_snapshot(...)` accepts an already constructed
+`ResearchSummarySnapshot` or `SignalSnapshot`, validates type/provenance, and
+persists under the run lock.
+
+Phase 4.3 convenience methods remain and construct content then persist through
+the same locked registration path.
+
+### Builder vs registry responsibilities
+
+| Component | Owns |
+| --- | --- |
+| `ResearchSummarySnapshotBuilder` / `SignalSnapshotBuilder` | Read artifacts, validate supported contracts, map to typed in-memory snapshots |
+| `ResearchSnapshotRegistry` | Locking, status gates, file write, checksum, manifest append, rollback |
+| Builders | Do **not** write files, update manifests, change status, or publish |
+
+Public APIs: `build(...)` (side-effect free) and `build_and_register(...)`.
+
+### Supported artifact-to-snapshot mappings
+
+Domain factor/model/prediction JSON does **not** carry `SignalDirection` or typed
+`SnapshotFinding` records. Auto-deriving directions from scores or RankIC would
+invent investment logic and is rejected.
+
+Support is determined **only** by the artifact payload top-level
+`schema_version` (fail-closed; no field guessing):
+
+| Evidence contract | Builder | Maps to |
+| --- | --- | --- |
+| `research-summary-evidence/v1` | `ResearchSummarySnapshotBuilder` (`research-summary-builder/v1`) | `ResearchSummarySnapshot` |
+| `signal-evidence/v1` | `SignalSnapshotBuilder` (`signal-builder/v1`) | `SignalSnapshot` |
+
+Upstream producers (or adapters outside this phase) must register JSON artifacts
+whose payloads already contain these evidence contracts. Prediction tables and
+factor metric blobs without these versions are rejected as unsupported.
+
+### Determinism
+
+For identical source payloads, source IDs, builder version/config, and relevant
+run metadata, business content is identical. Allowed to differ: `snapshot_id`,
+`generated_at`. Tests compare content excluding identity/time fields.
+
+Duplicate source IDs are normalized (first-seen read order; sorted provenance IDs
+in content and reference).
+
+### Evidence transformation boundary
+
+Builders transform **already normalized evidence** into consumer contracts.
+They do not validate whether an investment conclusion is correct, recalculate
+metrics, invent findings, or convert scores into directions.
+
+### Strict vs permissive verification
+
+- `require_artifact_verification=True` — source checksum/size must verify before read
+- default / permissive — registered IDs must exist; tampered bytes are not blocked unless verification is requested
+
 ## Deliberate limitations (still deferred)
 
 - Additional snapshot contracts beyond Research Summary + Signal
-- HTTP API routes / serving layer
-- Frontend integration / consumption
-- Database persistence
-- Schedulers / background jobs
+- Automatic mapping from raw domain modeling/factor JSON without evidence contracts
+- HTTP API routes / serving layer (Phase 4.5+)
+- Frontend integration / consumption (Phase 4.6+)
+- Database / Supabase / distributed locks
+- Schedulers / background jobs / queues
 - Portfolio / risk / market snapshot types
 - Portfolio construction publishing
+- Content fingerprints / snapshot deduplication
 - Automatic CSV/Parquet row counting
 - Retraining or changes to factor/model calculations
 - Generic multi-contract snapshot framework

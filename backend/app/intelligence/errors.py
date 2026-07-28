@@ -57,3 +57,19 @@ class InvalidSnapshotError(ValueError):
 
 class SnapshotSourceError(InvalidSnapshotError):
     """Source artifact references are missing, cross-run, or failed verification."""
+
+
+class SnapshotBuildError(InvalidSnapshotError):
+    """Deterministic snapshot builder failed to map registered evidence."""
+
+
+class UnsupportedArtifactContractError(SnapshotBuildError):
+    """Registered artifact payload is not a supported builder contract."""
+
+
+class SnapshotArtifactPayloadError(SnapshotBuildError):
+    """Registered artifact payload is malformed for the supported contract."""
+
+
+class SnapshotEvidenceError(SnapshotBuildError):
+    """Builder evidence/provenance rules were violated."""

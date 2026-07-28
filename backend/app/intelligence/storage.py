@@ -14,6 +14,7 @@ from app.intelligence.errors import (
     RunAlreadyExistsError,
     RunNotFoundError,
 )
+from app.intelligence.run_lock import LOCK_FILENAME, RunWriteLock
 from app.intelligence.schemas import is_valid_run_id
 
 # backend/app/intelligence/storage.py → parents[2] == backend/
@@ -154,6 +155,36 @@ class IntelligenceStorage:
         """Return ``runs/<run_id>/manifest.json`` relative to the output root."""
         self.validate_run_id(run_id)
         return f"{RUNS_DIRNAME}/{run_id}/{MANIFEST_FILENAME}"
+
+    def run_lock_path(self, run_id: str) -> Path:
+        return self.run_dir(run_id) / LOCK_FILENAME
+
+    def acquire_run_write_lock(self, run_id: str) -> RunWriteLock:
+        """Return a context-manager lock scoped to one run (POSIX flock)."""
+        return RunWriteLock(self.run_lock_path(run_id))
+
+    def remove_run_directory_if_incomplete(self, run_id: str) -> None:
+        """Remove a newly created run dir that has no committed manifest.
+
+        Safe only when ``manifest.json`` is absent. Does not delete
+        pre-existing committed runs.
+        """
+        directory = self.run_dir(run_id)
+        if not directory.is_dir():
+            return
+        if self.manifest_path(run_id).is_file():
+            return
+        try:
+            for child in sorted(directory.rglob("*"), reverse=True):
+                if child.is_file() or child.is_symlink():
+                    child.unlink(missing_ok=True)
+                elif child.is_dir():
+                    child.rmdir()
+            directory.rmdir()
+        except OSError as exc:
+            raise IntelligenceStorageError(
+                f"failed to clean up incomplete run directory: {run_id}"
+            ) from exc
 
     def resolve_run_relative_path(self, run_id: str, relative_path: str) -> Path:
         """Resolve a path relative to the run directory with traversal checks."""

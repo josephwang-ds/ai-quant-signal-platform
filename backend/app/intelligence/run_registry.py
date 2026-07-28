@@ -1,4 +1,4 @@
-"""Filesystem-backed research run registry (Phase 4.1)."""
+"""Filesystem-backed research run registry (Phase 4.1 / 4.3.1)."""
 
 from __future__ import annotations
 
@@ -76,8 +76,24 @@ class ResearchRunRegistry:
         run_id = manifest.run.run_id
         if self._storage.run_exists(run_id):
             raise RunAlreadyExistsError(f"run already exists: {run_id}")
-        self._storage.create_run_directory(run_id)
-        self._write_manifest(manifest)
+
+        created_directory = False
+        try:
+            self._storage.create_run_directory(run_id)
+            created_directory = True
+            with self._storage.acquire_run_write_lock(run_id):
+                if self._storage.manifest_path(run_id).is_file():
+                    raise RunAlreadyExistsError(f"run already exists: {run_id}")
+                self._write_manifest(manifest)
+        except Exception:
+            if created_directory:
+                try:
+                    self._storage.remove_run_directory_if_incomplete(run_id)
+                except Exception as cleanup_exc:
+                    raise IntelligenceStorageError(
+                        f"initial manifest write failed for {run_id} and cleanup failed"
+                    ) from cleanup_exc
+            raise
         return manifest
 
     def get_run(self, run_id: str) -> ResearchRunManifest:
@@ -120,6 +136,17 @@ class ResearchRunRegistry:
         error: str | None = None,
         now: datetime | None = None,
     ) -> ResearchRunManifest:
+        with self._storage.acquire_run_write_lock(run_id):
+            return self._update_status_locked(run_id, status, error=error, now=now)
+
+    def _update_status_locked(
+        self,
+        run_id: str,
+        status: ResearchRunStatus,
+        *,
+        error: str | None = None,
+        now: datetime | None = None,
+    ) -> ResearchRunManifest:
         current = self.get_run(run_id)
         if current.run.status == ResearchRunStatus.PUBLISHED and status != ResearchRunStatus.ARCHIVED:
             raise InvalidRunTransitionError(
@@ -141,27 +168,52 @@ class ResearchRunRegistry:
         )
 
     def publish_run(self, run_id: str, *, now: datetime | None = None) -> ResearchRunManifest:
-        current = self.get_run(run_id)
-        if current.run.status != ResearchRunStatus.VALIDATED:
-            raise InvalidRunTransitionError(
-                f"publish requires VALIDATED status; found {current.run.status.value}"
+        """Publish a VALIDATED run, or repair ``latest.json`` for an already PUBLISHED run.
+
+        Failure semantics: if the PUBLISHED manifest write succeeds but the
+        ``latest.json`` pointer write fails, the run remains PUBLISHED and a
+        subsequent ``publish_run`` call repairs the pointer without mutating
+        ``published_at`` or artifact/snapshot references.
+        """
+        with self._storage.acquire_run_write_lock(run_id):
+            current = self.get_run(run_id)
+
+            if current.run.status == ResearchRunStatus.PUBLISHED:
+                self._write_latest_pointer(current)
+                return current
+
+            if current.run.status != ResearchRunStatus.VALIDATED:
+                raise InvalidRunTransitionError(
+                    f"publish requires VALIDATED status; found {current.run.status.value}"
+                )
+            assert_transition_allowed(current.run.status, ResearchRunStatus.PUBLISHED)
+            stamp = now or utc_now()
+            published = apply_status(current, ResearchRunStatus.PUBLISHED, now=stamp)
+            # Persist the immutable published manifest first; only then update the pointer.
+            self._write_manifest(published)
+            try:
+                self._write_latest_pointer(published)
+            except Exception:
+                # Manifest is already PUBLISHED; caller may retry publish_run to repair pointer.
+                raise
+            return published
+
+    def _write_latest_pointer(self, manifest: ResearchRunManifest) -> None:
+        run_id = manifest.run.run_id
+        if manifest.run.published_at is None:
+            raise IntelligenceStorageError(
+                f"cannot write latest pointer without published_at for {run_id}"
             )
-        assert_transition_allowed(current.run.status, ResearchRunStatus.PUBLISHED)
-        stamp = now or utc_now()
-        published = apply_status(current, ResearchRunStatus.PUBLISHED, now=stamp)
-        # Persist the immutable published manifest first; only then update the pointer.
-        self._write_manifest(published)
         pointer = LatestRunPointer(
             schema_version=LATEST_POINTER_SCHEMA_VERSION,
             run_id=run_id,
             manifest_path=self._storage.relative_manifest_path(run_id),
-            published_at=published.run.published_at or stamp,
+            published_at=manifest.run.published_at,
         )
         self._storage.write_json_atomic(
             self._storage.latest_path,
             pointer.model_dump(mode="json"),
         )
-        return published
 
     def get_latest_published_run(self) -> ResearchRunManifest | None:
         latest_path = self._storage.latest_path
@@ -202,6 +254,7 @@ class ResearchRunRegistry:
         return self.update_status(run_id, ResearchRunStatus.ARCHIVED, now=now)
 
     def _write_manifest(self, manifest: ResearchRunManifest) -> None:
+        """Write a validated manifest. Caller must hold the run write lock when mutating."""
         validate_manifest(manifest, expected_run_id=manifest.run.run_id)
         path = self._storage.manifest_path(manifest.run.run_id)
         self._storage.write_json_atomic(path, manifest_to_dict(manifest))

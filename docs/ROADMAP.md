@@ -37,7 +37,11 @@ State clearly as **Not implemented** unless a later PR lands:
 | Phase 4.1 — Research Run Registry Foundation | ✅ Done (filesystem registry + immutable manifests; no API) |
 | Phase 4.2 — Research Artifact Registry | ✅ Done (checksummed append-only artifacts; no API) |
 | Phase 4.3 — Intelligence Snapshot Contracts | ✅ Done (ResearchSummary + Signal snapshots; no API/frontend) |
-| Phase 4.4+ — Serving APIs, portfolio publishing | Not implemented |
+| Phase 4.3.1 — Registry concurrency / publish recovery | ✅ Done (run locks, idempotent publish, create-run cleanup) |
+| Phase 4.4 — Deterministic Artifact-to-Snapshot Builders | ✅ Done (evidence contracts → typed snapshots; no API/frontend) |
+| Phase 4.5 — Read-only Intelligence API | Not implemented |
+| Phase 4.6 — Frontend Consumption | Not implemented |
+| Phase 5 — Portfolio Intelligence | Not implemented |
 | Full stress / regime / Monte Carlo robustness engines | Not implemented (canonical trend fixed-parameter walk-forward is implemented) |
 | Broker connectivity / live order routing | Not implemented |
 | Autonomous trading agent | Not implemented |

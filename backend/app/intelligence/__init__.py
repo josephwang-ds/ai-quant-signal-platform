@@ -3,6 +3,8 @@
 Phase 4.1 — typed run metadata, filesystem persistence, immutable manifests.
 Phase 4.2 — append-only checksummed research artifacts under each run.
 Phase 4.3 — consumer snapshot contracts + append-only snapshot registration.
+Phase 4.3.1 — run-level locking, publish recovery, create-run cleanup.
+Phase 4.4 — deterministic artifact-to-snapshot builders.
 """
 
 from app.intelligence.artifact_registry import ResearchArtifactRegistry, serialize_artifact_json
@@ -18,9 +20,13 @@ from app.intelligence.errors import (
     RunAlreadyExistsError,
     RunNotFoundError,
     SnapshotAlreadyExistsError,
+    SnapshotArtifactPayloadError,
+    SnapshotBuildError,
+    SnapshotEvidenceError,
     SnapshotIntegrityError,
     SnapshotNotFoundError,
     SnapshotSourceError,
+    UnsupportedArtifactContractError,
 )
 from app.intelligence.run_registry import ResearchRunRegistry
 from app.intelligence.schemas import (
@@ -39,6 +45,12 @@ from app.intelligence.schemas import (
     generate_artifact_id,
     generate_run_id,
     generate_snapshot_id,
+)
+from app.intelligence.snapshot_builders import (
+    RESEARCH_SUMMARY_EVIDENCE_VERSION,
+    SIGNAL_EVIDENCE_VERSION,
+    ResearchSummarySnapshotBuilder,
+    SignalSnapshotBuilder,
 )
 from app.intelligence.snapshot_contracts import (
     ArtifactSummaryItem,
@@ -71,6 +83,7 @@ __all__ = [
     "InvalidSnapshotError",
     "LatestRunPointer",
     "ManifestValidationError",
+    "RESEARCH_SUMMARY_EVIDENCE_VERSION",
     "ResearchArtifactReference",
     "ResearchArtifactRegistry",
     "ResearchArtifactType",
@@ -83,18 +96,25 @@ __all__ = [
     "ResearchSnapshotRegistry",
     "ResearchSnapshotType",
     "ResearchSummarySnapshot",
+    "ResearchSummarySnapshotBuilder",
     "RunAlreadyExistsError",
     "RunNotFoundError",
+    "SIGNAL_EVIDENCE_VERSION",
     "SignalDirection",
     "SignalRecord",
     "SignalSnapshot",
+    "SignalSnapshotBuilder",
     "SnapshotAlreadyExistsError",
+    "SnapshotArtifactPayloadError",
+    "SnapshotBuildError",
+    "SnapshotEvidenceError",
     "SnapshotFinding",
     "SnapshotIntegrityError",
     "SnapshotLimitation",
     "SnapshotNotFoundError",
     "SnapshotSourceError",
     "SnapshotVerificationResult",
+    "UnsupportedArtifactContractError",
     "ValidationStatus",
     "build_research_summary_snapshot",
     "build_signal_snapshot",

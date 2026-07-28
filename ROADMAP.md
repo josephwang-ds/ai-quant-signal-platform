@@ -174,10 +174,10 @@ Prioritize evidence capture, experiment reproducibility, evaluation, and review 
 ### Phase 4 — Research Artifact & Intelligence Serving Layer
 
 Register completed research runs, store immutable manifests, register checksummed
-artifacts, and build consumer snapshot contracts. **Phase 4.1–4.3** are done
-(filesystem run/artifact/snapshot registries). Serving APIs, frontend
-consumption, and portfolio publishing remain deferred. Details:
-[`docs/INTELLIGENCE_PUBLISHING.md`](docs/INTELLIGENCE_PUBLISHING.md).
+artifacts, harden concurrent registry writes, and build consumer snapshots from
+supported evidence contracts. **Phase 4.1–4.4** (including 4.3.1) are done.
+Read-only serving APIs, frontend consumption, and portfolio publishing remain
+deferred. Details: [`docs/INTELLIGENCE_PUBLISHING.md`](docs/INTELLIGENCE_PUBLISHING.md).
 
 ### Phase 4 (legacy note) — Add governance and portfolio views
 

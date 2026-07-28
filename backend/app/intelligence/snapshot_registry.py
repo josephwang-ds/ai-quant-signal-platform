@@ -1,13 +1,12 @@
-"""Build and register consumer intelligence snapshots (Phase 4.3).
+"""Build and register consumer intelligence snapshots (Phase 4.3 / 4.4).
 
 Registered Research Artifacts
-  → Snapshot Builder
+  → Snapshot Builder (Phase 4.4) or explicit convenience builders (Phase 4.3)
+  → typed in-memory snapshot
+  → register_snapshot
   → serialized snapshot file
   → ResearchSnapshotReference
   → ResearchRunManifest.snapshots
-
-Builders consume explicit normalized inputs (or registry metadata only).
-They do not invent findings, LLM prose, or new investment logic.
 """
 
 from __future__ import annotations
@@ -16,7 +15,7 @@ import hashlib
 import hmac
 import re
 from datetime import datetime
-from typing import Any, Mapping, Optional, Sequence
+from typing import Any, Mapping, Optional, Sequence, Union
 
 from app.intelligence.artifact_registry import (
     ResearchArtifactRegistry,
@@ -66,6 +65,8 @@ SNAPSHOT_WRITABLE_STATUSES = frozenset(
 BUILDER_ID = "intelligence-snapshot-registry/phase-4.3"
 _SAFE_NAME_RE = re.compile(r"[^a-z0-9_-]+")
 
+SupportedSnapshotContent = Union[ResearchSummarySnapshot, SignalSnapshot]
+
 
 def _assert_writable(status: ResearchRunStatus) -> None:
     if status not in SNAPSHOT_WRITABLE_STATUSES:
@@ -84,6 +85,16 @@ def _snapshot_filename(name: str, snapshot_id: str) -> str:
     return f"{_safe_stem(name)}__{short}.json"
 
 
+def _expected_type_for_content(content: SupportedSnapshotContent) -> ResearchSnapshotType:
+    if isinstance(content, ResearchSummarySnapshot):
+        return ResearchSnapshotType.RESEARCH_SUMMARY
+    if isinstance(content, SignalSnapshot):
+        return ResearchSnapshotType.SIGNAL
+    raise InvalidSnapshotError(
+        f"unsupported snapshot content type: {type(content).__name__}"
+    )
+
+
 class ResearchSnapshotRegistry:
     """Append-only consumer snapshot registration under a research run."""
 
@@ -96,6 +107,55 @@ class ResearchSnapshotRegistry:
         self._runs = run_registry
         self._storage = run_registry.storage
         self._artifacts = artifact_registry or ResearchArtifactRegistry(run_registry)
+
+    def register_snapshot(
+        self,
+        run_id: str,
+        *,
+        name: str,
+        snapshot_type: ResearchSnapshotType,
+        content: SupportedSnapshotContent,
+        source_artifact_ids: Sequence[str],
+        as_of: Optional[datetime] = None,
+        metadata: Optional[Mapping[str, Any]] = None,
+        require_artifact_verification: bool = False,
+        now: Optional[datetime] = None,
+    ) -> ResearchSnapshotReference:
+        """Persist an already-constructed typed snapshot under the run."""
+        expected = _expected_type_for_content(content)
+        if snapshot_type != expected:
+            raise InvalidSnapshotError(
+                f"snapshot_type {snapshot_type.value!r} does not match content "
+                f"contract for {type(content).__name__}"
+            )
+        stamp = now or utc_now()
+        with self._storage.acquire_run_write_lock(run_id):
+            manifest = self._runs.get_run(run_id)
+            _assert_writable(manifest.run.status)
+            sources = self._resolve_sources(
+                run_id,
+                manifest,
+                source_artifact_ids,
+                require_artifact_verification=require_artifact_verification,
+            )
+            ordered_source_ids = sorted({item.artifact_id for item in sources})
+            content_ids = list(getattr(content.provenance, "source_artifact_ids", []) or [])
+            if sorted(set(content_ids)) != ordered_source_ids:
+                raise InvalidSnapshotError(
+                    "snapshot content provenance.source_artifact_ids must match "
+                    "register_snapshot source_artifact_ids"
+                )
+            return self._persist_snapshot_locked(
+                run_id,
+                manifest=manifest,
+                name=name,
+                snapshot_type=snapshot_type,
+                content=content,
+                source_artifact_ids=ordered_source_ids,
+                as_of=as_of,
+                metadata=dict(metadata or {}),
+                now=stamp,
+            )
 
     def build_research_summary_snapshot(
         self,
@@ -116,54 +176,57 @@ class ResearchSnapshotRegistry:
         now: Optional[datetime] = None,
     ) -> ResearchSnapshotReference:
         """Build and register a ResearchSummarySnapshot from explicit inputs."""
-        manifest = self._runs.get_run(run_id)
-        _assert_writable(manifest.run.status)
-        sources = self._resolve_sources(
-            run_id,
-            manifest,
-            source_artifact_ids,
-            require_artifact_verification=require_artifact_verification,
-        )
         stamp = now or utc_now()
-        artifact_summary = [
-            ArtifactSummaryItem(
-                artifact_id=item.artifact_id,
-                name=item.name,
-                artifact_type=item.artifact_type.value,
+        with self._storage.acquire_run_write_lock(run_id):
+            manifest = self._runs.get_run(run_id)
+            _assert_writable(manifest.run.status)
+            sources = self._resolve_sources(
+                run_id,
+                manifest,
+                source_artifact_ids,
+                require_artifact_verification=require_artifact_verification,
             )
-            for item in sources
-        ]
-        # Stable order by artifact_id for deterministic content (excluding identity time).
-        artifact_summary = sorted(artifact_summary, key=lambda row: row.artifact_id)
+            artifact_summary = [
+                ArtifactSummaryItem(
+                    artifact_id=item.artifact_id,
+                    name=item.name,
+                    artifact_type=item.artifact_type.value,
+                )
+                for item in sources
+            ]
+            # Stable order by artifact_id for deterministic content (excluding identity time).
+            artifact_summary = sorted(artifact_summary, key=lambda row: row.artifact_id)
+            ordered_source_ids = [item.artifact_id for item in artifact_summary]
 
-        content = ResearchSummarySnapshot(
-            generated_at=stamp,
-            as_of=as_of,
-            research_title=research_title,
-            research_objective=research_objective,
-            run_type=manifest.run.run_type,
-            universe=manifest.run.universe,
-            analysis_window=analysis_window,
-            validation_status=validation_status,
-            key_findings=list(key_findings or []),
-            limitations=list(limitations or []),
-            artifact_summary=artifact_summary,
-            provenance=SnapshotContentProvenance(
-                source_artifact_ids=[item.artifact_id for item in artifact_summary],
-                builder=BUILDER_ID,
-                notes=provenance_notes,
-            ),
-        )
-        return self._persist_snapshot(
-            run_id,
-            name=name,
-            snapshot_type=ResearchSnapshotType.RESEARCH_SUMMARY,
-            content=content,
-            source_artifact_ids=[item.artifact_id for item in artifact_summary],
-            as_of=as_of,
-            metadata=dict(metadata or {}),
-            now=stamp,
-        )
+            content = ResearchSummarySnapshot(
+                generated_at=stamp,
+                as_of=as_of,
+                research_title=research_title,
+                research_objective=research_objective,
+                run_type=manifest.run.run_type,
+                universe=manifest.run.universe,
+                analysis_window=analysis_window,
+                validation_status=validation_status,
+                key_findings=list(key_findings or []),
+                limitations=list(limitations or []),
+                artifact_summary=artifact_summary,
+                provenance=SnapshotContentProvenance(
+                    source_artifact_ids=ordered_source_ids,
+                    builder=BUILDER_ID,
+                    notes=provenance_notes,
+                ),
+            )
+            return self._persist_snapshot_locked(
+                run_id,
+                manifest=manifest,
+                name=name,
+                snapshot_type=ResearchSnapshotType.RESEARCH_SUMMARY,
+                content=content,
+                source_artifact_ids=ordered_source_ids,
+                as_of=as_of,
+                metadata=dict(metadata or {}),
+                now=stamp,
+            )
 
     def build_signal_snapshot(
         self,
@@ -180,42 +243,44 @@ class ResearchSnapshotRegistry:
         now: Optional[datetime] = None,
     ) -> ResearchSnapshotReference:
         """Build and register a SignalSnapshot from explicit normalized signals."""
-        manifest = self._runs.get_run(run_id)
-        _assert_writable(manifest.run.status)
-        sources = self._resolve_sources(
-            run_id,
-            manifest,
-            source_artifact_ids,
-            require_artifact_verification=require_artifact_verification,
-        )
         stamp = now or utc_now()
-        ordered_source_ids = sorted({item.artifact_id for item in sources})
-        # Stable signal ordering by symbol then signal_name (no semantic ranking).
-        ordered_signals = sorted(
-            list(signals),
-            key=lambda row: (row.symbol, row.signal_name),
-        )
-        content = SignalSnapshot(
-            generated_at=stamp,
-            as_of=as_of,
-            universe=universe if universe is not None else manifest.run.universe,
-            signals=ordered_signals,
-            provenance=SnapshotContentProvenance(
+        with self._storage.acquire_run_write_lock(run_id):
+            manifest = self._runs.get_run(run_id)
+            _assert_writable(manifest.run.status)
+            sources = self._resolve_sources(
+                run_id,
+                manifest,
+                source_artifact_ids,
+                require_artifact_verification=require_artifact_verification,
+            )
+            ordered_source_ids = sorted({item.artifact_id for item in sources})
+            # Stable signal ordering by symbol then signal_name (no semantic ranking).
+            ordered_signals = sorted(
+                list(signals),
+                key=lambda row: (row.symbol, row.signal_name),
+            )
+            content = SignalSnapshot(
+                generated_at=stamp,
+                as_of=as_of,
+                universe=universe if universe is not None else manifest.run.universe,
+                signals=ordered_signals,
+                provenance=SnapshotContentProvenance(
+                    source_artifact_ids=ordered_source_ids,
+                    builder=BUILDER_ID,
+                    notes=provenance_notes,
+                ),
+            )
+            return self._persist_snapshot_locked(
+                run_id,
+                manifest=manifest,
+                name=name,
+                snapshot_type=ResearchSnapshotType.SIGNAL,
+                content=content,
                 source_artifact_ids=ordered_source_ids,
-                builder=BUILDER_ID,
-                notes=provenance_notes,
-            ),
-        )
-        return self._persist_snapshot(
-            run_id,
-            name=name,
-            snapshot_type=ResearchSnapshotType.SIGNAL,
-            content=content,
-            source_artifact_ids=ordered_source_ids,
-            as_of=as_of,
-            metadata=dict(metadata or {}),
-            now=stamp,
-        )
+                as_of=as_of,
+                metadata=dict(metadata or {}),
+                now=stamp,
+            )
 
     def get_snapshot(self, run_id: str, snapshot_name_or_id: str) -> ResearchSnapshotReference:
         for item in self._runs.get_run(run_id).snapshots:
@@ -281,7 +346,11 @@ class ResearchSnapshotRegistry:
             raise SnapshotSourceError("at least one source_artifact_id is required")
         by_id = {item.artifact_id: item for item in manifest.artifacts}
         resolved = []
+        seen: set[str] = set()
         for artifact_id in source_artifact_ids:
+            if artifact_id in seen:
+                continue
+            seen.add(artifact_id)
             artifact = by_id.get(artifact_id)
             if artifact is None:
                 raise SnapshotSourceError(
@@ -297,19 +366,20 @@ class ResearchSnapshotRegistry:
             resolved.append(artifact)
         return resolved
 
-    def _persist_snapshot(
+    def _persist_snapshot_locked(
         self,
         run_id: str,
         *,
+        manifest: Any,
         name: str,
         snapshot_type: ResearchSnapshotType,
-        content: Any,
+        content: SupportedSnapshotContent,
         source_artifact_ids: Sequence[str],
         as_of: Optional[datetime],
         metadata: dict[str, Any],
         now: datetime,
     ) -> ResearchSnapshotReference:
-        manifest = self._runs.get_run(run_id)
+        """Persist snapshot file + manifest. Caller must hold the run write lock."""
         cleaned_name = name.strip()
         if not cleaned_name:
             raise InvalidSnapshotError("snapshot name is required")
