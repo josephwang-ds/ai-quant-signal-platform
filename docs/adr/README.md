@@ -14,6 +14,9 @@ Authoritative numbering is sequential under the `ADR-NNNN` prefix.
 | [ADR-0008](ADR-0008-factor-validation-engine.md) | Factor Validation engine and Cross-Sectional Factor Study | Accepted |
 | [ADR-0009](ADR-0009-deepseek-research-reviewer.md) | DeepSeek as a governed research reviewer | Accepted |
 | [ADR-0010](ADR-0010-quant-research-governance-agent.md) | Controlled Quant Research Governance Agent | Accepted |
+| [ADR-0011](ADR-0011-cross-sectional-factor-dataset.md) | Cross-Sectional Factor Dataset (Phase 1) | Accepted |
+| [ADR-0012](ADR-0012-cross-sectional-factor-research.md) | Cross-Sectional Factor Research (Phase 2) | Accepted |
+| [ADR-0013](ADR-0013-cross-sectional-modeling-and-stock-scores.md) | Cross-Sectional Modeling and Stock Scores (Phase 3) | Accepted |
 
 ## Numbering rules
 
