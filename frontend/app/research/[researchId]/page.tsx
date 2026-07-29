@@ -1,37 +1,36 @@
 import { Suspense } from "react";
-import ResearchWorkspacePage from "@/components/features/research/ResearchWorkspacePage";
-import ResearchWorkspaceSkeleton from "@/components/features/research/ResearchWorkspaceSkeleton";
-import SectionCard from "@/components/ui/SectionCard";
+import PublishedResearchWorkspace from "@/components/features/intelligence-workspace/PublishedResearchWorkspace";
+import PublishedWorkspaceSkeleton from "@/components/features/intelligence-workspace/PublishedWorkspaceSkeleton";
+import { redirect } from "next/navigation";
 
 type ResearchDetailRouteProps = {
   params: Promise<{ researchId: string }>;
 };
 
 /**
- * Suspense fallback for useSearchParams() in the client workspace.
- *
- * Must remain free of Client Component event-handler props. A previous
- * Server Component fallback passed a no-op language callback into the
- * shared shell and crashed production with digest 440809330
- * ("Event handlers cannot be passed to Client Component props").
+ * Temporary migration dispatcher:
+ * - `run_*` → published intelligence workspace (Phase 4.6C1).
+ * - legacy catalog ids → `/engine/research/[researchId]`.
  */
-function DetailFallback() {
-  return (
-    <SectionCard>
-      <ResearchWorkspaceSkeleton />
-    </SectionCard>
-  );
-}
-
-/** /research/[researchId] — Research Workspace Detail（PR-003 / PR-017）. */
 export default async function ResearchDetailRoute({
   params,
 }: ResearchDetailRouteProps) {
   const { researchId } = await params;
 
+  if (!researchId.startsWith("run_")) {
+    redirect(`/engine/research/${encodeURIComponent(researchId)}`);
+  }
+
   return (
-    <Suspense fallback={<DetailFallback />}>
-      <ResearchWorkspacePage researchId={researchId} />
+    <Suspense
+      fallback={
+        <PublishedWorkspaceSkeleton
+          testId="published-workspace-route-fallback"
+          statusLabel="Loading published research workspace…"
+        />
+      }
+    >
+      <PublishedResearchWorkspace runId={researchId} />
     </Suspense>
   );
 }

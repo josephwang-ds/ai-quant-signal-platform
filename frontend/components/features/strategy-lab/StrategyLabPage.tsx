@@ -245,7 +245,7 @@ export default function StrategyLabPage() {
           backtestResult.reproducibility_manifest ?? null,
       });
 
-      router.push(`/experiments?saved=${encodeURIComponent(response.id)}`);
+      router.push(`/engine/backtest&saved=${encodeURIComponent(response.id)}`);
     } catch (error) {
       setSaveError(getApiDisplayMessage(error, tr("saveBacktestFailed")));
     } finally {
@@ -488,7 +488,7 @@ export default function StrategyLabPage() {
                 {tr("strategyLabArchiveRetry")}
               </Button>
             ) : null}
-            <Link href="/experiments" className="btn btn--ghost">
+            <Link href="/engine/backtest" className="btn btn--ghost">
               {tr("openExperiments")}
             </Link>
           </div>

@@ -1,8 +1,10 @@
-# AI Quant Research Workspace
+# AI Investment Intelligence Platform
 
-**An evidence-governed research operating system for turning quantitative hypotheses into reproducible experiments, robustness review, and human-owned decisions.**
+**Built on an Evidence-driven Quant Research Engine.**
 
-[Live demo](https://signals.josephjwang.com) · [Product story](docs/PROJECT_STORY.md) · [Architecture](docs/ARCHITECTURE.md) · [Governance Agent](docs/AGENT_GOVERNANCE.md) · [Three-minute demo](docs/DEMO_SCRIPT.md)
+Every AI insight is backed by structured research evidence. Explainable. Traceable. Reviewable.
+
+[Live demo](https://signals.josephjwang.com) · [Product](docs/PRODUCT.md) · [Architecture](docs/ARCHITECTURE.md) · [ADR-0014 IA](docs/adr/ADR-0014-ai-investment-intelligence-ia.md) · [Three-minute demo](docs/DEMO_SCRIPT.md)
 
 [![CI](https://github.com/josephwang-ds/ai-quant-signal-platform/actions/workflows/ci.yml/badge.svg)](https://github.com/josephwang-ds/ai-quant-signal-platform/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-111111.svg)](LICENSE)
@@ -10,13 +12,23 @@
 [![FastAPI](https://img.shields.io/badge/FastAPI-Research_API-009688?logo=fastapi&logoColor=white)](backend/app/main.py)
 [![LangGraph](https://img.shields.io/badge/Agent-LangGraph-3578e5)](backend/app/research_agent)
 
-![AI Quant Research Workspace — Research Home](docs/assets/readme/research-workspace-hero.jpg)
+> **Research remains the source of truth. AI explains, summarizes, and helps review — it does not replace research.**
 
-> **Research First · Evidence Before Interpretation · Human Final**
-
-This is not a signal dashboard and it does not place trades. It is a portfolio-grade demonstration of how research questions, deterministic calculations, AI-assisted review, approval gates, and final decisions can coexist without confusing their authority.
+This is not a signal dashboard and it does not place trades. It is a portfolio-grade demonstration of an **AI Investment Intelligence** layer over a governed **Quant Research Engine**: research questions, deterministic calculations, AI-assisted review, approval gates, and final decisions coexist without confusing their authority.
 
 Research and portfolio demonstration only. Not investment advice. No broker integration. No live execution.
+
+## Phase status
+
+```text
+Phase 1 ✅ Data Foundation
+Phase 2 ✅ Factor Research
+Phase 3 ✅ Modeling
+Phase 4 ✅ Intelligence Publishing Layer
+Phase 4 RC ✅ Complete
+```
+
+Phase 5 has not started. Release record: [docs/releases/PHASE_4_RC.md](docs/releases/PHASE_4_RC.md).
 
 ## Why this project is different
 
@@ -44,7 +56,7 @@ The main initiative was not “add an agent.” It was to define a credible rese
 
 ## Review it in three minutes
 
-Open the [live demo](https://signals.josephjwang.com), select **Trend Following Study**, and follow one question through four proof points:
+Open the [live demo](https://signals.josephjwang.com), choose one of the two implemented cases, and follow one question through four proof points:
 
 1. **Question** — inspect the hypothesis, frozen protocol, benchmark, and success criteria.
 2. **Evidence** — run the historical experiment and review deterministic validation.
@@ -52,6 +64,11 @@ Open the [live demo](https://signals.josephjwang.com), select **Trend Following 
 4. **Decision** — ask the Governance Agent to review the available evidence (expand Execution trace if needed), then record the human outcome and rationale.
 
 The shortest interview route is documented in [docs/DEMO_SCRIPT.md](docs/DEMO_SCRIPT.md). If the Render backend is waking up, the UI queues the request and resumes automatically; the [frontend-safe walkthrough](docs/DEMO_MODE.md) remains available without invented results.
+
+The root route `/` is the **Research Library** (published intelligence runs). `/platform`
+is Platform Overview. Published Workspace lives at `/research/run_*`; Active Workspace
+at `/engine/research/*`. This is not a project catalog, activity feed, or unfinished
+roadmap presented as capability.
 
 ## Product workflow
 
@@ -164,12 +181,12 @@ Implementation: [`backend/app/research_agent/`](backend/app/research_agent) · A
 
 | Surface | What is real today |
 | --- | --- |
-| Research Home | focused entry point for canonical Trend and Factor studies, guided review, and lifecycle orientation |
+| Research Cases | two runnable Trend and Factor case studies with explicit questions, calculations, reviewer routes, and known limits |
 | Research Definition | editable question, hypothesis, null, mechanism, criteria, and limitation templates; usable without an LLM |
 | Historical Experiment | reproducible MA crossover execution against same-asset Buy & Hold |
 | Factor Validation | RankIC and Q1–Q5 cross-sectional validation with explicit baselines |
 | Validation | chronological OOS, parameter sensitivity, cost sensitivity, and data-quality evidence |
-| Pressure Test | four evidence-backed checks plus visible unsupported-method boundaries |
+| Pressure Test | evidence-backed checks generated from Validation; before evidence exists, one prerequisite action replaces empty pending cards |
 | Compare Models | rules vs XGBoost / LightGBM on the same OOS window with leakage controls |
 | Risk Review | deterministic five-level risk assessment with component levels and reasons |
 | Paper Observation | bounded, browser-local plan and dated human notes; no fake trades or P&L |
@@ -224,14 +241,18 @@ Before a live interview, confirm the latest `keep-warm` run is green and check t
 
 ### Data availability
 
-The product exposes only provider paths that are suitable for a research walkthrough:
+The product exposes only provider paths that are implemented and suitable for a
+research walkthrough:
 
 - **Auto routing, Yahoo Finance, and AKShare** are the selectable research-data options.
-- **Crypto support is price-history only**; the product does not claim market-cap, volume-profile, or on-chain coverage.
+- The visible asset coverage is limited to **US equities, US ETFs, Hong Kong
+  equities, and mainland China A-shares**.
 - **Stooq remains an internal last-resort fallback** in the legacy market-data service, but is deliberately not selectable in the UI because its public CSV endpoint can return browser-verification pages.
-- CSV upload, CoinGecko, Tushare, and BaoStock are not exposed as product capabilities because they are not implemented in this runtime.
+- Crypto, indices, FX, futures, CSV upload, CoinGecko, Tushare, and BaoStock are
+  not exposed as product capabilities because their complete research path is
+  not implemented in this runtime.
 
-The visual system adapts principles from the MIT-licensed [Apple Bento Grid](https://github.com/hubeiqiao/apple-bento-grid): a quiet `#f5f5f7` canvas, large editorial type, full-height cards, a consistent grid rhythm, and restrained accent surfaces. The implementation remains an interactive research product rather than a landing-page clone.
+The visual system adapts principles from the MIT-licensed [Apple Bento Grid](https://github.com/hubeiqiao/apple-bento-grid): a quiet canvas, large editorial type, full-height cards, a consistent grid rhythm, and restrained accent surfaces. The implementation remains an interactive research product rather than a landing-page clone. Light and dark themes use semantic surface and text tokens; disabled controls, placeholders, locked steps, evidence cards, charts, and empty states are reviewed as theme-specific states rather than color-inverted afterthoughts.
 
 ## Run locally
 

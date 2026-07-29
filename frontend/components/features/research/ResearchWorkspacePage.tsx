@@ -82,7 +82,7 @@ export default function ResearchWorkspacePage({
 
   const navigateToSection = useCallback(
     (section: ResearchWorkspaceSection) => {
-      const base = `/research/${encodeURIComponent(researchId)}`;
+      const base = `/engine/research/${encodeURIComponent(researchId)}`;
       const params = new URLSearchParams();
       if (section !== "overview") params.set("tab", section);
       if (reviewMode) params.set("review", "1");
@@ -552,7 +552,7 @@ export default function ResearchWorkspacePage({
                     <ul className="research-workspace__more-menu-list">
                       <li>
                         <Link
-                          href={`/research/${encodeURIComponent(
+                          href={`/engine/research/${encodeURIComponent(
                             displayResearch.id
                           )}?tab=notebook${reviewMode ? "&review=1" : ""}`}
                         >
@@ -561,7 +561,7 @@ export default function ResearchWorkspacePage({
                       </li>
                       <li>
                         <Link
-                          href={`/research/${encodeURIComponent(
+                          href={`/engine/research/${encodeURIComponent(
                             displayResearch.id
                           )}?tab=timeline${reviewMode ? "&review=1" : ""}`}
                         >

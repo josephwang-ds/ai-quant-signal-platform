@@ -58,6 +58,13 @@ frontend/tsconfig.tsbuildinfo
 .cache/
 backend/.cache/
 
+# Intelligence publishing outputs (research run registry; Phase 4.1+)
+# Keep directory placeholders; never commit generated manifests or latest.json.
+backend/outputs/**
+!backend/outputs/.gitkeep
+!backend/outputs/runs/
+!backend/outputs/runs/.gitkeep
+
 # Private interview, demo, and review preparation notes
 docs/PROJECT_TRACKER.md
 docs/prep/

@@ -44,7 +44,7 @@ export default function RobustnessPage() {
         <div className="robustness-page-hero__footer">
           <p>{tr("robustnessCanonicalHint")}</p>
           <Link
-            href={`/research/${encodeURIComponent(CANONICAL_RESEARCH_ID)}?tab=robustness`}
+            href={`/engine/research/${encodeURIComponent(CANONICAL_RESEARCH_ID)}?tab=robustness`}
             className="btn btn--ghost"
           >
             {tr("robustnessOpenWorkspace")}

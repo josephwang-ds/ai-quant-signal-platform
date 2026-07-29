@@ -1,6 +1,9 @@
 # Project Story
 
-Interview-oriented narrative for **AI Quant Research Workspace**. Factual, not marketing.
+Interview-oriented narrative for **AI Investment Intelligence Platform**. Factual, not marketing.
+
+**Built on an Evidence-driven Quant Research Engine.**  
+Every AI insight is backed by structured research evidence. Explainable. Traceable. Reviewable.
 
 ## Problem
 
@@ -10,10 +13,10 @@ Hiring-manager-visible failure mode for “demo products”: fabricated Sharpes,
 
 ## Product decision
 
-Build a **research operating system** that makes one lifecycle explicit:
+Build an **investment intelligence platform** on a governed **Quant Research Engine** that makes one evidence path explicit:
 
 ```text
-Research → Experiment → Validation → Robustness → Paper Observation → Decision
+Research Setup → Data → Features → Factors → Modeling → Portfolio → Backtest → Review
 ```
 
 Positioning:
@@ -21,8 +24,9 @@ Positioning:
 - Primary object: strategy / research evidence
 - Primary outcome: governed research decision
 - Explicit non-goals: broker integration, live execution, stock picking
+- AI role: explain, summarize, and help review — never invent quantitative truth
 
-Canonical demo protocol: Trend Following Study (`ma-crossover-spy`) — SPY MA20/MA60 vs buy-and-hold.
+Canonical flagship path: Cross-Sectional Equity Research (US Liquid 31). Legacy demo: Trend Following Study (`ma-crossover-spy`).
 
 ## Initiatives I drove
 

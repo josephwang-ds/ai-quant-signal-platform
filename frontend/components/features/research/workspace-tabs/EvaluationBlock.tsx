@@ -45,7 +45,7 @@ export default function EvaluationBlock({
             message={tr("researchEvalAwaitingValidationDescription")}
           />
           <Link
-            href={`/research/${encodeURIComponent(researchId)}?tab=validation`}
+            href={`/engine/research/${encodeURIComponent(researchId)}?tab=validation`}
             className="btn btn--primary"
           >
             {tr("researchEvalGoToValidation")}

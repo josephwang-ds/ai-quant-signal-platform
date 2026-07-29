@@ -1,4 +1,3 @@
-import EmptyState from "@/components/ui/EmptyState";
 import StatusBadge from "@/components/ui/StatusBadge";
 import ResearchBand from "@/components/features/research/ux/ResearchBand";
 import ResearchCenterHeader from "@/components/features/research/ux/ResearchCenterHeader";
@@ -128,6 +127,40 @@ export default function ResearchRobustnessCenter({
       : `${labels.nextContinue}: ${name}`;
   })();
 
+  if (!model.hasValidationEvidence && !model.hasEvaluationEvidence) {
+    return (
+      <section
+        className="research-center research-center--prerequisite"
+        aria-labelledby={showHeader ? "robustness-center-title" : undefined}
+        aria-label={showHeader ? undefined : labels.title}
+      >
+        {showHeader ? (
+          <ResearchCenterHeader
+            titleId="robustness-center-title"
+            title={labels.title}
+            description={labels.summary}
+          />
+        ) : null}
+        <ResearchBand
+          caption={labels.nextActionTitle}
+          glyph="action"
+          action
+        >
+          <ResearchNextAction
+            eyebrow={labels.nextActionTitle}
+            title={labels.noEvidenceTitle}
+            description={labels.noEvidenceNote}
+            cta={labels.nextActionCta}
+            onClick={
+              onContinue ? () => onContinue("validation") : undefined
+            }
+            disabled={!onContinue}
+          />
+        </ResearchBand>
+      </section>
+    );
+  }
+
   return (
     <section
       className="research-center"
@@ -139,13 +172,6 @@ export default function ResearchRobustnessCenter({
           titleId="robustness-center-title"
           title={labels.title}
           description={labels.summary}
-        />
-      ) : null}
-
-      {!model.hasValidationEvidence && !model.hasEvaluationEvidence ? (
-        <EmptyState
-          title={labels.noEvidenceTitle}
-          description={labels.noEvidenceNote}
         />
       ) : null}
 

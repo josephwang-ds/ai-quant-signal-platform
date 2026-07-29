@@ -218,7 +218,7 @@ export default function NotebookTab(props: NotebookTabProps) {
             void askCopilot(sample);
           }}
           onGoToValidation={() => {
-            window.location.href = `/research/${encodeURIComponent(researchId)}?tab=validation`;
+            window.location.href = `/engine/research/${encodeURIComponent(researchId)}?tab=validation`;
           }}
         />
       </div>

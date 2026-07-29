@@ -1,12 +1,45 @@
 # Product
 
-## What is AI Quant Research Workspace?
+## Positioning
 
-**AI Quant Research Workspace** is a research operating space for moving quantitative ideas through a visible lifecycle: definition → experiment → validation → robustness review → paper observation → decision.
+**AI Investment Intelligence Platform**  
+**Built on an Evidence-driven Quant Research Engine.**
 
-It keeps hypotheses, protocols, calculated evidence, and governed next steps in one place so conclusions remain traceable.
+Every AI insight is backed by structured research evidence. Explainable. Traceable. Reviewable.
+
+Canonical identity strings live in `frontend/lib/productIdentity.ts` and must stay aligned across README, GitHub, site chrome, and resume copy.
+
+## Phase status
+
+```text
+Phase 1 ✅ Data Foundation
+Phase 2 ✅ Factor Research
+Phase 3 ✅ Modeling
+Phase 4 ✅ Intelligence Publishing Layer
+Phase 4 RC ✅ Complete
+```
+
+Phase 5 has not started. Release record: [`releases/PHASE_4_RC.md`](releases/PHASE_4_RC.md).
+
+## What is this product?
+
+The product presents two layers:
+
+1. **AI Investment Intelligence** — user-facing answers to “what is happening?” (market, research, signal, portfolio, risk, assistant).
+2. **Quant Research Engine** — the evidence layer that answers “why?” through a guided research workflow.
+
+Research remains the source of truth. AI explains, summarizes, and helps review research; it does not replace deterministic validation or human decisions.
 
 It is **not** a trading platform, broker, order-management system, or stock picker.
+
+## Canonical surfaces (Phase 4 RC complete)
+
+| Route | Surface |
+| --- | --- |
+| `/` | Research Library — published intelligence runs |
+| `/platform` | Platform Overview |
+| `/research/run_*` | Published Workspace (Overview, Signals, Evidence, Validation) |
+| `/engine/research/*` | Active Workspace — catalog execution studies |
 
 ## Target users
 
@@ -18,27 +51,29 @@ It is **not** a trading platform, broker, order-management system, or stock pick
 
 | Principle | Meaning |
 | --- | --- |
-| Research first | Quantitative evidence is produced before AI interpretation |
+| Evidence before AI | Structured research evidence precedes any LLM summary or explanation |
 | Deterministic before probabilistic | Validation and risk rules are testable; AI is advisory |
-| Evidence before conclusion | Durable claims require metrics, provenance, and source |
-| Lifecycle over snapshots | Work progresses through named stages; history is preserved |
+| Explainable · Traceable · Reviewable | Every intelligence surface must show its evidence path |
+| Lifecycle over snapshots | Work progresses through named engine stages; history is preserved |
 
-Canonical product statement: **Research First. AI Second. Decisions Last.**
+Canonical operating rule: **Research First. AI Second. Decisions Last.**
 
 ## Research lifecycle
 
 ```text
-Research → Experiment → Validation → Robustness → Paper Observation → Decision
+Research Setup → Data → Features → Factors → Modeling → Portfolio → Backtest → Review
 ```
 
 | Stage | Intent |
 | --- | --- |
-| Research | Frame the question, hypothesis, and protocol |
-| Experiment | Define and run historical execution against real market data |
-| Validation | Deterministic OOS, sensitivity, cost, and data-quality checks |
-| Robustness | Review four implemented checks and disclose unsupported methods as scope boundaries |
-| Paper Observation | Create a bounded browser-local plan and record dated notes — not live brokerage |
-| Decision | Save a human-authored outcome and rationale against the evidence |
+| Research Setup | Frame the question, universe, horizon, and protocol |
+| Data Foundation | Assemble point-in-time market inputs |
+| Feature Engineering | Build features and labels |
+| Factor Research | Evaluate individual factors |
+| Modeling | Produce leakage-safe out-of-sample scores |
+| Portfolio Construction | Convert scores into constrained weights |
+| Backtesting | Evaluate costs, turnover, and robustness |
+| Research Review | Human Promote / Hold / Reject on accumulated evidence |
 
 Archive is a real research action after review, not an empty lifecycle page.
 

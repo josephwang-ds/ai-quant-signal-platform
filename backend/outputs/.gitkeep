@@ -1,0 +1,6 @@
+# Generated intelligence publishing outputs (Phase 4.1+)
+# Keep the directory structure via .gitkeep; never commit run manifests.
+backend/outputs/**
+!backend/outputs/.gitkeep
+!backend/outputs/runs/
+!backend/outputs/runs/.gitkeep

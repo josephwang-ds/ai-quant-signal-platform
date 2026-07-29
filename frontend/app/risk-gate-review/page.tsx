@@ -7,6 +7,6 @@ import { CANONICAL_RESEARCH_ID } from "@/lib/canonicalMaCrossover";
  */
 export default function RiskGateReviewPage() {
   permanentRedirect(
-    `/research/${encodeURIComponent(CANONICAL_RESEARCH_ID)}?tab=robustness`
+    `/engine/research/${encodeURIComponent(CANONICAL_RESEARCH_ID)}?tab=robustness`
   );
 }

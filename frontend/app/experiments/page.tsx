@@ -1,11 +1,9 @@
-import { Suspense } from "react";
-import ExperimentsPage from "@/components/features/experiments/ExperimentsPage";
-import LoadingState from "@/components/ui/LoadingState";
+import { permanentRedirect } from "next/navigation";
 
-export default function Page() {
-  return (
-    <Suspense fallback={<LoadingState message="Loading..." />}>
-      <ExperimentsPage />
-    </Suspense>
-  );
+/**
+ * Experiments is no longer a top-level product surface.
+ * Cost / saved-run / robustness work belongs under Backtesting.
+ */
+export default function ExperimentsRedirectPage() {
+  permanentRedirect("/engine/backtest");
 }

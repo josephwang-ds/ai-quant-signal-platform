@@ -17,17 +17,17 @@ describe("ResearchReviewGuide", () => {
     ).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Question" })).toHaveAttribute(
       "href",
-      "/research/ma-crossover-spy?review=1"
+      "/engine/research/ma-crossover-spy?review=1"
     );
     expect(screen.getByRole("link", { name: "Evidence" })).toHaveAttribute(
       "href",
-      "/research/ma-crossover-spy?tab=validation&review=1"
+      "/engine/research/ma-crossover-spy?tab=validation&review=1"
     );
     expect(
       screen.getByRole("link", { name: "Next: Challenge" })
     ).toHaveAttribute(
       "href",
-      "/research/ma-crossover-spy?tab=robustness&review=1"
+      "/engine/research/ma-crossover-spy?tab=robustness&review=1"
     );
   });
 
@@ -42,7 +42,7 @@ describe("ResearchReviewGuide", () => {
 
     expect(screen.getByRole("link", { name: "Exit guide" })).toHaveAttribute(
       "href",
-      "/research/sample?tab=robustness"
+      "/engine/research/sample?tab=robustness"
     );
   });
 });

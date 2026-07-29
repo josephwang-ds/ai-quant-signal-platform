@@ -12,24 +12,39 @@ const ROUTE_DIR = path.join(
   process.cwd(),
   "app/research/[researchId]"
 );
+const ENGINE_ROUTE_DIR = path.join(
+  process.cwd(),
+  "app/engine/research/[researchId]"
+);
 
 function readRoute(fileName: string): string {
   return readFileSync(path.join(ROUTE_DIR, fileName), "utf8");
 }
 
+function readEngineRoute(fileName: string): string {
+  return readFileSync(path.join(ENGINE_ROUTE_DIR, fileName), "utf8");
+}
+
 describe("PR-017 research route production safety", () => {
-  it("awaits Promise params and does not pass Server→Client event handlers", () => {
+  it("keeps /research/[researchId] as a temporary dispatcher and preserves /engine/research for catalog workspaces", () => {
     const source = readRoute("page.tsx");
+    const engineSource = readEngineRoute("page.tsx");
     expect(source).toMatch(/params:\s*Promise<\{\s*researchId:\s*string\s*\}>/);
     expect(source).toMatch(/await params/);
-    expect(source).not.toMatch(/onLanguageChange=/);
-    expect(source).not.toMatch(/from "@\/components\/layout\/AppShell"/);
-    expect(source).not.toMatch(/<AppShell[\s>]/);
+    expect(source).toContain("PublishedResearchWorkspace");
+    expect(source).toContain("Suspense");
+    expect(source).not.toContain("PublishedResearchWorkspacePlaceholderPage");
+    expect(source).toContain('researchId.startsWith("run_")');
+    expect(source).toContain('redirect(`/engine/research/${encodeURIComponent(researchId)}`)');
+    expect(source).not.toContain("getResearchRepository");
+    expect(source).not.toContain("localResearchRepository");
+    expect(engineSource).toContain("ResearchWorkspacePage");
+    expect(engineSource).not.toMatch(/onLanguageChange=/);
   });
 
-  it("provides honest loading and error boundaries", () => {
-    const loading = readRoute("loading.tsx");
-    const error = readRoute("error.tsx");
+  it("provides honest loading and error boundaries for the active research route", () => {
+    const loading = readEngineRoute("loading.tsx");
+    const error = readEngineRoute("error.tsx");
     expect(loading).toContain("ResearchWorkspaceSkeleton");
     expect(loading).not.toMatch(/42\.0%/);
     expect(loading.toLowerCase()).not.toContain("mock metrics");
@@ -89,5 +104,14 @@ describe("PR-017 research route production safety", () => {
 
     await user.click(screen.getByRole("button", { name: /retry/i }));
     expect(reset).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps published intelligence types separate from catalog research records", () => {
+    const intelligenceTypes = readFileSync(
+      path.join(process.cwd(), "lib/intelligence/types.ts"),
+      "utf8"
+    );
+    expect(intelligenceTypes).not.toContain("ResearchRecord");
+    expect(intelligenceTypes).not.toContain("localResearchRepository");
   });
 });

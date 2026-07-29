@@ -81,31 +81,32 @@ describe("lifecycle progress helpers", () => {
 });
 
 describe("workspace navigation model", () => {
-  it("uses one research entry point instead of separate overview and current-study links", () => {
+  it("uses Research Library-first primary navigation with Engine secondary", () => {
     const entryHrefs = WORKSPACE_NAV_GROUPS.flatMap((group) =>
       group.items.map((item) => item.href)
     );
 
-    expect(entryHrefs).toEqual([
-      "/",
-      "/compare-models",
-      "/strategy-lab",
-      "/ai-insights",
-      "/data-center",
-    ]);
+    expect(WORKSPACE_NAV_GROUPS.map((group) => group.id)).toEqual(["primary", "engine", "documentation"]);
+    expect(entryHrefs).toContain("/");
+    expect(entryHrefs).toContain("/market-watch");
+    expect(entryHrefs).toContain("/platform");
+    expect(entryHrefs).toContain("/engine");
+    expect(entryHrefs).toContain("/engine/features");
     expect(entryHrefs).not.toContain("/overview");
     expect(entryHrefs.some((href) => href.startsWith("/research/"))).toBe(false);
-    expect(entryHrefs).not.toContain("/feature-interpretation");
-    expect(entryHrefs).not.toContain("/robustness");
-    expect(entryHrefs).not.toContain("/risk-gate-review");
-    expect(entryHrefs).not.toContain("/market-watch");
-    expect(entryHrefs).not.toContain("/paper-trading");
+    expect(entryHrefs).not.toContain("/intelligence/market");
+    expect(entryHrefs).not.toContain("/intelligence/research");
+    expect(entryHrefs[0]).toBe("/");
     expect(entryHrefs).not.toContain("/experiments");
+    expect(entryHrefs).not.toContain("/compare-models");
   });
 
-  it("keeps Research Home active while a research workspace is open", () => {
+  it("marks Research Library active on the root and published research routes only", () => {
     expect(isWorkspaceNavItemActive("/", "/")).toBe(true);
-    expect(isWorkspaceNavItemActive("/research/ma-crossover-spy", "/")).toBe(true);
+    expect(isWorkspaceNavItemActive("/research/run_20260728T041530Z_a1b2c3d4", "/")).toBe(
+      true
+    );
+    expect(isWorkspaceNavItemActive("/engine/research/ma-crossover-spy", "/")).toBe(false);
     expect(isWorkspaceNavItemActive("/strategy-lab", "/")).toBe(false);
   });
 
