@@ -388,11 +388,12 @@ class ResearchArtifactRegistry:
             )
 
             # Validate the prospective manifest before writing bytes.
+            # Run mutation time is wall-clock; `stamp` only marks the artifact.
             prospective = sync_artifact_checksums(
                 manifest.model_copy(
                     update={
                         "artifacts": [*manifest.artifacts, reference],
-                        "run": manifest.run.model_copy(update={"updated_at": stamp}),
+                        "run": manifest.run.model_copy(update={"updated_at": utc_now()}),
                     }
                 )
             )

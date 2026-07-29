@@ -100,7 +100,7 @@ describe("ResearchPrimaryTabs", () => {
       screen.getByRole("link", { name: "Validation, Locked" })
     ).toHaveAttribute(
       "href",
-      `/research/${CANONICAL_RESEARCH_ID}?tab=validation&review=1`
+      `/engine/research/${CANONICAL_RESEARCH_ID}?tab=validation&review=1`
     );
   });
 });
@@ -118,15 +118,15 @@ describe("ResearchWorkspaceNavigation", () => {
     expect(screen.getByRole("navigation", { name: /research workspace sections/i })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Notes" })).toHaveAttribute(
       "href",
-      `/research/${CANONICAL_RESEARCH_ID}?tab=notebook`
+      `/engine/research/${CANONICAL_RESEARCH_ID}?tab=notebook`
     );
     expect(screen.getByRole("link", { name: "Validation" })).toHaveAttribute(
       "href",
-      `/research/${CANONICAL_RESEARCH_ID}?tab=validation`
+      `/engine/research/${CANONICAL_RESEARCH_ID}?tab=validation`
     );
     expect(screen.getByRole("link", { name: "Paper Observation" })).toHaveAttribute(
       "href",
-      `/research/${CANONICAL_RESEARCH_ID}?tab=paper`
+      `/engine/research/${CANONICAL_RESEARCH_ID}?tab=paper`
     );
     // Evaluation tab is folded into Validation — no separate "Review" link.
     expect(screen.queryByRole("link", { name: "Review" })).not.toBeInTheDocument();

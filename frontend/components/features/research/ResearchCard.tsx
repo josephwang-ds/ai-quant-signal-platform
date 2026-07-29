@@ -73,7 +73,7 @@ export default function ResearchCard({
   labels,
   onArchive,
 }: ResearchCardProps) {
-  const href = `/research/${encodeURIComponent(item.id)}`;
+  const href = `/engine/research/${encodeURIComponent(item.id)}`;
 
   return (
     <article className="research-card research-card--project">

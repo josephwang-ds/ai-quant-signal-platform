@@ -171,22 +171,31 @@ Implement domain state machines and event contracts in thin, end-to-end slices. 
 
 Prioritize evidence capture, experiment reproducibility, evaluation, and review over additional indicator widgets.
 
-### Phase 4 — Research Artifact & Intelligence Serving Layer
+### Phase 4 — Intelligence Publishing Layer ✅ Complete (RC)
 
 Register completed research runs, store immutable manifests, register checksummed
 artifacts, harden concurrent registry writes, build consumer snapshots from
 supported evidence contracts, and serve **read-only** published intelligence over
-HTTP. **Phase 4.1–4.5** (including 4.3.1) are done. Frontend consumption and
-portfolio publishing remain deferred. Details:
-[`docs/INTELLIGENCE_PUBLISHING.md`](docs/INTELLIGENCE_PUBLISHING.md).
+HTTP. **Phase 4.1–4.5** (including 4.3.1) are done. Phase 4.6A added the
+frontend IA and transport foundation. Phase 4.6B serves the Published
+Research Library at `/` from `GET /api/v1/intelligence/runs` and
+`/runs/latest`. Phase 4.6C1–C2 complete the Published Intelligence Workspace
+at `/research/[runId]`: hard gate, Evidence + Validation, and Overview/Signals
+consumer snapshot views with deterministic selection, lazy load, and
+workspace-scoped cache. Downloads/charts/builders remain deferred.
+
+**Phase 4 RC ✅ Complete** — decision: READY WITH NON-BLOCKING FOLLOW-UPS.
+Release record: [`docs/releases/PHASE_4_RC.md`](docs/releases/PHASE_4_RC.md).
+Details: [`docs/INTELLIGENCE_PUBLISHING.md`](docs/INTELLIGENCE_PUBLISHING.md).
 
 ### Phase 4 (legacy note) — Add governance and portfolio views
 
 Connect deterministic gates and decisions to monitoring, simulation, and portfolio review (still planned; not replaced by 4.1).
 
-### Phase 5 — Introduce governed AI
+### Phase 5 — Portfolio Intelligence / governed AI
 
-Add agents only after evidence, application ports, audit, and authorization boundaries are available.
+Phase 5 has not started. Future phase only — do not treat as active work.
+Add portfolio intelligence and agents only after evidence, application ports, audit, and authorization boundaries are available.
 
 ### Phase 6 — Harden and scale
 

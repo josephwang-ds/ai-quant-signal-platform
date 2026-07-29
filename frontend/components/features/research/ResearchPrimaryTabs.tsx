@@ -36,7 +36,7 @@ function sectionHref(
   section: ResearchWorkspaceSection,
   reviewMode: boolean
 ): string {
-  const base = `/research/${encodeURIComponent(researchId)}`;
+  const base = `/engine/research/${encodeURIComponent(researchId)}`;
   const params = new URLSearchParams();
   if (section !== "overview") params.set("tab", section);
   if (reviewMode) params.set("review", "1");

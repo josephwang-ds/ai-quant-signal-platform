@@ -1,11 +1,26 @@
-# Intelligence Publishing — Phase 4.1–4.5
+# Intelligence Publishing — Phase 4
 
 Research Run Registry + Research Artifact Registry + Intelligence Snapshot
 Contracts + Deterministic Artifact-to-Snapshot Builders + Read-only Intelligence
-Query Layer for the AI Investment Intelligence Platform.
+Query Layer + Published Research Library / Published Workspace for the AI
+Investment Intelligence Platform.
 
 **Built on an Evidence-driven Quant Research Engine.**  
 Every AI insight is backed by structured research evidence. Explainable. Traceable. Reviewable.
+
+## Phase status
+
+```text
+Phase 1 ✅ Data Foundation
+Phase 2 ✅ Factor Research
+Phase 3 ✅ Modeling
+Phase 4 ✅ Intelligence Publishing Layer
+Phase 4 RC ✅ Complete
+```
+
+Phase 5 has not started. Release record: [`releases/PHASE_4_RC.md`](releases/PHASE_4_RC.md).
+
+RC decision: **READY WITH NON-BLOCKING FOLLOW-UPS**.
 
 ## Purpose
 
@@ -72,7 +87,7 @@ Research Run
 | Deterministic research services | Own calculations (factors, models, validation) |
 | Research run / artifact registry | Receives completed outputs; records metadata and lifecycle |
 | Snapshot builders (Phase 4.3) | Project registered artifacts into versioned consumer contracts from **explicit** normalized inputs or clearly available registry metadata |
-| Future serving APIs | Will read published runs / snapshots — not implemented yet |
+| Read-only serving APIs | `IntelligenceService` + `/api/v1/intelligence` read published runs / snapshots |
 
 Publishing **must not** trigger training, factor calculation, or model retraining.
 Builders **must not** invent findings, generate LLM prose, or invent investment
@@ -589,6 +604,165 @@ Public DTOs project registry metadata and typed snapshot **content**. They omit:
 
 Stable `error_code` values in `detail`: `INVALID_RUN_ID`, `INVALID_QUERY`, `INVALID_SNAPSHOT_TYPE`, `RUN_NOT_FOUND`, `RUN_NOT_PUBLISHED`, `LATEST_NOT_FOUND`, `LATEST_POINTER_INVALID`, `SNAPSHOT_NOT_FOUND`, `SNAPSHOT_INTEGRITY_FAILED`, `SNAPSHOT_CONTENT_INVALID`, `INTELLIGENCE_STORAGE_ERROR`, `MANIFEST_VALIDATION_ERROR`.
 
+## Phase 4.6A frontend boundary
+
+Phase 4.6A added the first frontend migration slice over the Phase 4.5 API
+(navigation, route identity split, transport types/client, error mapping).
+
+## Phase 4.6B — Published Research Library
+
+`/` now consumes published intelligence runs from the Phase 4.5 query layer.
+
+### Library endpoints
+
+| Function | Method | Path |
+| --- | --- | --- |
+| `listPublishedRuns({ status: "PUBLISHED" })` | GET | `/api/v1/intelligence/runs` |
+| `getLatestPublishedRun()` | GET | `/api/v1/intelligence/runs/latest` |
+
+The Library does **not** fetch snapshot content, artifact content, or downloads.
+
+### Latest-run independent failure semantics
+
+- `LATEST_NOT_FOUND` / latest 404 → hide the Latest section; keep the run list
+- Latest backend failure → keep the run list; show a subtle unavailable note
+- List failure → page-level error with retry (latest alone is never a substitute list)
+- Latest present while list empty → treated as inconsistent transport; retry offered
+
+### Published-only source of truth
+
+- Backend list is requested with `status=PUBLISHED`
+- Unexpected non-published DTOs are dropped defensively
+- No `localResearchRepository`, mock catalog, or automatic demo fallback
+
+### Canonical identities
+
+- Published research run: `run_...` ids owned by the intelligence query layer, routed at `/research/[runId]`
+- Active research catalog record: catalog `researchId` owned by the local engine workflow, routed at `/engine/research/[researchId]`
+
+These identities stay separate:
+
+- published run DTOs live under `frontend/lib/intelligence/*`
+- active catalog types continue to use the existing research repository / `ResearchRecord` flow
+- published routes must not read from `localResearchRepository`
+
+### Migration compatibility
+
+During the transition, `/research/[researchId]` acts as a minimal dispatcher:
+
+- ids beginning with `run_` stay on the published workspace route contract
+- other ids redirect to `/engine/research/[researchId]`
+
+This is temporary compatibility only; it is not a permanent mixed workspace.
+
+### Route hierarchy
+
+- `/` → Published Research Library (Phase 4.6B; list + latest only)
+- `/platform` → current Platform Overview content
+- `/engine/research/[researchId]` → active catalog workspace
+- `/research/[runId]` → Published Intelligence Workspace (Phase 4.6C1–C2;
+  Overview/Signals/Evidence/Validation)
+
+### Catalog link migration
+
+New active-research links must target `/engine/research/[researchId]`. The legacy
+`/research/[id]` path remains only as a temporary dispatcher for external or
+bookmarked URLs.
+
+## Phase 4.6C1 — Published Workspace Shell, Evidence, and Validation
+
+`/research/[runId]` renders a read-only workspace shell for one published
+`run_...` identity. C1 established the hard gate, header/nav, Evidence, and
+Validation. C2 adds Overview and Signals snapshot content on the same shell.
+
+### Hard-gate loading sequence
+
+1. `GET /api/v1/intelligence/runs/{run_id}` — hard gate
+2. On success only: `GET .../artifacts` and `GET .../snapshots` (independent
+   reference lists; dedicated list endpoints even when detail embeds refs)
+3. Snapshot **content** only after gate success + snapshot refs success + the
+   Overview or Signals view is active + a matching selected reference exists
+   (Phase 4.6C2). Prefer `snapshot_id`. Never pass `verify=true`.
+
+Gate failures (not found / not published / invalid run id / malformed /
+backend unavailable) block the shell. After gate success, Evidence reference
+lists fail independently of Validation (which uses run detail fields).
+
+### Workspace views
+
+| View | Source | Notes |
+| --- | --- | --- |
+| Overview | selected `research_summary` content | Findings / limitations / artifact summary / provenance; lazy + cached |
+| Signals | selected `signal` content | Direction counts from full payload; neutral labels; no trading language |
+| Evidence | artifact + snapshot **references** | Snapshots first; Integrity recorded (never Verified); no downloads |
+| Validation | `ResearchRunDetailDto.validation` + sibling `errors` | Canonical `ok` → Passed/Failed; optional subtle discrepancy vs summary |
+
+### Snapshot selection (C2)
+
+Exact `snapshot_type` → `created_at` DESC → `snapshot_id` ASC. No name /
+filename / media-type inference. No merge of multiple snapshots.
+
+### Workspace-scoped content cache (C2)
+
+`useSnapshotContent` caches by `${runId}:${snapshotId}` in a `useRef` Map for
+the current `PublishedResearchWorkspace` lifetime only. Revisit does not
+refetch; retry clears only that entry. Not module-global, not storage, not
+React Query / SWR / Redux / Zustand.
+
+### Runtime content validation (C2)
+
+Narrow type guards (no Zod) require exact content `schema_version` and
+contract-shaped findings / signals. Invalid content maps to local
+`invalid_snapshot` — never dump raw JSON.
+
+### Header enrichment and discrepancy (C2)
+
+After a successful Overview summary load, the header may show `analysis_window`
+and summary `universe` only when run-detail universe is null. Run identity is
+never replaced. Summary `validation_status` of `passed`/`failed` that differs
+from run `validation.ok` shows a subtle discrepancy; Validation remains
+canonical. Evidence and Validation never trigger content fetches.
+
+### Workspace rules
+
+- Never imports `localResearchRepository` / `ResearchRecord` / catalog types
+- Workspace-scoped state only (no React Query / SWR / module singleton / localStorage)
+- No automatic demo fallback
+- No artifact payload fetch, download UI, `verify=true`, or charts
+- Active catalog execution workspace at `/engine/research/[researchId]` is unchanged
+
+### Phase 4.6 published review flow
+
+Complete for consumer review:
+
+Research Library → Published Workspace → Overview → Signals → Evidence → Validation
+
+using only Phase 4.5 read APIs.
+
+### Deferred beyond Phase 4.6
+
+- artifact download flows
+- snapshot charts / builders / write operations
+- Phase 5 Portfolio Intelligence (has not started)
+
+### Local demo seed (operator only)
+
+To exercise Research Library → Published Workspace locally without wiring any
+automatic UI fallback, seed one professional `PUBLISHED` run into the filesystem
+registry:
+
+```bash
+cd backend
+source .venv/bin/activate
+python scripts/seed_published_demo_run.py --dry-run
+python scripts/seed_published_demo_run.py
+```
+
+The script writes under `INTELLIGENCE_OUTPUT_DIR` (default `backend/outputs`),
+prints `run_id` / workspace path JSON, and is never imported by the frontend.
+`--dry-run` prints the planned seed action without registry writes.
+Restart or refresh the API if it was already running against an empty registry.
+
 ### Why raw artifact payloads are not exposed
 
 Domain research bytes remain opaque evidence. Consumer intelligence is the versioned snapshot contract. Exposing raw artifacts would bypass provenance, leak metrics, and couple clients to unstable research schemas.
@@ -606,12 +780,11 @@ Write orchestration already exists on registries + Phase 4.4 builders. Phase 4.5
 
 - Additional snapshot contracts beyond Research Summary + Signal
 - Automatic mapping from raw domain modeling/factor JSON without evidence contracts
-- Frontend integration / consumption (Phase 4.6+)
-- Authentication / RBAC / unpublished admin endpoints
 - Artifact file download / raw artifact JSON endpoints
+- Authentication / RBAC / unpublished admin endpoints
 - ResearchPublisher / one-click publish pipeline / workers
 - Database / Supabase / distributed locks
-- Portfolio / risk / market snapshot types
+- Portfolio / risk / market snapshot types (Phase 5)
 - Content fingerprints / snapshot deduplication
 - Retraining or changes to factor/model calculations
 

@@ -17,6 +17,7 @@ Authoritative numbering is sequential under the `ADR-NNNN` prefix.
 | [ADR-0011](ADR-0011-cross-sectional-factor-dataset.md) | Cross-Sectional Factor Dataset (Phase 1) | Accepted |
 | [ADR-0012](ADR-0012-cross-sectional-factor-research.md) | Cross-Sectional Factor Research (Phase 2) | Accepted |
 | [ADR-0013](ADR-0013-cross-sectional-modeling-and-stock-scores.md) | Cross-Sectional Modeling and Stock Scores (Phase 3) | Accepted |
+| [ADR-0014](ADR-0014-ai-investment-intelligence-ia.md) | AI Investment Intelligence Platform information architecture | Accepted |
 
 ## Numbering rules
 

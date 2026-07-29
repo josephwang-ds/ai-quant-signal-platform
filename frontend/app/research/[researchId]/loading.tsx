@@ -1,11 +1,8 @@
-import ResearchWorkspaceSkeleton from "@/components/features/research/ResearchWorkspaceSkeleton";
-import SectionCard from "@/components/ui/SectionCard";
+import PublishedWorkspaceSkeleton from "@/components/features/intelligence-workspace/PublishedWorkspaceSkeleton";
 
-/** Honest route-level loading skeleton — no fabricated metrics. */
+/** Route-level loading — matches published workspace gate skeleton (not legacy Active Workspace). */
 export default function ResearchDetailLoading() {
   return (
-    <SectionCard>
-      <ResearchWorkspaceSkeleton />
-    </SectionCard>
+    <PublishedWorkspaceSkeleton statusLabel="Loading published research workspace…" />
   );
 }

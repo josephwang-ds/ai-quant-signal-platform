@@ -1,7 +1,34 @@
 import type { TranslationKey } from "@/lib/i18n";
 
-export type CoverageStatus = "active" | "basic";
+export type ResearchReadiness =
+  | "full_cross_sectional"
+  | "strategy_support"
+  | "basic_research";
 
+export type ResearchReadyRow = {
+  id: string;
+  assetClassKey: TranslationKey;
+  readiness: ResearchReadiness;
+  supportKey: TranslationKey;
+  detailKey: TranslationKey;
+};
+
+export type PriceOnlyRow = {
+  id: string;
+  labelKey: TranslationKey;
+  examples: string;
+};
+
+export type SymbolFormatRow = {
+  id: string;
+  labelKey: TranslationKey;
+  example: string;
+};
+
+/** @deprecated Prefer RESEARCH_READY_ROWS for presentation. */
+export type CoverageStatus = "active";
+
+/** @deprecated Prefer RESEARCH_READY_ROWS / PRICE_ONLY_ROWS. */
 export type AssetClassRow = {
   id: string;
   assetClassKey: TranslationKey;
@@ -12,12 +39,46 @@ export type AssetClassRow = {
   notesKey?: TranslationKey;
 };
 
-export type SymbolFormatRow = {
-  id: string;
-  labelKey: TranslationKey;
-  example: string;
-};
+export const RESEARCH_READY_ROWS: ResearchReadyRow[] = [
+  {
+    id: "us-stocks",
+    assetClassKey: "dcAssetUsStocks",
+    readiness: "full_cross_sectional",
+    supportKey: "dcReadyFullCs",
+    detailKey: "dcReadyFullCsDetail",
+  },
+  {
+    id: "etfs",
+    assetClassKey: "dcAssetEtfs",
+    readiness: "strategy_support",
+    supportKey: "dcReadyStrategy",
+    detailKey: "dcReadyStrategyDetail",
+  },
+  {
+    id: "hk-stocks",
+    assetClassKey: "dcAssetHkStocks",
+    readiness: "basic_research",
+    supportKey: "dcReadyBasic",
+    detailKey: "dcReadyBasicDetail",
+  },
+  {
+    id: "cn-akshare",
+    assetClassKey: "dcAssetCnAkShare",
+    readiness: "basic_research",
+    supportKey: "dcReadyBasic",
+    detailKey: "dcReadyBasicDetail",
+  },
+];
 
+export const PRICE_ONLY_ROWS: PriceOnlyRow[] = [
+  {
+    id: "indexes-fx-crypto",
+    labelKey: "dcPriceOnlyBundle",
+    examples: "^GSPC · EURUSD=X · BTC-USD",
+  },
+];
+
+/** Kept for probe/format guides — research-ready symbols only. */
 export const ASSET_CLASS_ROWS: AssetClassRow[] = [
   {
     id: "us-stocks",
@@ -52,39 +113,6 @@ export const ASSET_CLASS_ROWS: AssetClassRow[] = [
     status: "active",
     notesKey: "dcNoteCnAkShare",
   },
-  {
-    id: "crypto-yahoo",
-    assetClassKey: "dcAssetCryptoYahoo",
-    marketKey: "dcMarketCrypto",
-    examples: "BTC-USD, ETH-USD, SOL-USD",
-    sourceKey: "dcSourceYahoo",
-    status: "basic",
-    notesKey: "dcNoteCryptoLimitations",
-  },
-  {
-    id: "indices",
-    assetClassKey: "dcAssetIndices",
-    marketKey: "dcMarketGlobal",
-    examples: "^GSPC, ^IXIC, ^HSI",
-    sourceKey: "dcSourceYahoo",
-    status: "basic",
-  },
-  {
-    id: "fx",
-    assetClassKey: "dcAssetFx",
-    marketKey: "dcMarketFx",
-    examples: "EURUSD=X, JPY=X, CNH=X",
-    sourceKey: "dcSourceYahoo",
-    status: "basic",
-  },
-  {
-    id: "futures",
-    assetClassKey: "dcAssetFutures",
-    marketKey: "dcMarketFutures",
-    examples: "GC=F, CL=F, SI=F",
-    sourceKey: "dcSourceYahoo",
-    status: "basic",
-  },
 ];
 
 export const SYMBOL_FORMAT_ROWS: SymbolFormatRow[] = [
@@ -93,17 +121,12 @@ export const SYMBOL_FORMAT_ROWS: SymbolFormatRow[] = [
   { id: "hk", labelKey: "dcSymbolHkStock", example: "0700.HK" },
   { id: "sh", labelKey: "dcSymbolCnShanghai", example: "600519.SH" },
   { id: "sz", labelKey: "dcSymbolCnShenzhen", example: "000001.SZ" },
-  { id: "crypto", labelKey: "dcSymbolCrypto", example: "BTC-USD" },
-  { id: "fx", labelKey: "dcSymbolFx", example: "EURUSD=X" },
-  { id: "futures", labelKey: "dcSymbolFutures", example: "GC=F" },
 ];
 
 export function coverageStatusLabelKey(status: CoverageStatus): TranslationKey {
   switch (status) {
     case "active":
       return "statusActive";
-    case "basic":
-      return "statusBasicSupport";
   }
 }
 
@@ -113,7 +136,5 @@ export function coverageStatusBadgeVariant(
   switch (status) {
     case "active":
       return "success";
-    case "basic":
-      return "info";
   }
 }

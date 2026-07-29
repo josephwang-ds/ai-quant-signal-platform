@@ -7,6 +7,12 @@ This project has not published numbered semantic releases yet. Entries below are
 
 ## [Unreleased]
 
+### Phase 4 RC
+
+- Phase 4 Intelligence Publishing Layer marked complete (READY WITH NON-BLOCKING FOLLOW-UPS).
+- Release record: [`releases/PHASE_4_RC.md`](releases/PHASE_4_RC.md).
+- Phase 5 has not started.
+
 ### Research Workspace spine
 
 - Research Library homepage for project entry and lifecycle orientation

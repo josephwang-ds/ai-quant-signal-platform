@@ -28,22 +28,42 @@ function NavLink({
 }) {
   const pathname = usePathname();
   const active = isWorkspaceNavItemActive(pathname, item.href);
-
-  return (
-    <Link
-      href={item.href}
-      className={`workspace-sidenav__item${
-        item.featured ? " workspace-sidenav__item--featured" : ""
-      }${active ? " is-active" : ""}`}
-      aria-current={active ? "page" : undefined}
-      onClick={onNavigate}
-    >
+  const className = `workspace-sidenav__item${
+    item.featured ? " workspace-sidenav__item--featured" : ""
+  }${active ? " is-active" : ""}`;
+  const label = (
+    <>
       <span className="workspace-sidenav__item-label">{t(language, item.labelKey)}</span>
       {item.featured ? (
         <span className="workspace-sidenav__featured-mark" aria-hidden="true">
           ★
         </span>
       ) : null}
+    </>
+  );
+
+  if (item.external) {
+    return (
+      <a
+        href={item.href}
+        className={className}
+        target="_blank"
+        rel="noopener noreferrer"
+        onClick={onNavigate}
+      >
+        {label}
+      </a>
+    );
+  }
+
+  return (
+    <Link
+      href={item.href}
+      className={className}
+      aria-current={active ? "page" : undefined}
+      onClick={onNavigate}
+    >
+      {label}
     </Link>
   );
 }

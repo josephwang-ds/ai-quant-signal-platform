@@ -122,7 +122,7 @@ export default function PaperTradingPage() {
         <div className="paper-trading-page-hero__footer">
           <p>{tr("paperDeployCanonicalHint")}</p>
           <Link
-            href={`/research/${encodeURIComponent(CANONICAL_RESEARCH_ID)}?tab=paper`}
+            href={`/engine/research/${encodeURIComponent(CANONICAL_RESEARCH_ID)}?tab=paper`}
             className="btn btn--ghost"
           >
             {tr("paperDeployOpenWorkspace")}

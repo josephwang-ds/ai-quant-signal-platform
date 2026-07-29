@@ -490,7 +490,9 @@ class ResearchSnapshotRegistry:
         prospective = manifest.model_copy(
             update={
                 "snapshots": [*manifest.snapshots, reference],
-                "run": manifest.run.model_copy(update={"updated_at": now}),
+                # Run mutation time is wall-clock; `now` only stamps snapshot
+                # content / reference (may be an explicit historical stamp).
+                "run": manifest.run.model_copy(update={"updated_at": utc_now()}),
             }
         )
         validate_manifest(prospective, expected_run_id=run_id)

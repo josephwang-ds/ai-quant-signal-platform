@@ -27,8 +27,8 @@ export type ResearchWorkspaceNavigationProps = {
 
 function sectionHref(researchId: string, section: ResearchWorkspaceSection): string {
   return section === "overview"
-    ? `/research/${encodeURIComponent(researchId)}`
-    : `/research/${encodeURIComponent(researchId)}?tab=${section}`;
+    ? `/engine/research/${encodeURIComponent(researchId)}`
+    : `/engine/research/${encodeURIComponent(researchId)}?tab=${section}`;
 }
 
 function isPrimaryActive(

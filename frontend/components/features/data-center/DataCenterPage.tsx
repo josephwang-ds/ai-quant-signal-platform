@@ -10,9 +10,8 @@ import SectionCard from "@/components/ui/SectionCard";
 import SectionHeader from "@/components/ui/SectionHeader";
 import StatusBadge from "@/components/ui/StatusBadge";
 import {
-  ASSET_CLASS_ROWS,
-  coverageStatusBadgeVariant,
-  coverageStatusLabelKey,
+  PRICE_ONLY_ROWS,
+  RESEARCH_READY_ROWS,
   SYMBOL_FORMAT_ROWS,
 } from "@/lib/dataCenterConfig";
 import { getDataSourceStatus, probePriceData } from "@/lib/api";
@@ -130,9 +129,15 @@ export default function DataCenterPage() {
     setProbeResult(null);
     setProbeError(null);
     try {
-      const data = await probePriceData("AAPL", "2024-01-01", preferredSource);
+      const probeSymbol =
+        preferredSource === "akshare" ? "000001.SZ" : "AAPL";
+      const data = await probePriceData(
+        probeSymbol,
+        "2024-01-01",
+        preferredSource
+      );
       setProbeResult(
-        `${tr("dcProbeSuccess")}: ${data.data_source} · rows=${data.rows} · latest=${data.latest.date}`
+        `${tr("dcProbeSuccess")}: ${probeSymbol} · ${data.data_source} · rows=${data.rows} · latest=${data.latest.date}`
       );
     } catch (error) {
       setProbeError(error instanceof Error ? error.message : tr("dcProbeError"));
@@ -240,22 +245,20 @@ export default function DataCenterPage() {
             </dl>
             <p className="section-meta">{tr("dcProvidersList")}</p>
             <div className="workspace-modules data-center-provider-grid">
-              {providerStatus.providers.map((provider) => (
+              {providerStatus.providers
+                .filter((provider) =>
+                  isResearchProviderStatus(provider)
+                    ? provider.installed && provider.configured
+                    : provider.status === "active"
+                )
+                .map((provider) => (
                 <article key={provider.name} className="module-card">
                   <div className="module-card__header">
                     <h3 className="module-card__title">{provider.name}</h3>
                     {isResearchProviderStatus(provider) ? (
                       <StatusBadge
-                        label={
-                          provider.installed && provider.configured
-                            ? tr("statusActive")
-                            : tr("statusPlanned")
-                        }
-                        variant={
-                          provider.installed && provider.configured
-                            ? "success"
-                            : "info"
-                        }
+                        label={tr("statusActive")}
+                        variant="success"
                       />
                     ) : (
                       <StatusBadge
@@ -297,42 +300,62 @@ export default function DataCenterPage() {
                 </article>
               ))}
             </div>
-            {providerStatus.notes?.map((note) => (
-              <p key={note} className="section-meta">
-                {note}
-              </p>
-            ))}
           </>
         ) : null}
       </SectionCard>
 
-      <SectionCard className="data-center-reference-panel">
-        <SectionHeader title={tr("dcAssetClassCoverage")} />
+      <SectionCard
+        className="data-center-reference-panel"
+        data-testid="research-ready-data"
+      >
+        <SectionHeader
+          title={tr("dcResearchReadyTitle")}
+          description={tr("dcResearchReadyDesc")}
+        />
         <DataTable className="table-scroll">
           <thead>
             <tr>
               <th>{tr("dcColAssetClass")}</th>
-              <th>{tr("dcColMarket")}</th>
-              <th>{tr("dcColExamples")}</th>
-              <th>{tr("dcColCurrentSource")}</th>
-              <th>{tr("dcColStatus")}</th>
-              <th>{tr("dcColNotes")}</th>
+              <th>{tr("dcColReadiness")}</th>
+              <th>{tr("dcColSupportDetail")}</th>
             </tr>
           </thead>
           <tbody>
-            {ASSET_CLASS_ROWS.map((row) => (
-              <tr key={row.id}>
+            {RESEARCH_READY_ROWS.map((row) => (
+              <tr key={row.id} data-readiness={row.readiness}>
                 <td>{tr(row.assetClassKey)}</td>
-                <td>{tr(row.marketKey)}</td>
-                <td>{row.examples}</td>
-                <td>{tr(row.sourceKey)}</td>
                 <td>
-                  <StatusBadge
-                    label={tr(coverageStatusLabelKey(row.status))}
-                    variant={coverageStatusBadgeVariant(row.status)}
-                  />
+                  <StatusBadge label={tr(row.supportKey)} variant="success" />
                 </td>
-                <td>{row.notesKey ? tr(row.notesKey) : tr("na")}</td>
+                <td>{tr(row.detailKey)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </DataTable>
+      </SectionCard>
+
+      <SectionCard
+        className="data-center-reference-panel data-center-reference-panel--muted"
+        data-testid="price-only-coverage"
+      >
+        <SectionHeader
+          title={tr("dcPriceOnlyTitle")}
+          description={tr("dcPriceOnlyDesc")}
+        />
+        <DataTable>
+          <thead>
+            <tr>
+              <th>{tr("dcColAssetClass")}</th>
+              <th>{tr("dcColExamples")}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {PRICE_ONLY_ROWS.map((row) => (
+              <tr key={row.id}>
+                <td>{tr(row.labelKey)}</td>
+                <td>
+                  <code>{row.examples}</code>
+                </td>
               </tr>
             ))}
           </tbody>

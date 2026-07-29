@@ -17,19 +17,22 @@ async function assertSafePage(page: import("@playwright/test").Page) {
 }
 
 test.describe("Demo navigation smoke", () => {
-  test("primary nav has five destinations and pages expose one h1", async ({
+  test("primary nav exposes Intelligence and Research Engine destinations", async ({
     page,
   }) => {
     await page.goto("/");
     const nav = page.getByRole("navigation", { name: /primary|主导航/i });
     const links = nav.locator("a.workspace-sidenav__item");
-    await expect(links).toHaveCount(5);
+    await expect(links.first()).toBeVisible();
+    const count = await links.count();
+    expect(count).toBeGreaterThanOrEqual(8);
 
     const routes = [
       "/",
-      "/compare-models",
-      "/strategy-lab",
-      "/ai-insights",
+      "/platform",
+      "/intelligence/research",
+      "/engine",
+      "/engine/portfolio",
       "/data-center",
     ];
     for (const route of routes) {
@@ -40,13 +43,13 @@ test.describe("Demo navigation smoke", () => {
 
   test("retired routes redirect into the research spine", async ({ page }) => {
     await page.goto("/overview");
-    await expect(page).toHaveURL(/\/$/);
+    await expect(page).toHaveURL(/\/platform$/);
 
     await page.goto("/legacy");
-    await expect(page).toHaveURL(/\/$/);
+    await expect(page).toHaveURL(/\/platform$/);
 
     await page.goto("/risk-gate-review");
-    await expect(page).toHaveURL(/research\/ma-crossover-spy.*tab=robustness/);
+    await expect(page).toHaveURL(/engine\/research\/ma-crossover-spy.*tab=robustness/);
   });
 
   test("Strategy Studio keeps backtest enabled when archive is optional", async ({
@@ -59,89 +62,64 @@ test.describe("Demo navigation smoke", () => {
     await assertSafePage(page);
   });
 
-  test("Saved Runs optional state stays quiet without DB", async ({ page }) => {
-    await page.route("**/health", async (route) => {
-      await route.fulfill({
-        status: 200,
-        contentType: "application/json",
-        body: JSON.stringify({ status: "ok", service: "ai-quant-signal-backend" }),
-      });
-    });
-    await page.route("**/api/database/status", async (route) => {
-      await route.fulfill({
-        status: 200,
-        contentType: "application/json",
-        body: JSON.stringify({
-          configured: false,
-          connected: false,
-          message: "Database is not configured.",
-          database: "supabase_postgres",
-          persistence_mode: "browser-local",
-        }),
-      });
-    });
-    await page.route("**/api/experiments/**", async (route) => {
-      await route.fulfill({
-        status: 503,
-        contentType: "application/json",
-        body: JSON.stringify({ detail: "Persistent storage is not enabled." }),
-      });
-    });
+  test("/experiments redirects into the Backtesting engine stage", async ({
+    page,
+  }) => {
     await page.goto("/experiments");
-    await expect(
-      page.getByText(/Saved-run storage is optional|可选数据库持久化/i)
-    ).toBeVisible({ timeout: 15_000 });
+    await expect(page).toHaveURL(/\/engine\/backtest/);
+    await expect(page.getByTestId("engine-stage-page")).toHaveAttribute(
+      "data-stage",
+      "backtest"
+    );
     await assertSafePage(page);
-    const body = await page.locator("body").innerText();
-    expect(body).not.toContain("SUPABASE_DB_URL");
   });
 
-  test("Chinese chrome stays readable on Research Home", async ({ page }) => {
+  test("Chinese chrome stays readable on Research Library", async ({ page }) => {
     await page.goto("/");
     await page.getByRole("button", { name: /中文|中/ }).first().click();
     await expect(page.locator("h1")).toBeVisible();
     const body = await page.locator("body").innerText();
-    expect(body).toMatch(/研究|证据|决策/);
+    expect(body).toMatch(/研究资料库|已发布|证据/);
   });
 });
 
-test.describe("Research workspace spine", () => {
-  test("Research Home → Trend Following Study → Question/Evidence/Challenge/Decision", async ({
+test.describe("Research Library → Workspace spine", () => {
+  test("Research Library surfaces empty or list state without layout crash", async ({
     page,
   }) => {
     await page.goto("/");
-    await expect(page.getByTestId("research-persistence-mode")).toBeVisible();
-    await expect(page.getByTestId("research-persistence-mode")).toHaveAttribute(
-      "data-mode",
-      /browser-local|persisted|persistence-unavailable/
-    );
-
-    const study = page.getByRole("link", {
-      name: /Trend Following Study|趋势跟踪研究/i,
-    });
-    if (await study.count()) {
-      await study.first().click();
-    } else {
-      await page.goto("/research/ma-crossover-spy");
-    }
-    await expect(page).toHaveURL(/\/research\/ma-crossover-spy/);
+    await expect(page.getByTestId("research-library")).toBeVisible();
+    await expect(page.locator("h1")).toHaveText(/Research Library|研究资料库/);
+    await expect(
+      page.getByTestId("research-library-empty").or(page.getByTestId("published-runs-section")).or(page.getByTestId("research-library-error")).or(page.getByTestId("research-library-loading"))
+    ).toBeVisible({ timeout: 15_000 });
     await assertSafePage(page);
 
-    // Research Home remains the active primary nav item while inside workspace.
-    const homeNav = page.locator('a.workspace-sidenav__item[href="/"]');
-    await expect(homeNav).toHaveAttribute("aria-current", "page");
+    const libraryNav = page.locator('a.workspace-sidenav__item[href="/"]');
+    await expect(libraryNav).toHaveAttribute("aria-current", "page");
+  });
 
-    const tabs = page.getByRole("group", { name: /Research lifecycle/i });
-    await expect(tabs).toBeVisible();
+  test("Platform Overview → Research Engine → Active Workspace Trend demo", async ({
+    page,
+  }) => {
+    await page.goto("/platform");
+    await expect(page.getByTestId("platform-home-hero")).toBeVisible();
+    await page.getByTestId("open-research-engine").click();
+    await expect(page).toHaveURL(/\/engine$/);
+    await expect(page.getByTestId("guided-workflow")).toBeVisible();
+    await expect(page.getByTestId("workflow-continue")).toBeVisible();
+
+    await page.getByTestId("open-trend-demo").click();
+    await expect(page).toHaveURL(/\/engine\/research\/ma-crossover-spy/);
+    await assertSafePage(page);
 
     for (const tab of ["overview", "validation", "robustness", "decision"] as const) {
-      await page.goto(`/research/ma-crossover-spy?tab=${tab}`);
+      await page.goto(`/engine/research/ma-crossover-spy?tab=${tab}`);
       await expect(page.locator("h1")).toHaveCount(1);
       await assertSafePage(page);
     }
 
-    // Pressure-test / robustness is the Challenge step.
-    await page.goto("/research/ma-crossover-spy?tab=robustness");
+    await page.goto("/engine/research/ma-crossover-spy?tab=robustness");
     await expect(page.locator("h1")).toHaveCount(1);
     await expect(
       page.getByText(/stress test|robustness|walk-forward|challenge|稳健|压力|挑战/i).first()
@@ -149,10 +127,18 @@ test.describe("Research workspace spine", () => {
     await assertSafePage(page);
   });
 
+  test("legacy /research/catalog-id redirects into Active Workspace", async ({
+    page,
+  }) => {
+    await page.goto("/research/ma-crossover-spy");
+    await expect(page).toHaveURL(/\/engine\/research\/ma-crossover-spy/);
+    await assertSafePage(page);
+  });
+
   test("Agent execution trace stays collapsed by default when present", async ({
     page,
   }) => {
-    await page.goto("/research/ma-crossover-spy?tab=decision");
+    await page.goto("/engine/research/ma-crossover-spy?tab=decision");
     const trace = page.locator("details.agent-execution-trace");
     if (await trace.count()) {
       await expect(trace.first()).not.toHaveAttribute("open", "");
