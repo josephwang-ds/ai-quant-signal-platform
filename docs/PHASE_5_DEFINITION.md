@@ -1,7 +1,7 @@
 # Phase 5 — Portfolio Intelligence
 ## Definition and Architecture
 
-> **Status:** Planning — Implementation not started.  
+> **Status:** Phase 5.1 Portfolio Registry Foundation complete; Phase 5.2 not started.
 > **Authority:** This document records the accepted Phase 5 definition. It supersedes the informal planning notes in the prior conversation.
 
 ---
@@ -46,7 +46,7 @@ Phase 2  Factor Research           ✅ Done
 Phase 3  Modeling                  ✅ Done
 Phase 4  Intelligence Publishing   ✅ Done — RC Complete
 
-Phase 5  Portfolio Intelligence    🟡 Planning
+Phase 5  Portfolio Intelligence    🟡 5.1 foundation complete
   │
   ├── consumes:  Phase 4.5 read-only intelligence query API
   │              Phase 4.6 Published Workspace (run_* identities)

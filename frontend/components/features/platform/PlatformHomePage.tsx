@@ -84,6 +84,55 @@ export default function PlatformHomePage() {
         </section>
 
         <section
+          className="platform-home__post-trade"
+          aria-labelledby="post-trade-title"
+          data-testid="post-trade-section"
+        >
+          <header>
+            <p className="platform-home__eyebrow">
+              {language === "zh" ? "交易后分析" : "Post-Trade Analytics"}
+            </p>
+            <h2 id="post-trade-title">
+              {language === "zh"
+                ? "解释业绩，识别性能退化"
+                : "Explain performance. Detect degradation."}
+            </h2>
+            <p>
+              {language === "zh"
+                ? "用确定性、可对账的方法连接交易指标与基础设施表现；演示数据明确标注为合成样例。"
+                : "Connect trading metrics to infrastructure performance with deterministic, reconcilable methods. Demo inputs are explicitly labeled synthetic."}
+            </p>
+          </header>
+          <div className="platform-home__post-trade-grid">
+            <article>
+              <span>01</span>
+              <strong>
+                {language === "zh" ? "业绩归因" : "Performance Attribution"}
+              </strong>
+              <p>
+                {language === "zh"
+                  ? "按名义金额拆解相对基准收益、费用和滑点。"
+                  : "Notional-weighted decomposition of edge, fees, and slippage."}
+              </p>
+            </article>
+            <article>
+              <span>02</span>
+              <strong>
+                {language === "zh" ? "异常检测" : "Anomaly Detection"}
+              </strong>
+              <p>
+                {language === "zh"
+                  ? "用仅历史窗口的稳健基线检测延迟异常。"
+                  : "Past-only robust baselines for latency degradation."}
+              </p>
+            </article>
+          </div>
+          <Link href="/post-trade" className="btn btn--primary">
+            {language === "zh" ? "打开交易后分析" : "Open Post-Trade Analytics"}
+          </Link>
+        </section>
+
+        <section
           className="platform-home__engine-status"
           aria-labelledby="engine-status-title"
           data-testid="research-engine-status"

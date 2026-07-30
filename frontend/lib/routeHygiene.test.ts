@@ -23,6 +23,7 @@ describe("IA V2 route hygiene", () => {
     );
     expect(hrefs).toContain("/");
     expect(hrefs).toContain("/market-watch");
+    expect(hrefs).toContain("/post-trade");
     expect(hrefs).toContain("/platform");
     expect(hrefs).toContain("/engine");
     expect(hrefs).toContain("/engine/features");
@@ -100,6 +101,12 @@ describe("IA V2 route hygiene", () => {
     expect(home).toContain("ResearchLibraryPage");
     expect(home).not.toContain("PlatformHomePage");
     expect(home).not.toContain("ResearchLibraryPlaceholderPage");
+  });
+
+  it("exposes the API-backed Post-Trade Analytics route", () => {
+    const source = readPage("post-trade/page.tsx");
+    expect(source).toContain("PostTradeAnalyticsPage");
+    expect(isWorkspaceNavItemActive("/post-trade", "/post-trade")).toBe(true);
   });
 
   it("keeps secondary tools reachable from primary surfaces", () => {

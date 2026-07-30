@@ -35,6 +35,12 @@ describe("IA V2 platform home", () => {
       "Explainable. Traceable. Reviewable."
     );
     expect(screen.getByTestId("intelligence-grid")).toBeInTheDocument();
+    expect(screen.getByTestId("post-trade-section")).toHaveTextContent(
+      "Performance Attribution"
+    );
+    expect(screen.getByTestId("post-trade-section")).toHaveTextContent(
+      "Anomaly Detection"
+    );
     expect(screen.getByTestId("research-engine-status")).toBeInTheDocument();
     expect(screen.queryByText("Research library")).not.toBeInTheDocument();
     expect(screen.queryByText("Continue research")).not.toBeInTheDocument();

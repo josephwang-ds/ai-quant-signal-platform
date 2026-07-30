@@ -25,6 +25,7 @@ from app.api.routes.risk_review import router as risk_review_router
 from app.api.routes.insights import router as insights_router
 from app.api.routes.model_comparison import router as model_comparison_router
 from app.api.routes.intelligence import router as intelligence_router
+from app.api.routes.post_trade_analytics import router as post_trade_analytics_router
 from app.config import get_allowed_origins
 from app.security.middleware import DemoProtectionMiddleware
 from app.backtest.engine import (
@@ -87,6 +88,7 @@ app.include_router(risk_review_router)
 app.include_router(model_comparison_router)
 app.include_router(insights_router)
 app.include_router(intelligence_router)
+app.include_router(post_trade_analytics_router)
 
 # 响应中最多返回的行数（仅用于 /api/price）
 MAX_PRICE_ROWS = 300
