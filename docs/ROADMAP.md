@@ -13,7 +13,10 @@ Phase 4 ✅ Intelligence Publishing Layer
 Phase 4 RC ✅ Complete
 ```
 
-Phase 5 has not started. Release record: [`releases/PHASE_4_RC.md`](releases/PHASE_4_RC.md).
+Phase 5.1 (Portfolio Registry Foundation) is complete: domain contracts (5.1A),
+filesystem registry (5.1B), and publication pipeline (5.1C). Phase 5.2 has not started.
+Phase 4 release record: [`releases/PHASE_4_RC.md`](releases/PHASE_4_RC.md).
+Phase 5 definition: [`PHASE_5_DEFINITION.md`](PHASE_5_DEFINITION.md).
 
 ## Completed milestones
 

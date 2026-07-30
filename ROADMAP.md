@@ -194,7 +194,9 @@ Connect deterministic gates and decisions to monitoring, simulation, and portfol
 
 ### Phase 5 — Portfolio Intelligence / governed AI
 
-Phase 5 has not started. Future phase only — do not treat as active work.
+Phase 5.1 (Portfolio Registry Foundation) is complete (5.1A–5.1C).
+Phase 5.2 (snapshot builders) has not started.
+Definition: [`docs/PHASE_5_DEFINITION.md`](docs/PHASE_5_DEFINITION.md) · ADRs: 0015–0017 · Vertical slice: [`docs/slices/portfolio-intelligence.md`](docs/slices/portfolio-intelligence.md)
 Add portfolio intelligence and agents only after evidence, application ports, audit, and authorization boundaries are available.
 
 ### Phase 6 — Harden and scale

@@ -18,6 +18,9 @@ Authoritative numbering is sequential under the `ADR-NNNN` prefix.
 | [ADR-0012](ADR-0012-cross-sectional-factor-research.md) | Cross-Sectional Factor Research (Phase 2) | Accepted |
 | [ADR-0013](ADR-0013-cross-sectional-modeling-and-stock-scores.md) | Cross-Sectional Modeling and Stock Scores (Phase 3) | Accepted |
 | [ADR-0014](ADR-0014-ai-investment-intelligence-ia.md) | AI Investment Intelligence Platform information architecture | Accepted |
+| [ADR-0015](ADR-0015-portfolio-bounded-context.md) | Portfolio Bounded Context and Authority Boundaries | Draft |
+| [ADR-0016](ADR-0016-portfolio-snapshot-contracts.md) | Portfolio Snapshot Contracts and Provenance | Draft |
+| [ADR-0017](ADR-0017-portfolio-registry-and-publishing.md) | Portfolio Registry and Publishing Lifecycle | Draft |
 
 ## Numbering rules
 
