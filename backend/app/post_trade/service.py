@@ -19,6 +19,7 @@ from app.post_trade.schemas import (
     DetectionDirection,
     MetricObservation,
     MetricSeriesSummary,
+    ScoredMetricPoint,
 )
 
 BPS_DENOMINATOR = 10_000.0
@@ -191,6 +192,7 @@ def detect_anomalies(request: AnomalyDetectionRequest) -> AnomalyDetectionResult
         grouped[(item.metric, item.entity)].append(item)
 
     anomalies: list[AnomalyEvent] = []
+    points: list[ScoredMetricPoint] = []
     summaries: list[MetricSeriesSummary] = []
     scored_total = 0
 
@@ -204,10 +206,20 @@ def detect_anomalies(request: AnomalyDetectionRequest) -> AnomalyDetectionResult
 
         for item in rows:
             baseline = history[-request.baseline_window :]
+            point_status = "warmup"
+            point_center = None
+            point_upper = None
+            point_lower = None
+            point_score = None
             if len(baseline) >= request.minimum_history:
                 center, scale, score = _robust_score(item.value, baseline)
                 latest_center = center
                 latest_score = score
+                point_center = center
+                point_score = score
+                point_upper = center + request.threshold * scale
+                point_lower = center - request.threshold * scale
+                point_status = "normal"
                 scored_count += 1
                 scored_total += 1
                 if _is_anomaly(
@@ -233,6 +245,28 @@ def detect_anomalies(request: AnomalyDetectionRequest) -> AnomalyDetectionResult
                     )
                     anomalies.append(event)
                     series_events.append(event)
+                    point_status = severity
+            points.append(
+                ScoredMetricPoint(
+                    timestamp=item.timestamp,
+                    metric=metric,
+                    entity=entity,
+                    value=_round(item.value),
+                    baseline_median=(
+                        _round(point_center) if point_center is not None else None
+                    ),
+                    upper_threshold=(
+                        _round(point_upper) if point_upper is not None else None
+                    ),
+                    lower_threshold=(
+                        _round(point_lower) if point_lower is not None else None
+                    ),
+                    robust_z_score=(
+                        _round(point_score) if point_score is not None else None
+                    ),
+                    status=point_status,
+                )
+            )
             history.append(item.value)
 
         summaries.append(
@@ -268,6 +302,7 @@ def detect_anomalies(request: AnomalyDetectionRequest) -> AnomalyDetectionResult
         observation_count=len(request.observations),
         scored_count=scored_total,
         anomaly_count=len(anomalies),
+        points=points,
         anomalies=anomalies,
         series=summaries,
     )

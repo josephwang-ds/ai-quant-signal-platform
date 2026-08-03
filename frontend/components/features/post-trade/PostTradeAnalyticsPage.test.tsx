@@ -2,6 +2,15 @@ import { render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import PostTradeAnalyticsPage from "@/components/features/post-trade/PostTradeAnalyticsPage";
 
+vi.stubGlobal(
+  "ResizeObserver",
+  class ResizeObserver {
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+  }
+);
+
 vi.mock("@/lib/useWorkspaceLanguage", () => ({
   useWorkspaceLanguage: () => ({
     language: "en" as const,
@@ -16,6 +25,11 @@ vi.mock("@/components/layout/AppShell", () => ({
 }));
 
 vi.mock("@/lib/postTradeAnalytics", () => ({
+  DEMO_ATTRIBUTION_REQUEST: {
+    input_data_kind: "synthetic_demo",
+    group_by: "venue",
+    observations: [],
+  },
   fetchPerformanceAttribution: vi.fn().mockResolvedValue({
     methodology: "Notional-weighted active PnL.",
     input_data_kind: "synthetic_demo",
@@ -77,6 +91,19 @@ vi.mock("@/lib/postTradeAnalytics", () => ({
     observation_count: 36,
     scored_count: 24,
     anomaly_count: 1,
+    points: [
+      {
+        timestamp: "2026-07-29T01:44:00.000Z",
+        metric: "ack_latency_ms",
+        entity: "gateway-a",
+        value: 3.85,
+        baseline_median: 1.21,
+        upper_threshold: 1.32,
+        lower_threshold: 1.1,
+        robust_z_score: 88,
+        status: "critical",
+      },
+    ],
     anomalies: [
       {
         timestamp: "2026-07-29T01:44:00.000Z",
@@ -102,11 +129,9 @@ describe("PostTradeAnalyticsPage", () => {
       expect(screen.getByTestId("performance-attribution")).toBeInTheDocument();
     });
     expect(screen.getByTestId("anomaly-detection")).toBeInTheDocument();
-    expect(screen.getByRole("note")).toHaveTextContent(
-      "deterministic synthetic fixture"
-    );
+    expect(screen.getByRole("note")).toHaveTextContent("not live orders");
     expect(screen.getAllByText("+3.00 bps")).toHaveLength(2);
-    expect(screen.getByText("gateway-a")).toBeInTheDocument();
+    expect(screen.getAllByText("gateway-a").length).toBeGreaterThan(0);
     expect(screen.getByText("critical")).toBeInTheDocument();
   });
 });

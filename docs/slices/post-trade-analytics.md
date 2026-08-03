@@ -18,6 +18,41 @@ The public page uses a deterministic synthetic fixture. The data is visibly and
 structurally labeled `synthetic_demo`; it must never be described as live trading
 activity.
 
+## Interface research
+
+The July 30, 2026 design review used active, high-adoption open-source projects
+as references:
+
+- [QuantStats](https://github.com/ranaroussi/quantstats) and
+  [pyfolio](https://github.com/quantopian/pyfolio) organize performance work as
+  tear sheets: a small KPI summary, benchmark-aware plots, drawdown or return
+  views, and detailed tables.
+- [Grafana](https://github.com/grafana/grafana) treats operational diagnosis as
+  a time-series problem: observed values, thresholds, incident markers,
+  annotations, and a state or event log.
+- [VisualHFT](https://github.com/visualHFT/VisualHFT) reinforces the value of a
+  dense execution-quality console for market-microstructure work rather than a
+  promotional dashboard.
+- [PyOD](https://github.com/yzhao062/pyod),
+  [Kats](https://github.com/facebookresearch/Kats), and
+  [ruptures](https://github.com/deepcharles/ruptures) provide a method ladder
+  beyond a robust baseline: isolation-based detectors, time-series anomaly
+  methods, and change-point detection.
+
+The implemented page combines a tear-sheet attribution section with an
+operations-style latency monitor. It deliberately avoids gradients, oversized
+marketing copy, chatbot language, generated recommendations, and unexplained
+scores. The result keeps the evidence visible: formula, grouping, baseline,
+threshold, score, and exception rows.
+
+The detector roadmap is intentionally conservative:
+
+1. rolling median/MAD with past-only observations (implemented);
+2. CUSUM or PELT for persistent regime changes, benchmarked against the robust
+   baseline;
+3. a multivariate detector only when labeled incidents and stable evaluation
+   data justify the additional complexity.
+
 ## Performance Attribution
 
 For observation \(i\), the service converts basis points to USD with the

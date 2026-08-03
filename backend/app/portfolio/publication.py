@@ -45,6 +45,8 @@ class PortfolioPublicationStatus(str, Enum):
     PUBLISHED = "PUBLISHED"
     ALREADY_PUBLISHED = "ALREADY_PUBLISHED"
     REJECTED = "REJECTED"
+    CONFLICT = "CONFLICT"
+    FAILED = "FAILED"
 
 
 class PortfolioPublicationIssueCode(str, Enum):
@@ -135,6 +137,7 @@ def logical_publication_fingerprint(manifest: PortfolioManifest) -> dict[str, An
                     ),
                     "source_validation_ok": item.source_validation_ok,
                     "selected_snapshot_ids": list(item.selected_snapshot_ids),
+                    "selected_snapshot_types": list(item.selected_snapshot_types),
                     "selected_snapshot_checksums": [
                         checksum.model_dump(mode="json")
                         for checksum in item.selected_snapshot_checksums
@@ -257,6 +260,56 @@ class PortfolioPublicationService:
             )
 
         if command.dry_run:
+            # Read-only logical conflict / idempotency checks (no mutations).
+            existing = self._try_load_existing(
+                portfolio_id,
+                portfolio_version,
+                draft=draft,
+                dry_run=True,
+                member_provenance=member_provenance,
+            )
+            if isinstance(existing, PortfolioPublicationResult):
+                return existing
+            if existing is not None:
+                if logical_publication_fingerprint(
+                    existing
+                ) == logical_publication_fingerprint(prepared):
+                    return PortfolioPublicationResult(
+                        ok=True,
+                        dry_run=True,
+                        portfolio_id=portfolio_id,
+                        portfolio_version=portfolio_version,
+                        status=PortfolioPublicationStatus.ALREADY_PUBLISHED,
+                        idempotent=True,
+                        published_at=existing.published_at,
+                        prepared_manifest=existing,
+                        resolved_members=list(
+                            existing.publication_provenance.members
+                            if existing.publication_provenance is not None
+                            else member_provenance
+                        ),
+                        issues=[],
+                        integrity_verified=False,
+                    )
+                return self._conflict(
+                    draft,
+                    dry_run=True,
+                    issues=[
+                        PortfolioPublicationIssue(
+                            code=PortfolioPublicationIssueCode.PUBLICATION_VERSION_CONFLICT,
+                            message=(
+                                "published portfolio version already exists with "
+                                "different logical content"
+                            ),
+                            field="portfolio_version",
+                            context={
+                                "portfolio_id": portfolio_id,
+                                "portfolio_version": portfolio_version,
+                            },
+                        )
+                    ],
+                    resolved_members=member_provenance,
+                )
             return PortfolioPublicationResult(
                 ok=True,
                 dry_run=True,
@@ -271,23 +324,15 @@ class PortfolioPublicationService:
                 integrity_verified=False,
             )
 
-        existing = None
-        if self._repository.exists(portfolio_id, version=portfolio_version):
-            try:
-                existing = self._load_existing_published(portfolio_id, portfolio_version)
-            except PortfolioRepositoryError as exc:
-                return self._rejected(
-                    draft,
-                    dry_run=False,
-                    issues=[
-                        PortfolioPublicationIssue(
-                            code=PortfolioPublicationIssueCode.PUBLICATION_INTEGRITY_FAILED,
-                            message=str(exc),
-                            context=dict(exc.context),
-                        )
-                    ],
-                    resolved_members=member_provenance,
-                )
+        existing = self._try_load_existing(
+            portfolio_id,
+            portfolio_version,
+            draft=draft,
+            dry_run=False,
+            member_provenance=member_provenance,
+        )
+        if isinstance(existing, PortfolioPublicationResult):
+            return existing
         if existing is not None:
             if logical_publication_fingerprint(
                 existing
@@ -313,7 +358,7 @@ class PortfolioPublicationService:
                     issues=[],
                     integrity_verified=integrity.valid,
                 )
-            return self._rejected(
+            return self._conflict(
                 draft,
                 dry_run=False,
                 issues=[
@@ -336,7 +381,7 @@ class PortfolioPublicationService:
         try:
             self._repository.publish(prepared)
         except PortfolioPublicationConflictError as exc:
-            return self._rejected(
+            return self._conflict(
                 draft,
                 dry_run=False,
                 issues=[
@@ -350,7 +395,7 @@ class PortfolioPublicationService:
                 resolved_members=member_provenance,
             )
         except PortfolioRepositoryError as exc:
-            return self._rejected(
+            return self._failed(
                 draft,
                 dry_run=False,
                 issues=[
@@ -363,7 +408,7 @@ class PortfolioPublicationService:
                 resolved_members=member_provenance,
             )
         except Exception as exc:  # noqa: BLE001 — map unexpected storage failures
-            return self._rejected(
+            return self._failed(
                 draft,
                 dry_run=False,
                 issues=[
@@ -380,7 +425,7 @@ class PortfolioPublicationService:
             expected_published_at=published_at,
         )
         if verify_issues:
-            return self._rejected(
+            return self._failed(
                 draft,
                 dry_run=False,
                 issues=self._sorted_issues(verify_issues),
@@ -571,6 +616,7 @@ class PortfolioPublicationService:
             source_published_at=run.published_at,
             source_validation_ok=run.validation_ok,
             selected_snapshot_ids=list(selected_snapshot_ids),
+            selected_snapshot_types=[item.snapshot_type for item in selected_checksums],
             selected_snapshot_checksums=selected_checksums,
             source_methodology_version=run.methodology_version,
             resolved_at=resolved_at,
@@ -624,6 +670,34 @@ class PortfolioPublicationService:
         )
         # Preserve original member order from the draft (not sorted).
         return PortfolioManifest.model_validate(payload)
+
+    def _try_load_existing(
+        self,
+        portfolio_id: str,
+        version: int,
+        *,
+        draft: PortfolioManifest,
+        dry_run: bool,
+        member_provenance: list[MemberPublicationProvenance],
+    ):
+        """Return existing manifest, ``None``, or a FAILED result on corrupt storage."""
+        if not self._repository.exists(portfolio_id, version=version):
+            return None
+        try:
+            return self._load_existing_published(portfolio_id, version)
+        except PortfolioRepositoryError as exc:
+            return self._failed(
+                draft,
+                dry_run=dry_run,
+                issues=[
+                    PortfolioPublicationIssue(
+                        code=PortfolioPublicationIssueCode.PUBLICATION_INTEGRITY_FAILED,
+                        message=str(exc),
+                        context=dict(exc.context),
+                    )
+                ],
+                resolved_members=member_provenance,
+            )
 
     def _load_existing_published(
         self,
@@ -744,12 +818,61 @@ class PortfolioPublicationService:
         issues: list[PortfolioPublicationIssue],
         resolved_members: Optional[list[MemberPublicationProvenance]] = None,
     ) -> PortfolioPublicationResult:
+        return self._terminal(
+            draft,
+            dry_run=dry_run,
+            status=PortfolioPublicationStatus.REJECTED,
+            issues=issues,
+            resolved_members=resolved_members,
+        )
+
+    def _conflict(
+        self,
+        draft: PortfolioManifest,
+        *,
+        dry_run: bool,
+        issues: list[PortfolioPublicationIssue],
+        resolved_members: Optional[list[MemberPublicationProvenance]] = None,
+    ) -> PortfolioPublicationResult:
+        return self._terminal(
+            draft,
+            dry_run=dry_run,
+            status=PortfolioPublicationStatus.CONFLICT,
+            issues=issues,
+            resolved_members=resolved_members,
+        )
+
+    def _failed(
+        self,
+        draft: PortfolioManifest,
+        *,
+        dry_run: bool,
+        issues: list[PortfolioPublicationIssue],
+        resolved_members: Optional[list[MemberPublicationProvenance]] = None,
+    ) -> PortfolioPublicationResult:
+        return self._terminal(
+            draft,
+            dry_run=dry_run,
+            status=PortfolioPublicationStatus.FAILED,
+            issues=issues,
+            resolved_members=resolved_members,
+        )
+
+    def _terminal(
+        self,
+        draft: PortfolioManifest,
+        *,
+        dry_run: bool,
+        status: PortfolioPublicationStatus,
+        issues: list[PortfolioPublicationIssue],
+        resolved_members: Optional[list[MemberPublicationProvenance]] = None,
+    ) -> PortfolioPublicationResult:
         return PortfolioPublicationResult(
             ok=False,
             dry_run=dry_run,
             portfolio_id=draft.portfolio_id,
             portfolio_version=draft.portfolio_version,
-            status=PortfolioPublicationStatus.REJECTED,
+            status=status,
             idempotent=False,
             published_at=None,
             prepared_manifest=None,

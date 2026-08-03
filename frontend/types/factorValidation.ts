@@ -20,6 +20,46 @@ export type FactorSeriesPoint = {
   value: number;
 };
 
+export type CapmRegression = {
+  alpha: number | null;
+  alpha_annualized: number | null;
+  alpha_annualized_ci_low: number | null;
+  alpha_annualized_ci_high: number | null;
+  beta: number | null;
+  t_stat_alpha: number | null;
+  r_squared: number | null;
+  n_observations: number;
+};
+
+export type PortfolioRiskStats = {
+  sharpe_ratio_net: number | null;
+  max_drawdown_net: number | null;
+};
+
+export type CapmDecomposition = {
+  dates: string[];
+  cumulative_beta_contribution: FactorSeriesPoint[];
+  cumulative_residual_alpha: FactorSeriesPoint[];
+  cumulative_cost_drag: FactorSeriesPoint[];
+  methodology: string;
+};
+
+export type CapmResult = {
+  benchmark_symbol: string;
+  regression: CapmRegression;
+  decomposition: CapmDecomposition;
+};
+
+export type FactorValidationProvenance = {
+  universe_symbols: string[];
+  symbols_used: string[];
+  symbol_series: Array<{ symbol: string; provider: string | null; rows: number }>;
+  start_date: string;
+  end_date: string | null;
+  n_factor_periods: number;
+  benchmark_symbol: string;
+};
+
 export type FactorValidationResult = {
   research_id: string;
   template: string;
@@ -53,8 +93,10 @@ export type FactorValidationResult = {
     note?: string;
   };
   benchmark?: BenchmarkEvaluation;
+  capm: CapmResult;
+  portfolio_risk: PortfolioRiskStats;
   warnings: string[];
-  provenance: Record<string, unknown>;
+  provenance: FactorValidationProvenance;
   reproducibility_manifest?: ReproducibilityManifest | null;
   generated_at: string;
   validation_run_id: string;

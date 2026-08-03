@@ -257,6 +257,10 @@ def test_valid_draft_publishes(service: PortfolioPublicationService, repo):
         stored.publication_provenance.members[0].selected_snapshot_checksums[0].checksum
         == CHECK_A
     )
+    assert stored.publication_provenance.members[0].selected_snapshot_types == [
+        "research_summary"
+    ]
+    assert stored.publication_provenance.members[1].selected_snapshot_types == ["signal"]
 
 
 def test_weights_preserved_operator_specified(repo: FilesystemPortfolioRepository):
@@ -537,6 +541,7 @@ def test_changed_weight_same_version_conflicts(repo: FilesystemPortfolioReposito
     )
     result = service.publish(PortfolioPublicationCommand(manifest=changed))
     assert not result.ok
+    assert result.status is PortfolioPublicationStatus.CONFLICT
     assert any(
         i.code is PortfolioPublicationIssueCode.PUBLICATION_VERSION_CONFLICT
         for i in result.issues
@@ -571,6 +576,7 @@ def test_changed_membership_conflicts(repo: FilesystemPortfolioRepository):
         ]
     )
     result = service.publish(PortfolioPublicationCommand(manifest=changed))
+    assert result.status is PortfolioPublicationStatus.CONFLICT
     assert any(
         i.code is PortfolioPublicationIssueCode.PUBLICATION_VERSION_CONFLICT
         for i in result.issues
@@ -608,6 +614,7 @@ def test_changed_selected_snapshot_conflicts(repo: FilesystemPortfolioRepository
         ]
     )
     result = service.publish(PortfolioPublicationCommand(manifest=changed))
+    assert result.status is PortfolioPublicationStatus.CONFLICT
     assert any(
         i.code is PortfolioPublicationIssueCode.PUBLICATION_VERSION_CONFLICT
         for i in result.issues
@@ -631,6 +638,7 @@ def test_changed_source_provenance_conflicts(repo: FilesystemPortfolioRepository
     )
     service2 = PortfolioPublicationService(repo, research2, now_fn=lambda: CLOCK)
     result = service2.publish(PortfolioPublicationCommand(manifest=_draft()))
+    assert result.status is PortfolioPublicationStatus.CONFLICT
     assert any(
         i.code is PortfolioPublicationIssueCode.PUBLICATION_VERSION_CONFLICT
         for i in result.issues
@@ -700,6 +708,7 @@ def test_post_write_integrity_failure_prevents_success(
     monkeypatch.setattr(repo, "publish", publish_then_corrupt)
     result = service.publish(PortfolioPublicationCommand(manifest=_draft()))
     assert not result.ok
+    assert result.status is PortfolioPublicationStatus.FAILED
     assert any(
         i.code is PortfolioPublicationIssueCode.PUBLICATION_INTEGRITY_FAILED
         for i in result.issues
@@ -724,6 +733,7 @@ def test_missing_integrity_after_write_detected(
     monkeypatch.setattr(repo, "publish", publish_then_drop_integrity)
     result = service.publish(PortfolioPublicationCommand(manifest=_draft()))
     assert not result.ok
+    assert result.status is PortfolioPublicationStatus.FAILED
     assert any(
         i.code is PortfolioPublicationIssueCode.PUBLICATION_INTEGRITY_FAILED
         for i in result.issues
@@ -749,6 +759,52 @@ def test_domain_invalid_skips_source_resolution(repo: FilesystemPortfolioReposit
     assert research.get_calls == []
 
 
+def test_snapshot_ownership_mismatch_rejected(repo: FilesystemPortfolioRepository):
+    research = FakeResearchQuery(
+        {
+            RUN_A: _run(RUN_A, snapshots=[_snapshot(SNAP_A, checksum=CHECK_A)]),
+            RUN_B: _run(RUN_B, snapshots=[_snapshot(SNAP_B, checksum=CHECK_B)]),
+        }
+    )
+    original_verify = research.verify_snapshot
+
+    def swapped_verify(run_id: str, snapshot_id: str):
+        verified = original_verify(run_id, snapshot_id)
+        return verified.model_copy(update={"snapshot_id": SNAP_OTHER})
+
+    research.verify_snapshot = swapped_verify  # type: ignore[method-assign]
+    service = PortfolioPublicationService(repo, research, now_fn=lambda: CLOCK)
+    result = service.publish(PortfolioPublicationCommand(manifest=_draft()))
+    assert any(
+        i.code is PortfolioPublicationIssueCode.SOURCE_SNAPSHOT_OWNERSHIP_MISMATCH
+        for i in result.issues
+    )
+    assert not repo.exists(PID, version=1)
+
+
+def test_corrupt_latest_pointer_rejects_success(
+    repo: FilesystemPortfolioRepository, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    service = PortfolioPublicationService(
+        repo, _default_research(), now_fn=lambda: CLOCK
+    )
+    original_publish = repo.publish
+
+    def publish_then_corrupt_latest(manifest):
+        stored = original_publish(manifest)
+        latest = tmp_path / PID / "latest.json"
+        latest.write_text("{not-json", encoding="utf-8")
+        return stored
+
+    monkeypatch.setattr(repo, "publish", publish_then_corrupt_latest)
+    result = service.publish(PortfolioPublicationCommand(manifest=_draft()))
+    assert result.status is PortfolioPublicationStatus.FAILED
+    assert any(
+        i.code is PortfolioPublicationIssueCode.PUBLICATION_INTEGRITY_FAILED
+        for i in result.issues
+    )
+
+
 def test_seed_command_rejects_missing_sources_without_writes(tmp_path: Path):
     repo_root = tmp_path / "portfolios"
     manifest_path = tmp_path / "draft.json"
@@ -756,15 +812,11 @@ def test_seed_command_rejects_missing_sources_without_writes(tmp_path: Path):
         json.dumps(_draft().model_dump(mode="json"), indent=2) + "\n",
         encoding="utf-8",
     )
-    script = (
-        Path(__file__).resolve().parents[1]
-        / "scripts"
-        / "seed_published_demo_portfolio.py"
-    )
     proc = subprocess.run(
         [
             sys.executable,
-            str(script),
+            "-m",
+            "app.portfolio.seed_published_portfolio",
             "--manifest",
             str(manifest_path),
             "--dry-run",
@@ -776,6 +828,7 @@ def test_seed_command_rejects_missing_sources_without_writes(tmp_path: Path):
         capture_output=True,
         text=True,
         check=False,
+        cwd=str(Path(__file__).resolve().parents[1]),
     )
     assert proc.returncode == 1
     payload = json.loads(proc.stdout)
@@ -784,17 +837,20 @@ def test_seed_command_rejects_missing_sources_without_writes(tmp_path: Path):
 
 
 def test_seed_invalid_manifest_exit_code(tmp_path: Path):
-    script = (
-        Path(__file__).resolve().parents[1]
-        / "scripts"
-        / "seed_published_demo_portfolio.py"
-    )
     missing = tmp_path / "missing.json"
     proc = subprocess.run(
-        [sys.executable, str(script), "--manifest", str(missing), "--dry-run"],
+        [
+            sys.executable,
+            "-m",
+            "app.portfolio.seed_published_portfolio",
+            "--manifest",
+            str(missing),
+            "--dry-run",
+        ],
         capture_output=True,
         text=True,
         check=False,
+        cwd=str(Path(__file__).resolve().parents[1]),
     )
     assert proc.returncode == 1
     payload = json.loads(proc.stdout)
@@ -804,7 +860,7 @@ def test_seed_invalid_manifest_exit_code(tmp_path: Path):
 def test_seed_module_idempotent_with_fake_service(
     repo: FilesystemPortfolioRepository, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ):
-    from scripts import seed_published_demo_portfolio as seed_mod
+    from app.portfolio import seed_published_portfolio as seed_mod
 
     service = PortfolioPublicationService(
         repo, _default_research(), now_fn=lambda: CLOCK
@@ -837,3 +893,32 @@ def test_seed_module_idempotent_with_fake_service(
     assert first == 0
     assert second == 0
     assert repo.list_versions(PID) == [1]
+
+
+def test_dry_run_conflict_when_version_exists(repo: FilesystemPortfolioRepository):
+    service = PortfolioPublicationService(
+        repo, _default_research(), now_fn=lambda: CLOCK
+    )
+    assert service.publish(PortfolioPublicationCommand(manifest=_draft())).ok
+    changed = _draft(
+        weight_method=WeightMethod.OPERATOR_SPECIFIED,
+        members=[
+            PortfolioMember(
+                source_run_id=RUN_A,
+                member_order=0,
+                analytical_weight=AnalyticalWeight(value=Decimal("0.7")),
+                selected_snapshot_ids=[SNAP_A],
+            ),
+            PortfolioMember(
+                source_run_id=RUN_B,
+                member_order=1,
+                analytical_weight=AnalyticalWeight(value=Decimal("0.3")),
+                selected_snapshot_ids=[SNAP_B],
+            ),
+        ],
+    )
+    result = service.publish(
+        PortfolioPublicationCommand(manifest=changed, dry_run=True)
+    )
+    assert result.status is PortfolioPublicationStatus.CONFLICT
+    assert result.dry_run is True

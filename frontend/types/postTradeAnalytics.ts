@@ -92,6 +92,18 @@ export type MetricSeriesSummary = {
   status: "normal" | "warning" | "critical" | "insufficient_history";
 };
 
+export type ScoredMetricPoint = {
+  timestamp: string;
+  metric: string;
+  entity: string;
+  value: number;
+  baseline_median: number | null;
+  upper_threshold: number | null;
+  lower_threshold: number | null;
+  robust_z_score: number | null;
+  status: "warmup" | "normal" | "warning" | "critical";
+};
+
 export type AnomalyDetectionResult = {
   methodology: string;
   input_data_kind: InputDataKind;
@@ -102,6 +114,7 @@ export type AnomalyDetectionResult = {
   observation_count: number;
   scored_count: number;
   anomaly_count: number;
+  points: ScoredMetricPoint[];
   anomalies: AnomalyEvent[];
   series: MetricSeriesSummary[];
 };

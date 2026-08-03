@@ -183,6 +183,22 @@ class AnomalyEvent(BaseModel):
     history_count: int
 
 
+class ScoredMetricPoint(BaseModel):
+    """Per-observation detector trace for auditable monitoring charts."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    timestamp: datetime
+    metric: str
+    entity: str
+    value: float
+    baseline_median: Optional[float] = None
+    upper_threshold: Optional[float] = None
+    lower_threshold: Optional[float] = None
+    robust_z_score: Optional[float] = None
+    status: Literal["warmup", "normal", "warning", "critical"]
+
+
 class MetricSeriesSummary(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -209,5 +225,6 @@ class AnomalyDetectionResult(BaseModel):
     observation_count: int
     scored_count: int
     anomaly_count: int
+    points: list[ScoredMetricPoint]
     anomalies: list[AnomalyEvent]
     series: list[MetricSeriesSummary]

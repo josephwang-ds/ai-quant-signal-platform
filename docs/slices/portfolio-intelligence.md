@@ -146,7 +146,8 @@ Per member: `source_run_id`, `source_published_at`, `source_validation_ok`,
 - Key: `portfolio_id` + `portfolio_version`
 - Logical equivalence excludes `published_at` and `resolved_at`
 - Equivalent retry → `ALREADY_PUBLISHED` (preserves original timestamp; no rewrite)
-- Material difference → `PUBLICATION_VERSION_CONFLICT`
+- Material difference → `CONFLICT` (`PUBLICATION_VERSION_CONFLICT`)
+- Storage / post-write integrity failure → `FAILED`
 
 ### Dry-run
 Validates, resolves, admits, prepares candidate; writes nothing.
@@ -154,9 +155,11 @@ Validates, resolves, admits, prepares candidate; writes nothing.
 ### Seed command
 ```bash
 cd backend
-python scripts/seed_published_demo_portfolio.py --manifest path.json --dry-run
-python scripts/seed_published_demo_portfolio.py --manifest path.json
+python -m app.portfolio.seed_published_portfolio --manifest path.json --dry-run
+python -m app.portfolio.seed_published_portfolio --manifest path.json
 ```
+
+Result statuses: `VALIDATED`, `PUBLISHED`, `ALREADY_PUBLISHED`, `REJECTED`, `CONFLICT`, `FAILED`.
 
 ### Explicit exclusions
 No Portfolio snapshot builders, query API, frontend, exposure, risk, backtest,

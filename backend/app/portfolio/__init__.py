@@ -15,6 +15,8 @@ from app.portfolio.errors import (
 )
 from app.portfolio.ports import (
     PublishedResearchQueryPort,
+    PublishedResearchReference,
+    PublishedResearchSnapshotReference,
     PublishedRunReference,
     PublishedSnapshotReference,
 )
@@ -49,6 +51,7 @@ from app.portfolio.schemas import (
     PortfolioMandate,
     PortfolioManifest,
     PortfolioMember,
+    PortfolioMemberProvenance,
     PortfolioPublicationProvenance,
     PortfolioSnapshotAvailability,
     PortfolioSnapshotReference,
@@ -98,6 +101,7 @@ __all__ = [
     "PortfolioMandate",
     "PortfolioManifest",
     "PortfolioMember",
+    "PortfolioMemberProvenance",
     "PortfolioNotFoundError",
     "PortfolioPublicationCommand",
     "PortfolioPublicationConflictError",
@@ -121,7 +125,9 @@ __all__ = [
     "PortfolioVersion",
     "PortfolioVersionNotFoundError",
     "PublishedResearchQueryPort",
+    "PublishedResearchReference",
     "PublishedResearchResolutionError",
+    "PublishedResearchSnapshotReference",
     "PublishedRunReference",
     "PublishedSnapshotReference",
     "RebalanceFrequency",

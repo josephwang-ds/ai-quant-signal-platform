@@ -101,6 +101,59 @@ def test_service_momentum_returns_ic_and_quantiles(factor_service: FactorValidat
     assert result["long_short"]["cumulative_final"] is not None
     assert set(result["provenance"]["symbols_used"]) <= set(US_SECTOR_ETFS)
 
+    capm = result["capm"]
+    assert capm["benchmark_symbol"] == "SPY"
+    assert result["provenance"]["benchmark_symbol"] == "SPY"
+    regression = capm["regression"]
+    assert regression["n_observations"] > 0
+    assert regression["beta"] is not None
+    decomposition = capm["decomposition"]
+    assert len(decomposition["dates"]) == len(
+        result["long_short"]["period_returns_net_of_cost"]
+    )
+    assert "methodology" in decomposition
+
+    portfolio_risk = result["portfolio_risk"]
+    assert portfolio_risk["sharpe_ratio_net"] is not None
+    assert portfolio_risk["max_drawdown_net"] is not None
+    assert portfolio_risk["max_drawdown_net"] <= 0
+
+
+def test_service_honors_custom_benchmark_symbol(factor_service: FactorValidationService):
+    result = factor_service.execute(
+        {
+            "factor_id": "momentum",
+            "start_date": "2019-01-01",
+            "end_date": "2023-12-29",
+            "benchmark_symbol": "qqq",
+        }
+    )
+    assert result["capm"]["benchmark_symbol"] == "QQQ"
+    assert result["provenance"]["benchmark_symbol"] == "QQQ"
+
+
+def test_service_degrades_honestly_when_benchmark_unavailable():
+    class NoBenchmarkAdapter(SyntheticUniverseAdapter):
+        def get_daily_ohlcv(self, symbol, start_date, end_date=None):
+            if symbol.upper() == "SPY":
+                raise MarketDataUnavailableError("benchmark feed down")
+            return super().get_daily_ohlcv(symbol, start_date, end_date)
+
+    service = FactorValidationService(
+        NoBenchmarkAdapter(), InMemoryValidationResultStore()
+    )
+    result = service.execute(
+        {
+            "factor_id": "momentum",
+            "start_date": "2019-01-01",
+            "end_date": "2023-12-29",
+        }
+    )
+    assert result["capm"]["regression"]["alpha"] is None
+    assert result["capm"]["regression"]["beta"] is None
+    assert result["capm"]["decomposition"]["dates"] == []
+    assert any("benchmark SPY" in warning for warning in result["warnings"])
+
 
 def test_service_rejects_value_coming_soon(factor_service: FactorValidationService):
     with pytest.raises(Exception) as exc:

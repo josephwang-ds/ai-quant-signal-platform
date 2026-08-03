@@ -87,6 +87,11 @@ export default function AppShell({
   }, [navOpen]);
 
   const drawerHidden = isMobileNav && !navOpen;
+  const footerIdentity = pathname.startsWith("/post-trade")
+    ? language === "zh"
+      ? "交易后研究工作台"
+      : "Post-Trade Research Workspace"
+    : t(language, "appTitle");
 
   return (
     <div className={`workspace-shell${navOpen ? " is-nav-open" : ""}`}>
@@ -165,7 +170,7 @@ export default function AppShell({
         <div className="workspace-content">{children}</div>
         <footer className="workspace-footer">
           <p className="workspace-footer__identity">
-            {t(language, "appTitle")} · v{PRODUCT_VERSION}
+            {footerIdentity} · v{PRODUCT_VERSION}
           </p>
           <p className="workspace-footer__legal">
             {PRODUCT_COPYRIGHT} · {t(language, "footerLicense")}

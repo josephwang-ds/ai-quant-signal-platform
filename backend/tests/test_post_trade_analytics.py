@@ -126,6 +126,11 @@ def test_anomaly_detection_uses_past_only_robust_baseline() -> None:
     assert event.robust_z_score > request.threshold
     assert event.severity == "critical"
     assert result.series[0].status == "critical"
+    assert len(result.points) == len(values)
+    assert result.points[0].status == "warmup"
+    assert result.points[-1].status == "critical"
+    assert result.points[-1].upper_threshold is not None
+    assert result.points[-1].baseline_median == event.baseline_median
 
 
 def test_anomaly_direction_can_detect_low_degradation() -> None:
@@ -141,6 +146,7 @@ def test_anomaly_direction_can_detect_low_degradation() -> None:
     result = detect_anomalies(request)
     assert result.anomaly_count == 1
     assert result.anomalies[0].robust_z_score == -999.0
+    assert result.points[-1].lower_threshold == 100.0
 
 
 def test_multiple_series_are_isolated() -> None:

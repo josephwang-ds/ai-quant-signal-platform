@@ -41,6 +41,11 @@ class PublishedRunReference(BaseModel):
     notes: Optional[str] = None
 
 
+# Spec aliases used by Phase 5.1C handoff vocabulary.
+PublishedResearchSnapshotReference = PublishedSnapshotReference
+PublishedResearchReference = PublishedRunReference
+
+
 class PublishedResearchQueryPort(Protocol):
     """Narrow read port over Phase 4 Published Research evidence."""
 

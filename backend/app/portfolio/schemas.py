@@ -500,6 +500,7 @@ class MemberPublicationProvenance(BaseModel):
     source_published_at: Optional[datetime] = None
     source_validation_ok: bool
     selected_snapshot_ids: list[str] = Field(default_factory=list)
+    selected_snapshot_types: list[str] = Field(default_factory=list)
     selected_snapshot_checksums: list[SelectedSnapshotProvenance] = Field(
         default_factory=list
     )
@@ -518,6 +519,17 @@ class MemberPublicationProvenance(BaseModel):
     def _aware(cls, value: Optional[datetime]) -> Optional[datetime]:
         return require_aware_utc(value)
 
+    @field_validator("selected_snapshot_types")
+    @classmethod
+    def _types(cls, value: list[str]) -> list[str]:
+        ordered: list[str] = []
+        for item in value:
+            cleaned = item.strip()
+            if not cleaned or cleaned != item:
+                raise ValueError("selected_snapshot_types must be non-empty and unpadded")
+            ordered.append(cleaned)
+        return ordered
+
     @field_validator("source_methodology_version")
     @classmethod
     def _method(cls, value: Optional[str]) -> Optional[str]:
@@ -529,6 +541,25 @@ class MemberPublicationProvenance(BaseModel):
                 "source_methodology_version must be non-empty when set and unpadded"
             )
         return cleaned
+
+    @model_validator(mode="after")
+    def _selection_lengths(self) -> MemberPublicationProvenance:
+        if len(self.selected_snapshot_types) not in (0, len(self.selected_snapshot_ids)):
+            raise ValueError(
+                "selected_snapshot_types length must match selected_snapshot_ids"
+            )
+        if len(self.selected_snapshot_checksums) not in (
+            0,
+            len(self.selected_snapshot_ids),
+        ):
+            raise ValueError(
+                "selected_snapshot_checksums length must match selected_snapshot_ids"
+            )
+        return self
+
+
+# Spec aliases used by Phase 5.1C handoff vocabulary.
+PortfolioMemberProvenance = MemberPublicationProvenance
 
 
 class PortfolioPublicationProvenance(BaseModel):
