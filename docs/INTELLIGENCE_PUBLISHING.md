@@ -18,7 +18,8 @@ Phase 4 ✅ Intelligence Publishing Layer
 Phase 4 RC ✅ Complete
 ```
 
-Phase 5 has not started. Release record: [`releases/PHASE_4_RC.md`](releases/PHASE_4_RC.md).
+Phase 5.1 Portfolio Registry Foundation is complete; Phase 5.2 snapshot builders
+have not started. Release record: [`releases/PHASE_4_RC.md`](releases/PHASE_4_RC.md).
 
 RC decision: **READY WITH NON-BLOCKING FOLLOW-UPS**.
 

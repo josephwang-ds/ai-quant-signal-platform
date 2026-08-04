@@ -25,6 +25,7 @@ class FactorValidationRequest(BaseModel):
     max_mean_turnover: float = Field(default=2.0, ge=0)
     min_observations: int = Field(default=24, ge=1)
     min_icir: float = 0.0
+    benchmark_symbol: str = "SPY"
 
 
 class FactorValidationResponse(BaseModel):
@@ -40,6 +41,8 @@ class FactorValidationResponse(BaseModel):
     quantiles: dict[str, Any]
     long_short: dict[str, Any]
     benchmark: dict[str, Any]
+    capm: dict[str, Any]
+    portfolio_risk: dict[str, Any]
     warnings: list[str]
     provenance: dict[str, Any]
     generated_at: str

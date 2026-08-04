@@ -61,6 +61,36 @@ Rules:
 
 ---
 
+## Post-trade analytics
+
+Prefix: `/api/v1/post-trade`
+
+| Method | Path | Purpose |
+| --- | --- | --- |
+| `POST` | `/api/v1/post-trade/attribution` | Reconcile notional-weighted active PnL into gross edge versus benchmark, fees, and realized slippage |
+| `POST` | `/api/v1/post-trade/anomalies` | Detect metric degradation with a past-only rolling median/MAD baseline |
+
+Both endpoints are deterministic and operate only on observations supplied in
+the request. `input_data_kind` must distinguish `operator_supplied` data from the
+`synthetic_demo` fixture used by the public walkthrough. The service does not
+connect to an OMS, broker, exchange feed, or live trading system.
+
+Attribution identity:
+
+```text
+net active PnL
+= gross strategy PnL
+- benchmark PnL
+- fees
+- realized slippage
+```
+
+Aggregates are notional-weighted and the response includes a USD reconciliation
+error. Anomaly baselines contain prior observations only; future samples never
+enter the score for the current observation.
+
+---
+
 ## Experiments (saved backtest runs)
 
 Prefix: `/api/experiments`

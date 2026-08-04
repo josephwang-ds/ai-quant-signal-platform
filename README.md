@@ -28,7 +28,9 @@ Phase 4 ✅ Intelligence Publishing Layer
 Phase 4 RC ✅ Complete
 ```
 
-Phase 5 has not started. Release record: [docs/releases/PHASE_4_RC.md](docs/releases/PHASE_4_RC.md).
+Phase 5.1 Portfolio Registry Foundation is complete; Phase 5.2 snapshot builders
+have not started. Release record: [docs/releases/PHASE_4_RC.md](docs/releases/PHASE_4_RC.md) ·
+[Phase 5 definition](docs/PHASE_5_DEFINITION.md).
 
 ## Why this project is different
 
@@ -189,6 +191,7 @@ Implementation: [`backend/app/research_agent/`](backend/app/research_agent) · A
 | Pressure Test | evidence-backed checks generated from Validation; before evidence exists, one prerequisite action replaces empty pending cards |
 | Compare Models | rules vs XGBoost / LightGBM on the same OOS window with leakage controls |
 | Risk Review | deterministic five-level risk assessment with component levels and reasons |
+| Post-Trade Analytics | API-backed, notional-weighted performance attribution and past-only robust anomaly detection over explicitly labeled synthetic demo inputs or caller-supplied observations |
 | Paper Observation | bounded, browser-local plan and dated human notes; no fake trades or P&L |
 | Decision Record | deterministic readiness suggestion, human override rationale, and evidence snapshot reference |
 | AI Research Reviewer | four focused strict-JSON actions for definition, hypothesis, supplied evidence, and missing steps |
@@ -205,6 +208,8 @@ See [docs/ROADMAP.md](docs/ROADMAP.md) and [docs/KNOWN_LIMITATIONS.md](docs/KNOW
 The workspace uses a simple rule: if the backend did not calculate it, the UI does not present it as evidence.
 
 - no fabricated PnL, fills, trades, or confidence scores;
+- deterministic synthetic fixtures are explicitly labeled and never presented as
+  live orders, exchange data, or realized investment performance;
 - failed or incomplete validation stages never count as available;
 - unavailable evidence remains unavailable rather than becoming zero;
 - AI text is visually separate from calculated results;

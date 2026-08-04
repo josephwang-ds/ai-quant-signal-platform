@@ -18,6 +18,13 @@ from app.factor_validation.factors import (
 )
 from app.factor_validation.quantile_portfolios import compute_quantile_portfolios
 from app.factor_validation.benchmark import build_factor_benchmark
+from app.factor_validation.capm import (
+    build_benchmark_period_returns,
+    decompose_performance,
+    period_return_series,
+    regress_alpha_beta,
+)
+from app.factor_validation.portfolio_stats import max_drawdown, sharpe_ratio
 from app.factor_validation.rank_ic import (
     compute_rank_ic_series,
     rolling_ic,
@@ -115,6 +122,9 @@ class FactorValidationService:
         )
         min_observations = int(payload.get("min_observations", 24))
         min_icir = float(payload.get("min_icir", 0.0))
+        benchmark_symbol = str(payload.get("benchmark_symbol") or "SPY").strip().upper()
+        if not benchmark_symbol:
+            raise FactorValidationError("benchmark_symbol must be non-empty.")
         if not 0 <= min_positive_ic_ratio <= 1:
             raise FactorValidationError(
                 "min_positive_ic_ratio must be between 0 and 1."
@@ -229,6 +239,23 @@ class FactorValidationService:
         if quantiles["n_rebalances"] == 0:
             warnings.append("No quantile rebalances produced.")
 
+        capm = self._build_capm(
+            benchmark_symbol=benchmark_symbol,
+            start_date=start_date,
+            end_date_str=end_date_str,
+            holding=holding,
+            quantiles=quantiles,
+            warnings=warnings,
+        )
+        portfolio_risk = {
+            "sharpe_ratio_net": sharpe_ratio(
+                quantiles["long_short"]["period_returns_net_of_cost"]
+            ),
+            "max_drawdown_net": max_drawdown(
+                quantiles["long_short"]["cumulative_returns_net_of_cost"]
+            ),
+        }
+
         combined_frame = (
             pd.concat(hash_frames, ignore_index=True) if hash_frames else None
         )
@@ -294,6 +321,8 @@ class FactorValidationService:
             },
             "long_short": quantiles["long_short"],
             "benchmark": benchmark,
+            "capm": capm,
+            "portfolio_risk": portfolio_risk,
             "warnings": warnings,
             "provenance": {
                 "universe_symbols": list(symbols),
@@ -302,6 +331,7 @@ class FactorValidationService:
                 "start_date": start_date,
                 "end_date": end_date_str,
                 "n_factor_periods": int(len(factor_aligned)),
+                "benchmark_symbol": benchmark_symbol,
             },
             "reproducibility_manifest": reproducibility_manifest,
             "generated_at": generated_at,
@@ -313,6 +343,85 @@ class FactorValidationService:
         validation_run_id = self._result_store.save(result)
         result["validation_run_id"] = validation_run_id
         return result
+
+    def _build_capm(
+        self,
+        *,
+        benchmark_symbol: str,
+        start_date: str,
+        end_date_str: str | None,
+        holding: int,
+        quantiles: dict[str, Any],
+        warnings: list[str],
+    ) -> dict[str, Any]:
+        """Fetch the benchmark, fit alpha/beta on the net long-short series, and
+        build the decomposition. Never fabricates evidence: any failure to
+        fetch or align the benchmark degrades to explicit ``None``/empty
+        fields plus a warning, matching the rest of this service.
+        """
+        unavailable: dict[str, Any] = {
+            "benchmark_symbol": benchmark_symbol,
+            "regression": {
+                "alpha": None,
+                "alpha_annualized": None,
+                "alpha_annualized_ci_low": None,
+                "alpha_annualized_ci_high": None,
+                "beta": None,
+                "t_stat_alpha": None,
+                "r_squared": None,
+                "n_observations": 0,
+            },
+            "decomposition": {
+                "dates": [],
+                "cumulative_beta_contribution": [],
+                "cumulative_residual_alpha": [],
+                "cumulative_cost_drag": [],
+                "methodology": "Unavailable — benchmark evidence was not computed.",
+            },
+        }
+
+        try:
+            series = self._market_data.get_daily_ohlcv(
+                benchmark_symbol, start_date, end_date_str
+            )
+        except MarketDataError as exc:
+            warnings.append(f"benchmark {benchmark_symbol}: {exc}")
+            return unavailable
+
+        close = self._extract_close(series, benchmark_symbol)
+        if close is None or close.empty:
+            warnings.append(f"benchmark {benchmark_symbol}: empty close series")
+            return unavailable
+
+        period_labels = quantiles["dates"]
+        if not period_labels:
+            return unavailable
+
+        benchmark_returns = build_benchmark_period_returns(
+            close, holding_period_months=holding, period_labels=period_labels
+        )
+        if benchmark_returns.dropna().empty:
+            warnings.append(
+                f"benchmark {benchmark_symbol}: no overlapping periods with "
+                "the factor panel"
+            )
+            return unavailable
+
+        net_series = period_return_series(
+            quantiles["long_short"]["period_returns_net_of_cost"]
+        )
+        regression = regress_alpha_beta(net_series, benchmark_returns)
+        decomposition = decompose_performance(
+            gross_period_returns=quantiles["long_short"]["period_returns"],
+            net_period_returns=quantiles["long_short"]["period_returns_net_of_cost"],
+            benchmark_returns=benchmark_returns,
+            beta=regression["beta"],
+        )
+        return {
+            "benchmark_symbol": benchmark_symbol,
+            "regression": regression,
+            "decomposition": decomposition,
+        }
 
     @staticmethod
     def _extract_close(series: Any, symbol: str) -> pd.Series | None:

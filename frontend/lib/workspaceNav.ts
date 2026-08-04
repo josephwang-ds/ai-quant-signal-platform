@@ -32,6 +32,7 @@ export const WORKSPACE_NAV_GROUPS: WorkspaceNavGroup[] = [
     items: [
       { href: "/", labelKey: "navResearchLibrary", featured: true },
       { href: "/market-watch", labelKey: "navMarketContext" },
+      { href: "/post-trade", labelKey: "navPostTradeAnalytics" },
       { href: "/platform", labelKey: "navPlatformOverview" },
     ],
   },
@@ -112,6 +113,7 @@ export function isWorkspaceNavGroupActive(
     (pathname === "/" ||
       pathname.startsWith("/research/") ||
       pathname === "/platform" ||
+      pathname.startsWith("/post-trade") ||
       pathname.startsWith("/market-watch"))
   ) {
     return true;

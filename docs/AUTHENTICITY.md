@@ -17,6 +17,15 @@ Quantitative evidence is authoritative. AI may explain, summarise, or compare ev
 | Fake approvals | Decision / governance labels only from real lifecycle evidence |
 | Silent provider fallbacks | Provider failure → error / unavailable — never demo numbers |
 
+Deterministic synthetic fixtures are permitted only when all of the following
+are true:
+
+- the interface labels them as synthetic demo data before showing results;
+- the API contract records `input_data_kind=synthetic_demo`;
+- no value is described as a live fill, exchange observation, or realized return;
+- the same deterministic service accepts caller-supplied observations without
+  changing methodology.
+
 ## Allowed without calculation
 
 - Research name, question, hypothesis, objective
@@ -34,6 +43,10 @@ Quantitative evidence is authoritative. AI may explain, summarise, or compare ev
 **Cross-Sectional Low Volatility Factor Study** (`cross-sectional-low-vol-sector-etfs`) — same universe protocol for Low Volatility.
 
 **Feature Interpretation** (Compare Models) — diagnostic importance only; does not change predictions or backtest metrics. SHAP is optional. Feature importance does not imply causality.
+
+**Post-Trade Analytics** — deterministic synthetic trade and latency observations
+demonstrate attribution and anomaly-detection contracts. They are not production
+orders, exchange data, or realized investment performance.
 
 Static definition metadata is allowed. Calculated evidence appears only after successful backend execution/validation.
 

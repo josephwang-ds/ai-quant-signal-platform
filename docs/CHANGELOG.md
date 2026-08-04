@@ -7,11 +7,22 @@ This project has not published numbered semantic releases yet. Entries below are
 
 ## [Unreleased]
 
+### Post-Trade Analytics
+
+- Deterministic, notional-weighted Performance Attribution API and UI.
+- Past-only rolling median/MAD Anomaly Detection API and UI.
+- Explicit `synthetic_demo` input labeling and authenticity boundary.
+
+### Phase 5.1
+
+- Portfolio domain contracts, filesystem registry, and publication pipeline complete.
+- Phase 5.2 portfolio snapshot builders have not started.
+
 ### Phase 4 RC
 
 - Phase 4 Intelligence Publishing Layer marked complete (READY WITH NON-BLOCKING FOLLOW-UPS).
 - Release record: [`releases/PHASE_4_RC.md`](releases/PHASE_4_RC.md).
-- Phase 5 has not started.
+- Phase 4 release record remains unchanged by later Phase 5 work.
 
 ### Research Workspace spine
 
