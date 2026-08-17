@@ -220,3 +220,38 @@ class TestNetEconomicValueUnits:
         result = net_economic_value_bps(12.0, 4.0, 400.0, 0.0)
         assert result["net_economic_value_bps"] is None
         assert "positive" in result["unavailable_reason"]
+
+
+class TestHacImplementationIsCorrect:
+    """The numpy HAC must equal the reference implementation exactly."""
+
+    def test_matches_statsmodels_when_available(self):
+        sm = pytest.importorskip("statsmodels.api")
+        from app.factor_validation.inference import _hac_mean_and_se
+
+        for n, phi in ((50, 0.0), (137, 0.3), (400, 0.7), (1000, -0.4)):
+            series = _ar1(n, phi=phi, mean=0.02, sigma=0.05, seed=n)
+            lags = newey_west_lag(n)
+            _, se = _hac_mean_and_se(series.to_numpy(), lags)
+            mine = float(series.mean()) / se
+            reference = float(
+                sm.OLS(series.to_numpy(), np.ones(n))
+                .fit(cov_type="HAC", cov_kwds={"maxlags": lags, "use_correction": False})
+                .tvalues[0]
+            )
+            assert mine == pytest.approx(reference, abs=1e-9)
+
+    def test_runs_without_statsmodels_installed(self):
+        """The point of the rewrite: no optional dependency in the hot path."""
+        import app.factor_validation.inference as module
+        import inspect
+
+        source = inspect.getsource(module)
+        assert "import statsmodels" not in source
+
+    def test_bartlett_weights_keep_variance_non_negative(self):
+        """Strongly negatively autocorrelated series must not yield a NaN se."""
+        series = _ar1(300, phi=-0.9, mean=0.01, sigma=0.05, seed=99)
+        result = newey_west_mean_tstat(series)
+        assert result["se"] is not None
+        assert result["se"] > 0

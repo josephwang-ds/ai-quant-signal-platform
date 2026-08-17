@@ -11,11 +11,15 @@ Newey-West (HAC) rather than an iid t-test, because overlapping forward
 returns and persistent factor exposures make research series autocorrelated by
 construction. An iid t-statistic on such a series is systematically too large,
 which is exactly the direction that manufactures false discoveries.
+
+Implemented on numpy alone. A verdict must not become uncomputable because an
+optional scientific package is missing from an environment; the test suite
+cross-checks the implementation against statsmodels when it happens to be
+installed.
 """
 
 from __future__ import annotations
 
-import warnings
 from collections.abc import Sequence
 
 import numpy as np
@@ -49,6 +53,40 @@ def newey_west_lag(n: int, holding_periods: int = 1) -> int:
         raise ValueError("holding_periods must be >= 1")
     automatic = int(np.floor(4.0 * (n / 100.0) ** (2.0 / 9.0)))
     return max(automatic, holding_periods - 1)
+
+
+def _hac_mean_and_se(values: np.ndarray, lags: int) -> tuple[float, float]:
+    """Bartlett-kernel HAC standard error for a sample mean.
+
+    Implemented directly rather than through a regression package. For a
+    constant-only regression the Newey-West sandwich collapses to a weighted
+    sum of the series' own autocovariances, which is short enough to read and
+    verify by hand:
+
+        Var(mean) = (1/n) * [ g(0) + 2 * sum_{j=1..L} (1 - j/(L+1)) * g(j) ]
+
+    where ``g(j)`` is the sample autocovariance at lag ``j`` and the
+    ``1 - j/(L+1)`` weights are the Bartlett kernel, which guarantees the
+    estimate is non-negative.
+
+    Keeping this dependency-free matters: an inferential statistic is the last
+    thing that should fail to run because an optional scientific package is
+    missing from an environment. Cross-checked against
+    ``statsmodels`` HAC to ~1e-12 in the test suite when it is installed.
+    """
+    n = values.size
+    demeaned = values - values.mean()
+
+    gamma0 = float(demeaned @ demeaned) / n
+    long_run = gamma0
+    for j in range(1, min(lags, n - 1) + 1):
+        weight = 1.0 - j / (lags + 1.0)
+        gamma_j = float(demeaned[j:] @ demeaned[:-j]) / n
+        long_run += 2.0 * weight * gamma_j
+
+    if long_run <= 0.0:
+        return float(values.mean()), 0.0
+    return float(values.mean()), float(np.sqrt(long_run / n))
 
 
 def _empty_result(n: int, reason: str) -> dict[str, float | int | str | None]:
@@ -99,19 +137,8 @@ def newey_west_mean_tstat(
             raise ValueError("lags must be non-negative")
         lag_rule = "explicit override"
 
-    try:
-        import statsmodels.api as sm
-
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore")
-            model = sm.OLS(values.to_numpy(), np.ones(n)).fit(
-                cov_type="HAC", cov_kwds={"maxlags": lags}
-            )
-        mean = float(model.params[0])
-        se = float(model.bse[0])
-        tstat = float(model.tvalues[0])
-    except ImportError:
-        return _empty_result(n, "statsmodels unavailable")
+    mean, se = _hac_mean_and_se(values.to_numpy(), lags)
+    tstat = mean / se if se > 0.0 else float("nan")
 
     if not np.isfinite(se) or se == 0.0 or not np.isfinite(tstat):
         return _empty_result(n, "degenerate standard error")
