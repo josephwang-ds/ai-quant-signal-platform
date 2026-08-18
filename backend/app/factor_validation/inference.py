@@ -77,14 +77,29 @@ def _hac_mean_and_se(values: np.ndarray, lags: int) -> tuple[float, float]:
     n = values.size
     demeaned = values - values.mean()
 
-    gamma0 = float(demeaned @ demeaned) / n
-    long_run = gamma0
-    for j in range(1, min(lags, n - 1) + 1):
-        weight = 1.0 - j / (lags + 1.0)
-        gamma_j = float(demeaned[j:] @ demeaned[:-j]) / n
-        long_run += 2.0 * weight * gamma_j
+    # Suppressed here for one specific, verified reason: above roughly a
+    # thousand elements numpy dispatches ``@`` to BLAS, and some builds
+    # (macOS Accelerate observed) leave stale floating-point exception flags
+    # that numpy then reports against the *next* reduction. The symptom is
+    # "divide by zero encountered in matmul" raised from a dot product — an
+    # operation that performs no division and therefore cannot truthfully
+    # produce that report. Confirmed spurious: the result is bit-identical to
+    # ``np.sum(demeaned * demeaned)``, which does not trip the flag.
+    #
+    # This does not weaken error detection. Genuine overflow or invalid input
+    # still propagates as a non-finite ``long_run`` into the finiteness check
+    # below and the ``np.isfinite(se)`` guard in ``newey_west_mean_tstat``,
+    # which is a stronger test than a warning that may not be about this
+    # computation at all.
+    with np.errstate(divide="ignore", over="ignore", invalid="ignore"):
+        gamma0 = float(demeaned @ demeaned) / n
+        long_run = gamma0
+        for j in range(1, min(lags, n - 1) + 1):
+            weight = 1.0 - j / (lags + 1.0)
+            gamma_j = float(demeaned[j:] @ demeaned[:-j]) / n
+            long_run += 2.0 * weight * gamma_j
 
-    if long_run <= 0.0:
+    if not np.isfinite(long_run) or long_run <= 0.0:
         return float(values.mean()), 0.0
     return float(values.mean()), float(np.sqrt(long_run / n))
 

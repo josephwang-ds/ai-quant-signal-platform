@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import {
   Area,
   CartesianGrid,
@@ -12,12 +12,15 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+import AppShell from "@/components/layout/AppShell";
 import {
   CHART_GRID_STROKE,
   CHART_TICK_FILL,
   CHART_TICK_FONT_SIZE,
   CHART_TOOLTIP_STYLE,
 } from "@/lib/chartTheme";
+import { useWorkspaceLanguage } from "@/lib/useWorkspaceLanguage";
+import { alphaLabCopy } from "@/lib/alphaLabCopy";
 import {
   FactorValidationApiError,
   fetchFactorValidation,
@@ -26,22 +29,12 @@ import type { FactorValidationResult } from "@/types/factorValidation";
 
 type TabId = "question" | "data" | "alpha" | "portfolio" | "attribution";
 
-const TABS: Array<{
-  id: TabId;
-  number: string;
-  label: string;
-  built: boolean;
-}> = [
-  { id: "question", number: "01", label: "Research question", built: true },
-  { id: "data", number: "02", label: "Data & signals", built: true },
-  { id: "alpha", number: "03", label: "Alpha validation", built: true },
-  { id: "portfolio", number: "04", label: "Portfolio & beta", built: false },
-  {
-    id: "attribution",
-    number: "05",
-    label: "Attribution & monitor",
-    built: false,
-  },
+const TABS: Array<{ id: TabId; number: string; built: boolean }> = [
+  { id: "question", number: "01", built: true },
+  { id: "data", number: "02", built: true },
+  { id: "alpha", number: "03", built: true },
+  { id: "portfolio", number: "04", built: false },
+  { id: "attribution", number: "05", built: false },
 ];
 
 function fmtPct(value: number | null | undefined): string {
@@ -59,18 +52,18 @@ function fmtNumber(value: number | null | undefined, digits = 2): string {
 }
 
 function decisionFromVerdict(verdict: unknown): {
-  label: string;
+  key: "promote" | "hold" | "reject";
   tone: "positive" | "warning" | "negative";
 } {
   switch (verdict) {
     case "pass":
-      return { label: "Promote", tone: "positive" };
+      return { key: "promote", tone: "positive" };
     case "fail":
-      return { label: "Reject", tone: "negative" };
+      return { key: "reject", tone: "negative" };
     default:
       // "partial" and "inconclusive" (and any unrecognized verdict) hold —
       // never auto-promote on ambiguous or unavailable evidence.
-      return { label: "Hold", tone: "warning" };
+      return { key: "hold", tone: "warning" };
   }
 }
 
@@ -117,6 +110,12 @@ function StatCard({
 }
 
 export default function AlphaResearchLabPage() {
+  const { language, setLanguage } = useWorkspaceLanguage();
+  const c = alphaLabCopy(language);
+  // The fetch effect must not re-run on a language change, so it reads the
+  // current language through a ref rather than closing over it.
+  const languageRef = useRef(language);
+  languageRef.current = language;
   const [status, setStatus] = useState<"loading" | "ready" | "error">(
     "loading"
   );
@@ -141,7 +140,7 @@ export default function AlphaResearchLabPage() {
         setError(
           err instanceof FactorValidationApiError
             ? err.message
-            : "Factor validation is unavailable. Invented evidence is not shown."
+            : alphaLabCopy(languageRef.current).fetchError
         );
       });
     return () => controller.abort();
@@ -149,6 +148,7 @@ export default function AlphaResearchLabPage() {
 
   const verdict = data?.benchmark?.verdict;
   const decision = decisionFromVerdict(verdict);
+  const decisionLabel = c.decisions[decision.key];
   const regression = data?.capm.regression;
   const decomposition = data?.capm.decomposition;
 
@@ -161,12 +161,13 @@ export default function AlphaResearchLabPage() {
     })) ?? [];
 
   return (
+    <AppShell language={language} onLanguageChange={setLanguage}>
     <div className="alpha-lab">
       <header className="alpha-lab__hero">
         <div className="alpha-lab__hero-top">
           <div>
-            <p className="alpha-lab__eyebrow">Alpha Research Lab</p>
-            <p className="alpha-lab__breadcrumb">Signal → Attribution</p>
+            <p className="alpha-lab__eyebrow">{c.eyebrow}</p>
+            <p className="alpha-lab__breadcrumb">{c.breadcrumb}</p>
           </div>
         </div>
         <nav className="alpha-lab__tabs">
@@ -178,7 +179,7 @@ export default function AlphaResearchLabPage() {
               onClick={() => setTab(item.id)}
             >
               <span className="alpha-lab__tab-number">{item.number}</span>
-              <span>{item.label}</span>
+              <span>{c.tabs[item.id]}</span>
             </button>
           ))}
         </nav>
@@ -200,40 +201,36 @@ export default function AlphaResearchLabPage() {
 
       <div className="alpha-lab__title-row">
         <div>
-          <p className="alpha-lab__kicker">Cross-sectional equity research</p>
-          <h1 className="alpha-lab__title">Momentum alpha after beta and costs</h1>
+          <p className="alpha-lab__kicker">{c.kicker}</p>
+          <h1 className="alpha-lab__title">{c.title}</h1>
         </div>
         {status === "ready" ? (
           <span
             className={`alpha-lab__decision alpha-lab__decision--${decision.tone}`}
           >
-            Decision · {decision.label}
+            {c.decisionPrefix} · {decisionLabel}
           </span>
         ) : null}
       </div>
 
       <div className="alpha-lab__question-band">
-        <p className="alpha-lab__question">
-          Does momentum retain predictive power after neutralizing market beta and
-          charging turnover costs?
-        </p>
+        <p className="alpha-lab__question">{c.question}</p>
         {data ? (
           <p className="alpha-lab__question-meta">
-            {data.universe_id} · Monthly rebalance · Forward {data.holding_period_months}M
-            return · Chronological, no shuffling · Benchmark: {data.capm.benchmark_symbol}
+            {data.universe_id} · {c.metaMonthly} ·{" "}
+            {c.metaForward(data.holding_period_months)} · {c.metaChronological} ·{" "}
+            {c.metaBenchmark}: {data.capm.benchmark_symbol}
           </p>
         ) : null}
-        <p className="alpha-lab__scope-line">
-          For systematic research — not individual stock advice
-        </p>
+        <p className="alpha-lab__scope-line">{c.scopeLine}</p>
       </div>
 
       {status === "loading" ? (
-        <p className="alpha-lab__status">Loading real factor-validation evidence…</p>
+        <p className="alpha-lab__status">{c.loading}</p>
       ) : null}
       {status === "error" ? (
         <p className="alpha-lab__status alpha-lab__status--error">
-          {error ?? "Unavailable."}
+          {error ?? c.unavailable}
         </p>
       ) : null}
 
@@ -241,92 +238,90 @@ export default function AlphaResearchLabPage() {
         <>
           {tab === "alpha" ? (
             <>
-              <StatSection title="Does the signal carry information?">
+              <StatSection title={c.sections.information}>
                 <StatCard
-                  label="Mean RankIC"
+                  label={c.stats.meanRankIc}
                   value={fmtNumber(data.ic.summary.mean_rank_ic, 4)}
-                  caption="out-of-sample only"
+                  caption={c.stats.meanRankIcCaption}
                 />
                 <StatCard
-                  label="ICIR"
+                  label={c.stats.icir}
                   value={fmtNumber(data.ic.summary.icir)}
-                  caption="mean IC / std IC"
+                  caption={c.stats.icirCaption}
                 />
                 <StatCard
-                  label="Positive IC ratio"
+                  label={c.stats.positiveIc}
                   value={fmtPct(data.ic.summary.positive_ic_ratio)}
-                  caption={`of ${data.ic.summary.n_periods} periods`}
+                  caption={c.stats.positiveIcCaption(data.ic.summary.n_periods)}
                 />
               </StatSection>
 
-              <StatSection title="Does it survive costs?">
+              <StatSection title={c.sections.costs}>
                 <StatCard
-                  label="Q5 − Q1 gross"
+                  label={c.stats.grossSpread}
                   value={fmtPct(data.long_short.cumulative_final)}
-                  caption="before transaction costs"
+                  caption={c.stats.grossSpreadCaption}
                 />
                 <StatCard
-                  label="Q5 − Q1 net"
+                  label={c.stats.netSpread}
                   value={fmtPct(data.long_short.cumulative_final_net_of_cost)}
-                  caption="after transaction costs"
+                  caption={c.stats.netSpreadCaption}
                 />
                 <StatCard
-                  label="Turnover"
+                  label={c.stats.turnover}
                   value={fmtNumber(data.quantiles.turnover.mean)}
-                  caption="cost pressure per rebalance"
+                  caption={c.stats.turnoverCaption}
                 />
               </StatSection>
 
-              <StatSection title="Is it alpha or beta?">
+              <StatSection title={c.sections.alphaOrBeta}>
                 <StatCard
-                  label="Net alpha"
+                  label={c.stats.netAlpha}
                   value={fmtPct(regression?.alpha_annualized)}
-                  caption={`95% CI ${fmtPct(regression?.alpha_annualized_ci_low)} to ${fmtPct(regression?.alpha_annualized_ci_high)}`}
+                  caption={c.stats.netAlphaCaption(fmtPct(regression?.alpha_annualized_ci_low), fmtPct(regression?.alpha_annualized_ci_high))}
                 />
                 <StatCard
-                  label="Alpha t-stat"
+                  label={c.stats.tstat}
                   value={fmtNumber(regression?.t_stat_alpha)}
-                  caption={`n = ${regression?.n_observations ?? 0} periods`}
+                  caption={c.stats.tstatCaption(regression?.n_observations ?? 0)}
                 />
                 <StatCard
-                  label="Market beta"
+                  label={c.stats.beta}
                   value={fmtNumber(regression?.beta)}
-                  caption={`vs ${data.capm.benchmark_symbol}`}
+                  caption={c.stats.betaCaption(data.capm.benchmark_symbol)}
                 />
                 <StatCard
-                  label="R²"
+                  label={c.stats.rSquared}
                   value={fmtNumber(regression?.r_squared)}
-                  caption="variance explained by beta"
+                  caption={c.stats.rSquaredCaption}
                 />
               </StatSection>
 
-              <StatSection title="Stable enough to trust?">
+              <StatSection title={c.sections.stability}>
                 <StatCard
-                  label="Sharpe (net)"
+                  label={c.stats.sharpe}
                   value={fmtNumber(data.portfolio_risk.sharpe_ratio_net)}
-                  caption="annualized, long-short book"
+                  caption={c.stats.sharpeCaption}
                 />
                 <StatCard
-                  label="Max drawdown (net)"
+                  label={c.stats.maxDrawdown}
                   value={fmtPct(data.portfolio_risk.max_drawdown_net)}
-                  caption="peak to trough"
+                  caption={c.stats.maxDrawdownCaption}
                 />
               </StatSection>
 
               <p className="alpha-lab__provenance-note">
-                Source: factor_validation service · {data.universe_id} vs{" "}
-                {data.capm.benchmark_symbol} · {data.provenance.start_date} →{" "}
-                {data.provenance.end_date ?? "latest"}
+                {c.provenance(
+                  data.universe_id,
+                  data.capm.benchmark_symbol,
+                  data.provenance.start_date,
+                  data.provenance.end_date ?? c.dataTab.latest
+                )}
               </p>
 
               <div className="alpha-lab__chart-panel">
-                <p className="alpha-lab__chart-title">
-                  Where did performance come from?
-                </p>
-                <p className="alpha-lab__chart-subtitle">
-                  Long-short portfolio return decomposed into beta contribution,
-                  residual alpha, and cost drag
-                </p>
+                <p className="alpha-lab__chart-title">{c.chart.title}</p>
+                <p className="alpha-lab__chart-subtitle">{c.chart.subtitle}</p>
                 <div style={{ width: "100%", height: 300 }}>
                   <ResponsiveContainer>
                     <ComposedChart
@@ -349,7 +344,7 @@ export default function AlphaResearchLabPage() {
                       <Area
                         type="monotone"
                         dataKey="costDrag"
-                        name="Cost drag"
+                        name={c.chart.costDrag}
                         fill="var(--chart-series-3)"
                         stroke="var(--chart-series-3)"
                         fillOpacity={0.18}
@@ -358,7 +353,7 @@ export default function AlphaResearchLabPage() {
                       <Line
                         type="monotone"
                         dataKey="betaContribution"
-                        name="Beta contribution"
+                        name={c.chart.betaContribution}
                         stroke="var(--chart-series-2)"
                         strokeDasharray="5 4"
                         dot={false}
@@ -367,7 +362,7 @@ export default function AlphaResearchLabPage() {
                       <Line
                         type="monotone"
                         dataKey="residualAlpha"
-                        name="Residual alpha"
+                        name={c.chart.residualAlpha}
                         stroke="var(--chart-series-1)"
                         dot={false}
                         strokeWidth={2.5}
@@ -376,7 +371,7 @@ export default function AlphaResearchLabPage() {
                   </ResponsiveContainer>
                 </div>
                 <p className="alpha-lab__methodology">
-                  {decomposition?.methodology}
+                  {c.chart.methodology ?? decomposition?.methodology}
                 </p>
               </div>
             </>
@@ -384,68 +379,51 @@ export default function AlphaResearchLabPage() {
 
           {tab === "question" ? (
             <div className="alpha-lab__panel">
-              <h3>Why this question</h3>
-              <p className="alpha-lab__lede">
-                Individual investors can generate signals faster than they can
-                validate them. This page exists to slow that down, on purpose.
-              </p>
+              <h3>{c.questionTab.heading}</h3>
+              <p className="alpha-lab__lede">{c.questionTab.lede}</p>
               <ol className="alpha-lab__findings">
-                <li>
-                  <strong>No repeatable research process.</strong> The
-                  question, success criteria, and benchmark are fixed above
-                  before any result is shown — universe, rebalance frequency,
-                  and forward window are stated, not chosen after the fact.
-                </li>
-                <li>
-                  <strong>Outperformance isn&rsquo;t automatically alpha.</strong>{" "}
-                  The stats below regress this factor&rsquo;s returns against
-                  a market benchmark to separate residual alpha from beta
-                  exposure — see Market beta and the decomposition chart on
-                  the Alpha Validation tab.
-                </li>
-                <li>
-                  <strong>Evidence decays after publication.</strong> Rolling
-                  IC/alpha-decay monitoring is not built yet — the
-                  Attribution &amp; Monitor tab says so honestly rather than
-                  faking a chart.
-                </li>
+                {c.questionTab.findings.map((finding) => (
+                  <li key={finding.lead}>
+                    <strong>{finding.lead}</strong> {finding.body}
+                  </li>
+                ))}
               </ol>
               <p>
-                Current decision: <strong>{decision.label}</strong> — derived
-                directly from the factor benchmark verdict (
-                <code>{String(verdict ?? "unavailable")}</code>), not a
-                separately fabricated judgment.
+                {c.questionTab.decisionLine(
+                  decisionLabel,
+                  String(verdict ?? "unavailable")
+                )}
               </p>
-              <p className="alpha-lab__scope-note">
-                Scope: this system validates cross-sectional factor and
-                portfolio evidence. It does not generate single-stock
-                buy/sell signals — any per-symbol membership shown elsewhere
-                is transparency, not a recommendation.
-              </p>
+              <p className="alpha-lab__scope-note">{c.questionTab.scopeNote}</p>
             </div>
           ) : null}
 
           {tab === "data" ? (
             <div className="alpha-lab__panel">
-              <h3>Data & signals</h3>
+              <h3>{c.dataTab.heading}</h3>
               <dl className="alpha-lab__kv">
-                <dt>Universe</dt>
+                <dt>{c.dataTab.universe}</dt>
                 <dd>
-                  {data.universe_id} ({data.provenance.symbols_used.length} symbols
-                  used of {data.provenance.universe_symbols.length})
+                  {data.universe_id} (
+                  {c.dataTab.universeValue(
+                    data.provenance.symbols_used.length,
+                    data.provenance.universe_symbols.length
+                  )}
+                  )
                 </dd>
-                <dt>Date range</dt>
+                <dt>{c.dataTab.dateRange}</dt>
                 <dd>
-                  {data.provenance.start_date} → {data.provenance.end_date ?? "latest"}
+                  {data.provenance.start_date} →{" "}
+                  {data.provenance.end_date ?? c.dataTab.latest}
                 </dd>
-                <dt>Factor periods</dt>
+                <dt>{c.dataTab.factorPeriods}</dt>
                 <dd>{data.provenance.n_factor_periods}</dd>
-                <dt>Benchmark</dt>
+                <dt>{c.dataTab.benchmark}</dt>
                 <dd>{data.provenance.benchmark_symbol}</dd>
               </dl>
               {data.warnings.length > 0 ? (
                 <>
-                  <h4>Warnings</h4>
+                  <h4>{c.dataTab.warnings}</h4>
                   <ul className="alpha-lab__warnings">
                     {data.warnings.map((warning) => (
                       <li key={warning}>{warning}</li>
@@ -453,29 +431,22 @@ export default function AlphaResearchLabPage() {
                   </ul>
                 </>
               ) : (
-                <p className="alpha-lab__muted">No data-quality warnings for this run.</p>
+                <p className="alpha-lab__muted">{c.dataTab.noWarnings}</p>
               )}
             </div>
           ) : null}
 
           {tab === "portfolio" ? (
             <NotYetBuiltPanel
-              title="Portfolio & beta — not yet built"
-              note="Sector and style neutralization at the portfolio level maps to this
-              repo's own not-yet-started Phase 5.2 (Portfolio Exposure Snapshots). The
-              Alpha Validation tab already shows a real single-factor market-beta
-              regression on the long-short portfolio; this tab will extend that to
-              multi-member portfolios with sector/style exposure once that phase lands."
+              title={c.notBuilt.portfolioTitle}
+              note={c.notBuilt.portfolioNote}
             />
           ) : null}
 
           {tab === "attribution" ? (
             <NotYetBuiltPanel
-              title="Attribution & monitor — not yet built"
-              note="Rolling IC/alpha-decay monitoring and portfolio-level alpha/beta/sector
-              attribution do not exist yet in this codebase — the post-trade module
-              computes execution/cost attribution (fees, slippage, venue), a related
-              but distinct question. This tab is reserved for that future slice."
+              title={c.notBuilt.attributionTitle}
+              note={c.notBuilt.attributionNote}
             />
           ) : null}
         </>
@@ -483,11 +454,10 @@ export default function AlphaResearchLabPage() {
 
       {status === "ready" ? (
         <p className="alpha-lab__pipeline-recap">
-          Question → Data → Alpha Validation → Portfolio &amp; Beta (planned) →
-          Attribution &amp; Monitor (planned) → Decision:{" "}
-          <strong>{decision.label}</strong>
+          {c.pipelineRecap(decisionLabel)}
         </p>
       ) : null}
     </div>
+    </AppShell>
   );
 }

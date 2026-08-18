@@ -2,7 +2,7 @@
 
 import ResearchPaperTradingCenter from "@/components/features/research/paper/ResearchPaperTradingCenter";
 import ResearchDecisionCenter from "@/components/features/research/decision/ResearchDecisionCenter";
-import { buildPaperTradingLabels } from "@/components/features/paper-trading/PaperTradingPage";
+import { buildPaperTradingLabels } from "@/lib/paperTradingLabels";
 import { buildDecisionCenterLabels } from "@/lib/decisionCenterLabels";
 import type { Language, TranslationKey } from "@/lib/i18n";
 import type { ResearchDetail, ResearchWorkspaceSection } from "@/types/research";

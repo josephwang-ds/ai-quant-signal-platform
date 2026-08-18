@@ -81,13 +81,20 @@ describe("lifecycle progress helpers", () => {
 });
 
 describe("workspace navigation model", () => {
-  it("uses Research Library-first primary navigation with Engine secondary", () => {
+  it("uses Text Signals-first navigation with the price baseline as control arm", () => {
     const entryHrefs = WORKSPACE_NAV_GROUPS.flatMap((group) =>
       group.items.map((item) => item.href)
     );
 
-    expect(WORKSPACE_NAV_GROUPS.map((group) => group.id)).toEqual(["primary", "engine", "documentation"]);
+    expect(WORKSPACE_NAV_GROUPS.map((group) => group.id)).toEqual([
+      "textSignals",
+      "priceBaseline",
+      "engine",
+      "documentation",
+    ]);
+    expect(entryHrefs[0]).toBe("/text-signals");
     expect(entryHrefs).toContain("/");
+    expect(entryHrefs).toContain("/alpha-lab");
     expect(entryHrefs).toContain("/market-watch");
     expect(entryHrefs).toContain("/platform");
     expect(entryHrefs).toContain("/engine");
@@ -96,7 +103,6 @@ describe("workspace navigation model", () => {
     expect(entryHrefs.some((href) => href.startsWith("/research/"))).toBe(false);
     expect(entryHrefs).not.toContain("/intelligence/market");
     expect(entryHrefs).not.toContain("/intelligence/research");
-    expect(entryHrefs[0]).toBe("/");
     expect(entryHrefs).not.toContain("/experiments");
     expect(entryHrefs).not.toContain("/compare-models");
   });

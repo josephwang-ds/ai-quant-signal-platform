@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
 import type { Language } from "@/lib/i18n";
 import { t } from "@/lib/i18n";
 import {
@@ -78,13 +79,41 @@ function NavGroupSection({
   onNavigate?: () => void;
 }) {
   const pathname = usePathname();
+  const groupActive = group.collapsible
+    ? isWorkspaceNavGroupActive(pathname, group)
+    : false;
+  const storageKey = `workspace-sidenav-open:${group.id}`;
+
+  // Persisted, sticky open state: auto-opens when the active route enters
+  // this group, but never auto-closes on navigation — only an explicit user
+  // toggle closes it. Uncontrolled `open={groupActive}` used to force-close
+  // this on every route change, hiding primary nav on every navigation.
+  //
+  // Initial state must be identical on server and client (just `groupActive`)
+  // to avoid a hydration mismatch; the stored preference is only applied in
+  // an effect after mount, which runs client-side only.
+  const [open, setOpen] = useState<boolean>(groupActive);
+
+  useEffect(() => {
+    const stored = window.localStorage.getItem(storageKey);
+    if (stored === "true") setOpen(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    if (groupActive) setOpen(true);
+  }, [groupActive]);
 
   if (group.collapsible) {
-    const groupActive = isWorkspaceNavGroupActive(pathname, group);
     return (
       <details
         className="workspace-sidenav__group workspace-sidenav__group--collapsible"
-        open={groupActive || undefined}
+        open={open}
+        onToggle={(event) => {
+          const next = event.currentTarget.open;
+          setOpen(next);
+          window.localStorage.setItem(storageKey, String(next));
+        }}
       >
         <summary className="workspace-sidenav__group-label workspace-sidenav__summary">
           {t(language, group.labelKey)}

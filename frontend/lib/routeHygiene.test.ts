@@ -12,22 +12,30 @@ function readPage(relativePath: string): string {
 }
 
 describe("IA V2 route hygiene", () => {
-  it("keeps Library first and removes unfinished intelligence placeholders from primary nav", () => {
+  it("leads with the Text Signals track and keeps unfinished placeholders out of nav", () => {
+    // IA V3: the text-signals track is the primary spine and the price-factor
+    // surfaces are grouped as its control arm. Nothing was removed — the price
+    // baseline is what incremental signal value is measured *against*.
     expect(WORKSPACE_NAV_GROUPS.map((group) => group.id)).toEqual([
-      "primary",
+      "textSignals",
+      "priceBaseline",
       "engine",
       "documentation",
     ]);
     const hrefs = WORKSPACE_NAV_GROUPS.flatMap((group) =>
       group.items.map((item) => item.href)
     );
+    expect(hrefs[0]).toBe("/text-signals");
+    // Every previously-reachable surface stays reachable.
     expect(hrefs).toContain("/");
+    expect(hrefs).toContain("/alpha-lab");
     expect(hrefs).toContain("/market-watch");
     expect(hrefs).toContain("/post-trade");
     expect(hrefs).toContain("/platform");
     expect(hrefs).toContain("/engine");
     expect(hrefs).toContain("/engine/features");
-    expect(hrefs[0]).toBe("/");
+    // Route hygiene — unchanged intent: no unfinished placeholder surfaces and
+    // no query-param stage routing in primary navigation.
     expect(hrefs).not.toContain("/intelligence/market");
     expect(hrefs).not.toContain("/intelligence/research");
     expect(hrefs).not.toContain("/intelligence/signal");

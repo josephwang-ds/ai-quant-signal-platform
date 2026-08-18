@@ -27,12 +27,22 @@ const DOC = (path: string) => `${PRODUCT_REPO_URL}/blob/main/${path}`;
 
 export const WORKSPACE_NAV_GROUPS: WorkspaceNavGroup[] = [
   {
-    id: "primary",
-    labelKey: "navGroupPrimary",
+    // The current research track: text as the signal channel, measured as
+    // incremental value over the price baseline below.
+    id: "textSignals",
+    labelKey: "navGroupTextSignals",
+    items: [{ href: "/text-signals", labelKey: "navTextSignalsHome", featured: true }],
+  },
+  {
+    // Not legacy: this is the control arm. "Incremental" needs something to be
+    // incremental over, and these are the price-only results text must beat.
+    id: "priceBaseline",
+    labelKey: "navGroupPriceBaseline",
     items: [
-      { href: "/", labelKey: "navResearchLibrary", featured: true },
-      { href: "/market-watch", labelKey: "navMarketContext" },
+      { href: "/alpha-lab", labelKey: "navAlphaLab" },
+      { href: "/", labelKey: "navResearchLibrary" },
       { href: "/post-trade", labelKey: "navPostTradeAnalytics" },
+      { href: "/market-watch", labelKey: "navMarketContext" },
       { href: "/platform", labelKey: "navPlatformOverview" },
     ],
   },
@@ -108,10 +118,14 @@ export function isWorkspaceNavGroupActive(
   if (group.id === "engine" && pathname.startsWith("/engine")) {
     return true;
   }
+  if (group.id === "textSignals" && pathname.startsWith("/text-signals")) {
+    return true;
+  }
   if (
-    group.id === "primary" &&
+    group.id === "priceBaseline" &&
     (pathname === "/" ||
       pathname.startsWith("/research/") ||
+      pathname.startsWith("/alpha-lab") ||
       pathname === "/platform" ||
       pathname.startsWith("/post-trade") ||
       pathname.startsWith("/market-watch"))
