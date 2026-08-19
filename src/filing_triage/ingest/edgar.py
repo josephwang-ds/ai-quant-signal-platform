@@ -38,6 +38,12 @@ SEC_ARCHIVE_URL = "https://www.sec.gov/Archives/edgar/data/{cik}/{accession}/{do
 ACCEPTANCE_TZ = ZoneInfo(os.environ.get("EDGAR_ACCEPTANCE_TZ", "America/New_York"))
 
 MAX_REQUESTS_PER_SECOND = 8      # SEC's ceiling is 10; leave headroom.
+MAX_RETRIES = 5
+BACKOFF_BASE = 2.0
+
+
+class EdgarAccessError(RuntimeError):
+    """The SEC refused us, and retrying the same way will not help."""
 
 
 @dataclass
@@ -62,14 +68,54 @@ class EdgarClient:
         self._last_request = 0.0
 
     # -- transport --------------------------------------------------------- #
-    def _get(self, url: str) -> bytes:
+    def _throttle(self) -> None:
         wait = (1.0 / MAX_REQUESTS_PER_SECOND) - (time.monotonic() - self._last_request)
         if wait > 0:
             time.sleep(wait)
-        response = self._session.get(url, timeout=self.timeout)
-        self._last_request = time.monotonic()
-        response.raise_for_status()
-        return response.content
+
+    def _get(self, url: str) -> bytes:
+        """One request, with backoff on the failures that are worth retrying.
+
+        A full S&P 500 pull is tens of thousands of requests over an hour or more.
+        Over that window a handful of 503s and dropped connections is normal, and
+        losing the run to one of them is the difference between a pipeline and a
+        script. 403 and 404 are not retried: 403 means the SEC rejected the
+        User-Agent, and hammering it is exactly what gets an IP blocked.
+        """
+        last_error: Exception | None = None
+        for attempt in range(MAX_RETRIES):
+            self._throttle()
+            try:
+                response = self._session.get(url, timeout=self.timeout)
+                self._last_request = time.monotonic()
+
+                if response.status_code == 403:
+                    raise EdgarAccessError(
+                        f"SEC returned 403 for {url}.\n"
+                        f"Its fair-access rules want a real name and email in the "
+                        f"User-Agent; ours is {self.user_agent!r}.\n"
+                        "Set EDGAR_USER_AGENT=\"Your Name you@example.com\" and retry."
+                    )
+                if response.status_code == 404:
+                    raise EdgarAccessError(f"SEC returned 404 for {url}")
+
+                if response.status_code == 429 or response.status_code >= 500:
+                    delay = _retry_after(response) or BACKOFF_BASE ** attempt
+                    last_error = RuntimeError(
+                        f"HTTP {response.status_code} for {url}")
+                    time.sleep(delay)
+                    continue
+
+                response.raise_for_status()
+                return response.content
+
+            except (requests.ConnectionError, requests.Timeout) as error:
+                self._last_request = time.monotonic()
+                last_error = error
+                time.sleep(BACKOFF_BASE ** attempt)
+
+        raise RuntimeError(
+            f"gave up on {url} after {MAX_RETRIES} attempts: {last_error}")
 
     def _cached(self, key: str, url: str) -> bytes:
         path = self.cache_dir / key
@@ -77,8 +123,18 @@ class EdgarClient:
         if path.exists():
             return path.read_bytes()
         payload = self._get(url)
-        path.write_bytes(payload)
+        # Write via a temporary file: a run interrupted mid-write must not leave a
+        # truncated cache entry that every later run then trusts.
+        temporary = path.with_suffix(path.suffix + ".part")
+        temporary.write_bytes(payload)
+        temporary.replace(path)
         return payload
+
+    def check_access(self) -> str:
+        """One cheap request, so a bad setup fails in seconds not in an hour."""
+        payload = self._get(SEC_TICKERS_URL)
+        count = len(json.loads(payload))
+        return f"SEC reachable, {count:,} tickers in the mapping"
 
     # -- endpoints --------------------------------------------------------- #
     def ticker_map(self) -> pd.DataFrame:
@@ -112,6 +168,14 @@ class EdgarClient:
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(text)
         return text
+
+
+def _retry_after(response: requests.Response) -> float | None:
+    raw = response.headers.get("Retry-After")
+    try:
+        return float(raw) if raw else None
+    except ValueError:
+        return None
 
 
 def strip_markup(html: str) -> str:
@@ -150,9 +214,13 @@ def parse_submissions(payload: dict, cik: int, forms: tuple[str, ...] = ("8-K",)
         "items": df.get("items", pd.Series("", index=df.index)).fillna(""),
         "primary_document": df["primaryDocument"],
         # THE knowledge time. Localised, never converted from UTC. See module docstring.
+        # format="ISO8601" rather than letting pandas infer: inference falls back
+        # to dateutil, which will cheerfully find *a* reading for a malformed
+        # string. Here a value we cannot parse must become NaT and be dropped,
+        # not guessed at.
         "acceptance_time": pd.to_datetime(
             df["acceptanceDateTime"].str.replace("Z", "", regex=False),
-            errors="coerce",
+            format="ISO8601", errors="coerce",
         ).dt.tz_localize(ACCEPTANCE_TZ, ambiguous=True, nonexistent="shift_forward"),
         # Carried for the leakage experiment only. Not inputs.
         "filing_date": pd.to_datetime(df["filingDate"], errors="coerce").dt.date,

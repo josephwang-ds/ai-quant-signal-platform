@@ -11,6 +11,21 @@ is answerable.
 
 ---
 
+> [!IMPORTANT]
+> **The figures below come from a synthetic corpus, not from SEC EDGAR.**
+>
+> They demonstrate the *mechanism* — that these four bugs inflate these metrics —
+> and the size of each effect is a property of the simulator, not a measurement of
+> the market. The simulator was built with the reaction landing on the first open
+> after acceptance, so a pipeline that gets the timing right will of course find
+> it; what that shows is that the plumbing works, not that the hypothesis holds.
+>
+> `make ingest` replaces every frame with real EDGAR filings and real prices, with
+> no change to any pipeline code. Numbers from a real pull are the ones worth
+> quoting. Until then, treat this page as a demonstration of method.
+
+---
+
 ## The result
 
 The first version of this pipeline reported an average precision of **0.391**.
@@ -64,6 +79,9 @@ pip install -e ".[dev]"
 make demo            # ~4 min -> data/build/report.html
 ```
 
+Every report says at the top which of the two it is; a synthetic run is labelled
+as one, and cannot be mistaken for a real pull at a glance.
+
 `make demo` generates a synthetic corpus with the properties the project is about
 — filings on the real NYSE calendar, 80% of them outside market hours, an index
 that gains and loses members — then runs the pipeline, the leakage study and the
@@ -80,9 +98,20 @@ make audit           # the leakage checks as an exit code
 ```bash
 export EDGAR_USER_AGENT="Your Name you@example.com"   # the SEC requires this
 python scripts/build_universe.py --out data/build/sp500_membership.csv
-make ingest          # S&P 500, EDGAR + Stooq, rate-limited and cached
+python -m filing_triage.cli doctor                    # preflight, ~5 seconds
+make ingest          # S&P 500, EDGAR + Stooq, rate-limited and cached, ~1 hour
 make run
 ```
+
+Run `doctor` first. A full pull is tens of thousands of requests over an hour or
+more, and finding out at minute fifty that the SEC rejected the User-Agent wastes
+an afternoon and some of the SEC's patience. It checks the User-Agent, that the
+SEC and the price source answer, and that the universe file actually contains
+historical members — a membership file with zero of them is the survivorship trap
+already sprung.
+
+The ingest is cached per accession number and resumable: interrupt it and rerun,
+and it picks up where it stopped. One issuer failing does not abort the run.
 
 No pipeline code changes between the two paths — only where the frames come from.
 
@@ -176,8 +205,12 @@ About 2,750 lines under `src/`, plus 430 of tests. It is meant to be read end to
   applied to both the issuer and its benchmark, so it does not bias the study, but
   it is a compromise worth naming.
 - Figures on this page come from the synthetic corpus, so that the repository runs
-  end to end with no credentials. They are illustrative of the *mechanism*; run
-  `make ingest` for numbers about the actual market.
+  end to end with no credentials — see the note at the top. They are illustrative
+  of the *mechanism*; run `make ingest` for numbers about the actual market.
+- The EDGAR client's parsing layer is pinned by fixtures shaped like the real
+  payloads (`tests/test_edgar.py`), including paginated shards, empty `reportDate`,
+  and unparseable timestamps. The transport layer — rate limiting, backoff,
+  resumability — has not been exercised against the live SEC.
 
 ## License
 

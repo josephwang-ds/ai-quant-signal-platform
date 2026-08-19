@@ -30,15 +30,18 @@ PALETTE = {
 
 
 def render(result, study: pd.DataFrame, sweep: pd.DataFrame,
-           output: str | Path = "data/build/report.html") -> Path:
+           output: str | Path = "data/build/report.html",
+           provenance: dict | None = None) -> Path:
     output = Path(output)
     output.parent.mkdir(parents=True, exist_ok=True)
-    output.write_text(_document(result, study, sweep), encoding="utf-8")
+    output.write_text(_document(result, study, sweep, provenance or {}),
+                      encoding="utf-8")
     return output
 
 
 # --------------------------------------------------------------------------- #
-def _document(result, study: pd.DataFrame, sweep: pd.DataFrame) -> str:
+def _document(result, study: pd.DataFrame, sweep: pd.DataFrame,
+              provenance: dict) -> str:
     metrics = result.metrics
     honest = study.iloc[-1]
     naive = study.iloc[0]
@@ -53,6 +56,8 @@ def _document(result, study: pd.DataFrame, sweep: pd.DataFrame) -> str:
 </head>
 <body>
 <main class="wrap">
+
+  {_provenance_banner(provenance)}
 
   <header class="hero">
     <p class="eyebrow">SEC 8-K disclosures &middot; point-in-time study</p>
@@ -152,12 +157,7 @@ def _document(result, study: pd.DataFrame, sweep: pd.DataFrame) -> str:
       Generated {datetime.now(timezone.utc):%Y-%m-%d %H:%M} UTC &middot;
       {result.config.describe_switches()}
     </p>
-    <p class="note">
-      Figures on this page come from the synthetic corpus that ships with the
-      repository, so the project runs end to end with no SEC credentials and no
-      network. <code>make ingest</code> swaps in real EDGAR filings and real
-      prices; no pipeline code changes.
-    </p>
+    <p class="note">{_provenance_footnote(provenance)}</p>
   </footer>
 
 </main>
@@ -169,6 +169,49 @@ def _document(result, study: pd.DataFrame, sweep: pd.DataFrame) -> str:
 # --------------------------------------------------------------------------- #
 # Panels
 # --------------------------------------------------------------------------- #
+def _provenance_banner(provenance: dict) -> str:
+    """Say where the numbers came from, at the top, before anything else.
+
+    A page of figures with no provenance on it is one screenshot away from being
+    quoted as a fact about the market. Synthetic runs say so loudly; real ones
+    say what was pulled and when.
+    """
+    source = provenance.get("source", "unknown")
+
+    if source == "edgar":
+        detail = (f"SEC EDGAR &middot; {provenance.get('filings', 0):,} filings from "
+                  f"{provenance.get('issuers', 0):,} issuers")
+        failed = provenance.get("failed_issuers") or []
+        if failed:
+            detail += f" &middot; {len(failed)} issuer(s) failed to fetch"
+        return (f'<div class="banner real"><strong>Real filings.</strong> {detail}, '
+                f'pulled {html.escape(str(provenance.get("written_at", ""))[:10])}.</div>')
+
+    if source == "synthetic":
+        return ('<div class="banner synthetic">'
+                '<strong>Synthetic data.</strong> Every number on this page comes from '
+                'a simulated corpus, not from SEC EDGAR. It demonstrates the '
+                '<em>mechanism</em> &mdash; that these bugs inflate these metrics &mdash; '
+                'and the size of each effect is a property of the simulator, not a '
+                'measurement of the market. Run <code>make ingest</code> for figures '
+                'about the actual market.</div>')
+
+    return ('<div class="banner synthetic"><strong>Provenance unknown.</strong> '
+            'No record was written of where these frames came from. Treat the '
+            'figures as unattributed.</div>')
+
+
+def _provenance_footnote(provenance: dict) -> str:
+    if provenance.get("source") == "edgar":
+        return (f"Source: {html.escape(str(provenance.get('note', 'SEC EDGAR')))}. "
+                f"Regenerate with <code>make ingest &amp;&amp; make run</code>.")
+    return ("Source: the synthetic corpus that ships with the repository, so the "
+            "project runs end to end with no SEC credentials and no network. "
+            "<code>make ingest</code> swaps in real EDGAR filings and real prices; "
+            "no pipeline code changes.")
+
+
+
 def _stat_row(metrics: dict, naive_ap: float) -> str:
     tiles = [
         (f"{metrics.get('n_events', 0):,}", "filings ranked", "out of sample"),
@@ -380,6 +423,15 @@ body {{
   -webkit-text-size-adjust: 100%;
 }}
 .wrap {{ max-width: 900px; margin: 0 auto; padding: 56px 24px 80px; }}
+
+.banner {{ border-radius: 10px; padding: 14px 18px; margin: 0 0 32px;
+  font-size: 14px; line-height: 1.55; border: 1px solid; }}
+.banner strong {{ color: var(--ink); }}
+.banner code {{ background: var(--panel); padding: 1px 5px; border-radius: 4px; }}
+.banner.synthetic {{ border-color: var(--alarm); color: var(--ink2);
+  background: color-mix(in srgb, var(--alarm) 9%, var(--surface)); }}
+.banner.real {{ border-color: var(--accent); color: var(--ink2);
+  background: color-mix(in srgb, var(--accent) 9%, var(--surface)); }}
 
 .eyebrow {{ text-transform: uppercase; letter-spacing: .1em; font-size: 12px;
   color: var(--muted); margin: 0 0 12px; font-weight: 600; }}
