@@ -19,11 +19,27 @@ help:
 check-python:
 	@test -n "$(PYTHON)" || { \
 	  echo "No python3 found on PATH."; \
-	  echo "  macOS:  brew install python   (or install the Xcode command line tools)"; \
+	  echo "  macOS:  brew install python@3.12"; \
 	  echo "  Ubuntu: sudo apt install python3 python3-venv"; \
+	  exit 1; }
+	@$(PYTHON) -c 'import sys; sys.exit(0 if sys.version_info >= (3, 11) else 1)' || { \
+	  echo "Python 3.11+ required; $(PYTHON) is $$($(PYTHON) -V 2>&1)."; \
+	  echo; \
+	  echo "macOS ships 3.9 with the Xcode command line tools, and a venv built"; \
+	  echo "from it inherits both the old interpreter and a pip too old to install"; \
+	  echo "this project at all. Build the venv from a newer interpreter:"; \
+	  echo; \
+	  echo "  brew install python@3.12"; \
+	  echo "  rm -rf .venv && python3.12 -m venv .venv"; \
+	  echo "  source .venv/bin/activate"; \
+	  echo "  make install"; \
 	  exit 1; }
 
 install: check-python
+	@# pip older than 21.3 cannot do an editable install of a project that has
+	@# only a pyproject.toml (PEP 660), and fails claiming setup.py is missing --
+	@# which sends you looking for the wrong problem entirely. Upgrade first.
+	$(PYTHON) -m pip install --upgrade pip setuptools wheel
 	$(PYTHON) -m pip install -e ".[dev]"
 
 demo: check-python

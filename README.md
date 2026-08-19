@@ -74,12 +74,24 @@ claims to beat institutional desks on public filings is claiming something untru
 
 No API key, no vendor account, no network:
 
+Python 3.11 or newer. On macOS check this first — the interpreter that ships
+with the Xcode command line tools is 3.9, and a venv built from it inherits both
+that and a pip too old to install this project at all:
+
+```bash
+python3 --version
+```
+
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate          # Windows: .venv\Scripts\activate
-pip install -e ".[dev]"
+make install
 make demo                          # ~4 min -> data/build/report.html
 ```
+
+`make install` upgrades pip before installing: pip older than 21.3 cannot do an
+editable install of a pyproject-only project, and the failure it prints blames a
+missing `setup.py`, which sends you looking for the wrong problem.
 
 A virtualenv is not ceremony here: on macOS with Homebrew Python, a bare
 `pip install` fails outright with `externally-managed-environment`. If you would
