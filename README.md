@@ -75,9 +75,16 @@ claims to beat institutional desks on public filings is claiming something untru
 No API key, no vendor account, no network:
 
 ```bash
+python3 -m venv .venv
+source .venv/bin/activate          # Windows: .venv\Scripts\activate
 pip install -e ".[dev]"
-make demo            # ~4 min -> data/build/report.html
+make demo                          # ~4 min -> data/build/report.html
 ```
+
+A virtualenv is not ceremony here: on macOS with Homebrew Python, a bare
+`pip install` fails outright with `externally-managed-environment`. If you would
+rather not use one, every target takes an explicit interpreter —
+`make demo PYTHON=/path/to/python3`.
 
 Every report says at the top which of the two it is; a synthetic run is labelled
 as one, and cannot be mistaken for a real pull at a glance.
@@ -95,13 +102,18 @@ make audit           # the leakage checks as an exit code
 
 ### On real filings
 
+The SEC requires an identifying User-Agent with a real name and email:
+
 ```bash
-export EDGAR_USER_AGENT="Your Name you@example.com"   # the SEC requires this
-python scripts/build_universe.py --out data/build/sp500_membership.csv
-python -m filing_triage.cli doctor                    # preflight, ~5 seconds
-make ingest          # S&P 500, EDGAR + Stooq, rate-limited and cached, ~1 hour
+export EDGAR_USER_AGENT="Your Name you@example.com"
+python3 scripts/build_universe.py --out data/build/sp500_membership.csv
+make doctor
+make ingest
 make run
 ```
+
+`make doctor` takes about five seconds. `make ingest` pulls the S&P 500 from
+EDGAR and Stooq, rate-limited and cached, and takes roughly an hour.
 
 Run `doctor` first. A full pull is tens of thousands of requests over an hour or
 more, and finding out at minute fifty that the SEC rejected the User-Agent wastes
