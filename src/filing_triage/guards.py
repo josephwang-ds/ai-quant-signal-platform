@@ -54,8 +54,14 @@ class LeakageAudit:
 
     # -- individual checks ------------------------------------------------- #
     def causal(self, frame: pd.DataFrame, *, fact: str, decision: str,
-               label: str | None = None) -> CheckResult:
-        """No fact may postdate the moment it is used."""
+               label: str | None = None, holds: str | None = None) -> CheckResult:
+        """No fact may postdate the moment it is used.
+
+        `holds` overrides the pass message. The same check guards two quite
+        different claims -- that a feature predates its decision, and that an
+        entry price postdates the news -- and a report reads badly when both
+        report the generic one.
+        """
         bad = frame[frame[fact] > frame[decision]]
         return self._record(CheckResult(
             name=label or f"causal: {fact} <= {decision}",
@@ -63,7 +69,8 @@ class LeakageAudit:
             n_rows=len(frame),
             n_violations=len(bad),
             detail=(
-                "every fact predates the decision that uses it" if bad.empty else
+                (holds or "every fact predates the decision that uses it")
+                if bad.empty else
                 f"{len(bad)} rows use a fact recorded up to "
                 f"{(bad[fact] - bad[decision]).max()} after the decision"
             ),
