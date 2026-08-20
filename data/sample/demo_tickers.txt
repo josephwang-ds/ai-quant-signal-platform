@@ -1,4 +1,4 @@
-# A convenience sample of 40 large-cap US issuers, for the demo ingest.
+# US large- and mid-cap issuers for the demo ingest, spread across sectors.
 #
 # THIS IS NOT AN INDEX AND NOT POINT-IN-TIME. Every name here is a company that
 # still exists and is still large today, which is the definition of a survivor
@@ -6,45 +6,235 @@
 # docs/LEAKAGE.md section 3. It is demonstrated on the synthetic corpus instead,
 # where membership is generated with issuers that join and leave.
 #
-# These are chosen for filing volume, not for any expected result: large caps
-# file 8-Ks often enough that two years gives a usable sample per issuer.
+# Chosen for filing volume and sector spread, not for any expected result. The
+# count matters for a different reason: the daily queue metric only means
+# something when a session carries more filings than the queue length, and a
+# universe this size puts roughly ten a session in front of the reader.
+#
+# Deliberately excludes issuers spun off in the last two years -- their price
+# history is too short for the estimation window and every one of their events
+# would be dropped.
+#
+# Unresolved tickers are reported by `make universe`, not fatal.
+
+# --- Information technology ---
 AAPL
 MSFT
-GOOGL
-AMZN
 NVDA
-META
-TSLA
 AVGO
-JPM
-V
-UNH
-XOM
-JNJ
-WMT
-MA
-PG
+ORCL
+CRM
+ADBE
+AMD
+INTC
+CSCO
+QCOM
+TXN
+INTU
+IBM
+NOW
+MU
+AMAT
+LRCX
+ADI
+KLAC
+SNPS
+CDNS
+PANW
+CRWD
+ANET
+NXPI
+MRVL
+FTNT
+ADSK
+MSI
+GLW
+HPQ
+DELL
+
+# --- Communication services & media ---
+GOOGL
+META
+NFLX
+DIS
+CMCSA
+VZ
+T
+TMUS
+CHTR
+EA
+
+# --- Consumer discretionary ---
+AMZN
+TSLA
 HD
-CVX
-ABBV
+LOW
+MCD
+SBUX
+NKE
+LULU
+TJX
+ROST
+BKNG
+ABNB
+MAR
+HLT
+RCL
+CCL
+F
+GM
+APTV
+ORLY
+AZO
+GPC
+
+# --- Consumer staples ---
+WMT
+COST
+TGT
+DG
+DLTR
+KR
+SYY
+PG
 KO
 PEP
-COST
+PM
+MO
+MDLZ
+GIS
+K
+
+# --- Health care ---
+UNH
+JNJ
+LLY
+ABBV
 MRK
-ADBE
-CSCO
-CRM
-ACN
-MCD
-NFLX
-AMD
+PFE
 TMO
 ABT
-LIN
-INTC
-ORCL
-DIS
-VZ
-CMCSA
-WFC
+DHR
+BMY
+AMGN
+GILD
+CVS
+CI
+ELV
+HUM
+CNC
+MCK
+CAH
+BDX
+SYK
+BSX
+MDT
+EW
+ZBH
+BAX
+HOLX
+
+# --- Financials ---
+JPM
 BAC
+WFC
+C
+GS
+MS
+SCHW
+BLK
+SPGI
+AXP
+V
+MA
+USB
+PNC
+TFC
+COF
+BK
+STT
+AIG
+MET
+PRU
+ALL
+TRV
+PGR
+CB
+AON
+MMC
+AJG
+
+# --- Industrials ---
+CAT
+DE
+HON
+GE
+MMM
+BA
+LMT
+RTX
+NOC
+GD
+LHX
+UPS
+FDX
+UNP
+CSX
+NSC
+DAL
+UAL
+LUV
+EMR
+ETN
+ITW
+PH
+CMI
+
+# --- Energy ---
+XOM
+CVX
+COP
+EOG
+SLB
+PSX
+VLO
+MPC
+OXY
+HES
+DVN
+FANG
+
+# --- Materials ---
+LIN
+APD
+SHW
+ECL
+DOW
+DD
+PPG
+NEM
+FCX
+NUE
+
+# --- Utilities ---
+NEE
+DUK
+SO
+D
+AEP
+EXC
+SRE
+XEL
+ED
+PEG
+WEC
+
+# --- Real estate ---
+AMT
+PLD
+CCI
+EQIX
+SPG
+O
+PSA
+WELL
