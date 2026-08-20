@@ -87,6 +87,15 @@ def _document(result, study: pd.DataFrame, sweep: pd.DataFrame,
     {_ladder_chart(study)}
     {_ladder_table(study)}
     <p class="note">
+      The last stage can move the metric <em>upward</em>, and that is not the
+      bug reasserting itself. Correcting the entry also corrects the window the
+      outcome is measured over: with the filing date, a filing accepted after the
+      close is scored across a session that had not yet heard the news, so the
+      label carries a day of noise. Fixing it sharpens the label as well as
+      removing the impossible trade &mdash; which means that stage's honest
+      result is the zeroed entry count, not its effect on the score.
+    </p>
+    <p class="note">
       Event counts differ by stage, and that is part of the finding: purged
       cross-validation discards events it cannot honestly train on, and a
       point-in-time universe restores issuers that a present-day index screen had
@@ -226,15 +235,12 @@ def _provenance_footnote(provenance: dict) -> str:
 def _stat_row(metrics: dict, naive_ap: float) -> str:
     tiles = [
         (f"{metrics.get('n_events', 0):,}", "filings ranked", "out of sample"),
-        (f"{metrics.get('daily_lift_at_5', float('nan')):.1f}&times;",
-         "better than reading five at random",
-         f"top 5 of each session &middot; base rate {metrics.get('base_rate', 0):.0%}"),
         (f"{metrics.get('average_precision', float('nan')):.3f}",
          "average precision, audited",
          f"the naive pipeline claimed {naive_ap:.3f}"),
-        (f"{metrics.get('daily_precision_at_5', float('nan')):.0%}",
-         "of the daily top five actually moved",
-         "material = top decile of reaction size"),
+        (f"{metrics.get('roc_auc', float('nan')):.3f}", "ROC AUC",
+         f"base rate {metrics.get('base_rate', 0):.0%} &middot; purged walk-forward"),
+        _queue_tile(metrics),
     ]
     cells = "".join(
         f'<div class="stat"><div class="stat-value">{value}</div>'
@@ -242,6 +248,26 @@ def _stat_row(metrics: dict, naive_ap: float) -> str:
         f'<div class="stat-note">{note}</div></div>'
         for value, label, note in tiles)
     return f'<div class="stats">{cells}</div>'
+
+
+def _queue_tile(metrics: dict) -> tuple[str, str, str]:
+    """The product metric, or an explanation of why there isn't one.
+
+    Ranking the top five of a session that only had two filings is not triage,
+    and the number it produces is a property of the calendar rather than of the
+    model -- a reversed ranker scores the same. So when too few sessions were
+    crowded enough for the ranking to matter, the tile says that instead.
+    """
+    counted = metrics.get("daily_sessions_at_5", 0)
+    if metrics.get("daily_usable_at_5"):
+        return (f"{metrics.get('daily_lift_at_5', float('nan')):.1f}&times;",
+                "better than reading five at random",
+                f"top 5 of each session &middot; {counted} sessions with more "
+                f"than five filings")
+    return (f"{metrics.get('filings_per_session_median', float('nan')):.0f}",
+            "filings per session (median)",
+            f"too few to triage &mdash; only {counted} sessions carried more than "
+            f"five, so the queue metric is not reported")
 
 
 def _ladder_chart(study: pd.DataFrame) -> str:

@@ -244,14 +244,27 @@ def _pipeline_and_report(events, prices, membership, out: Path,
 def _headline(metrics: dict) -> list[tuple[str, str]]:
     if not metrics:
         return []
-    return [
+    rows = [
         ("events scored", f"{metrics['n_events']:,}"),
         ("base rate", f"{metrics['base_rate']:.1%}"),
         ("average precision", f"{metrics['average_precision']:.3f}"),
         ("ROC AUC", f"{metrics['roc_auc']:.3f}"),
-        ("daily precision @5", f"{metrics['daily_precision_at_5']:.1%}"),
-        ("daily lift @5", f"{metrics['daily_lift_at_5']:.2f}x"),
+        ("filings per session (median)",
+         f"{metrics.get('filings_per_session_median', float('nan')):.0f}"),
     ]
+    counted = metrics.get("daily_sessions_at_5", 0)
+    if metrics.get("daily_usable_at_5"):
+        rows += [
+            ("daily precision @5", f"{metrics['daily_precision_at_5']:.1%} "
+                                   f"({counted} sessions)"),
+            ("daily lift @5", f"{metrics['daily_lift_at_5']:.2f}x"),
+        ]
+    else:
+        rows.append(("daily precision @5",
+                     f"not reported -- only {counted} sessions had more than 5 "
+                     f"filings, so the queue metric would be measuring the "
+                     f"calendar, not the ranker"))
+    return rows
 
 
 def _audit(args) -> int:

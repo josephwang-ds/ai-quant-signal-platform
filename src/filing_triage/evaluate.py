@@ -56,31 +56,50 @@ def ndcg_at_k(labels: np.ndarray, scores: np.ndarray, k: int) -> float:
 
 
 def mean_daily_precision_at_k(predictions: pd.DataFrame, sessions: pd.Series,
-                              k: int = 5) -> float:
+                              k: int = 5) -> tuple[float, int, int]:
     """The product metric: of the k filings we surface each morning, how many mattered?
 
-    Pooled precision@k over the whole sample answers a question nobody has -- it
-    ranks three years of filings against each other and reads the global top ten.
-    An analyst ranks *today's* filings and reads today's top few. Averaging the
-    daily figure is both what the product does and far less jumpy, since it
-    averages hundreds of small samples instead of reporting one.
+    Returns (mean precision, days counted, days available).
+
+    **Only days with more than k filings are counted**, and that restriction is
+    the whole correctness of this metric. When a session has k or fewer filings,
+    the top k is every filing, the ranking cannot affect the result, and the
+    figure collapses to "what fraction of that day was material" -- which a
+    reversed model and a random model score identically. Those days do not
+    measure ranking, and averaging them in inflates the result badly: a day with
+    one filing that happened to matter contributes a precision of 1.0.
+
+    A universe small enough that most days fall below k cannot support this
+    metric at all, so the caller is told how many days actually qualified.
     """
     frame = predictions.assign(session=sessions.reindex(predictions.index).to_numpy())
-    daily = []
+    daily, available = [], 0
     for _, group in frame.groupby("session"):
-        if group["label"].sum() == 0 and len(group) < k:
+        available += 1
+        if len(group) <= k:
             continue
         daily.append(precision_at_k(group["label"].to_numpy(),
                                     group["score"].to_numpy(), k))
-    return float(np.mean(daily)) if daily else float("nan")
+    if not daily:
+        return float("nan"), 0, available
+    return float(np.mean(daily)), len(daily), available
 
 
-def mean_daily_lift_at_k(predictions: pd.DataFrame, sessions: pd.Series,
-                         k: int = 5) -> float:
-    base = predictions["label"].mean()
-    if base == 0:
-        return float("nan")
-    return mean_daily_precision_at_k(predictions, sessions, k) / base
+def queue_sizes(predictions: pd.DataFrame, sessions: pd.Series) -> dict:
+    """How crowded the daily queue actually is.
+
+    Reported alongside the daily metrics so a reader can see immediately whether
+    there was ever a triage decision to make. Ranking five filings out of two is
+    not triage.
+    """
+    counts = (predictions.assign(session=sessions.reindex(predictions.index).to_numpy())
+              .groupby("session").size())
+    return {
+        "sessions": int(len(counts)),
+        "filings_per_session_median": float(counts.median()),
+        "filings_per_session_p90": float(counts.quantile(0.90)),
+        "filings_per_session_max": int(counts.max()),
+    }
 
 
 def evaluate(predictions: pd.DataFrame, ks: tuple[int, ...] = DEFAULT_KS,
@@ -102,11 +121,17 @@ def evaluate(predictions: pd.DataFrame, ks: tuple[int, ...] = DEFAULT_KS,
         metrics[f"ndcg_at_{k}"] = ndcg_at_k(labels, scores, k)
 
     if sessions is not None:
+        base = metrics["base_rate"]
+        metrics.update(queue_sizes(predictions, sessions))
         for k in (3, 5, 10):
-            metrics[f"daily_precision_at_{k}"] = mean_daily_precision_at_k(
+            precision, counted, available = mean_daily_precision_at_k(
                 predictions, sessions, k)
-            metrics[f"daily_lift_at_{k}"] = mean_daily_lift_at_k(
-                predictions, sessions, k)
+            metrics[f"daily_precision_at_{k}"] = precision
+            metrics[f"daily_lift_at_{k}"] = (precision / base if base else float("nan"))
+            metrics[f"daily_sessions_at_{k}"] = counted
+            # Below this the metric is measuring the calendar, not the ranker.
+            metrics[f"daily_usable_at_{k}"] = bool(counted >= 30
+                                                   and counted >= 0.1 * available)
     return metrics
 
 
