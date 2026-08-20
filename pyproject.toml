@@ -11,6 +11,7 @@ dependencies = [
     "pyarrow>=15.0",
     "requests>=2.31",
     "lxml>=5.0",          # pandas.read_html, for scripts/build_universe.py
+    "yfinance>=0.2.40",   # primary daily price source
 ]
 
 [project.optional-dependencies]

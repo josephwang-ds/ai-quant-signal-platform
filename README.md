@@ -125,7 +125,12 @@ make run
 ```
 
 `make doctor` takes about five seconds. `make ingest` pulls the S&P 500 from
-EDGAR and Stooq, rate-limited and cached, and takes roughly an hour.
+EDGAR and yfinance, rate-limited and cached, and takes roughly an hour.
+
+Prices come from yfinance with Stooq as a fallback. Free price data has no
+service level — Stooq was the original single choice and started answering 404
+for symbols it serves fine in a browser — so the layer tries sources in order and
+reports which one answered.
 
 Run `doctor` first. A full pull is tens of thousands of requests over an hour or
 more, and finding out at minute fifty that the SEC rejected the User-Agent wastes
@@ -204,7 +209,7 @@ src/filing_triage/
   pit.py           rule-generated NYSE calendar; acceptance time -> tradable session
   guards.py        the leakage checks, and purged/embargoed walk-forward CV
   config.py        one config, four correctness switches
-  ingest/          EDGAR client, Stooq prices, interval-based index membership
+  ingest/          EDGAR client, multi-source prices, interval-based membership
   features.py      features, each computable at decision time
   labels.py        market-model event study on a numpy session grid
   model.py         the ranker

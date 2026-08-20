@@ -61,23 +61,68 @@ def main() -> int:
     out.parent.mkdir(parents=True, exist_ok=True)
     membership.to_csv(out, index=False)
 
-    still_in = membership["end_date"].isna().sum()
+    still_in = int(membership["end_date"].isna().sum())
+    historical = len(membership) - still_in
     print(f"{len(membership):,} membership intervals -> {out}")
-    print(f"  {still_in} current constituents, "
-          f"{len(membership) - still_in} historical (kept: these are the ones a "
-          f"present-day screen would have deleted)")
+    print(f"  {still_in} current constituents, {historical} historical "
+          f"(kept: these are the ones a present-day screen would have deleted)")
+    if historical == 0:
+        print("\n  WARNING: no historical members. The changes table was parsed but "
+              "yielded nothing,\n  so this file describes only today's survivors -- "
+              "the survivorship bias this\n  file exists to prevent. Do not ingest "
+              "against it.", file=sys.stderr)
+        return 1
     return 0
 
 
 def _read_wikipedia(headers: dict) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """The constituents table and the dated changes table.
+
+    Located by what their columns contain, not by position. Wikipedia pages get
+    re-ordered, tables get inserted above them, and an index that is right today
+    silently reads the wrong table tomorrow -- producing a membership file that is
+    wrong rather than a script that fails.
+    """
     response = requests.get(WIKI, headers=headers, timeout=60)
     response.raise_for_status()
-    tables = pd.read_html(response.text)
-    current = tables[0].rename(columns={"Symbol": "ticker", "Security": "name"})
-    changes = tables[1]
-    changes.columns = ["_".join(str(p) for p in col).strip() if isinstance(col, tuple)
-                       else str(col) for col in changes.columns]
+    tables = [_flatten(t) for t in pd.read_html(response.text)]
+
+    current = _pick(tables, lambda cols: (
+        any("symbol" in c or "ticker" in c for c in cols)
+        and any("security" in c or "company" in c for c in cols)))
+    changes = _pick(tables, lambda cols: (
+        any("added" in c for c in cols) and any("removed" in c for c in cols)))
+
+    if current is None or changes is None:
+        found = [list(t.columns)[:4] for t in tables]
+        raise RuntimeError(
+            "could not find the expected tables on " + WIKI + ".\n"
+            f"Found {len(tables)} table(s) with leading columns: {found}\n"
+            "The page layout probably changed; adjust the matchers in _read_wikipedia."
+        )
+
+    current = current.rename(columns=lambda c: (
+        "ticker" if ("symbol" in c or "ticker" in c) else
+        "name" if ("security" in c or "company" in c) else c))
     return current, changes
+
+
+def _flatten(table: pd.DataFrame) -> pd.DataFrame:
+    """MultiIndex headers ('Added','Ticker') -> 'added_ticker', lowercased."""
+    table = table.copy()
+    table.columns = [
+        "_".join(str(part) for part in column
+                 if not str(part).startswith("Unnamed")).strip().lower()
+        if isinstance(column, tuple) else str(column).strip().lower()
+        for column in table.columns
+    ]
+    return table
+
+
+def _pick(tables: list[pd.DataFrame], matches) -> pd.DataFrame | None:
+    """The largest table whose columns satisfy the predicate."""
+    hits = [t for t in tables if matches(list(t.columns))]
+    return max(hits, key=len) if hits else None
 
 
 def _read_sec_ciks(headers: dict) -> dict[str, int]:
@@ -95,9 +140,9 @@ def _assemble(current: pd.DataFrame, changes: pd.DataFrame, ciks: dict[str, int]
     would quietly re-admit it for the years it was absent -- reintroducing, in
     the file that exists to prevent it, exactly the survivorship error.
     """
-    added_col = _find(changes, "Added", "Ticker")
-    removed_col = _find(changes, "Removed", "Ticker")
-    date_col = _find(changes, "Date")
+    added_col = _find(changes, "added", "ticker")
+    removed_col = _find(changes, "removed", "ticker")
+    date_col = _find(changes, "date")
 
     dates = pd.to_datetime(changes[date_col], errors="coerce").dt.date
     moves: dict[str, list[tuple[date, str]]] = {}
@@ -110,13 +155,19 @@ def _assemble(current: pd.DataFrame, changes: pd.DataFrame, ciks: dict[str, int]
             moves.setdefault(_clean(removed), []).append((when, "remove"))
 
     members_now = {_clean(t) for t in current["ticker"]}
+    # Wikipedia's constituents table carries a CIK column of its own. The SEC's
+    # mapping is authoritative and wins, but it only lists current registrants,
+    # so this covers issuers that have since been acquired or delisted -- which
+    # are precisely the ones the point-in-time universe exists to keep.
+    fallback = _wikipedia_ciks(current)
     rows = []
     for ticker in sorted(members_now | set(moves)):
         for spell_start, spell_end in _spells(moves.get(ticker, []), ticker in members_now,
                                               start):
             rows.append({
                 "ticker": ticker,
-                "cik": ciks.get(ticker.replace("-", ".")) or ciks.get(ticker),
+                "cik": (ciks.get(ticker.replace("-", ".")) or ciks.get(ticker)
+                        or fallback.get(ticker)),
                 "name": _name_for(current, ticker),
                 "start_date": spell_start,
                 "end_date": spell_end,
@@ -157,6 +208,15 @@ def _spells(moves: list[tuple[date, str]], is_current: bool,
     return spells or [(start, None)]
 
 
+def _wikipedia_ciks(current: pd.DataFrame) -> dict[str, int]:
+    column = next((c for c in current.columns if "cik" in c), None)
+    if column is None:
+        return {}
+    ciks = pd.to_numeric(current[column], errors="coerce")
+    return {_clean(t): int(c)
+            for t, c in zip(current["ticker"], ciks) if pd.notna(c)}
+
+
 def _clean(ticker: object) -> str:
     """BRK.B on Wikipedia, BRK-B most other places."""
     return str(ticker).strip().upper().replace(".", "-")
@@ -171,7 +231,9 @@ def _find(frame: pd.DataFrame, *needles: str) -> str:
     for column in frame.columns:
         if all(n.lower() in column.lower() for n in needles):
             return column
-    raise KeyError(f"no column matching {needles} in {list(frame.columns)}")
+    raise KeyError(
+        f"no column matching {needles} in {list(frame.columns)} -- the Wikipedia "
+        "table layout has probably changed")
 
 
 if __name__ == "__main__":

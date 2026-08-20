@@ -90,12 +90,28 @@ def _doctor(args) -> int:
         except Exception as error:                                  # noqa: BLE001
             checks.append(("SEC reachable", False, str(error).splitlines()[0]))
 
-    try:
-        frame = fetch_daily("SPY", cache_dir=Path("data/cache/prices"))
+    from filing_triage.ingest.prices import DEFAULT_SOURCES
+
+    served_by = None
+    for source in DEFAULT_SOURCES:
+        try:
+            frame = fetch_daily("SPY", cache_dir=Path("data/cache/prices"),
+                                sources=(source,))
+        except Exception:                                           # noqa: BLE001
+            continue
+        served_by = (source, frame)
+        break
+
+    if served_by:
+        source, frame = served_by
         checks.append(("price source reachable", True,
-                       f"SPY: {len(frame):,} daily bars to {frame['date'].max()}"))
-    except Exception as error:                                      # noqa: BLE001
-        checks.append(("price source reachable", False, str(error).splitlines()[0]))
+                       f"{source}: SPY, {len(frame):,} daily bars to "
+                       f"{frame['date'].max()}"))
+    else:
+        try:
+            fetch_daily("SPY", cache_dir=Path("data/cache/prices"))
+        except Exception as error:                                  # noqa: BLE001
+            checks.append(("price source reachable", False, str(error)))
 
     universe = Path(args.universe)
     if universe.exists():
