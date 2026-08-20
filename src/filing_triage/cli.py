@@ -278,8 +278,16 @@ def _ingest(args) -> int:
     print(f"  {client.check_access()}", flush=True)
     since = pd.Timestamp(args.since).date()
 
+    unresolved = membership[membership["cik"].isna()]
+    if len(unresolved):
+        print(f"  skipping {len(unresolved)} interval(s) with no CIK "
+              f"({', '.join(sorted(set(unresolved['ticker']))[:8])}"
+              f"{', ...' if len(set(unresolved['ticker'])) > 8 else ''}) -- "
+              f"their filings cannot be fetched", flush=True)
+    membership = membership[membership["cik"].notna()]
+
     filings, prices, failures = [], [], []
-    for row in membership.itertuples():
+    for row in membership.drop_duplicates("cik").itertuples():
         try:
             frame = parse_submissions(client.submissions(row.cik), row.cik)
             frame = frame[frame["filing_date"] >= since]
@@ -311,7 +319,8 @@ def _ingest(args) -> int:
 
     _write_provenance("edgar", issuers=len(filings), filings=len(events),
                       failed_issuers=[t for t, _ in failures],
-                      note="SEC EDGAR submissions + Stooq daily bars")
+                      unresolved_ciks=int(len(unresolved)),
+                      note="SEC EDGAR submissions + daily bars")
 
     print(f"\n{len(events):,} filings from {len(filings)} issuers "
           f"({len(failures)} failed) -> {BUILD}")

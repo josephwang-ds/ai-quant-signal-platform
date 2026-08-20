@@ -23,6 +23,7 @@ is the survivorship bug wearing a helpful face.
 from __future__ import annotations
 
 import argparse
+import io
 import os
 import sys
 from datetime import date
@@ -66,6 +67,13 @@ def main() -> int:
     print(f"{len(membership):,} membership intervals -> {out}")
     print(f"  {still_in} current constituents, {historical} historical "
           f"(kept: these are the ones a present-day screen would have deleted)")
+    unresolved = int(membership["cik"].isna().sum())
+    if unresolved:
+        print(f"  {unresolved} interval(s) have no CIK and cannot be fetched: "
+              f"neither the SEC mapping nor Wikipedia resolves an issuer that has\n"
+              f"  already left the index. They stay in the file so the universe "
+              f"records them; ingest reports them as a coverage gap.")
+
     if historical == 0:
         print("\n  WARNING: no historical members. The changes table was parsed but "
               "yielded nothing,\n  so this file describes only today's survivors -- "
@@ -85,7 +93,11 @@ def _read_wikipedia(headers: dict) -> tuple[pd.DataFrame, pd.DataFrame]:
     """
     response = requests.get(WIKI, headers=headers, timeout=60)
     response.raise_for_status()
-    tables = [_flatten(t) for t in pd.read_html(response.text)]
+    # StringIO, not the string itself: pandas 3 reads a bare string as a file
+    # path, so a literal document fails with FileNotFoundError -- and the
+    # message quotes the whole document, which fills the terminal with the
+    # page you were trying to parse and buries the actual error.
+    tables = [_flatten(t) for t in pd.read_html(io.StringIO(response.text))]
 
     current = _pick(tables, lambda cols: (
         any("symbol" in c or "ticker" in c for c in cols)
@@ -173,8 +185,14 @@ def _assemble(current: pd.DataFrame, changes: pd.DataFrame, ciks: dict[str, int]
                 "end_date": spell_end,
             })
 
-    frame = pd.DataFrame(rows).dropna(subset=["cik"])
-    frame["cik"] = frame["cik"].astype(int)
+    # Rows without a CIK are kept, not dropped. Neither source resolves one for an
+    # issuer that has left the index -- the SEC mapping lists current registrants
+    # and Wikipedia's table lists current constituents -- so dropping them would
+    # delete precisely the historical members this file exists to preserve, and
+    # would do it *after* the survivorship warning had already looked. Their
+    # filings cannot be fetched, and that gap is reported rather than hidden.
+    frame = pd.DataFrame(rows)
+    frame["cik"] = frame["cik"].astype("Int64")
     return frame.sort_values(["ticker", "start_date"]).reset_index(drop=True)
 
 

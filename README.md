@@ -108,7 +108,7 @@ embargo sweep, and writes a self-contained HTML report.
 
 ```bash
 make quick           # smaller, no leakage study, ~30s
-make test            # 99 tests
+make test            # 104 tests
 make audit           # the leakage checks as an exit code
 ```
 
@@ -217,7 +217,7 @@ src/filing_triage/
   experiments.py   the leakage study and the embargo sweep
   report.py        self-contained HTML
   synth.py         the offline corpus
-tests/             99 tests; test_guards, test_pipeline and
+tests/             104 tests; test_guards, test_pipeline and
                    test_ingest_integration are the ones that matter
 docs/              METHODOLOGY.md, LEAKAGE.md
 ```

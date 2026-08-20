@@ -30,7 +30,10 @@ def load_membership(path: str | Path) -> pd.DataFrame:
         raise ValueError(f"membership file {path} is missing columns: {sorted(missing)}")
     frame["start_date"] = pd.to_datetime(frame["start_date"]).dt.date
     frame["end_date"] = pd.to_datetime(frame["end_date"], errors="coerce").dt.date
-    frame["cik"] = frame["cik"].astype("int64")
+    # Nullable: an issuer that has left the index often resolves to no CIK, and
+    # the interval is still worth recording even though its filings cannot be
+    # fetched. See scripts/build_universe.py.
+    frame["cik"] = pd.to_numeric(frame["cik"], errors="coerce").astype("Int64")
     return frame[COLUMNS]
 
 
