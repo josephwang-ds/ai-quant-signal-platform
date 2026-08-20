@@ -321,19 +321,38 @@ def _integrity_panel(result, study: pd.DataFrame) -> str:
 
 
 def _ladder_table(study: pd.DataFrame) -> str:
+    # The queue column is dropped rather than filled with dashes when no stage
+    # could compute it: a universe too thin to triage produces the same blank in
+    # every row, and a column of blanks reads as missing data rather than as a
+    # metric that does not apply here.
+    show_queue = study["daily_lift_at_5"].notna().any()
+
     head = ("<tr><th>Stage</th><th class='num'>Events</th><th class='num'>AUC</th>"
-            "<th class='num'>Avg precision</th><th class='num'>Daily lift@5</th>"
-            "<th class='num'>Checks failed</th><th>What changed</th></tr>")
-    rows = "".join(
-        f"<tr><td>{html.escape(r['stage'])}</td>"
-        f"<td class='num'>{r['n_events']:,}</td>"
-        f"<td class='num'>{r['roc_auc']:.3f}</td>"
-        f"<td class='num'>{r['average_precision']:.3f}</td>"
-        f"<td class='num'>{r['daily_lift_at_5']:.2f}&times;</td>"
-        f"<td class='num {'bad' if r['checks_failed'] else 'good'}'>{r['checks_failed']}</td>"
-        f"<td class='muted'>{html.escape(r['note'])}</td></tr>"
-        for _, r in study.iterrows())
-    return f'<div class="scroll"><table class="data"><thead>{head}</thead><tbody>{rows}</tbody></table></div>'
+            "<th class='num'>Avg precision</th>"
+            + ("<th class='num'>Daily lift@5</th>" if show_queue else "")
+            + "<th class='num'>Checks failed</th><th>What changed</th></tr>")
+
+    rows = []
+    for _, r in study.iterrows():
+        queue = (f"<td class='num'>{_number(r['daily_lift_at_5'], '{:.2f}&times;')}</td>"
+                 if show_queue else "")
+        rows.append(
+            f"<tr><td>{html.escape(r['stage'])}</td>"
+            f"<td class='num'>{r['n_events']:,}</td>"
+            f"<td class='num'>{_number(r['roc_auc'])}</td>"
+            f"<td class='num'>{_number(r['average_precision'])}</td>"
+            f"{queue}"
+            f"<td class='num {'bad' if r['checks_failed'] else 'good'}'>"
+            f"{r['checks_failed']}</td>"
+            f"<td class='muted'>{html.escape(r['note'])}</td></tr>")
+
+    return ('<div class="scroll"><table class="data">'
+            f'<thead>{head}</thead><tbody>{"".join(rows)}</tbody></table></div>')
+
+
+def _number(value: float, fmt: str = "{:.3f}") -> str:
+    """An em dash for a metric that does not apply, never the string 'nan'."""
+    return "&mdash;" if pd.isna(value) else fmt.format(value)
 
 
 def _fold_table(by_fold: pd.DataFrame) -> str:
