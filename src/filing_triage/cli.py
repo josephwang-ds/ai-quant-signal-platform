@@ -140,9 +140,16 @@ def _demo(args) -> int:
 
 
 def _run(args) -> int:
+    """Read what ingest or demo wrote -- through the loaders, which enforce the
+    frames' contracts. Reading the CSV straight leaves the date columns as
+    strings, and the failure surfaces much later as a dtype error deep in a join.
+    """
+    from filing_triage.ingest.prices import load_prices
+    from filing_triage.ingest.universe import load_membership
+
     events = pd.read_parquet(BUILD / "events.parquet")
-    prices = pd.read_parquet(BUILD / "prices.parquet")
-    membership = pd.read_csv(BUILD / "membership.csv")
+    prices = load_prices(BUILD / "prices.parquet")
+    membership = load_membership(BUILD / "membership.csv")
     return _pipeline_and_report(events, prices, membership, Path(args.out))
 
 

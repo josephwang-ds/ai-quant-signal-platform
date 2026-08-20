@@ -25,6 +25,7 @@ from __future__ import annotations
 import argparse
 import os
 import sys
+from datetime import date
 from pathlib import Path
 
 import pandas as pd
@@ -86,31 +87,79 @@ def _read_sec_ciks(headers: dict) -> dict[str, int]:
 
 
 def _assemble(current: pd.DataFrame, changes: pd.DataFrame, ciks: dict[str, int],
-              start: object) -> pd.DataFrame:
+              start: date) -> pd.DataFrame:
+    """Turn the dated additions-and-removals table into membership intervals.
+
+    One row per spell, not one row per ticker. An issuer dropped from the index
+    and re-added years later holds two intervals, and collapsing them to one
+    would quietly re-admit it for the years it was absent -- reintroducing, in
+    the file that exists to prevent it, exactly the survivorship error.
+    """
     added_col = _find(changes, "Added", "Ticker")
     removed_col = _find(changes, "Removed", "Ticker")
     date_col = _find(changes, "Date")
 
     dates = pd.to_datetime(changes[date_col], errors="coerce").dt.date
-    added = {str(t).upper(): d for t, d in zip(changes[added_col], dates)
-             if pd.notna(t) and pd.notna(d)}
-    removed = {str(t).upper(): d for t, d in zip(changes[removed_col], dates)
-               if pd.notna(t) and pd.notna(d)}
+    moves: dict[str, list[tuple[date, str]]] = {}
+    for added, removed, when in zip(changes[added_col], changes[removed_col], dates):
+        if pd.isna(when):
+            continue
+        if pd.notna(added):
+            moves.setdefault(_clean(added), []).append((when, "add"))
+        if pd.notna(removed):
+            moves.setdefault(_clean(removed), []).append((when, "remove"))
 
+    members_now = {_clean(t) for t in current["ticker"]}
     rows = []
-    for ticker in {*current["ticker"].str.upper(), *added, *removed}:
-        ticker = ticker.replace(".", "-")          # BRK.B on Wikipedia, BRK-B elsewhere
-        rows.append({
-            "ticker": ticker,
-            "cik": ciks.get(ticker.replace("-", ".")) or ciks.get(ticker),
-            "name": _name_for(current, ticker),
-            "start_date": added.get(ticker, start),
-            "end_date": removed.get(ticker),
-        })
+    for ticker in sorted(members_now | set(moves)):
+        for spell_start, spell_end in _spells(moves.get(ticker, []), ticker in members_now,
+                                              start):
+            rows.append({
+                "ticker": ticker,
+                "cik": ciks.get(ticker.replace("-", ".")) or ciks.get(ticker),
+                "name": _name_for(current, ticker),
+                "start_date": spell_start,
+                "end_date": spell_end,
+            })
 
     frame = pd.DataFrame(rows).dropna(subset=["cik"])
     frame["cik"] = frame["cik"].astype(int)
-    return frame.sort_values("ticker").reset_index(drop=True)
+    return frame.sort_values(["ticker", "start_date"]).reset_index(drop=True)
+
+
+def _spells(moves: list[tuple[date, str]], is_current: bool,
+            start: date) -> list[tuple[date, date | None]]:
+    """Walk one ticker's moves into (start, end) pairs; end None means still in.
+
+    A ticker whose first recorded move is a removal was a member before the
+    changes table begins, so its first spell opens at `start`.
+    """
+    spells: list[tuple[date, date | None]] = []
+    open_from: date | None = None
+
+    for when, kind in sorted(moves):
+        if kind == "add":
+            if open_from is None:
+                open_from = when
+        elif open_from is not None:
+            spells.append((open_from, when))
+            open_from = None
+        else:
+            spells.append((start, when))       # member since before the table
+
+    if open_from is not None:
+        spells.append((open_from, None))
+    elif is_current and not any(end is None for _, end in spells):
+        # In the index today with no open spell: either it never moved, or it was
+        # re-added before the table's coverage. Either way it is in now.
+        spells.append((max((end for _, end in spells if end), default=start), None))
+
+    return spells or [(start, None)]
+
+
+def _clean(ticker: object) -> str:
+    """BRK.B on Wikipedia, BRK-B most other places."""
+    return str(ticker).strip().upper().replace(".", "-")
 
 
 def _name_for(current: pd.DataFrame, ticker: str) -> str:

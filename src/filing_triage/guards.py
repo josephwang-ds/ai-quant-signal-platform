@@ -101,12 +101,13 @@ class LeakageAudit:
         went bankrupt, got acquired, or fell out of the index -- and those are
         exactly the ones whose disclosures moved most.
         """
-        m = membership.set_index(ticker)
-        joined = events.join(m[["start_date", "end_date"]], on=ticker, how="left")
-        d = pd.to_datetime(joined[when]).dt.tz_localize(None).dt.normalize()
-        start = pd.to_datetime(joined["start_date"])
-        end = pd.to_datetime(joined["end_date"]).fillna(pd.Timestamp.max.normalize())
-        bad = joined[joined["start_date"].isna() | (d < start) | (d > end)]
+        from filing_triage.ingest.universe import membership_mask
+
+        # Shares the interval matcher with the filter it is checking, so the two
+        # cannot drift -- and so an issuer holding several intervals is handled
+        # here too rather than exploding the join.
+        inside = membership_mask(events, membership, ticker=ticker, when=when)
+        bad = events[~inside]
         return self._record(CheckResult(
             name="universe membership is point-in-time",
             passed=bad.empty,

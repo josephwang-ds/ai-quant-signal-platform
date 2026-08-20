@@ -108,7 +108,7 @@ embargo sweep, and writes a self-contained HTML report.
 
 ```bash
 make quick           # smaller, no leakage study, ~30s
-make test            # 50 tests
+make test            # 99 tests
 make audit           # the leakage checks as an exit code
 ```
 
@@ -212,7 +212,8 @@ src/filing_triage/
   experiments.py   the leakage study and the embargo sweep
   report.py        self-contained HTML
   synth.py         the offline corpus
-tests/             50 tests; test_guards and test_pipeline are the ones that matter
+tests/             99 tests; test_guards, test_pipeline and
+                   test_ingest_integration are the ones that matter
 docs/              METHODOLOGY.md, LEAKAGE.md
 ```
 
@@ -231,10 +232,11 @@ About 2,750 lines under `src/`, plus 430 of tests. It is meant to be read end to
 - Figures on this page come from the synthetic corpus, so that the repository runs
   end to end with no credentials — see the note at the top. They are illustrative
   of the *mechanism*; run `make ingest` for numbers about the actual market.
-- The EDGAR client's parsing layer is pinned by fixtures shaped like the real
-  payloads (`tests/test_edgar.py`), including paginated shards, empty `reportDate`,
-  and unparseable timestamps. The transport layer — rate limiting, backoff,
-  resumability — has not been exercised against the live SEC.
+- The real-data path runs end to end in the test suite with the network faked
+  (`tests/test_ingest_integration.py`): EDGAR-shaped payloads through the
+  per-issuer loop, the parquet round trip, and into the pipeline. Only the
+  transport itself — rate limiting, backoff, resumability — has not been
+  exercised against the live SEC.
 
 ## License
 

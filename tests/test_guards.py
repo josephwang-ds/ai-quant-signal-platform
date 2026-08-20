@@ -81,6 +81,17 @@ class TestUniversePIT:
         audit = LeakageAudit()
         assert audit.universe_pit(clean_events, membership).passed
 
+    def test_survives_an_issuer_with_two_membership_intervals(self, clean_events,
+                                                              membership):
+        """A re-added issuer holds several intervals. Joining on ticker multiplies
+        its events and the check then reports counts against the wrong total."""
+        rejoined = pd.concat([membership, pd.DataFrame([{
+            "ticker": "T03", "start_date": pd.Timestamp("2024-01-01").date(),
+            "end_date": None}])], ignore_index=True)
+        result = LeakageAudit().universe_pit(clean_events, rejoined)
+        assert result.n_rows == len(clean_events)
+        assert result.passed
+
 
 class TestFeatureMatrix:
     def test_catches_an_outcome_column(self):
