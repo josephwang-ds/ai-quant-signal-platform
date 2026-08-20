@@ -13,6 +13,7 @@ them are concatenated and handed to the pipeline.
 
 from __future__ import annotations
 
+import json
 from datetime import date, timedelta
 
 import pandas as pd
@@ -73,12 +74,18 @@ def fake_fetch_daily(ticker: str, **_) -> pd.DataFrame:
 
 @pytest.fixture
 def universe_file(tmp_path):
-    path = tmp_path / "membership.csv"
+    path = tmp_path / "universe.csv"
     pd.DataFrame([
         {"ticker": t, "cik": c, "name": f"{t} Corp",
          "start_date": "2020-01-01", "end_date": ""}
         for t, c in ISSUERS
     ]).to_csv(path, index=False)
+    # The sidecar the demo universe builder writes: the file's own account of
+    # what it cannot do.
+    path.with_suffix(".meta.json").write_text(json.dumps({
+        "universe_quality": "convenience-sample",
+        "survivorship_controlled": False,
+    }))
     return path
 
 
@@ -96,10 +103,19 @@ class TestIngest:
     def test_completes_despite_a_failing_issuer(self, ingested):
         code, build = ingested
         assert code == 0
-        provenance = pd.read_json(build / "provenance.json", typ="series")
+        provenance = json.loads((build / "provenance.json").read_text())
         assert provenance["source"] == "edgar"
         assert provenance["issuers"] == 2                # CCC failed
         assert provenance["failed_issuers"] == ["CCC"]
+
+    def test_universe_limitations_reach_the_provenance(self, ingested):
+        """A survivor universe must not be able to look like a controlled one.
+        Everything else on the report is real, so this is the caveat a reader is
+        most likely to assume away."""
+        _, build = ingested
+        provenance = json.loads((build / "provenance.json").read_text())
+        assert provenance["universe"]["survivorship_controlled"] is False
+        assert provenance["universe"]["universe_quality"] == "convenience-sample"
 
     def test_writes_the_three_frames(self, ingested):
         _, build = ingested

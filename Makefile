@@ -8,6 +8,7 @@ help:
 	@echo "make install   install the package and dev dependencies"
 	@echo "make demo      synthetic world -> pipeline -> data/build/report.html"
 	@echo "make quick     the same, smaller and without the leakage study"
+	@echo "make universe  resolve the demo ticker list to CIKs (needs network)"
 	@echo "make doctor    check that a real ingest would work, before starting one"
 	@echo "make audit     run the leakage checks; non-zero exit on any failure"
 	@echo "make test      run the test suite"
@@ -59,6 +60,11 @@ test: check-python
 
 lint: check-python
 	$(PYTHON) -m ruff check src tests scripts
+
+universe: check-python
+	@test -n "$$EDGAR_USER_AGENT" || { \
+	  echo 'export EDGAR_USER_AGENT="Your Name you@example.com"'; exit 1; }
+	$(PYTHON) scripts/build_demo_universe.py --out data/build/universe.csv
 
 ingest: check-python
 	@test -n "$$EDGAR_USER_AGENT" || { \

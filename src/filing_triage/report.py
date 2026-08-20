@@ -184,8 +184,19 @@ def _provenance_banner(provenance: dict) -> str:
         failed = provenance.get("failed_issuers") or []
         if failed:
             detail += f" &middot; {len(failed)} issuer(s) failed to fetch"
-        return (f'<div class="banner real"><strong>Real filings.</strong> {detail}, '
-                f'pulled {html.escape(str(provenance.get("written_at", ""))[:10])}.</div>')
+        banner = (f'<div class="banner real"><strong>Real filings.</strong> {detail}, '
+                  f'pulled {html.escape(str(provenance.get("written_at", ""))[:10])}.')
+
+        universe = provenance.get("universe") or {}
+        if universe.get("survivorship_controlled") is False:
+            # The one caveat that would otherwise be invisible: everything on the
+            # page is real, which makes it easy to assume everything is controlled.
+            banner += (' <strong>Survivorship is not controlled here</strong> &mdash; '
+                       'the universe is a hand-picked sample of issuers that still '
+                       'exist, so the companies whose disclosures preceded a '
+                       'collapse are absent by construction. That leak is measured '
+                       'on the synthetic corpus, not on this page.')
+        return banner + "</div>"
 
     if source == "synthetic":
         return ('<div class="banner synthetic">'

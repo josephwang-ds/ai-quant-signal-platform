@@ -1,0 +1,50 @@
+# A convenience sample of 40 large-cap US issuers, for the demo ingest.
+#
+# THIS IS NOT AN INDEX AND NOT POINT-IN-TIME. Every name here is a company that
+# still exists and is still large today, which is the definition of a survivor
+# sample. Survivorship bias is therefore NOT controlled on this data path -- see
+# docs/LEAKAGE.md section 3. It is demonstrated on the synthetic corpus instead,
+# where membership is generated with issuers that join and leave.
+#
+# These are chosen for filing volume, not for any expected result: large caps
+# file 8-Ks often enough that two years gives a usable sample per issuer.
+AAPL
+MSFT
+GOOGL
+AMZN
+NVDA
+META
+TSLA
+AVGO
+JPM
+V
+UNH
+XOM
+JNJ
+WMT
+MA
+PG
+HD
+CVX
+ABBV
+KO
+PEP
+COST
+MRK
+ADBE
+CSCO
+CRM
+ACN
+MCD
+NFLX
+AMD
+TMO
+ABT
+LIN
+INTC
+ORCL
+DIS
+VZ
+CMCSA
+WFC
+BAC

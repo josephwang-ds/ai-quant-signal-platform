@@ -118,14 +118,29 @@ The SEC requires an identifying User-Agent with a real name and email:
 
 ```bash
 export EDGAR_USER_AGENT="Your Name you@example.com"
-python3 scripts/build_universe.py --out data/build/sp500_membership.csv
+make universe
 make doctor
 make ingest
 make run
 ```
 
-`make doctor` takes about five seconds. `make ingest` pulls the S&P 500 from
-EDGAR and yfinance, rate-limited and cached, and takes roughly an hour.
+`make universe` resolves the 40 tickers in `data/sample/demo_tickers.txt` to CIKs
+through the SEC's own mapping. `make doctor` takes about five seconds. `make
+ingest` pulls those issuers' 8-Ks from EDGAR and their prices from yfinance,
+rate-limited and cached, in a few minutes.
+
+**The demo universe is a survivor sample, and survivorship is not controlled on
+this path.** It is a hand-picked list of issuers that still exist, so the
+companies whose disclosures preceded a collapse are absent by construction. The
+universe file records this in a sidecar, the ingest carries it into the run's
+provenance, and the report says so in its banner — because everything else on
+that page is real, which makes this exactly the caveat a reader would assume
+away. Leak 3 is measured on the synthetic corpus, where membership is generated
+with issuers that join and leave. `scripts/build_universe.py` reconstructs true
+point-in-time S&P 500 membership from a dated changes table and stays in the
+repository for when there is a stable source to point it at — Wikipedia's moved
+off the page, and scraping a live page for a load-bearing input is what caused
+three separate failures before this.
 
 Prices come from yfinance with Stooq as a fallback. Free price data has no
 service level — Stooq was the original single choice and started answering 404

@@ -45,7 +45,7 @@ def main(argv: list[str] | None = None) -> int:
                       help="skip the leakage study and the embargo sweep")
 
     ingest = sub.add_parser("ingest", help="pull real EDGAR filings and prices")
-    ingest.add_argument("--universe", default=str(SAMPLE / "sp500_membership.csv"))
+    ingest.add_argument("--universe", default=str(BUILD / "universe.csv"))
     ingest.add_argument("--since", default="2022-01-01")
     ingest.add_argument("--limit", type=int, default=None,
                         help="stop after this many issuers (for a smoke test)")
@@ -57,7 +57,7 @@ def main(argv: list[str] | None = None) -> int:
     audit.add_argument("--issuers", type=int, default=80)
 
     doctor = sub.add_parser("doctor", help="preflight a real ingest")
-    doctor.add_argument("--universe", default=str(BUILD / "sp500_membership.csv"))
+    doctor.add_argument("--universe", default=str(BUILD / "universe.csv"))
 
     args = parser.parse_args(argv)
     return {"demo": _demo, "ingest": _ingest, "run": _run, "audit": _audit,
@@ -116,13 +116,18 @@ def _doctor(args) -> int:
     universe = Path(args.universe)
     if universe.exists():
         members = load_membership(universe)
-        historical = members["end_date"].notna().sum()
-        checks.append(("universe file", True,
-                       f"{len(members):,} intervals, {historical} historical "
-                       f"(a file with 0 historical members is a survivorship trap)"))
+        historical = int(members["end_date"].notna().sum())
+        quality = _universe_meta(universe)
+        if quality.get("survivorship_controlled") is False:
+            detail = (f"{len(members):,} issuers, {quality.get('universe_quality')} "
+                      f"-- survivorship NOT controlled on this path")
+        else:
+            detail = (f"{len(members):,} intervals, {historical} historical "
+                      f"(0 historical would mean a survivorship trap)")
+        checks.append(("universe file", True, detail))
     else:
         checks.append(("universe file", False,
-                       f"{universe} missing -- run scripts/build_universe.py"))
+                       f"{universe} missing -- run scripts/build_demo_universe.py"))
 
     width = max(len(name) for name, _, _ in checks)
     for name, ok, detail in checks:
@@ -167,6 +172,12 @@ def _run(args) -> int:
     prices = load_prices(BUILD / "prices.parquet")
     membership = load_membership(BUILD / "membership.csv")
     return _pipeline_and_report(events, prices, membership, Path(args.out))
+
+
+def _universe_meta(universe: Path) -> dict:
+    """What the universe file says about its own limitations, if anything."""
+    sidecar = universe.with_suffix(".meta.json")
+    return json.loads(sidecar.read_text()) if sidecar.exists() else {}
 
 
 def _write_provenance(source: str, **fields) -> None:
@@ -320,6 +331,7 @@ def _ingest(args) -> int:
     _write_provenance("edgar", issuers=len(filings), filings=len(events),
                       failed_issuers=[t for t, _ in failures],
                       unresolved_ciks=int(len(unresolved)),
+                      universe=_universe_meta(Path(args.universe)),
                       note="SEC EDGAR submissions + daily bars")
 
     print(f"\n{len(events):,} filings from {len(filings)} issuers "

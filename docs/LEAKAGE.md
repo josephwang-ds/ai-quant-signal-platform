@@ -85,6 +85,23 @@ one checked into git is this bug wearing a helpful face.
 The metrics before and after are not comparable, because the bug selected the
 sample they were computed on — which is a second, quieter way this one hides.
 
+**Where this project does and does not control it.** On the synthetic corpus,
+fully: membership is generated with issuers that join and leave, the guard has
+something to catch, and the cost of the bug is measured. On the real-data demo,
+**not at all**. That path draws its universe from a hand-picked list of large caps
+that still exist today, because the point-in-time source it used to reconstruct
+S&P 500 membership — Wikipedia's dated additions-and-removals table — moved off
+the page, and scraping a live page for a load-bearing input had already caused
+three separate failures.
+
+So the demo's universe is a survivor sample and the guard passes trivially. That
+is worth stating plainly, because everything else on that page is real and a
+reader would reasonably assume this was too. The universe file records the
+limitation in a sidecar, the ingest carries it into the run's provenance, and the
+report puts it in the banner. Restoring it needs a stable point-in-time
+membership source; `build_universe.py`, which reconstructs one from a dated
+changes table, stays in the repository for when there is one to point it at.
+
 ---
 
 ## 4. The split that trains on the future
