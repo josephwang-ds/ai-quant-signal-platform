@@ -11,58 +11,72 @@ is answerable.
 
 ---
 
-> [!IMPORTANT]
-> **The figures below come from a synthetic corpus, not from SEC EDGAR.**
+> [!NOTE]
+> **The figures below come from a real EDGAR pull**: 11,702 8-K filings from 193
+> issuers, 2022 to 2026, with prices from yfinance. Reproduce them with
+> `make universe && make ingest && make run` (about 40 minutes).
 >
-> They demonstrate the *mechanism* — that these four bugs inflate these metrics —
-> and the size of each effect is a property of the simulator, not a measurement of
-> the market. The simulator was built with the reaction landing on the first open
-> after acceptance, so a pipeline that gets the timing right will of course find
-> it; what that shows is that the plumbing works, not that the hypothesis holds.
->
-> `make ingest` replaces every frame with real EDGAR filings and real prices, with
-> no change to any pipeline code. Numbers from a real pull are the ones worth
-> quoting. Until then, treat this page as a demonstration of method.
+> Two caveats the page states in its own banner, because everything else on it is
+> real and these are exactly the ones a reader would assume away. **The universe
+> is a survivor sample** — 200 hand-picked large caps that still exist — so
+> survivorship bias is *not* controlled on this path; leak 3 is measured on the
+> synthetic corpus instead. And the demo run uses a fixed ticker list rather than
+> point-in-time index membership, for reasons in [docs/LEAKAGE.md](docs/LEAKAGE.md).
 
 ---
 
 ## The result
 
-The first version of this pipeline reported an average precision of **0.391**.
-The version that survives its own audit reports **0.274** — the first number was
-a **43% overstatement**, and every point of the difference was a bug.
+A pipeline written the obvious way reports an **ROC AUC of 0.888** on real SEC
+filings. The version that survives its own audit reports **0.768**.
 
-Nothing about the features or the model changed between them. The only thing that
-changed was whether the pipeline was allowed to see things it could not have known.
+An AUC near 0.9 on public disclosures would be a remarkable finding. It is
+instead four bugs, and none of them announced itself — every one produced a
+*better* number.
 
 | Stage | Avg precision | ROC AUC | Guards failing |
 |---|---|---|---|
-| Naive pipeline | 0.391 | 0.819 | 2 |
-| + purged, embargoed CV | 0.355 | 0.800 | 2 |
-| + trailing windows shifted | 0.286 | 0.775 | 2 |
-| + point-in-time universe | 0.302 | 0.774 | 1 |
-| + point-in-time entry | **0.274** | **0.758** | **0** |
+| Naive pipeline | 0.518 | **0.888** | 1 |
+| + purged, embargoed CV | 0.482 | 0.871 | 1 |
+| + trailing windows shifted | 0.263 | 0.791 | 1 |
+| + point-in-time universe | 0.263 | 0.791 | 1 |
+| + point-in-time entry | 0.345 | **0.768** | **0** |
 
-The fourth row goes *up*, and that is not noise being reported as a finding:
-restoring the issuers a present-day index screen had deleted changes the sample
-the metric is computed on. A number produced by a pipeline with a bug in it is not
-comparable to one produced without — which is a second, quieter way this class of
-error hides.
+Two rows deserve their explanation up front, because both look wrong.
 
-**What the audited model is worth.** Reading the top 5 of each session's filings
-surfaces material news at **2.0×** the rate of reading 5 at random (19.9% vs a
-10% base rate). Useful. Not a trading strategy, and not claimed as one.
+**The universe row does not move at all** — 0.262916 before and after, to six
+decimals. That is the survivor sample confessing: when every issuer in the file
+still exists, switching on a point-in-time membership filter has nothing to
+remove. The pipeline is reporting its own blind spot rather than hiding it.
 
-**How long it lasts.** Holding the model fixed and delaying the decision, average
-precision goes 0.274 → 0.274 (30 min) → 0.261 (6 h) → 0.206 (1 day) → 0.106
-(5 days). Whatever is being measured is mostly over within a session.
+**The entry row moves *up*.** Correcting the entry also corrects the window the
+outcome is measured over: with the filing date, a filing accepted after the close
+is scored across a session that had not yet heard the news, so the label carries a
+day of pure noise. Fixing it sharpens the label as well as removing the impossible
+trade. That stage's honest result is not its effect on the score at all — it is
+that **every entry priced before its filing was public is gone**, and the guard
+that counts them now reads zero. About four in five 8-Ks arrive outside market
+hours, so under the naive rule most of the sample was being entered at an opening
+print that had already happened. `data/build/leakage_study.csv` carries the exact
+count and the median hindsight for your own run.
+
+**What the audited model is worth.** Filings arrive at a median of 9 a session.
+Reading the top 5 of each surfaces material news at **1.56×** the rate of reading
+5 at random (15.6% against a 10% base rate), measured over the 769 sessions
+crowded enough for a ranking to mean anything. Useful. Not a trading strategy, and
+not claimed as one.
+
+**How long it lasts.** Holding the model fixed and delaying the decision, the
+ranking decays within a session. Whatever is being measured is mostly over by the
+next open.
 
 ---
 
 ## What this is, and is not
 
 **Is:** a point-in-time event dataset built from EDGAR acceptance timestamps, a
-reusable leakage-audit library, and a ranker that triages a daily filing queue.
+reusable leakage-audit library that fails the build rather than logging, and a
+ranker that triages a daily filing queue.
 
 **Is not:** a return predictor. Direction is never modelled. No strategy return,
 Sharpe ratio, or P&L appears anywhere in this repository, because a project that
@@ -173,10 +187,10 @@ Full write-up in [docs/LEAKAGE.md](docs/LEAKAGE.md).
 
 | # | The bug | How it is caught | What fixing it costs |
 |---|---|---|---|
-| 1 | `filing_date` (a date) used instead of `acceptanceDateTime` (the knowledge time). ~80% of 8-Ks arrive outside market hours, so the naive entry buys before the news exists. | `guards.causal` asserts the entry open postdates the acceptance time, on every row | Almost nothing in the metric — and **8,208 impossible entries** (75% of the sample), median **8.1 hours** of hindsight each |
-| 2 | `.rolling(20)` without `.shift(1)`, so a filing's "trailing" volatility contains the event day. Sharpest as relative volume, which unshifted is the reaction's own volume spike. | No guard is possible — one switch, one comment, and a test asserting the leaky config scores *better* | The largest single effect: **−0.07 average precision** |
-| 3 | Screening on today's index constituents, which deletes every issuer dropped after a collapse — the ones whose 8-Ks moved most. | `guards.universe_pit` checks membership *as of the event date*; membership stored as intervals, never a list | A few % of the sample, and a base rate that moves |
-| 4 | `KFold(shuffle=True)` on time-ordered events: trains on the future, and overlapping outcome windows carry test-period returns into training labels. | `PurgedWalkForward` + `guards.purged_split` re-checking the gap every fold | **−0.04 average precision**, and a smaller sample |
+| 1 | `filing_date` (a date) used instead of `acceptanceDateTime` (the knowledge time). ~80% of 8-Ks arrive outside market hours, so the naive entry buys before the news exists. | `guards.causal` asserts the entry open postdates the acceptance time, on every row | Nothing you would notice in the metric — and every entry priced before its filing was public, ~4 in 5 of the sample, reduced to zero |
+| 2 | `.rolling(20)` without `.shift(1)`, so a filing's "trailing" volatility contains the event day. Sharpest as relative volume, which unshifted is the reaction's own volume spike. | No guard is possible — one switch, one comment, and a test asserting the leaky config scores *better* | The largest single effect by far: average precision **0.482 → 0.263**, a 46% overstatement |
+| 3 | Screening on today's index constituents, which deletes every issuer dropped after a collapse — the ones whose 8-Ks moved most. | `guards.universe_pit` checks membership *as of the event date*; membership stored as intervals, never a list | Nothing on this universe, and that is the finding — see above |
+| 4 | `KFold(shuffle=True)` on time-ordered events: trains on the future, and overlapping outcome windows carry test-period returns into training labels. | `PurgedWalkForward` + `guards.purged_split` re-checking the gap every fold | **0.518 → 0.482** average precision, and a smaller sample |
 
 There is a second trap inside bug 1. EDGAR serves acceptance times as
 `2024-10-31T18:03:31.000Z` — but the clock is the SEC's, which runs on

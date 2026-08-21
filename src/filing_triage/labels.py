@@ -27,6 +27,7 @@ trying to measure.
 
 from __future__ import annotations
 
+from collections import Counter
 from dataclasses import dataclass
 from datetime import date
 
@@ -58,14 +59,20 @@ def build_labels(events: pd.DataFrame, returns: pd.DataFrame,
         raise ValueError(f"no {MARKET_TICKER} rows in the price panel; "
                          "the market model needs a benchmark")
 
-    rows = []
+    rows: list[dict] = []
+    dropped: Counter[str] = Counter()
     for event in events.itertuples():
         panel = grid.panels.get(event.ticker)
+        if panel is None:
+            dropped["no price series for the issuer"] += 1
+            continue
         entry = grid.position.get(event.entry_session)
-        if panel is None or entry is None:
+        if entry is None:
+            dropped["entry session has no price bar"] += 1
             continue
         measured = _measure(panel, grid, entry, config)
-        if measured is None:
+        if isinstance(measured, str):
+            dropped[measured] += 1
             continue
         rows.append({"event_id": event.event_id, **measured})
 
@@ -80,6 +87,12 @@ def build_labels(events: pd.DataFrame, returns: pd.DataFrame,
     threshold = out["reaction"].quantile(config.label_quantile)
     out["label"] = (out["reaction"] >= threshold).astype(int)
     out.attrs["reaction_threshold"] = float(threshold)
+    # Attrition, itemised. An event that cannot be measured is not a bug, but an
+    # unexplained 17% of them going missing between ingest and scoring is
+    # indistinguishable from one -- and silent data loss is the same class of
+    # problem as silent leakage: it changes the answer and nothing says so.
+    out.attrs["attrition"] = dict(dropped)
+    out.attrs["measured"] = len(out)
     return out
 
 
@@ -116,32 +129,33 @@ class SessionGrid:
 
 
 def _measure(panel: tuple[np.ndarray, np.ndarray, np.ndarray], grid: SessionGrid,
-             entry: int, config: PipelineConfig) -> dict | None:
+             entry: int, config: PipelineConfig) -> dict | str:
+    """Returns the measurement, or a string naming why it could not be made."""
     ret, volume, baseline = panel
     market = grid.market
 
     est_end = entry - config.estimation_gap_sessions
     est_start = est_end - config.estimation_sessions
     if est_start < 0:
-        return None
+        return "not enough history before the event"
 
     stock_window = ret[est_start:est_end + 1]
     market_window = market[est_start:est_end + 1]
     usable = np.isfinite(stock_window) & np.isfinite(market_window)
     if usable.sum() < config.estimation_sessions // 2:
-        return None
+        return "estimation window too sparse"
 
     beta, alpha, resid_sd = _market_model(stock_window[usable], market_window[usable])
     if not np.isfinite(resid_sd) or resid_sd <= 0:
-        return None
+        return "no usable residual variance"
 
     window_end = entry + config.event_window_sessions - 1
     if window_end >= len(ret):
-        return None
+        return "event window runs past the end of the price data"
     event_stock = ret[entry:window_end + 1]
     event_market = market[entry:window_end + 1]
     if not (np.isfinite(event_stock).all() and np.isfinite(event_market).all()):
-        return None
+        return "missing price bars inside the event window"
 
     abnormal = event_stock - (alpha + beta * event_market)
     car = float(abnormal.sum())

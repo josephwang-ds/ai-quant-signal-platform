@@ -117,6 +117,16 @@ def _document(result, study: pd.DataFrame, sweep: pd.DataFrame,
   </section>
 
   <section>
+    <h2>What did not get measured</h2>
+    <p>
+      Not every filing can be scored, and a count that drops with no explanation
+      is indistinguishable from a bug. Silent data loss belongs in the same
+      category as silent leakage: it moves the answer, and nothing says so.
+    </p>
+    {_attrition_table(result.integrity)}
+  </section>
+
+  <section>
     <h2>How fast is it over?</h2>
     <p>
       If the ranking only works when you act instantly, it is describing the
@@ -318,6 +328,27 @@ def _integrity_panel(result, study: pd.DataFrame) -> str:
         f'<td class="muted">{html.escape(note)}</td></tr>'
         for label, value, note, kind in rows)
     return f'<table class="data"><tbody>{cells}</tbody></table>'
+
+
+def _attrition_table(integrity: dict) -> str:
+    attrition = dict(integrity.get("attrition") or {})
+    if integrity.get("events_dropped_by_universe"):
+        attrition["issuer outside the universe on that date"] = (
+            integrity["events_dropped_by_universe"])
+    if not attrition:
+        return '<p class="note">Every ingested filing was scored.</p>'
+
+    total = integrity.get("events_total", 0)
+    measured = integrity.get("events_measured", 0)
+    rows = "".join(
+        f"<tr><td>{html.escape(reason)}</td><td class='num'>{count:,}</td>"
+        f"<td class='num muted'>{count / total:.1%}</td></tr>"
+        for reason, count in sorted(attrition.items(), key=lambda kv: -kv[1])
+        if total)
+    head = "<tr><th>Reason</th><th class='num'>Filings</th><th class='num'>Share</th></tr>"
+    return (f'<p class="summary">{measured:,} of {total:,} filings were measured.</p>'
+            f'<div class="scroll"><table class="data"><thead>{head}</thead>'
+            f'<tbody>{rows}</tbody></table></div>')
 
 
 def _ladder_table(study: pd.DataFrame) -> str:

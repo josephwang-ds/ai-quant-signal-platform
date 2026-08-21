@@ -55,6 +55,8 @@ def run(events: pd.DataFrame, prices: pd.DataFrame, membership: pd.DataFrame,
 
     returns = to_returns(prices)
     labels = build_labels(events, returns, config)
+    integrity["events_measured"] = int(labels.attrs.get("measured", len(labels)))
+    integrity["attrition"] = labels.attrs.get("attrition", {})
     events = events[events["event_id"].isin(labels["event_id"])].reset_index(drop=True)
 
     features = build_features(events, returns, config)

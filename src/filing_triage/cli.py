@@ -207,6 +207,8 @@ def _pipeline_and_report(events, prices, membership, out: Path,
     for name, value in _headline(result.metrics):
         print(f"  {name:<34} {value}")
 
+    _print_attrition(result.integrity, len(events))
+
     if quick:
         study = pd.DataFrame(columns=["stage", "note", "n_events", "base_rate",
                                       "average_precision", "roc_auc",
@@ -217,8 +219,9 @@ def _pipeline_and_report(events, prices, membership, out: Path,
     else:
         print("running the leakage study (5 configurations)...", flush=True)
         study = experiments.run_leakage_study(events, prices, membership)
-        print(study[["stage", "average_precision", "roc_auc", "checks_failed"]]
-              .to_string(index=False))
+        print(study[["stage", "n_events", "average_precision", "roc_auc",
+                     "impossible_entries", "median_hindsight_hours",
+                     "checks_failed"]].to_string(index=False))
         print("sweeping the embargo...", flush=True)
         sweep = experiments.embargo_sweep(events, prices, membership, SWEEP)
 
@@ -239,6 +242,26 @@ def _pipeline_and_report(events, prices, membership, out: Path,
         print("\nLEAKAGE CHECKS FAILED", file=sys.stderr)
         return 1
     return 0
+
+
+def _print_attrition(integrity: dict, ingested: int) -> None:
+    """Account for every filing that did not make it to a score.
+
+    Between ingest and scoring the count drops, and a drop nobody explains is
+    indistinguishable from a bug. Silent data loss belongs in the same category
+    as silent leakage: it moves the answer and nothing says so.
+    """
+    attrition = integrity.get("attrition") or {}
+    dropped_by_universe = integrity.get("events_dropped_by_universe", 0)
+    if not attrition and not dropped_by_universe:
+        return
+
+    measured = integrity.get("events_measured", 0)
+    print(f"\n  of {ingested:,} filings, {measured:,} could be measured")
+    if dropped_by_universe:
+        print(f"    {dropped_by_universe:>6,}  issuer outside the universe on that date")
+    for reason, count in sorted(attrition.items(), key=lambda kv: -kv[1]):
+        print(f"    {count:>6,}  {reason}")
 
 
 def _headline(metrics: dict) -> list[tuple[str, str]]:
