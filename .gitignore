@@ -1,91 +1,17 @@
-# Dependencies
-node_modules/
 __pycache__/
 *.py[cod]
 .venv/
 venv/
-env/
-
-# Build artifacts
-.next/
-out/
-dist/
-build/
 *.egg-info/
-
-# Environment files
-.env
-.env.local
-.env.*
-.env.*.local
-!.env.example
-!**/.env.example
-
-# Credentials and local databases (never commit)
-*.pem
-*.key
-*.p12
-*.pfx
-*.sqlite
-*.sqlite3
-*.db
-
-# Logs and debugging
-*.log
-npm-debug.log*
-
-# Operating system and IDE files
-.DS_Store
-.idea/
-.vscode/
-.vercel/
-.render/
-*.swp
-
-# TypeScript
-next-env.d.ts
-
-# Python tests and coverage
 .pytest_cache/
-.coverage
-htmlcov/
-coverage/
-playwright-report/
-test-results/
-frontend/tsconfig.tsbuildinfo
+.ruff_cache/
+.ipynb_checkpoints/
 
-# Market-data filesystem cache (research execution)
-.cache/
-backend/.cache/
-
-# Intelligence publishing outputs (research run registry; Phase 4.1+)
-# Keep directory placeholders; never commit generated manifests or latest.json.
-backend/outputs/**
-!backend/outputs/.gitkeep
-!backend/outputs/runs/
-!backend/outputs/runs/.gitkeep
-
-# Private interview, demo, and review preparation notes
-docs/PROJECT_TRACKER.md
-docs/prep/
-docs/private/
-docs/review/
-docs/demo-prep/
-docs/*_prep.md
-docs/*prep*.md
-docs/*interview*
-docs/*展示规划*
-docs/*问题*
-docs/*设计稿*
-*CEO*CFO*.md
-AI_Quant_Research_Workspace_*.md
-国企*.md
-interview_prep.md
-interview_guide.md
-interview_script.md
-interview_story.md
-*_questions.md
-*_question_bank.md
-
-# Local AI working notes (not part of the product)
-/notes/
+# Data: cache and derived artifacts are reproducible, never committed.
+# data/sample/ IS committed — it is what makes `make demo` work offline.
+data/cache/
+data/build/
+build/
+dist/
+*.parquet
+!data/sample/*.parquet

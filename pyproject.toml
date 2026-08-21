@@ -1,0 +1,60 @@
+[project]
+name = "filing-triage"
+version = "0.1.0"
+description = "Point-in-time SEC filing triage: which disclosures deserve a human read?"
+requires-python = ">=3.11"
+dependencies = [
+    "pandas>=2.1",
+    "numpy>=1.26",
+    "scipy>=1.11",
+    "scikit-learn>=1.4",
+    "pyarrow>=15.0",
+    "requests>=2.31",
+    "lxml>=5.0",          # pandas.read_html, for scripts/build_universe.py
+    "yfinance>=0.2.40",   # primary daily price source
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0", "ruff>=0.6"]
+
+[project.scripts]
+triage = "filing_triage.cli:main"
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+
+[tool.ruff]
+line-length = 100
+src = ["src", "tests"]
+
+# Selected explicitly rather than left to the defaults. Ruff's default set is
+# version-dependent, so an unpinned config lints differently on a contributor's
+# machine than in CI -- which is exactly what happened here: clean locally, 35
+# findings on the runner. An explicit list makes the two agree.
+[tool.ruff.lint]
+select = [
+    "E", "F", "W",   # pycodestyle, pyflakes
+    "I",             # import sorting
+    "UP",            # pyupgrade
+    "B",             # bugbear
+    "C4",            # comprehensions
+    "SIM",           # simplify
+    "PIE", "ISC",    # misc lint, implicit string concat
+    "DTZ",           # naive datetimes -- load-bearing in a project about timestamps
+    "BLE",           # blind excepts -- used deliberately in the ingest loop, each with a reason
+    "RUF",
+]
+
+[tool.ruff.lint.per-file-ignores]
+# The clock must reject naive datetimes, so its tests have to construct them.
+"tests/test_pit.py" = ["DTZ001"]
+# scripts/ is imported after a sys.path insert, which has to come first.
+"tests/test_build_universe.py" = ["E402"]
