@@ -1,0 +1,214 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Filing Triage</title>
+<style>
+:root { color-scheme: light; --surface:#fcfcfb;--panel:#ffffff;--ink:#0b0b0b;--ink2:#52514e;--muted:#8a8984;--grid:#e6e5e1;--accent:#2a78d6;--alarm:#e34948; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) { color-scheme: dark; --surface:#1a1a19;--panel:#222221;--ink:#ffffff;--ink2:#c3c2b7;--muted:#8a8984;--grid:#33322f;--accent:#3987e5;--alarm:#e66767; }
+}
+:root[data-theme="dark"] { color-scheme: dark; --surface:#1a1a19;--panel:#222221;--ink:#ffffff;--ink2:#c3c2b7;--muted:#8a8984;--grid:#33322f;--accent:#3987e5;--alarm:#e66767; }
+
+* { box-sizing: border-box; }
+body {
+  margin: 0; background: var(--surface); color: var(--ink);
+  font: 16px/1.65 ui-sans-serif, -apple-system, "Segoe UI", Inter, system-ui, sans-serif;
+  -webkit-text-size-adjust: 100%;
+}
+.wrap { max-width: 900px; margin: 0 auto; padding: 56px 24px 80px; }
+
+.banner { border-radius: 10px; padding: 14px 18px; margin: 0 0 32px;
+  font-size: 14px; line-height: 1.55; border: 1px solid; }
+.banner strong { color: var(--ink); }
+.banner code { background: var(--panel); padding: 1px 5px; border-radius: 4px; }
+.banner.synthetic { border-color: var(--alarm); color: var(--ink2);
+  background: color-mix(in srgb, var(--alarm) 9%, var(--surface)); }
+.banner.real { border-color: var(--accent); color: var(--ink2);
+  background: color-mix(in srgb, var(--accent) 9%, var(--surface)); }
+
+.eyebrow { text-transform: uppercase; letter-spacing: .1em; font-size: 12px;
+  color: var(--muted); margin: 0 0 12px; font-weight: 600; }
+h1 { font-size: clamp(30px, 5vw, 44px); line-height: 1.15; margin: 0 0 16px;
+  letter-spacing: -0.02em; }
+h2 { font-size: 22px; margin: 0 0 12px; letter-spacing: -0.01em; }
+.lede { font-size: 18px; color: var(--ink2); margin: 0 0 32px; max-width: 62ch; }
+p { max-width: 68ch; color: var(--ink2); }
+section { margin-top: 56px; }
+em { color: var(--ink); font-style: normal; font-weight: 600; }
+
+.stats { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  margin: 32px 0 0; }
+.stat { background: var(--panel); border: 1px solid var(--grid); border-radius: 10px;
+  padding: 18px 18px 16px; }
+.stat-value { font-size: 30px; font-weight: 650; letter-spacing: -0.02em;
+  color: var(--ink); line-height: 1.1; }
+.stat-label { font-size: 13px; color: var(--ink2); margin-top: 6px; }
+.stat-note { font-size: 12px; color: var(--muted); margin-top: 6px; }
+
+.fig { margin: 24px 0 8px; }
+.chart { width: 100%; height: auto; display: block; }
+.bar.accent { fill: var(--accent); }
+.bar.alarm { fill: var(--alarm); }
+.axis { stroke: var(--grid); stroke-width: 1; }
+.tick { fill: var(--ink2); font-size: 12.5px; }
+.value { fill: var(--ink); font-size: 12.5px; font-weight: 600;
+  font-variant-numeric: tabular-nums; }
+.caption { fill: var(--muted); font-size: 12px; }
+
+.legend { display: flex; gap: 18px; margin-bottom: 10px; font-size: 12.5px;
+  color: var(--ink2); flex-wrap: wrap; }
+.key { display: inline-flex; align-items: center; gap: 7px; }
+.dot { width: 10px; height: 10px; border-radius: 3px; display: inline-block; }
+.dot.accent { background: var(--accent); }
+.dot.alarm { background: var(--alarm); }
+
+.scroll { overflow-x: auto; margin: 20px 0; }
+table.data { border-collapse: collapse; width: 100%; font-size: 13.5px; }
+table.data th, table.data td { text-align: left; padding: 9px 12px;
+  border-bottom: 1px solid var(--grid); vertical-align: top; }
+table.data th { color: var(--muted); font-weight: 600; font-size: 12px;
+  text-transform: uppercase; letter-spacing: .05em; white-space: nowrap; }
+td.num, th.num { text-align: right; font-variant-numeric: tabular-nums;
+  white-space: nowrap; }
+td.muted { color: var(--muted); }
+td.mono, .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12.5px; }
+td.good { color: var(--accent); font-weight: 600; }
+td.bad { color: var(--alarm); font-weight: 600; }
+.summary { font-weight: 600; color: var(--ink); }
+.note { font-size: 13.5px; color: var(--muted); }
+footer { margin-top: 72px; padding-top: 20px; border-top: 1px solid var(--grid); }
+footer p { font-size: 13px; color: var(--muted); }
+code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .92em; }
+</style>
+</head>
+<body>
+<main class="wrap">
+
+  <div class="banner synthetic"><strong>Synthetic data.</strong> Every number on this page comes from a simulated corpus, not from SEC EDGAR. It demonstrates the <em>mechanism</em> &mdash; that these bugs inflate these metrics &mdash; and the size of each effect is a property of the simulator, not a measurement of the market. Run <code>make ingest</code> for figures about the actual market.</div>
+
+  <header class="hero">
+    <p class="eyebrow">SEC 8-K disclosures &middot; point-in-time study</p>
+    <h1>Which filings deserve a human read?</h1>
+    <p class="lede">
+      Forty 8-Ks land before breakfast and an analyst has time for five. This ranks
+      them by how hard the market is about to react &mdash; <em>magnitude, not
+      direction</em>. Predicting direction is a bet against people with faster data
+      and better models. Predicting which disclosures matter is a triage problem,
+      and triage is answerable.
+    </p>
+    <div class="stats"><div class="stat"><div class="stat-value">4,765</div><div class="stat-label">filings ranked</div><div class="stat-note">out of sample</div></div><div class="stat"><div class="stat-value">0.265</div><div class="stat-label">average precision, audited</div><div class="stat-note">the naive pipeline claimed 0.333</div></div><div class="stat"><div class="stat-value">0.761</div><div class="stat-label">ROC AUC</div><div class="stat-note">base rate 10% &middot; purged walk-forward</div></div><div class="stat"><div class="stat-value">1.6&times;</div><div class="stat-label">better than reading five at random</div><div class="stat-note">top 5 of each session &middot; 461 sessions with more than five filings</div></div></div>
+  </header>
+
+  <section>
+    <h2>The result that mattered was a bug</h2>
+    <p>
+      The first version of this pipeline scored an average precision of
+      <strong>0.333</strong>. The version that survives
+      its own audit scores <strong>0.265</strong>, a
+      26% overstatement.
+      Nothing about the
+      features or the model changed between them &mdash; only whether the pipeline
+      was allowed to see things it could not have known. Each bar below removes
+      exactly one such privilege.
+    </p>
+    <figure class="fig"><div class="legend"><span class="key"><span class="dot alarm"></span>still leaking</span><span class="key"><span class="dot accent"></span>audited clean</span></div><svg viewBox="0 0 760 210" role="img" aria-label="Average precision by stage." class="chart"><text x="198" y="27.0" class="tick" text-anchor="end">Naive pipeline</text><rect x="210" y="14.0" width="472.0" height="18" rx="4" class="bar alarm"><title>Naive pipeline: 0.333</title></rect><text x="692.0" y="27.0" class="value">0.333</text><text x="198" y="61.0" class="tick" text-anchor="end">+ purged, embargoed CV</text><rect x="210" y="48.0" width="436.8" height="18" rx="4" class="bar alarm"><title>+ purged, embargoed CV: 0.309</title></rect><text x="656.8" y="61.0" class="value">0.309</text><text x="198" y="95.0" class="tick" text-anchor="end">+ shifted trailing features</text><rect x="210" y="82.0" width="379.3" height="18" rx="4" class="bar alarm"><title>+ shifted trailing features: 0.268</title></rect><text x="599.3" y="95.0" class="value">0.268</text><text x="198" y="129.0" class="tick" text-anchor="end">+ point-in-time universe</text><rect x="210" y="116.0" width="364.0" height="18" rx="4" class="bar alarm"><title>+ point-in-time universe: 0.257</title></rect><text x="584.0" y="129.0" class="value">0.257</text><text x="198" y="163.0" class="tick" text-anchor="end">+ point-in-time entry</text><rect x="210" y="150.0" width="375.1" height="18" rx="4" class="bar accent"><title>+ point-in-time entry: 0.265</title></rect><text x="595.1" y="163.0" class="value">0.265</text><line x1="210" y1="6" x2="210" y2="176" class="axis"/><text x="210" y="198" class="caption">Average precision by stage.</text></svg></figure>
+    <div class="scroll"><table class="data"><thead><tr><th>Stage</th><th class='num'>Events</th><th class='num'>AUC</th><th class='num'>Avg precision</th><th class='num'>Daily lift@5</th><th class='num'>Checks failed</th><th>What changed</th></tr></thead><tbody><tr><td>Naive pipeline</td><td class='num'>5,964</td><td class='num'>0.810</td><td class='num'>0.333</td><td class='num'>1.71&times;</td><td class='num bad'>2</td><td class='muted'>Shuffled K-fold, today&#x27;s index, trailing windows that include the event day, entry on the filing date.</td></tr><tr><td>+ purged, embargoed CV</td><td class='num'>4,970</td><td class='num'>0.772</td><td class='num'>0.309</td><td class='num'>1.65&times;</td><td class='num bad'>2</td><td class='muted'>Stop training on the future and on labels whose outcome windows reach into the test fold.</td></tr><tr><td>+ shifted trailing features</td><td class='num'>4,970</td><td class='num'>0.758</td><td class='num'>0.268</td><td class='num'>1.58&times;</td><td class='num bad'>2</td><td class='muted'>Trailing volatility and turnover must end the session before entry, not include it.</td></tr><tr><td>+ point-in-time universe</td><td class='num'>4,767</td><td class='num'>0.752</td><td class='num'>0.257</td><td class='num'>1.55&times;</td><td class='num bad'>1</td><td class='muted'>Screen on index membership as of the event date, restoring the issuers that were later dropped.</td></tr><tr><td>+ point-in-time entry</td><td class='num'>4,765</td><td class='num'>0.761</td><td class='num'>0.265</td><td class='num'>1.62&times;</td><td class='num good'>0</td><td class='muted'>Enter at the first open after the acceptance time. Barely moves the metric -- and hands back every impossible trade.</td></tr></tbody></table></div>
+    <p class="note">
+      The last stage can move the metric <em>upward</em>, and that is not the
+      bug reasserting itself. Correcting the entry also corrects the window the
+      outcome is measured over: with the filing date, a filing accepted after the
+      close is scored across a session that had not yet heard the news, so the
+      label carries a day of noise. Fixing it sharpens the label as well as
+      removing the impossible trade &mdash; which means that stage's honest
+      result is the zeroed entry count, not its effect on the score.
+    </p>
+    <p class="note">
+      Event counts differ by stage, and that is part of the finding: purged
+      cross-validation discards events it cannot honestly train on, and a
+      point-in-time universe restores issuers that a present-day index screen had
+      quietly deleted. A metric computed on a sample that the bug itself selected
+      is not comparable to one computed on the right sample &mdash; which is
+      another way this class of error hides.
+    </p>
+  </section>
+
+  <section>
+    <h2>The bug no metric catches</h2>
+    <p>
+      Entering on the filing <em>date</em> instead of the acceptance
+      <em>timestamp</em> barely moves the score &mdash; which is exactly why it
+      ships. It is not a modelling error. It is a claim to have acted on news that
+      had not been published yet.
+    </p>
+    <table class="data"><tbody><tr><td>Entries that opened before the filing was public</td><td class="num bad">5,557</td><td class="muted">75% of the sample</td></tr><tr><td>Median hindsight granted by those entries</td><td class="num bad">8.1 h</td><td class="muted">between the opening print and the filing</td></tr><tr><td>Same figure, point-in-time entry</td><td class="num good">0</td><td class="muted">the invariant the test suite pins</td></tr></tbody></table>
+  </section>
+
+  <section>
+    <h2>What did not get measured</h2>
+    <p>
+      Not every filing can be scored, and a count that drops with no explanation
+      is indistinguishable from a bug. Silent data loss belongs in the same
+      category as silent leakage: it moves the answer, and nothing says so.
+    </p>
+    <p class="summary">4,765 of 7,387 filings were scored out of sample.</p><div class="scroll"><table class="data"><thead><tr><th>Reason</th><th class='num'>Filings</th><th class='num'>Share</th></tr></thead><tbody><tr><td>not enough history before the event</td><td class='num'>1,266</td><td class='num muted'>17.1%</td></tr><tr><td>held out by walk-forward as training-only</td><td class='num'>953</td><td class='num muted'>12.9%</td></tr><tr><td>issuer outside the universe on that date</td><td class='num'>389</td><td class='num muted'>5.3%</td></tr><tr><td>event window runs past the end of the price data</td><td class='num'>11</td><td class='num muted'>0.1%</td></tr><tr><td>entry session has no price bar</td><td class='num'>3</td><td class='num muted'>0.0%</td></tr></tbody></table></div>
+  </section>
+
+  <section>
+    <h2>How fast is it over?</h2>
+    <p>
+      If the ranking only works when you act instantly, it is describing the
+      announcement rather than anything usable. Holding the model fixed and
+      delaying the decision shows how much is left after the wait.
+    </p>
+    <figure class="fig"><svg viewBox="0 0 760 210" role="img" aria-label="Average precision as the delay between publication and decision grows." class="chart"><text x="198" y="27.0" class="tick" text-anchor="end">0:00:00</text><rect x="210" y="14.0" width="437.4" height="18" rx="4" class="bar accent"><title>0:00:00: 0.265</title></rect><text x="657.4" y="27.0" class="value">0.265</text><text x="198" y="61.0" class="tick" text-anchor="end">0:30:00</text><rect x="210" y="48.0" width="437.4" height="18" rx="4" class="bar accent"><title>0:30:00: 0.265</title></rect><text x="657.4" y="61.0" class="value">0.265</text><text x="198" y="95.0" class="tick" text-anchor="end">6:00:00</text><rect x="210" y="82.0" width="472.0" height="18" rx="4" class="bar accent"><title>6:00:00: 0.286</title></rect><text x="692.0" y="95.0" class="value">0.286</text><text x="198" y="129.0" class="tick" text-anchor="end">1 day, 0:00:00</text><rect x="210" y="116.0" width="346.7" height="18" rx="4" class="bar accent"><title>1 day, 0:00:00: 0.211</title></rect><text x="566.7" y="129.0" class="value">0.211</text><text x="198" y="163.0" class="tick" text-anchor="end">5 days, 0:00:00</text><rect x="210" y="150.0" width="167.9" height="18" rx="4" class="bar accent"><title>5 days, 0:00:00: 0.103</title></rect><text x="387.9" y="163.0" class="value">0.103</text><line x1="210" y1="6" x2="210" y2="176" class="axis"/><text x="210" y="198" class="caption">Average precision as the delay between publication and decision grows.</text></svg></figure>
+  </section>
+
+  <section>
+    <h2>What the ranker leans on</h2>
+    <p>
+      Permutation importance, measured on average precision. The 8-K item code
+      does most of the work: registrants tell you what kind of news it is before
+      you read a word of it.
+    </p>
+    <figure class="fig"><svg viewBox="0 0 760 380" role="img" aria-label="Drop in average precision when the column is shuffled." class="chart"><text x="198" y="27.0" class="tick" text-anchor="end">item_2_02</text><rect x="210" y="14.0" width="472.0" height="18" rx="4" class="bar accent"><title>item_2_02: 0.282</title></rect><text x="692.0" y="27.0" class="value">0.282</text><text x="198" y="61.0" class="tick" text-anchor="end">log_doc_chars</text><rect x="210" y="48.0" width="328.5" height="18" rx="4" class="bar accent"><title>log_doc_chars: 0.196</title></rect><text x="548.5" y="61.0" class="value">0.196</text><text x="198" y="95.0" class="tick" text-anchor="end">rel_volume</text><rect x="210" y="82.0" width="113.7" height="18" rx="4" class="bar accent"><title>rel_volume: 0.069</title></rect><text x="333.7" y="95.0" class="value">0.069</text><text x="198" y="129.0" class="tick" text-anchor="end">abs_ret_5</text><rect x="210" y="116.0" width="107.1" height="18" rx="4" class="bar accent"><title>abs_ret_5: 0.065</title></rect><text x="327.1" y="129.0" class="value">0.065</text><text x="198" y="163.0" class="tick" text-anchor="end">hour_et</text><rect x="210" y="150.0" width="100.8" height="18" rx="4" class="bar accent"><title>hour_et: 0.061</title></rect><text x="320.8" y="163.0" class="value">0.061</text><text x="198" y="197.0" class="tick" text-anchor="end">days_since_prev_filing</text><rect x="210" y="184.0" width="100.2" height="18" rx="4" class="bar accent"><title>days_since_prev_filing: 0.061</title></rect><text x="320.2" y="197.0" class="value">0.061</text><text x="198" y="231.0" class="tick" text-anchor="end">filings_trailing_year</text><rect x="210" y="218.0" width="97.0" height="18" rx="4" class="bar accent"><title>filings_trailing_year: 0.059</title></rect><text x="317.0" y="231.0" class="value">0.059</text><text x="198" y="265.0" class="tick" text-anchor="end">novelty</text><rect x="210" y="252.0" width="93.2" height="18" rx="4" class="bar accent"><title>novelty: 0.057</title></rect><text x="313.2" y="265.0" class="value">0.057</text><text x="198" y="299.0" class="tick" text-anchor="end">vol_20</text><rect x="210" y="286.0" width="91.5" height="18" rx="4" class="bar accent"><title>vol_20: 0.056</title></rect><text x="311.5" y="299.0" class="value">0.056</text><text x="198" y="333.0" class="tick" text-anchor="end">item_8_01</text><rect x="210" y="320.0" width="90.4" height="18" rx="4" class="bar accent"><title>item_8_01: 0.055</title></rect><text x="310.4" y="333.0" class="value">0.055</text><line x1="210" y1="6" x2="210" y2="346" class="axis"/><text x="210" y="368" class="caption">Drop in average precision when the column is shuffled.</text></svg></figure>
+  </section>
+
+  <section>
+    <h2>Does it hold up across time?</h2>
+    <p>
+      Walk-forward folds run in chronological order, so this doubles as a decay
+      check. A ranker that only works in the first fold has not been validated,
+      it has been fitted.
+    </p>
+    <div class="scroll"><table class="data"><thead><tr><th class='num'>fold</th><th class='num'>events</th><th class='num'>base rate</th><th class='num'>avg precision</th><th class='num'>ROC AUC</th><th class='num'>lift@50</th></tr></thead><tbody><tr><td class='num'>0</td><td class='num'>953</td><td class='num'>0.101</td><td class='num'>0.253</td><td class='num'>0.726</td><td class='num'>3.574</td></tr><tr><td class='num'>1</td><td class='num'>953</td><td class='num'>0.114</td><td class='num'>0.303</td><td class='num'>0.772</td><td class='num'>3.322</td></tr><tr><td class='num'>2</td><td class='num'>953</td><td class='num'>0.109</td><td class='num'>0.287</td><td class='num'>0.781</td><td class='num'>3.299</td></tr><tr><td class='num'>3</td><td class='num'>953</td><td class='num'>0.090</td><td class='num'>0.246</td><td class='num'>0.768</td><td class='num'>2.881</td></tr><tr><td class='num'>4</td><td class='num'>953</td><td class='num'>0.091</td><td class='num'>0.290</td><td class='num'>0.791</td><td class='num'>4.163</td></tr></tbody></table></div>
+  </section>
+
+  <section>
+    <h2>The queue</h2>
+    <p>What the system actually emits: one morning's filings, ranked.</p>
+    <div class="scroll"><table class="data"><thead><tr><th class='num'>#</th><th>Session</th><th>Ticker</th><th>Items</th><th>Filed</th><th class='num'>Score</th><th>Reacted</th></tr></thead><tbody><tr><td class='num'>1</td><td>2024-12-27</td><td class='mono'>SYN001</td><td class='mono'>2.02</td><td class='muted'>20:04 ET &middot; post</td><td class='num'>0.257</td><td class='muted'>no</td></tr><tr><td class='num'>2</td><td>2024-12-27</td><td class='mono'>SYN120</td><td class='mono'>2.02</td><td class='muted'>16:42 ET &middot; post</td><td class='num'>0.234</td><td class='muted'>no</td></tr><tr><td class='num'>3</td><td>2024-12-27</td><td class='mono'>SYN113</td><td class='mono'>2.02</td><td class='muted'>19:25 ET &middot; post</td><td class='num'>0.199</td><td class='muted'>no</td></tr><tr><td class='num'>4</td><td>2024-12-27</td><td class='mono'>SYN127</td><td class='mono'>2.02</td><td class='muted'>20:39 ET &middot; post</td><td class='num'>0.129</td><td class='muted'>no</td></tr><tr><td class='num'>5</td><td>2024-12-27</td><td class='mono'>SYN142</td><td class='mono'>1.01,9.01</td><td class='muted'>18:05 ET &middot; post</td><td class='num'>0.043</td><td class='muted'>no</td></tr><tr><td class='num'>6</td><td>2024-12-27</td><td class='mono'>SYN069</td><td class='mono'>7.01</td><td class='muted'>06:36 ET &middot; pre</td><td class='num'>0.036</td><td class='muted'>no</td></tr><tr><td class='num'>1</td><td>2024-12-30</td><td class='mono'>SYN106</td><td class='mono'>2.02</td><td class='muted'>16:14 ET &middot; post</td><td class='num'>0.488</td><td class='good'>yes</td></tr><tr><td class='num'>2</td><td>2024-12-30</td><td class='mono'>SYN092</td><td class='mono'>1.03,9.01</td><td class='muted'>16:52 ET &middot; post</td><td class='num'>0.375</td><td class='good'>yes</td></tr><tr><td class='num'>3</td><td>2024-12-30</td><td class='mono'>SYN126</td><td class='mono'>8.01,9.01</td><td class='muted'>15:59 ET &middot; open</td><td class='num'>0.288</td><td class='muted'>no</td></tr><tr><td class='num'>4</td><td>2024-12-30</td><td class='mono'>SYN047</td><td class='mono'>5.02,9.01</td><td class='muted'>11:55 ET &middot; open</td><td class='num'>0.099</td><td class='muted'>no</td></tr><tr><td class='num'>5</td><td>2024-12-30</td><td class='mono'>SYN072</td><td class='mono'>5.07,9.01</td><td class='muted'>16:52 ET &middot; post</td><td class='num'>0.018</td><td class='muted'>no</td></tr><tr><td class='num'>6</td><td>2024-12-30</td><td class='mono'>SYN003</td><td class='mono'>3.02</td><td class='muted'>20:59 ET &middot; post</td><td class='num'>0.018</td><td class='muted'>no</td></tr></tbody></table></div>
+  </section>
+
+  <section>
+    <h2>Leakage audit</h2>
+    <p>
+      These run on every pipeline execution and on every CI build. A failure is an
+      exception, not a warning &mdash; a check that can be ignored is a comment.
+    </p>
+    <p class="summary">12/12 leakage checks passed</p><div class="scroll"><table class="data"><thead><tr><th>Check</th><th>Status</th><th class='num'>Violations</th><th>Detail</th></tr></thead><tbody><tr><td>timestamps carry a timezone</td><td class='good'>pass</td><td class='num'>0</td><td class='muted'>all datetime columns are tz-aware</td></tr><tr><td>causal: acceptance_time &lt;= decision_time</td><td class='good'>pass</td><td class='num'>0</td><td class='muted'>every fact predates the decision that uses it</td></tr><tr><td>events unique on cik+accession</td><td class='good'>pass</td><td class='num'>0</td><td class='muted'>no duplicate events</td></tr><tr><td>universe membership is point-in-time</td><td class='good'>pass</td><td class='num'>0</td><td class='muted'>every event&#x27;s issuer was in the index on that date</td></tr><tr><td>no outcome-derived columns in the feature matrix</td><td class='good'>pass</td><td class='num'>0</td><td class='muted'>feature matrix is free of outcome-derived columns</td></tr><tr><td>entry opens after the filing was public</td><td class='good'>pass</td><td class='num'>0</td><td class='muted'>no position is entered at a price printed before the filing</td></tr><tr><td>estimation window ends before the event</td><td class='good'>pass</td><td class='num'>0</td><td class='muted'>baselines are estimated on pre-event data only</td></tr><tr><td>train/test split is purged and embargoed</td><td class='good'>pass</td><td class='num'>0</td><td class='muted'>gap between last training label and first test event is 7 days 17:41:00, at or beyond the 5 days, 0:00:00 embargo</td></tr><tr><td>train/test split is purged and embargoed</td><td class='good'>pass</td><td class='num'>0</td><td class='muted'>gap between last training label and first test event is 5 days 14:08:00, at or beyond the 5 days, 0:00:00 embargo</td></tr><tr><td>train/test split is purged and embargoed</td><td class='good'>pass</td><td class='num'>0</td><td class='muted'>gap between last training label and first test event is 5 days 11:44:00, at or beyond the 5 days, 0:00:00 embargo</td></tr><tr><td>train/test split is purged and embargoed</td><td class='good'>pass</td><td class='num'>0</td><td class='muted'>gap between last training label and first test event is 7 days 06:37:00, at or beyond the 5 days, 0:00:00 embargo</td></tr><tr><td>train/test split is purged and embargoed</td><td class='good'>pass</td><td class='num'>0</td><td class='muted'>gap between last training label and first test event is 5 days 15:33:00, at or beyond the 5 days, 0:00:00 embargo</td></tr></tbody></table></div>
+  </section>
+
+  <footer>
+    <p>
+      Generated 2026-08-21 04:18 UTC &middot;
+      trailing features shifted=yes, point-in-time entry=yes, point-in-time universe=yes, purged CV=yes
+    </p>
+    <p class="note">Source: the synthetic corpus that ships with the repository, so the project runs end to end with no SEC credentials and no network. <code>make ingest</code> swaps in real EDGAR filings and real prices; no pipeline code changes.</p>
+  </footer>
+
+</main>
+</body>
+</html>
