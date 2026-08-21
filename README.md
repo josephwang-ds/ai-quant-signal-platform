@@ -258,6 +258,25 @@ Details in [docs/METHODOLOGY.md](docs/METHODOLOGY.md).
 
 ---
 
+## The published site
+
+`web/` is a static site served by Vercel with no build step — what is committed
+is what goes live. `web/index.html` is the landing page; `web/report.html` is a
+published run.
+
+```bash
+make run     # or make demo
+make site    # copies data/build/report.html -> web/report.html
+```
+
+Then commit `web/report.html`. Reports carry their own provenance banner, so a
+synthetic run published by accident says so on its own face rather than passing
+as a real one.
+
+The Vercel project's **Root Directory must be empty**, not `frontend` — that
+directory was deleted with the old platform, and a stale root setting fails the
+deploy before `vercel.json` is ever read.
+
 ## Layout
 
 ```

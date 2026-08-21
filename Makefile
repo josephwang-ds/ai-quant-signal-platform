@@ -19,6 +19,7 @@ help:
 	@echo "make test      run the test suite"
 	@echo "make ingest    pull real EDGAR filings and prices (needs network)"
 	@echo "make run       run the pipeline over whatever make ingest produced"
+	@echo "make site      publish the latest report to web/ for the static site"
 	@echo
 	@echo "using PYTHON=$(PYTHON)"
 
@@ -82,6 +83,15 @@ ingest: check-python
 
 run: check-python
 	$(PYTHON) -m filing_triage.cli run
+
+site: check-python
+	@test -f data/build/report.html || { \
+	  echo "data/build/report.html not found -- run 'make demo' or 'make run' first"; \
+	  exit 1; }
+	@cp data/build/report.html web/report.html
+	@echo "web/report.html updated from the latest run."
+	@echo "Commit it to publish: the site is served statically, with no build step,"
+	@echo "so what is in git is what goes live."
 
 clean:
 	rm -rf data/build .pytest_cache .ruff_cache
