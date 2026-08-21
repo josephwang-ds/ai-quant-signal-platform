@@ -89,6 +89,10 @@ make install
 make demo                          # ~4 min -> data/build/report.html
 ```
 
+Every `make` target picks up `.venv/bin/python` on its own if the virtualenv is
+there, so a shell that forgot to activate still runs the right interpreter rather
+than failing with a version error about a system Python nobody meant to use.
+
 `make install` upgrades pip before installing: pip older than 21.3 cannot do an
 editable install of a pyproject-only project, and the failure it prints blames a
 missing `setup.py`, which sends you looking for the wrong problem.

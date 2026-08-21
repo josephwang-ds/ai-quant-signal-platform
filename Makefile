@@ -1,6 +1,11 @@
-# macOS ships no `python`, only `python3`; some Linux images are the other way
-# round. Resolve it once here rather than making every user discover it.
-PYTHON ?= $(shell command -v python3 2>/dev/null || command -v python 2>/dev/null)
+# Resolve the interpreter once, rather than making every user discover it.
+#
+# The project's own virtualenv comes first. It sits in the source tree, it is the
+# one the dependencies are installed into, and forgetting to activate a shell is
+# not a reason for the build to fail with a version error about a system Python
+# nobody meant to use. After that: python3 (macOS ships no bare `python`), then
+# python (some Linux images are the other way round). PYTHON=... overrides all of it.
+PYTHON ?= $(shell   test -x .venv/bin/python && echo .venv/bin/python ||   command -v python3 2>/dev/null ||   command -v python 2>/dev/null)
 
 .PHONY: help install demo quick audit doctor test lint ingest run clean
 
