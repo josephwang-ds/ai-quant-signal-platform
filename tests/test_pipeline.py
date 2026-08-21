@@ -62,6 +62,33 @@ class TestHonestPipeline:
         assert honest.metrics["base_rate"] == pytest.approx(0.10, abs=0.03)
 
 
+class TestAttritionIsAccountedFor:
+    """Every ingested filing ends up either scored or in a named bucket.
+
+    This is the same discipline as the leakage guards, applied to counts. A
+    pipeline that quietly loses a fifth of its input has changed the answer, and
+    an unexplained drop is indistinguishable from a bug -- so the ledger has to
+    balance, and a test says so rather than a reader doing arithmetic.
+    """
+
+    def test_the_ledger_balances(self, honest):
+        integrity = honest.integrity
+        accounted = (integrity["events_scored"]
+                     + integrity.get("events_dropped_by_universe", 0)
+                     + sum(integrity["attrition"].values()))
+        assert accounted == integrity["events_total"]
+
+    def test_every_drop_carries_a_reason(self, honest):
+        assert all(reason and not reason.isspace()
+                   for reason in honest.integrity["attrition"])
+
+    def test_walk_forward_holdout_is_named(self, honest):
+        """The earliest block is training-only and never scored. Correct, and the
+        last place the count drops -- so it is a line in the table, not a gap."""
+        assert any("walk-forward" in reason
+                   for reason in honest.integrity["attrition"])
+
+
 class TestLeaksAreDetected:
     """Each bug is switched on and must be caught -- by a guard where a guard
     exists, and by an inflated metric where the damage is statistical."""

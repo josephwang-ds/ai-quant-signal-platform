@@ -54,11 +54,17 @@ outcome is measured over: with the filing date, a filing accepted after the clos
 is scored across a session that had not yet heard the news, so the label carries a
 day of pure noise. Fixing it sharpens the label as well as removing the impossible
 trade. That stage's honest result is not its effect on the score at all — it is
-that **every entry priced before its filing was public is gone**, and the guard
-that counts them now reads zero. About four in five 8-Ks arrive outside market
-hours, so under the naive rule most of the sample was being entered at an opening
-print that had already happened. `data/build/leakage_study.csv` carries the exact
-count and the median hindsight for your own run.
+this:
+
+| | Naive entry | Point-in-time entry |
+|---|---|---|
+| Entries priced before the filing was public | **11,168 of 11,681 (95.6%)** | **0** |
+| Median hindsight granted | **10.6 hours** | — |
+
+Only the small pre-market minority of 8-Ks is genuinely tradable at its own
+filing date's open. Everything filed during the session or after the close was
+being entered at a print that had already happened, by a median of ten and a half
+hours. No metric would have told you: the score barely moves.
 
 **What the audited model is worth.** Filings arrive at a median of 9 a session.
 Reading the top 5 of each surfaces material news at **1.56×** the rate of reading
@@ -69,6 +75,23 @@ not claimed as one.
 **How long it lasts.** Holding the model fixed and delaying the decision, the
 ranking decays within a session. Whatever is being measured is mostly over by the
 next open.
+
+**Where the other filings went.** 11,702 were ingested and 9,729 were scored. The
+gap is itemised rather than left as arithmetic for the reader, because an
+unexplained drop is indistinguishable from a bug:
+
+| | Filings |
+|---|---|
+| Scored out of sample | 9,729 |
+| Held out by walk-forward as training-only | 1,945 |
+| Event window ran past the end of the price data | 15 |
+| Missing price bars inside the event window | 7 |
+| Entry session had no price bar | 6 |
+
+The large line is the honest cost of the split. Walk-forward tests folds 1..n, so
+the earliest block is only ever training data and never receives an out-of-sample
+score. Shuffled K-fold scores all 11,681 — by training on the future to do it. A
+test asserts this ledger balances.
 
 ---
 
@@ -187,7 +210,7 @@ Full write-up in [docs/LEAKAGE.md](docs/LEAKAGE.md).
 
 | # | The bug | How it is caught | What fixing it costs |
 |---|---|---|---|
-| 1 | `filing_date` (a date) used instead of `acceptanceDateTime` (the knowledge time). ~80% of 8-Ks arrive outside market hours, so the naive entry buys before the news exists. | `guards.causal` asserts the entry open postdates the acceptance time, on every row | Nothing you would notice in the metric — and every entry priced before its filing was public, ~4 in 5 of the sample, reduced to zero |
+| 1 | `filing_date` (a date) used instead of `acceptanceDateTime` (the knowledge time). ~80% of 8-Ks arrive outside market hours, so the naive entry buys before the news exists. | `guards.causal` asserts the entry open postdates the acceptance time, on every row | Nothing you would notice in the metric — and **11,168 of 11,681 entries (95.6%)** priced before their filing was public, median **10.6 h** of hindsight, reduced to zero |
 | 2 | `.rolling(20)` without `.shift(1)`, so a filing's "trailing" volatility contains the event day. Sharpest as relative volume, which unshifted is the reaction's own volume spike. | No guard is possible — one switch, one comment, and a test asserting the leaky config scores *better* | The largest single effect by far: average precision **0.482 → 0.263**, a 46% overstatement |
 | 3 | Screening on today's index constituents, which deletes every issuer dropped after a collapse — the ones whose 8-Ks moved most. | `guards.universe_pit` checks membership *as of the event date*; membership stored as intervals, never a list | Nothing on this universe, and that is the finding — see above |
 | 4 | `KFold(shuffle=True)` on time-ordered events: trains on the future, and overlapping outcome windows carry test-period returns into training labels. | `PurgedWalkForward` + `guards.purged_split` re-checking the gap every fold | **0.518 → 0.482** average precision, and a smaller sample |

@@ -56,6 +56,7 @@ def run(events: pd.DataFrame, prices: pd.DataFrame, membership: pd.DataFrame,
     returns = to_returns(prices)
     labels = build_labels(events, returns, config)
     integrity["events_measured"] = int(labels.attrs.get("measured", len(labels)))
+    integrity["events_scored"] = 0
     integrity["attrition"] = labels.attrs.get("attrition", {})
     events = events[events["event_id"].isin(labels["event_id"])].reset_index(drop=True)
 
@@ -76,10 +77,23 @@ def run(events: pd.DataFrame, prices: pd.DataFrame, membership: pd.DataFrame,
 
     # Permutation importance costs more than the rest of the pipeline combined,
     # and the leakage study runs that pipeline five times over. It wants metrics.
+    # Walk-forward tests folds 1..n, so the earliest block is only ever training
+    # data and those events never receive an out-of-sample score. That is correct
+    # and it is also the last place the count silently drops -- without this line
+    # the attrition table adds up to fewer events than were scored, and the reader
+    # is left to guess. It is the honest cost of the split: shuffled K-fold
+    # "scores" every event, by training on the future to do it.
+    held_back = len(features) - len(predictions)
+    if held_back > 0:
+        integrity["attrition"] = dict(integrity.get("attrition") or {})
+        integrity["attrition"]["held out by walk-forward as training-only"] = held_back
+
     importance = pd.DataFrame()
     if compute_importance and len(predictions) and aligned["label"].nunique() > 1:
         fitted = model.fit_full(features, aligned["label"])
         importance = permutation_importance(fitted, features, aligned["label"])
+
+    integrity["events_scored"] = len(predictions)
 
     return PipelineResult(
         config=config,

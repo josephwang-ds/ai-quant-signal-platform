@@ -256,8 +256,8 @@ def _print_attrition(integrity: dict, ingested: int) -> None:
     if not attrition and not dropped_by_universe:
         return
 
-    measured = integrity.get("events_measured", 0)
-    print(f"\n  of {ingested:,} filings, {measured:,} could be measured")
+    scored = integrity.get("events_scored", 0)
+    print(f"\n  of {ingested:,} filings, {scored:,} were scored out of sample")
     if dropped_by_universe:
         print(f"    {dropped_by_universe:>6,}  issuer outside the universe on that date")
     for reason, count in sorted(attrition.items(), key=lambda kv: -kv[1]):

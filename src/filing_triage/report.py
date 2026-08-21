@@ -339,14 +339,15 @@ def _attrition_table(integrity: dict) -> str:
         return '<p class="note">Every ingested filing was scored.</p>'
 
     total = integrity.get("events_total", 0)
-    measured = integrity.get("events_measured", 0)
+    measured = integrity.get("events_scored", integrity.get("events_measured", 0))
     rows = "".join(
         f"<tr><td>{html.escape(reason)}</td><td class='num'>{count:,}</td>"
         f"<td class='num muted'>{count / total:.1%}</td></tr>"
         for reason, count in sorted(attrition.items(), key=lambda kv: -kv[1])
         if total)
     head = "<tr><th>Reason</th><th class='num'>Filings</th><th class='num'>Share</th></tr>"
-    return (f'<p class="summary">{measured:,} of {total:,} filings were measured.</p>'
+    return (f'<p class="summary">{measured:,} of {total:,} filings were scored '
+            f'out of sample.</p>'
             f'<div class="scroll"><table class="data"><thead>{head}</thead>'
             f'<tbody>{rows}</tbody></table></div>')
 
