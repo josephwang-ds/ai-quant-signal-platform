@@ -15,8 +15,7 @@ from __future__ import annotations
 import argparse
 import json
 import sys
-from datetime import datetime, timezone
-from datetime import timedelta
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 import pandas as pd
@@ -105,8 +104,8 @@ def _doctor(args) -> int:
     if served_by:
         source, frame = served_by
         checks.append(("price source reachable", True,
-                       f"{source}: SPY, {len(frame):,} daily bars to "
-                       f"{frame['date'].max()}"))
+                       (f"{source}: SPY, {len(frame):,} daily bars to "
+                       f"{frame['date'].max()}")))
     else:
         try:
             fetch_daily("SPY", cache_dir=Path("data/cache/prices"))
@@ -120,7 +119,7 @@ def _doctor(args) -> int:
         quality = _universe_meta(universe)
         if quality.get("survivorship_controlled") is False:
             detail = (f"{len(members):,} issuers, {quality.get('universe_quality')} "
-                      f"-- survivorship NOT controlled on this path")
+                      "-- survivorship NOT controlled on this path")
         else:
             detail = (f"{len(members):,} intervals, {historical} historical "
                       f"(0 historical would mean a survivorship trap)")
@@ -188,7 +187,7 @@ def _write_provenance(source: str, **fields) -> None:
     """
     BUILD.mkdir(parents=True, exist_ok=True)
     (BUILD / "provenance.json").write_text(json.dumps(
-        {"source": source, "written_at": datetime.now(timezone.utc).isoformat(),
+        {"source": source, "written_at": datetime.now(UTC).isoformat(),
          **fields}, indent=2))
 
 
@@ -278,15 +277,15 @@ def _headline(metrics: dict) -> list[tuple[str, str]]:
     counted = metrics.get("daily_sessions_at_5", 0)
     if metrics.get("daily_usable_at_5"):
         rows += [
-            ("daily precision @5", f"{metrics['daily_precision_at_5']:.1%} "
-                                   f"({counted} sessions)"),
+            ("daily precision @5", (f"{metrics['daily_precision_at_5']:.1%} "
+             f"({counted} sessions)")),
             ("daily lift @5", f"{metrics['daily_lift_at_5']:.2f}x"),
         ]
     else:
         rows.append(("daily precision @5",
-                     f"not reported -- only {counted} sessions had more than 5 "
+                     (f"not reported -- only {counted} sessions had more than 5 "
                      f"filings, so the queue metric would be measuring the "
-                     f"calendar, not the ranker"))
+                     f"calendar, not the ranker")))
     return rows
 
 
@@ -342,7 +341,8 @@ def _ingest(args) -> int:
             frame["text"] = [
                 client.document_text(row.cik, accession, document)
                 for accession, document in zip(frame["accession"],
-                                               frame["primary_document"])
+                                               frame["primary_document"],
+                                               strict=True)
             ]
             filings.append(frame)
             prices.append(fetch_daily(row.ticker))
@@ -366,7 +366,7 @@ def _ingest(args) -> int:
 
     _write_provenance("edgar", issuers=len(filings), filings=len(events),
                       failed_issuers=[t for t, _ in failures],
-                      unresolved_ciks=int(len(unresolved)),
+                      unresolved_ciks=len(unresolved),
                       universe=_universe_meta(Path(args.universe)),
                       note="SEC EDGAR submissions + daily bars")
 

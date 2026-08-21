@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import sys
 from datetime import date
+from itertools import pairwise
 from pathlib import Path
 
 import pandas as pd
@@ -18,8 +19,12 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
 
-from build_universe import (   # noqa: E402
-    _assemble, _clean, _find, _read_wikipedia, _spells,
+from build_universe import (
+    _assemble,
+    _clean,
+    _find,
+    _read_wikipedia,
+    _spells,
 )
 
 WIKI_PAGE = """<html><body>
@@ -59,7 +64,7 @@ class TestReadWikipedia:
                             lambda *a, **k: FakeResponse(WIKI_PAGE))
 
     def test_parses_a_literal_document(self):
-        current, changes = _read_wikipedia({})
+        current, _ = _read_wikipedia({})
         assert len(current) == 2
         assert set(current["ticker"]) == {"AAPL", "MSFT"}
 
@@ -130,7 +135,7 @@ class TestSpells:
         moves = [(date(2016, 1, 5), "add"), (date(2019, 4, 1), "remove"),
                  (date(2022, 9, 1), "add"), (date(2023, 1, 1), "remove")]
         spells = _spells(moves, False, START)
-        for (_, earlier_end), (later_start, _) in zip(spells, spells[1:]):
+        for (_, earlier_end), (later_start, _) in pairwise(spells):
             assert earlier_end is not None and earlier_end <= later_start
 
 

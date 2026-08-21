@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import json
 from datetime import date, timedelta
+from typing import ClassVar
 
 import pandas as pd
 import pytest
@@ -30,7 +31,7 @@ START, END = date(2022, 1, 3), date(2024, 6, 28)
 class FakeEdgarClient:
     """Same surface as EdgarClient, no sockets."""
 
-    calls: list[str] = []
+    calls: ClassVar[list[str]] = []
 
     def __init__(self, *_, **__):
         self.user_agent = "Test test@example.com"

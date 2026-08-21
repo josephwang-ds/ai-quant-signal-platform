@@ -105,7 +105,7 @@ def _holidays(year: int) -> frozenset[date]:
         date(2012, 10, 29), date(2012, 10, 30),   # Hurricane Sandy
         date(2018, 12, 5),                        # G.H.W. Bush national day of mourning
         date(2025, 1, 9),                         # Carter national day of mourning
-    } & {d for d in _year_span(year)})
+    } & _year_span(year))
     return frozenset(d for d in days if d.year == year)
 
 

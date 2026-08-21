@@ -34,3 +34,27 @@ addopts = "-q"
 [tool.ruff]
 line-length = 100
 src = ["src", "tests"]
+
+# Selected explicitly rather than left to the defaults. Ruff's default set is
+# version-dependent, so an unpinned config lints differently on a contributor's
+# machine than in CI -- which is exactly what happened here: clean locally, 35
+# findings on the runner. An explicit list makes the two agree.
+[tool.ruff.lint]
+select = [
+    "E", "F", "W",   # pycodestyle, pyflakes
+    "I",             # import sorting
+    "UP",            # pyupgrade
+    "B",             # bugbear
+    "C4",            # comprehensions
+    "SIM",           # simplify
+    "PIE", "ISC",    # misc lint, implicit string concat
+    "DTZ",           # naive datetimes -- load-bearing in a project about timestamps
+    "BLE",           # blind excepts -- used deliberately in the ingest loop, each with a reason
+    "RUF",
+]
+
+[tool.ruff.lint.per-file-ignores]
+# The clock must reject naive datetimes, so its tests have to construct them.
+"tests/test_pit.py" = ["DTZ001"]
+# scripts/ is imported after a sys.path insert, which has to come first.
+"tests/test_build_universe.py" = ["E402"]

@@ -47,12 +47,12 @@ ITEM_PROFILE = {
 
 BOILERPLATE = [
     "the registrant furnished the following information pursuant to item {item} of form 8-K",
-    "this current report contains forward looking statements within the meaning of the "
-    "private securities litigation reform act of 1995",
-    "the information in this report shall not be deemed filed for purposes of section 18 "
-    "of the securities exchange act of 1934",
-    "a copy of the press release is attached hereto as exhibit 99.1 and incorporated "
-    "herein by reference",
+    ("this current report contains forward looking statements within the meaning of the "
+     "private securities litigation reform act of 1995"),
+    ("the information in this report shall not be deemed filed for purposes of section 18 "
+     "of the securities exchange act of 1934"),
+    ("a copy of the press release is attached hereto as exhibit 99.1 and incorporated "
+     "herein by reference"),
 ]
 
 NOVEL_PHRASES = [
@@ -191,7 +191,7 @@ def _acceptance_time(day: date, rng: np.random.Generator) -> datetime:
 def _make_text(item: str, novelty: float, rng: np.random.Generator) -> str:
     """Boilerplate plus, occasionally, something actually new to say."""
     parts = [line.format(item=item) for line in BOILERPLATE]
-    n_novel = int(round(novelty * 5))
+    n_novel = round(novelty * 5)
     if n_novel:
         parts += list(rng.choice(NOVEL_PHRASES, size=min(n_novel, len(NOVEL_PHRASES)),
                                  replace=False))

@@ -13,8 +13,13 @@ import pandas as pd
 import pytest
 
 from filing_triage.evaluate import (
-    evaluate, lift_at_k, mean_daily_precision_at_k, ndcg_at_k, precision_at_k,
-    queue_sizes, recall_at_k,
+    evaluate,
+    lift_at_k,
+    mean_daily_precision_at_k,
+    ndcg_at_k,
+    precision_at_k,
+    queue_sizes,
+    recall_at_k,
 )
 
 

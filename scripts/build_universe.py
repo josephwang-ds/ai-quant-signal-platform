@@ -158,7 +158,7 @@ def _assemble(current: pd.DataFrame, changes: pd.DataFrame, ciks: dict[str, int]
 
     dates = pd.to_datetime(changes[date_col], errors="coerce").dt.date
     moves: dict[str, list[tuple[date, str]]] = {}
-    for added, removed, when in zip(changes[added_col], changes[removed_col], dates):
+    for added, removed, when in zip(changes[added_col], changes[removed_col], dates, strict=True):
         if pd.isna(when):
             continue
         if pd.notna(added):
@@ -232,7 +232,7 @@ def _wikipedia_ciks(current: pd.DataFrame) -> dict[str, int]:
         return {}
     ciks = pd.to_numeric(current[column], errors="coerce")
     return {_clean(t): int(c)
-            for t, c in zip(current["ticker"], ciks) if pd.notna(c)}
+            for t, c in zip(current["ticker"], ciks, strict=True) if pd.notna(c)}
 
 
 def _clean(ticker: object) -> str:

@@ -15,8 +15,12 @@ jobs:
           python-version: "3.11"
           cache: pip
       - run: pip install -e ".[dev]"
-      - run: ruff check src tests
-      - run: pytest -q
+      # Through make, so CI and a developer's terminal run the same command. The
+      # two had drifted -- CI linted src and tests, the Makefile also linted
+      # scripts -- and a check that differs from the one people run locally
+      # fails for reasons nobody can reproduce.
+      - run: make lint
+      - run: make test
 
   leakage-audit:
     # The point of the project as an exit code. If the honest pipeline ever

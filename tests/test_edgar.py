@@ -19,7 +19,10 @@ import pandas as pd
 import pytest
 
 from filing_triage.ingest.edgar import (
-    ACCEPTANCE_TZ, ITEM_LABELS, parse_submissions, strip_markup,
+    ACCEPTANCE_TZ,
+    ITEM_LABELS,
+    parse_submissions,
+    strip_markup,
 )
 
 

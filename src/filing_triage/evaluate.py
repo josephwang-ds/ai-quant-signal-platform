@@ -95,7 +95,7 @@ def queue_sizes(predictions: pd.DataFrame, sessions: pd.Series) -> dict:
     counts = (predictions.assign(session=sessions.reindex(predictions.index).to_numpy())
               .groupby("session").size())
     return {
-        "sessions": int(len(counts)),
+        "sessions": len(counts),
         "filings_per_session_median": float(counts.median()),
         "filings_per_session_p90": float(counts.quantile(0.90)),
         "filings_per_session_max": int(counts.max()),
@@ -109,7 +109,7 @@ def evaluate(predictions: pd.DataFrame, ks: tuple[int, ...] = DEFAULT_KS,
     scores = predictions["score"].to_numpy()
 
     metrics = {
-        "n_events": int(len(labels)),
+        "n_events": len(labels),
         "base_rate": float(labels.mean()),
         "roc_auc": _safe(roc_auc_score, labels, scores),
         "average_precision": _safe(average_precision_score, labels, scores),

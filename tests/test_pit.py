@@ -7,7 +7,11 @@ from datetime import date, datetime, timedelta
 import pytest
 
 from filing_triage.pit import (
-    CALENDAR, ET, TradingClock, _easter, _holidays,
+    CALENDAR,
+    ET,
+    TradingClock,
+    _easter,
+    _holidays,
     naive_entry_session_from_filing_date,
 )
 
@@ -102,7 +106,7 @@ class TestClock:
 
     def test_entry_open_is_never_before_the_filing(self):
         """The invariant the whole project rests on."""
-        for hour in range(0, 24):
+        for hour in range(24):
             accepted = datetime(2024, 10, 31, hour, 15, tzinfo=ET)
             entry = self.clock.entry_session(accepted)
             assert CALENDAR.open_at(entry) >= accepted

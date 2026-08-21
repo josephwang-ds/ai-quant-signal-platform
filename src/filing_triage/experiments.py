@@ -16,8 +16,8 @@ from dataclasses import replace
 
 import pandas as pd
 
-from filing_triage.config import PipelineConfig
 from filing_triage import pipeline
+from filing_triage.config import PipelineConfig
 
 # Fixes applied cumulatively, cheapest-to-spot first. Each stage differs from the
 # previous one by exactly one switch.
@@ -25,28 +25,28 @@ STAGES: list[tuple[str, dict, str]] = [
     ("Naive pipeline", {
         "shift_trailing_features": False, "pit_entry": False,
         "pit_universe": False, "purged_cv": False,
-    }, "Shuffled K-fold, today's index, trailing windows that include the event "
-       "day, entry on the filing date."),
+    }, ("Shuffled K-fold, today's index, trailing windows that include the event "
+        "day, entry on the filing date.")),
     ("+ purged, embargoed CV", {
         "shift_trailing_features": False, "pit_entry": False,
         "pit_universe": False, "purged_cv": True,
-    }, "Stop training on the future and on labels whose outcome windows reach "
-       "into the test fold."),
+    }, ("Stop training on the future and on labels whose outcome windows reach "
+        "into the test fold.")),
     ("+ shifted trailing features", {
         "shift_trailing_features": True, "pit_entry": False,
         "pit_universe": False, "purged_cv": True,
-    }, "Trailing volatility and turnover must end the session before entry, not "
-       "include it."),
+    }, ("Trailing volatility and turnover must end the session before entry, not "
+        "include it.")),
     ("+ point-in-time universe", {
         "shift_trailing_features": True, "pit_entry": False,
         "pit_universe": True, "purged_cv": True,
-    }, "Screen on index membership as of the event date, restoring the issuers "
-       "that were later dropped."),
+    }, ("Screen on index membership as of the event date, restoring the issuers "
+        "that were later dropped.")),
     ("+ point-in-time entry", {
         "shift_trailing_features": True, "pit_entry": True,
         "pit_universe": True, "purged_cv": True,
-    }, "Enter at the first open after the acceptance time. Barely moves the "
-       "metric -- and hands back every impossible trade."),
+    }, ("Enter at the first open after the acceptance time. Barely moves the "
+        "metric -- and hands back every impossible trade.")),
 ]
 
 # Average precision leads. With a 10% base rate this is a ranking problem, and AUC

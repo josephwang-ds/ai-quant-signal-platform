@@ -14,7 +14,10 @@ import pandas as pd
 import pytest
 
 from filing_triage.ingest.universe import (
-    load_membership, members_asof, membership_mask, restrict_to_membership,
+    load_membership,
+    members_asof,
+    membership_mask,
+    restrict_to_membership,
 )
 
 

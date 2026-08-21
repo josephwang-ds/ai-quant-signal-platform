@@ -12,7 +12,7 @@ also spelled out in the labels and repeated in the tables beneath.
 from __future__ import annotations
 
 import html
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 import pandas as pd
@@ -173,7 +173,7 @@ def _document(result, study: pd.DataFrame, sweep: pd.DataFrame,
 
   <footer>
     <p>
-      Generated {datetime.now(timezone.utc):%Y-%m-%d %H:%M} UTC &middot;
+      Generated {datetime.now(UTC):%Y-%m-%d %H:%M} UTC &middot;
       {result.config.describe_switches()}
     </p>
     <p class="note">{_provenance_footnote(provenance)}</p>
@@ -199,7 +199,7 @@ def _provenance_banner(provenance: dict) -> str:
 
     if source == "edgar":
         detail = (f"SEC EDGAR &middot; {provenance.get('filings', 0):,} filings from "
-                  f"{provenance.get('issuers', 0):,} issuers")
+                                                       f"{provenance.get('issuers', 0):,} issuers")
         failed = provenance.get("failed_issuers") or []
         if failed:
             detail += f" &middot; {len(failed)} issuer(s) failed to fetch"
@@ -234,7 +234,7 @@ def _provenance_banner(provenance: dict) -> str:
 def _provenance_footnote(provenance: dict) -> str:
     if provenance.get("source") == "edgar":
         return (f"Source: {html.escape(str(provenance.get('note', 'SEC EDGAR')))}. "
-                f"Regenerate with <code>make ingest &amp;&amp; make run</code>.")
+                "Regenerate with <code>make ingest &amp;&amp; make run</code>.")
     return ("Source: the synthetic corpus that ships with the repository, so the "
             "project runs end to end with no SEC credentials and no network. "
             "<code>make ingest</code> swaps in real EDGAR filings and real prices; "
@@ -272,12 +272,12 @@ def _queue_tile(metrics: dict) -> tuple[str, str, str]:
     if metrics.get("daily_usable_at_5"):
         return (f"{metrics.get('daily_lift_at_5', float('nan')):.1f}&times;",
                 "better than reading five at random",
-                f"top 5 of each session &middot; {counted} sessions with more "
-                f"than five filings")
+                (f"top 5 of each session &middot; {counted} sessions with more "
+                f"than five filings"))
     return (f"{metrics.get('filings_per_session_median', float('nan')):.0f}",
             "filings per session (median)",
-            f"too few to triage &mdash; only {counted} sessions carried more than "
-            f"five, so the queue metric is not reported")
+            (f"too few to triage &mdash; only {counted} sessions carried more than "
+            f"five, so the queue metric is not reported"))
 
 
 def _ladder_chart(study: pd.DataFrame) -> str:
@@ -417,7 +417,8 @@ def _queue_table(queue: pd.DataFrame, sessions: int = 2, top: int = 6) -> str:
         f"<td class='{'good' if r['label'] else 'muted'}'>"
         f"{'yes' if r['label'] else 'no'}</td></tr>"
         for _, r in shown.iterrows())
-    return f'<div class="scroll"><table class="data"><thead>{head}</thead><tbody>{rows}</tbody></table></div>'
+    return ('<div class="scroll"><table class="data">'
+            f'<thead>{head}</thead><tbody>{rows}</tbody></table></div>')
 
 
 def _audit_table(audit) -> str:
@@ -449,14 +450,14 @@ def _hbar(labels: list[str], values: list[float], kinds: list[str], *,
     left, right, top = 210, 76, 6
     width = 760
     height = top + len(labels) * row_h + (34 if caption else 8)
-    span = max(values + [floor]) - floor or 1.0
+    span = max([*values, floor]) - floor or 1.0
     plot = width - left - right
 
     parts = [
-        f'<svg viewBox="0 0 {width} {height}" role="img" '
-        f'aria-label="{html.escape(caption or "chart")}" class="chart">'
+        (f'<svg viewBox="0 0 {width} {height}" role="img" '
+        f'aria-label="{html.escape(caption or "chart")}" class="chart">')
     ]
-    for i, (label, value, kind) in enumerate(zip(labels, values, kinds)):
+    for i, (label, value, kind) in enumerate(zip(labels, values, kinds, strict=True)):
         y = top + i * row_h + (row_h - bar_h) / 2
         w = max(2.0, (value - floor) / span * plot)
         parts.append(
