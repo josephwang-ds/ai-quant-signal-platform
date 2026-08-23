@@ -260,9 +260,9 @@ Details in [docs/METHODOLOGY.md](docs/METHODOLOGY.md).
 
 ## The published site
 
-`web/` is a static site served by Vercel with no build step — what is committed
-is what goes live. `web/index.html` is the landing page; `web/report.html` is a
-published run.
+`web/` is a static site published to GitHub Pages with no build step — what is
+committed is what goes live, so there is nothing that can fail to build.
+`web/index.html` is the landing page; `web/report.html` is a published run.
 
 ```bash
 make run     # or make demo
@@ -273,9 +273,8 @@ Then commit `web/report.html`. Reports carry their own provenance banner, so a
 synthetic run published by accident says so on its own face rather than passing
 as a real one.
 
-The Vercel project's **Root Directory must be empty**, not `frontend` — that
-directory was deleted with the old platform, and a stale root setting fails the
-deploy before `vercel.json` is ever read.
+Enable it once under **Settings → Pages → Source: GitHub Actions**. The workflow
+runs on any push to `main` that touches `web/`.
 
 ## Layout
 
