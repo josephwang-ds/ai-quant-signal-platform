@@ -262,7 +262,16 @@ Details in [docs/METHODOLOGY.md](docs/METHODOLOGY.md).
 
 `web/` is a static site published to GitHub Pages with no build step — what is
 committed is what goes live, so there is nothing that can fail to build.
-`web/index.html` is the landing page; `web/report.html` is a published run.
+
+| | |
+|---|---|
+| `web/showcase.html` | the full write-up: story, method, findings, diagrams |
+| `web/index.html` | a short landing page |
+| `web/report.html` | the generated report from a run |
+
+`showcase.html` is one self-contained file with no external requests, so it also
+embeds directly into Streamlit or a personal site — see
+[web/EMBEDDING.md](web/EMBEDDING.md).
 
 ```bash
 make run     # or make demo
