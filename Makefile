@@ -7,7 +7,7 @@
 # python (some Linux images are the other way round). PYTHON=... overrides all of it.
 PYTHON ?= $(shell   test -x .venv/bin/python && echo .venv/bin/python ||   command -v python3 2>/dev/null ||   command -v python 2>/dev/null)
 
-.PHONY: help install demo quick audit doctor test lint ingest run clean
+.PHONY: help install demo quick audit doctor test lint ingest refresh-filings refresh-all vercel-bundle vercel-deploy run site company company-featured company-pages evidence nlp-eval llm-eval llm-eval-provider-dry-run llm-eval-openai-dry-run clean
 
 help:
 	@echo "make install   install the package and dev dependencies"
@@ -18,8 +18,20 @@ help:
 	@echo "make audit     run the leakage checks; non-zero exit on any failure"
 	@echo "make test      run the test suite"
 	@echo "make ingest    pull real EDGAR filings and prices (needs network)"
+	@echo "make refresh-filings  incrementally check SEC for new 8-Ks (needs network)"
+	@echo "make refresh-all  locked SEC + market refresh and static page rebuild"
+	@echo "make vercel-bundle  package public HTML as Vercel prebuilt output"
+	@echo "make vercel-deploy  deploy the prebuilt frontend to Vercel production"
 	@echo "make run       run the pipeline over whatever make ingest produced"
 	@echo "make site      publish the latest report to web/ for the static site"
+	@echo "make company   build an AAPL Company Lens snapshot from local data"
+	@echo "make company-featured  quickly build AAPL/MSFT/NVDA pages"
+	@echo "make company-pages  build all locally available company pages"
+	@echo "make evidence  export reviewable real-run metrics without raw data"
+	@echo "make nlp-eval  evaluate prior-filing change detection on labeled spans"
+	@echo "make llm-eval  score frozen bilingual grounded-explanation fixtures"
+	@echo "make llm-eval-provider-dry-run PROVIDER=qwen  inspect a provider run"
+	@echo "make llm-eval-openai-dry-run  inspect paid benchmark scope without an API call"
 	@echo
 	@echo "using PYTHON=$(PYTHON)"
 
@@ -81,6 +93,25 @@ ingest: check-python
 	  exit 1; }
 	$(PYTHON) -m filing_triage.cli ingest
 
+refresh-filings: check-python
+	@test -n "$$EDGAR_USER_AGENT" || { \
+	  echo 'EDGAR_USER_AGENT is not set. The SEC requires a real name and email.'; \
+	  echo '  export EDGAR_USER_AGENT="Your Name you@example.com"'; exit 1; }
+	PYTHONPATH=src $(PYTHON) scripts/refresh_filings.py
+	$(MAKE) company-pages
+
+refresh-all: check-python
+	@test -n "$$EDGAR_USER_AGENT" || { \
+	  echo 'EDGAR_USER_AGENT is not set. The SEC requires a real name and email.'; \
+	  echo '  export EDGAR_USER_AGENT="Your Name you@example.com"'; exit 1; }
+	scripts/run_scheduled_refresh.sh
+
+vercel-bundle: check-python
+	PYTHONPATH=src $(PYTHON) scripts/build_vercel_output.py
+
+vercel-deploy: vercel-bundle
+	scripts/deploy_vercel_frontend.sh
+
 run: check-python
 	$(PYTHON) -m filing_triage.cli run
 
@@ -92,6 +123,30 @@ site: check-python
 	@echo "web/report.html updated from the latest run."
 	@echo "Commit it to publish: the site is served statically, with no build step,"
 	@echo "so what is in git is what goes live."
+
+company: check-python
+	PYTHONPATH=src $(PYTHON) -m company_lens.cli AAPL
+
+company-featured: check-python
+	PYTHONPATH=src $(PYTHON) scripts/build_company_pages.py --tickers AAPL MSFT NVDA --out data/build/company_featured
+
+company-pages: check-python
+	PYTHONPATH=src $(PYTHON) scripts/build_company_pages.py
+
+evidence: check-python
+	PYTHONPATH=src $(PYTHON) scripts/export_real_evidence.py
+
+nlp-eval: check-python
+	PYTHONPATH=src $(PYTHON) scripts/evaluate_filing_changes.py
+
+llm-eval: check-python
+	PYTHONPATH=src $(PYTHON) scripts/evaluate_grounded_llm.py
+
+llm-eval-provider-dry-run: check-python
+	PYTHONPATH=src $(PYTHON) scripts/run_llm_eval.py --provider $(or $(PROVIDER),openai) $(if $(MODEL),--model $(MODEL),) --dry-run
+
+llm-eval-openai-dry-run: check-python
+	PYTHONPATH=src $(PYTHON) scripts/run_llm_eval.py --provider openai --dry-run
 
 clean:
 	rm -rf data/build .pytest_cache .ruff_cache

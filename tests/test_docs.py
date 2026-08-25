@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import re
 import subprocess
+import sys
 from pathlib import Path
 
 import pytest
@@ -30,7 +31,7 @@ def _line_count(directory: str) -> int:
 
 def _collected_tests() -> int:
     result = subprocess.run(
-        ["python", "-m", "pytest", str(ROOT / "tests"), "--collect-only", "-q"],
+        [sys.executable, "-m", "pytest", str(ROOT / "tests"), "--collect-only", "-q"],
         capture_output=True, text=True, cwd=ROOT,
     )
     match = re.search(r"(\d+) tests? collected", result.stdout)

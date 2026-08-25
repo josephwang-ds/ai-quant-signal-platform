@@ -1,0 +1,23 @@
+{
+  "headlines": [
+    {
+      "headline": "Synthetic example: Example Corp updates reporting structure",
+      "summary": "Interface fixture only; not a real news report.",
+      "publisher": "Company Lens Fixture",
+      "published_at": "2026-08-20T10:00:00Z",
+      "fetched_at": "2026-08-20T10:15:00Z",
+      "url": "https://example.com/company-fixture",
+      "ticker": "EXMPL",
+      "topic": "governance"
+    },
+    {
+      "headline": "Synthetic example: benchmark rate remains unchanged",
+      "summary": "Interface fixture only; not a real market report.",
+      "publisher": "Company Lens Fixture",
+      "published_at": "2026-08-19T09:00:00Z",
+      "fetched_at": "2026-08-19T09:15:00Z",
+      "url": "https://example.com/market-fixture",
+      "topic": "macro"
+    }
+  ]
+}

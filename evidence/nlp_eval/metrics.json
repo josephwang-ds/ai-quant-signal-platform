@@ -1,0 +1,64 @@
+{
+  "fixture_cases": 4,
+  "overall": {
+    "tp": 3,
+    "fp": 0,
+    "fn": 0,
+    "precision": 1.0,
+    "recall": 1.0,
+    "f1": 1.0
+  },
+  "by_kind": {
+    "changed": {
+      "tp": 1,
+      "fp": 0,
+      "fn": 0,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0
+    },
+    "added": {
+      "tp": 1,
+      "fp": 0,
+      "fn": 0,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0
+    },
+    "removed": {
+      "tp": 1,
+      "fp": 0,
+      "fn": 0,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0
+    }
+  },
+  "cases": [
+    {
+      "id": "changed_amount",
+      "expected": 1,
+      "predicted": 1,
+      "matched": 1
+    },
+    {
+      "id": "added_dividend",
+      "expected": 1,
+      "predicted": 1,
+      "matched": 1
+    },
+    {
+      "id": "removed_impairment",
+      "expected": 1,
+      "predicted": 1,
+      "matched": 1
+    },
+    {
+      "id": "unchanged_statement",
+      "expected": 0,
+      "predicted": 0,
+      "matched": 0
+    }
+  ],
+  "method": "deterministic sentence-span labels; no future filing context"
+}

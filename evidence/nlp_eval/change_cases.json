@@ -1,0 +1,42 @@
+[
+  {
+    "id": "changed_amount",
+    "prior_text": "The company reported quarterly revenue of $100 million.",
+    "current_text": "The company reported quarterly revenue of $120 million.",
+    "expected": [
+      {
+        "kind": "changed",
+        "current_contains": "revenue of $120 million",
+        "prior_contains": "revenue of $100 million"
+      }
+    ]
+  },
+  {
+    "id": "added_dividend",
+    "prior_text": "The company reported quarterly revenue of $100 million.",
+    "current_text": "The company reported quarterly revenue of $100 million. The board declared a quarterly dividend of $0.25 per share.",
+    "expected": [
+      {
+        "kind": "added",
+        "current_contains": "quarterly dividend of $0.25"
+      }
+    ]
+  },
+  {
+    "id": "removed_impairment",
+    "prior_text": "The company reported quarterly revenue of $100 million. The company recorded an impairment charge of $40 million.",
+    "current_text": "The company reported quarterly revenue of $100 million.",
+    "expected": [
+      {
+        "kind": "removed",
+        "prior_contains": "impairment charge of $40 million"
+      }
+    ]
+  },
+  {
+    "id": "unchanged_statement",
+    "prior_text": "The company reported quarterly revenue of $100 million.",
+    "current_text": "The company reported quarterly revenue of $100 million.",
+    "expected": []
+  }
+]

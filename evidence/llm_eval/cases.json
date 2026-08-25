@@ -1,0 +1,437 @@
+{
+  "schema_version": "company-lens.llm-eval-cases.v1",
+  "review_status": "hand-reviewed pilot fixture",
+  "source_note": "Frozen from the local EDGAR-backed build; no external research or future filing context.",
+  "cases": [
+    {
+      "id": "aapl-results-en",
+      "language": "English",
+      "depth": "beginner",
+      "evidence": {
+        "ticker": "AAPL",
+        "accession": "0000320193-26-000018",
+        "passages": [
+          {
+            "citation": "0000320193-26-000018#sentence-5",
+            "text": "Apple issued a press release regarding its financial results for its third fiscal quarter ended June 27, 2026."
+          }
+        ],
+        "reaction": {
+          "benchmark_adjusted_move": {"citation": "metric:filing.benchmark_adjusted_move", "value": "+1.0%"},
+          "historical_magnitude_percentile": {"citation": "metric:filing.magnitude_percentile", "value": "68%"},
+          "prior_sample_size": {"citation": "metric:filing.prior_sample_size", "value": "38"}
+        }
+      },
+      "allowed_citations": [
+        "0000320193-26-000018#sentence-5",
+        "metric:filing.benchmark_adjusted_move",
+        "metric:filing.magnitude_percentile",
+        "metric:filing.prior_sample_size"
+      ],
+      "allowed_number_literals": ["27", "2026", "+1.0%", "68%", "38"],
+      "expected_concepts": [
+        {"id": "period", "any_of": ["third fiscal quarter", "fiscal Q3"]},
+        {"id": "disclosure", "any_of": ["financial results", "results release"]},
+        {"id": "historical_context", "any_of": ["historical", "earlier measurable", "prior sample", "previous sample"]}
+      ],
+      "minimum_concept_coverage": 0.8
+    },
+    {
+      "id": "aapl-results-zh",
+      "language": "Chinese",
+      "depth": "beginner",
+      "evidence": {
+        "ticker": "AAPL",
+        "accession": "0000320193-26-000018",
+        "passages": [
+          {
+            "citation": "0000320193-26-000018#sentence-5",
+            "text": "Apple issued a press release regarding its financial results for its third fiscal quarter ended June 27, 2026."
+          }
+        ],
+        "reaction": {
+          "benchmark_adjusted_move": {"citation": "metric:filing.benchmark_adjusted_move", "value": "+1.0%"},
+          "historical_magnitude_percentile": {"citation": "metric:filing.magnitude_percentile", "value": "68%"},
+          "prior_sample_size": {"citation": "metric:filing.prior_sample_size", "value": "38"}
+        }
+      },
+      "allowed_citations": [
+        "0000320193-26-000018#sentence-5",
+        "metric:filing.benchmark_adjusted_move",
+        "metric:filing.magnitude_percentile",
+        "metric:filing.prior_sample_size"
+      ],
+      "allowed_number_literals": ["27", "2026", "+1.0%", "68%", "38"],
+      "expected_concepts": [
+        {"id": "period", "any_of": ["第三财季", "第三个财季"]},
+        {"id": "disclosure", "any_of": ["财务业绩", "业绩新闻稿"]},
+        {"id": "historical_context", "any_of": ["历史", "此前可测"]}
+      ],
+      "minimum_concept_coverage": 0.8
+    },
+    {
+      "id": "nvda-agreement-en",
+      "language": "English",
+      "depth": "beginner",
+      "evidence": {
+        "ticker": "NVDA",
+        "accession": "0001045810-26-000069",
+        "passages": [
+          {
+            "citation": "0001045810-26-000069#sentence-3",
+            "text": "On August 17, 2026, NVIDIA announced a multi-year partnership with SB Energy Corp."
+          },
+          {
+            "citation": "0001045810-26-000069#sentence-7",
+            "text": "NVIDIA entered into residual value guaranties relating to leases for approximately 4.25 gigawatts of IT load."
+          },
+          {
+            "citation": "0001045810-26-000069#sentence-10",
+            "text": "NVIDIA's aggregate payment obligation is cumulatively capped at $105 billion for its initial commitment under the Agreements."
+          }
+        ],
+        "reaction": {
+          "benchmark_adjusted_move": {"citation": "metric:filing.benchmark_adjusted_move", "value": "-0.2%"},
+          "historical_magnitude_percentile": {"citation": "metric:filing.magnitude_percentile", "value": "4%"},
+          "prior_sample_size": {"citation": "metric:filing.prior_sample_size", "value": "45"}
+        }
+      },
+      "allowed_citations": [
+        "0001045810-26-000069#sentence-3",
+        "0001045810-26-000069#sentence-7",
+        "0001045810-26-000069#sentence-10",
+        "metric:filing.benchmark_adjusted_move",
+        "metric:filing.magnitude_percentile",
+        "metric:filing.prior_sample_size"
+      ],
+      "allowed_number_literals": ["17", "2026", "4.25", "$105", "-0.2%", "4%", "45"],
+      "expected_concepts": [
+        {"id": "partnership", "any_of": ["multi-year partnership"]},
+        {"id": "capacity", "any_of": ["4.25 gigawatts"]},
+        {"id": "obligation_cap", "any_of": ["capped at $105 billion", "$105 billion cap"]},
+        {"id": "historical_context", "any_of": ["historical", "earlier measurable"]}
+      ],
+      "minimum_concept_coverage": 0.8
+    },
+    {
+      "id": "nvda-agreement-zh",
+      "language": "Chinese",
+      "depth": "beginner",
+      "evidence": {
+        "ticker": "NVDA",
+        "accession": "0001045810-26-000069",
+        "passages": [
+          {
+            "citation": "0001045810-26-000069#sentence-3",
+            "text": "On August 17, 2026, NVIDIA announced a multi-year partnership with SB Energy Corp."
+          },
+          {
+            "citation": "0001045810-26-000069#sentence-7",
+            "text": "NVIDIA entered into residual value guaranties relating to leases for approximately 4.25 gigawatts of IT load."
+          },
+          {
+            "citation": "0001045810-26-000069#sentence-10",
+            "text": "NVIDIA's aggregate payment obligation is cumulatively capped at $105 billion for its initial commitment under the Agreements."
+          }
+        ],
+        "reaction": {
+          "benchmark_adjusted_move": {"citation": "metric:filing.benchmark_adjusted_move", "value": "-0.2%"},
+          "historical_magnitude_percentile": {"citation": "metric:filing.magnitude_percentile", "value": "4%"},
+          "prior_sample_size": {"citation": "metric:filing.prior_sample_size", "value": "45"}
+        }
+      },
+      "allowed_citations": [
+        "0001045810-26-000069#sentence-3",
+        "0001045810-26-000069#sentence-7",
+        "0001045810-26-000069#sentence-10",
+        "metric:filing.benchmark_adjusted_move",
+        "metric:filing.magnitude_percentile",
+        "metric:filing.prior_sample_size"
+      ],
+      "allowed_number_literals": ["17", "2026", "4.25", "$105", "-0.2%", "4%", "45"],
+      "expected_concepts": [
+        {"id": "partnership", "any_of": ["多年合作", "长期合作"]},
+        {"id": "capacity", "any_of": ["4.25 吉瓦", "4.25吉瓦"]},
+        {"id": "obligation_cap", "any_of": ["上限为 $105 billion", "上限为$105 billion", "上限为 1050 亿美元"]},
+        {"id": "historical_context", "any_of": ["历史", "此前可测"]}
+      ],
+      "minimum_concept_coverage": 0.8
+    },
+    {
+      "id": "jpm-bylaw-en",
+      "language": "English",
+      "depth": "beginner",
+      "evidence": {
+        "ticker": "JPM",
+        "accession": "0000019617-26-000288",
+        "passages": [
+          {
+            "citation": "0000019617-26-000288#sentence-4",
+            "text": "The Corporation adopted an amendment to Section 2.03 of its By-laws, effective July 21, 2026, to provide that a Lead Independent Director, if any, shall be appointed by the non-management directors."
+          }
+        ],
+        "reaction": {
+          "benchmark_adjusted_move": {"citation": "metric:filing.benchmark_adjusted_move", "value": "+0.7%"},
+          "historical_magnitude_percentile": {"citation": "metric:filing.magnitude_percentile", "value": "50%"},
+          "prior_sample_size": {"citation": "metric:filing.prior_sample_size", "value": "125"}
+        }
+      },
+      "allowed_citations": [
+        "0000019617-26-000288#sentence-4",
+        "metric:filing.benchmark_adjusted_move",
+        "metric:filing.magnitude_percentile",
+        "metric:filing.prior_sample_size"
+      ],
+      "allowed_number_literals": ["2.03", "21", "2026", "+0.7%", "50%", "125"],
+      "expected_concepts": [
+        {"id": "change", "any_of": ["amendment", "amended"]},
+        {"id": "role", "any_of": ["Lead Independent Director"]},
+        {"id": "appointment", "any_of": ["non-management directors"]},
+        {"id": "historical_context", "any_of": ["historical", "earlier measurable"]}
+      ],
+      "minimum_concept_coverage": 0.8
+    },
+    {
+      "id": "jpm-bylaw-zh",
+      "language": "Chinese",
+      "depth": "beginner",
+      "evidence": {
+        "ticker": "JPM",
+        "accession": "0000019617-26-000288",
+        "passages": [
+          {
+            "citation": "0000019617-26-000288#sentence-4",
+            "text": "The Corporation adopted an amendment to Section 2.03 of its By-laws, effective July 21, 2026, to provide that a Lead Independent Director, if any, shall be appointed by the non-management directors."
+          }
+        ],
+        "reaction": {
+          "benchmark_adjusted_move": {"citation": "metric:filing.benchmark_adjusted_move", "value": "+0.7%"},
+          "historical_magnitude_percentile": {"citation": "metric:filing.magnitude_percentile", "value": "50%"},
+          "prior_sample_size": {"citation": "metric:filing.prior_sample_size", "value": "125"}
+        }
+      },
+      "allowed_citations": [
+        "0000019617-26-000288#sentence-4",
+        "metric:filing.benchmark_adjusted_move",
+        "metric:filing.magnitude_percentile",
+        "metric:filing.prior_sample_size"
+      ],
+      "allowed_number_literals": ["2.03", "21", "2026", "+0.7%", "50%", "125"],
+      "expected_concepts": [
+        {"id": "change", "any_of": ["修订", "修改"]},
+        {"id": "role", "any_of": ["首席独立董事", "牵头独立董事"]},
+        {"id": "appointment", "any_of": ["非管理层董事"]},
+        {"id": "historical_context", "any_of": ["历史", "此前可测"]}
+      ],
+      "minimum_concept_coverage": 0.8
+    }
+  ],
+  "paired_cases": [
+    {
+      "id": "adsk-acquisition",
+      "evidence": {
+        "ticker": "ADSK",
+        "accession": "0001213900-26-084276",
+        "passages": [{"citation": "0001213900-26-084276#sentence-5", "text": "The Company completed the previously announced acquisition of MaintainX Inc."}],
+        "reaction": {
+          "benchmark_adjusted_move": {"citation": "metric:filing.benchmark_adjusted_move", "value": "+1.2%"},
+          "historical_magnitude_percentile": {"citation": "metric:filing.magnitude_percentile", "value": "48%"},
+          "prior_sample_size": {"citation": "metric:filing.prior_sample_size", "value": "40"}
+        }
+      },
+      "allowed_citations": ["0001213900-26-084276#sentence-5", "metric:filing.benchmark_adjusted_move", "metric:filing.magnitude_percentile", "metric:filing.prior_sample_size"],
+      "allowed_number_literals": ["+1.2%", "48%", "40"],
+      "expected_concepts": {
+        "en": [
+          {"id": "status", "any_of": ["completed"]},
+          {"id": "target", "any_of": ["MaintainX"]},
+          {"id": "historical_context", "any_of": ["historical", "earlier measurable"]}
+        ],
+        "zh": [
+          {"id": "status", "any_of": ["完成"]},
+          {"id": "target", "any_of": ["MaintainX"]},
+          {"id": "historical_context", "any_of": ["历史", "此前可测"]}
+        ]
+      }
+    },
+    {
+      "id": "bac-dividend",
+      "evidence": {
+        "ticker": "BAC",
+        "accession": "0000070858-26-000364",
+        "passages": [{"citation": "0000070858-26-000364#sentence-3", "text": "The Board declared a quarterly cash dividend of $0.32 per common share, up $0.04 from the prior quarter, an increase of 14%."}],
+        "reaction": {
+          "benchmark_adjusted_move": {"citation": "metric:filing.benchmark_adjusted_move", "value": "+0.2%"},
+          "historical_magnitude_percentile": {"citation": "metric:filing.magnitude_percentile", "value": "12%"},
+          "prior_sample_size": {"citation": "metric:filing.prior_sample_size", "value": "57"}
+        }
+      },
+      "allowed_citations": ["0000070858-26-000364#sentence-3", "metric:filing.benchmark_adjusted_move", "metric:filing.magnitude_percentile", "metric:filing.prior_sample_size"],
+      "allowed_number_literals": ["$0.32", "$0.04", "14%", "+0.2%", "12%", "57"],
+      "expected_concepts": {
+        "en": [
+          {"id": "dividend", "any_of": ["quarterly cash dividend"]},
+          {"id": "increase", "any_of": ["14%", "up $0.04"]},
+          {"id": "historical_context", "any_of": ["historical", "earlier measurable"]}
+        ],
+        "zh": [
+          {"id": "dividend", "any_of": ["季度现金股息"]},
+          {"id": "increase", "any_of": ["14%", "增加 $0.04", "增加$0.04"]},
+          {"id": "historical_context", "any_of": ["历史", "此前可测"]}
+        ]
+      }
+    },
+    {
+      "id": "cvs-board",
+      "evidence": {
+        "ticker": "CVS",
+        "accession": "0001193125-26-354096",
+        "passages": [
+          {"citation": "0001193125-26-354096#sentence-5", "text": "Robbins' resignation was not the result of any disagreement with the Company on its operations, policies or practices."},
+          {"citation": "0001193125-26-354096#sentence-6", "text": "The Board appointed Teresa Heitsenrether to the Board, effective November 18, 2026."}
+        ],
+        "reaction": {
+          "benchmark_adjusted_move": {"citation": "metric:filing.benchmark_adjusted_move", "value": "+0.7%"},
+          "historical_magnitude_percentile": {"citation": "metric:filing.magnitude_percentile", "value": "33%"},
+          "prior_sample_size": {"citation": "metric:filing.prior_sample_size", "value": "78"}
+        }
+      },
+      "allowed_citations": ["0001193125-26-354096#sentence-5", "0001193125-26-354096#sentence-6", "metric:filing.benchmark_adjusted_move", "metric:filing.magnitude_percentile", "metric:filing.prior_sample_size"],
+      "allowed_number_literals": ["18", "2026", "+0.7%", "33%", "78"],
+      "expected_concepts": {
+        "en": [
+          {"id": "resignation", "any_of": ["resignation"]},
+          {"id": "no_disagreement", "any_of": ["not the result of any disagreement", "no disagreement"]},
+          {"id": "appointment", "any_of": ["Teresa Heitsenrether"]},
+          {"id": "historical_context", "any_of": ["historical", "earlier measurable"]}
+        ],
+        "zh": [
+          {"id": "resignation", "any_of": ["辞任", "辞职"]},
+          {"id": "no_disagreement", "any_of": ["并非源于", "没有分歧"]},
+          {"id": "appointment", "any_of": ["Teresa Heitsenrether"]},
+          {"id": "historical_context", "any_of": ["历史", "此前可测"]}
+        ]
+      }
+    },
+    {
+      "id": "ph-acquisition-financing",
+      "evidence": {
+        "ticker": "PH",
+        "accession": "0001193125-26-349148",
+        "passages": [
+          {"citation": "0001193125-26-349148#sentence-5", "text": "Parker agreed to acquire Filtration Group for a cash purchase price of $9.25 billion, subject to a net working capital adjustment."},
+          {"citation": "0001193125-26-349148#sentence-11", "text": "Parker borrowed $5.25 billion under one credit facility and $2.50 billion under another to fund part of the purchase price and related costs."}
+        ],
+        "reaction": {
+          "benchmark_adjusted_move": {"citation": "metric:filing.benchmark_adjusted_move", "value": "+0.1%"},
+          "historical_magnitude_percentile": {"citation": "metric:filing.magnitude_percentile", "value": "2%"},
+          "prior_sample_size": {"citation": "metric:filing.prior_sample_size", "value": "41"}
+        }
+      },
+      "allowed_citations": ["0001193125-26-349148#sentence-5", "0001193125-26-349148#sentence-11", "metric:filing.benchmark_adjusted_move", "metric:filing.magnitude_percentile", "metric:filing.prior_sample_size"],
+      "allowed_number_literals": ["$9.25", "$5.25", "$2.50", "+0.1%", "2%", "41"],
+      "expected_concepts": {
+        "en": [
+          {"id": "target", "any_of": ["Filtration Group"]},
+          {"id": "price", "any_of": ["$9.25 billion"]},
+          {"id": "financing", "any_of": ["borrowed $5.25 billion", "$2.50 billion"]},
+          {"id": "historical_context", "any_of": ["historical", "earlier measurable"]}
+        ],
+        "zh": [
+          {"id": "target", "any_of": ["Filtration Group"]},
+          {"id": "price", "any_of": ["$9.25 billion"]},
+          {"id": "financing", "any_of": ["借入 $5.25 billion", "借入$5.25 billion", "$2.50 billion"]},
+          {"id": "historical_context", "any_of": ["历史", "此前可测"]}
+        ]
+      }
+    },
+    {
+      "id": "wec-ppa",
+      "evidence": {
+        "ticker": "WEC",
+        "accession": "0000783325-26-000095",
+        "passages": [
+          {"citation": "0000783325-26-000095#sentence-4", "text": "WEPCO entered into a power purchase agreement to purchase 86% of the capacity, energy, ancillary services and environmental attributes of Unit 1 and Unit 2 of the Point Beach Nuclear Power Plant."},
+          {"citation": "0000783325-26-000095#sentence-8", "text": "If approved by the PSCW, the agreement will result in savings for customers compared with the current agreement."}
+        ],
+        "reaction": {
+          "benchmark_adjusted_move": {"citation": "metric:filing.benchmark_adjusted_move", "value": "-1.9%"},
+          "historical_magnitude_percentile": {"citation": "metric:filing.magnitude_percentile", "value": "87%"},
+          "prior_sample_size": {"citation": "metric:filing.prior_sample_size", "value": "110"}
+        }
+      },
+      "allowed_citations": ["0000783325-26-000095#sentence-4", "0000783325-26-000095#sentence-8", "metric:filing.benchmark_adjusted_move", "metric:filing.magnitude_percentile", "metric:filing.prior_sample_size"],
+      "allowed_number_literals": ["86%", "1", "2", "-1.9%", "87%", "110"],
+      "expected_concepts": {
+        "en": [
+          {"id": "agreement", "any_of": ["power purchase agreement"]},
+          {"id": "share", "any_of": ["86%"]},
+          {"id": "condition", "any_of": ["If approved by the PSCW", "subject to PSCW approval"]},
+          {"id": "historical_context", "any_of": ["historical", "earlier measurable"]}
+        ],
+        "zh": [
+          {"id": "agreement", "any_of": ["电力采购协议", "购电协议"]},
+          {"id": "share", "any_of": ["86%"]},
+          {"id": "condition", "any_of": ["仍需 PSCW 批准", "如果获得 PSCW 批准", "须经 PSCW 批准"]},
+          {"id": "historical_context", "any_of": ["历史", "此前可测"]}
+        ]
+      }
+    },
+    {
+      "id": "ccl-redemption",
+      "evidence": {
+        "ticker": "CCL",
+        "accession": "0000950142-26-002267",
+        "passages": [{"citation": "0000950142-26-002267#sentence-3", "text": "The Company issued a notice to redeem all $500,000,000 of its 7.000% senior secured notes due 2029 at 103.50% of principal."}],
+        "reaction": {
+          "benchmark_adjusted_move": {"citation": "metric:filing.benchmark_adjusted_move", "value": "-1.9%"},
+          "historical_magnitude_percentile": {"citation": "metric:filing.magnitude_percentile", "value": "60%"},
+          "prior_sample_size": {"citation": "metric:filing.prior_sample_size", "value": "75"}
+        }
+      },
+      "allowed_citations": ["0000950142-26-002267#sentence-3", "metric:filing.benchmark_adjusted_move", "metric:filing.magnitude_percentile", "metric:filing.prior_sample_size"],
+      "allowed_number_literals": ["$500,000,000", "7.000%", "2029", "103.50%", "-1.9%", "60%", "75"],
+      "expected_concepts": {
+        "en": [
+          {"id": "action", "any_of": ["redeem"]},
+          {"id": "security", "any_of": ["senior secured notes"]},
+          {"id": "price", "any_of": ["103.50%"]},
+          {"id": "historical_context", "any_of": ["historical", "earlier measurable"]}
+        ],
+        "zh": [
+          {"id": "action", "any_of": ["赎回"]},
+          {"id": "security", "any_of": ["优先担保票据"]},
+          {"id": "price", "any_of": ["103.50%"]},
+          {"id": "historical_context", "any_of": ["历史", "此前可测"]}
+        ]
+      }
+    },
+    {
+      "id": "xel-settlement",
+      "evidence": {
+        "ticker": "XEL",
+        "accession": "0000072903-26-000160",
+        "passages": [
+          {"citation": "0000072903-26-000160#sentence-8", "text": "Approved settlement terms are expected to include a $157 million revenue increase, 4.4% total, a 9.3% ROE and a 54.5% equity ratio."},
+          {"citation": "0000072903-26-000160#sentence-10", "text": "Xcel Energy reaffirmed its ongoing earnings per share guidance of $4.04 to $4.16."}
+        ]
+      },
+      "allowed_citations": ["0000072903-26-000160#sentence-8", "0000072903-26-000160#sentence-10"],
+      "allowed_number_literals": ["$157", "4.4%", "9.3%", "54.5%", "$4.04", "$4.16"],
+      "expected_concepts": {
+        "en": [
+          {"id": "settlement", "any_of": ["settlement"]},
+          {"id": "revenue", "any_of": ["$157 million"]},
+          {"id": "capital_terms", "any_of": ["9.3% ROE", "54.5% equity ratio"]},
+          {"id": "guidance", "any_of": ["$4.04 to $4.16"]}
+        ],
+        "zh": [
+          {"id": "settlement", "any_of": ["和解"]},
+          {"id": "revenue", "any_of": ["$157 million"]},
+          {"id": "capital_terms", "any_of": ["9.3% ROE", "54.5% 权益比率"]},
+          {"id": "guidance", "any_of": ["$4.04 至 $4.16", "$4.04 到 $4.16"]}
+        ]
+      }
+    }
+  ]
+}
