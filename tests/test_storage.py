@@ -233,6 +233,19 @@ def test_supabase_migration_has_rls_and_no_premature_vector_dimension() -> None:
     assert 'create policy "public source chunks are readable"' not in migration
     assert 'drop policy if exists "owners manage documents"' in migration
     assert "documents.owner_id = document_chunks.owner_id" not in migration
+    assert "grant usage on schema public to anon, authenticated, service_role" in migration
+    assert re.search(
+        r"grant select on table\s+public\.documents,\s+public\.headlines\s+to anon;",
+        migration,
+    )
+    assert re.search(
+        r"grant select, insert, update, delete on table\s+"
+        r"public\.documents,\s+public\.document_chunks,\s+public\.headlines,\s+"
+        r"public\.rulesets,\s+public\.retrieval_runs,\s+public\.llm_runs\s+"
+        r"to authenticated, service_role;",
+        migration,
+    )
+    assert "grant all" not in migration.lower()
     assert re.search(r"(?<![a-z])vector\s*\(", migration) is None
     assert "embedding vector" not in migration
 

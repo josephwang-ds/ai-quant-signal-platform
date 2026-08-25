@@ -159,6 +159,25 @@ create policy "owners manage llm runs"
   using (owner_id = auth.uid())
   with check (owner_id = auth.uid());
 
+-- Data API privileges are explicit because project setup disables automatic table
+-- exposure. RLS still decides which rows anon/authenticated callers may access;
+-- backend secret keys map to service_role and intentionally bypass RLS.
+grant usage on schema public to anon, authenticated, service_role;
+
+grant select on table
+  public.documents,
+  public.headlines
+to anon;
+
+grant select, insert, update, delete on table
+  public.documents,
+  public.document_chunks,
+  public.headlines,
+  public.rulesets,
+  public.retrieval_runs,
+  public.llm_runs
+to authenticated, service_role;
+
 comment on table public.documents is
   'Immutable source metadata; uploaded object bodies remain in private Storage.';
 comment on table public.document_chunks is

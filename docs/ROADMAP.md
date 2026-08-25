@@ -176,8 +176,8 @@ packets rather than selected by reputation. See `docs/LLM.md`.
 - read-only `Ask this company` API/UI over the implemented bounded retrieval contract;
 - scheduled source-linked headline ingestion from a reviewed vendor (the current page
   accepts only an optional local JSON/CSV cache);
-- implement a remote adapter for the prepared, unapplied Supabase/Postgres RLS
-  migration only when dynamic uploads/history are approved;
+- complete a controlled write/read/cleanup smoke test before enabling the implemented
+  Supabase adapter on a deployed backend worker;
 - run the same frozen scorecard against Terra and Luna with current explicit prices;
 - review failed concepts and extend cases only when they add a distinct event pattern;
 - scheduled generation for only new/changed accessions after the evaluation gate.

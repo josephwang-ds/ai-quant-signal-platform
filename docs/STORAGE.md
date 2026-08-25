@@ -57,14 +57,17 @@ Publishable keys are rejected. Backend keys must never appear in Vercel frontend
 configuration, browser JavaScript, or a public artifact. Local mode reads none of these
 variables.
 
-The reviewed, unapplied migration at
+The reviewed migration at
 `ops/supabase/0001_evidence_storage.sql` mirrors those records, enables row-level
-security, and adds deterministic full-text indexes. It intentionally defines no
-embedding column or vector dimension. Its table/index creation and policy replacement
-are safe to rerun during reviewed setup. Public policies expose approved SEC/news
-metadata, while document chunks inherit access through their parent document and
-uploaded evidence plus provenance remain owner-only. No Supabase project, credentials,
-network connection, authentication UI, or migration deployment is configured here.
+security, adds deterministic full-text indexes, and grants only the explicit Data API
+table privileges needed when automatic table exposure is disabled. It intentionally
+defines no embedding column or vector dimension. Its table/index creation, policy
+replacement, and grants are safe to rerun during reviewed setup. Public policies expose
+approved SEC/news metadata, while document chunks inherit access through their parent
+document and uploaded evidence plus provenance remain owner-only. The schema and current
+Secret-key adapter have completed a controlled live read-only PostgREST smoke test. No
+project identifier, credential, authentication UI, or deployed dual-write worker is
+stored or enabled by this repository.
 
 ## Logical tables
 
