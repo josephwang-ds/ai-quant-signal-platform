@@ -96,7 +96,7 @@ def _doctor(args) -> int:
         try:
             frame = fetch_daily("SPY", cache_dir=Path("data/cache/prices"),
                                 sources=(source,))
-        except Exception:                                           # noqa: BLE001
+        except Exception:                                  # noqa: BLE001
             continue
         served_by = (source, frame)
         break
@@ -105,7 +105,7 @@ def _doctor(args) -> int:
         source, frame = served_by
         checks.append(("price source reachable", True,
                        (f"{source}: SPY, {len(frame):,} daily bars to "
-                       f"{frame['date'].max()}")))
+                        f"{frame['date'].max()}")))
     else:
         try:
             fetch_daily("SPY", cache_dir=Path("data/cache/prices"))
@@ -278,14 +278,18 @@ def _headline(metrics: dict) -> list[tuple[str, str]]:
     if metrics.get("daily_usable_at_5"):
         rows += [
             ("daily precision @5", (f"{metrics['daily_precision_at_5']:.1%} "
-             f"({counted} sessions)")),
-            ("daily lift @5", f"{metrics['daily_lift_at_5']:.2f}x"),
+                                    f"({counted} sessions)")),
+            ("lift vs matched random @5", f"{metrics['daily_lift_at_5']:.2f}x"),
+            ("arrival-order precision @5",
+             f"{metrics.get('daily_arrival_precision_at_5', float('nan')):.1%}"),
+            ("Item 2.02 heuristic precision @5",
+             f"{metrics.get('daily_item_202_precision_at_5', float('nan')):.1%}"),
         ]
     else:
         rows.append(("daily precision @5",
                      (f"not reported -- only {counted} sessions had more than 5 "
-                     f"filings, so the queue metric would be measuring the "
-                     f"calendar, not the ranker")))
+                      f"filings, so the queue metric would be measuring the "
+                      f"calendar, not the ranker")))
     return rows
 
 

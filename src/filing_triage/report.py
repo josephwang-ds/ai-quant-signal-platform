@@ -63,14 +63,24 @@ def _document(result, study: pd.DataFrame, sweep: pd.DataFrame,
     <p class="eyebrow">SEC 8-K disclosures &middot; point-in-time study</p>
     <h1>Which filings deserve a human read?</h1>
     <p class="lede">
-      Forty 8-Ks land before breakfast and an analyst has time for five. This ranks
-      them by how hard the market is about to react &mdash; <em>magnitude, not
-      direction</em>. Predicting direction is a bet against people with faster data
-      and better models. Predicting which disclosures matter is a triage problem,
-      and triage is answerable.
+      At each market open, an analyst faces the 8-Ks accepted since the prior queue
+      and has time for five. This ranks them by the abnormal-reaction magnitude
+      after that decision point &mdash; <em>magnitude, not direction</em>. It is a
+      filing-priority tool, not a return forecast.
     </p>
     {_stat_row(metrics, naive["average_precision"])}
   </header>
+
+  <section>
+    <h2>Does ranking beat a reasonable reading rule?</h2>
+    <p>
+      Random is not the only alternative. Every method below sees the same
+      out-of-sample filings on the same sessions with more than five filings.
+      Arrival order reads the first five accepted; the simple structured-field
+      heuristic reads Item 2.02 earnings filings first, then arrival order.
+    </p>
+    {_baseline_table(metrics)}
+  </section>
 
   <section>
     <h2>The result that mattered was a bug</h2>
@@ -87,13 +97,10 @@ def _document(result, study: pd.DataFrame, sweep: pd.DataFrame,
     {_ladder_chart(study)}
     {_ladder_table(study)}
     <p class="note">
-      The last stage can move the metric <em>upward</em>, and that is not the
-      bug reasserting itself. Correcting the entry also corrects the window the
-      outcome is measured over: with the filing date, a filing accepted after the
-      close is scored across a session that had not yet heard the news, so the
-      label carries a day of noise. Fixing it sharpens the label as well as
-      removing the impossible trade &mdash; which means that stage's honest
-      result is the zeroed entry count, not its effect on the score.
+      The last stage changes both entry and the window over which the outcome is
+      measured. Its metric movement is therefore not a clean estimate of one
+      leak's cost. The auditable result is the invariant: every entry-open that
+      predates its EDGAR accepted timestamp is reduced to zero.
     </p>
     <p class="note">
       Event counts differ by stage, and that is part of the finding: purged
@@ -139,7 +146,8 @@ def _document(result, study: pd.DataFrame, sweep: pd.DataFrame,
   <section>
     <h2>What the ranker leans on</h2>
     <p>
-      Permutation importance, measured on average precision. The 8-K item code
+      Out-of-sample permutation importance, measured on each walk-forward fold's
+      held-out rows using average precision. The 8-K item code
       does most of the work: registrants tell you what kind of news it is before
       you read a word of it.
     </p>
@@ -273,11 +281,33 @@ def _queue_tile(metrics: dict) -> tuple[str, str, str]:
         return (f"{metrics.get('daily_lift_at_5', float('nan')):.1f}&times;",
                 "better than reading five at random",
                 (f"top 5 of each session &middot; {counted} sessions with more "
-                f"than five filings"))
+                 f"than five filings"))
     return (f"{metrics.get('filings_per_session_median', float('nan')):.0f}",
             "filings per session (median)",
             (f"too few to triage &mdash; only {counted} sessions carried more than "
-            f"five, so the queue metric is not reported"))
+             f"five, so the queue metric is not reported"))
+
+
+def _baseline_table(metrics: dict) -> str:
+    counted = metrics.get("operational_sessions_at_5", 0)
+    if not counted:
+        return '<p class="note">Not enough crowded sessions for an operational comparison.</p>'
+    rows = [
+        ("Model rank", metrics.get("daily_model_precision_at_5")),
+        ("Item 2.02, then arrival", metrics.get("daily_item_202_precision_at_5")),
+        ("Arrival order", metrics.get("daily_arrival_precision_at_5")),
+        ("Random within session (expected)", metrics.get("daily_random_precision_at_5")),
+    ]
+    body = "".join(
+        f"<tr><td>{label}</td><td class='num'>{_number(value, '{:.1%}')}</td></tr>"
+        for label, value in rows
+    )
+    return (
+        f'<p class="summary">Mean precision@5 over {counted:,} eligible sessions.</p>'
+        '<table class="data"><thead><tr><th>Reading rule</th>'
+        '<th class="num">Material filings in top five</th></tr></thead>'
+        f"<tbody>{body}</tbody></table>"
+    )
 
 
 def _ladder_chart(study: pd.DataFrame) -> str:
@@ -305,19 +335,19 @@ def _sweep_chart(sweep: pd.DataFrame) -> str:
     labels = sweep["embargo"].tolist()
     values = sweep["average_precision"].tolist()
     return _hbar(labels, values, ["accent"] * len(values), fmt="{:.3f}", floor=0.0,
-                 caption="Average precision as the delay between publication and "
-                         "decision grows.")
+                 caption="Average precision as the delay between EDGAR acceptance "
+                         "and the decision grows.")
 
 
 def _integrity_panel(result, study: pd.DataFrame) -> str:
     naive = study.iloc[0]
     rows = [
-        ("Entries that opened before the filing was public",
+        ("Entries that opened before the EDGAR accepted timestamp",
          f"{int(naive['impossible_entries']):,}",
          f"{naive['impossible_share']:.0%} of the sample", "bad"),
         ("Median hindsight granted by those entries",
          f"{naive['median_hindsight_hours']:.1f} h",
-         "between the opening print and the filing", "bad"),
+         "between the opening print and EDGAR acceptance", "bad"),
         ("Same figure, point-in-time entry",
          f"{result.integrity['impossible_entries']:,}",
          "the invariant the test suite pins", "good"),

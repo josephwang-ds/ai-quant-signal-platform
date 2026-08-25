@@ -1,0 +1,22 @@
+{
+  "schema_version": "1.0",
+  "exported_at": "2026-08-24T07:05:38.621548+00:00",
+  "pipeline_config": {
+    "reaction_threshold": 2.0,
+    "event_window_sessions": 2,
+    "estimation_sessions": 120,
+    "estimation_gap_sessions": 20,
+    "validation": "purged_embargoed_walk_forward"
+  },
+  "files": [
+    "metrics.json",
+    "integrity.json",
+    "provenance.json",
+    "fold_metrics.csv",
+    "oos_importance.csv",
+    "audit.csv",
+    "leakage_study.csv"
+  ],
+  "raw_data_committed": false,
+  "note": "Metrics are real-data results; the convenience universe has survivorship bias."
+}

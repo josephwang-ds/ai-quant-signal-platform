@@ -17,7 +17,7 @@ not the estimator.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import timedelta
 
 import numpy as np
@@ -37,6 +37,8 @@ class TriageModel:
     config: PipelineConfig
     n_splits: int = N_SPLITS
     random_state: int = 7
+    oos_importance_: pd.DataFrame = field(default_factory=pd.DataFrame, init=False,
+                                          repr=False)
 
     def _estimator(self) -> HistGradientBoostingClassifier:
         return HistGradientBoostingClassifier(
@@ -50,13 +52,15 @@ class TriageModel:
 
     def fit_predict_oos(self, features: pd.DataFrame, labels: pd.Series,
                         event_time: pd.Series, label_end_time: pd.Series,
-                        audit: LeakageAudit | None = None) -> pd.DataFrame:
+                        audit: LeakageAudit | None = None,
+                        compute_importance: bool = False) -> pd.DataFrame:
         """Out-of-sample score for every event, from the fold that held it out."""
         X = features.to_numpy(dtype=float)
         y = labels.to_numpy(dtype=int)
 
         scores = np.full(len(y), np.nan)
         folds = np.full(len(y), -1)
+        fold_importance = []
 
         for fold, (train, test) in enumerate(self._splits(event_time, label_end_time)):
             if y[train].sum() == 0 or y[train].sum() == len(train):
@@ -65,12 +69,25 @@ class TriageModel:
             scores[test] = model.predict_proba(X[test])[:, 1]
             folds[test] = fold
 
+            if compute_importance and np.unique(y[test]).size > 1:
+                importance = permutation_importance(
+                    model,
+                    features.iloc[test],
+                    labels.iloc[test],
+                    n_repeats=3,
+                    random_state=self.random_state + fold,
+                )
+                importance["fold"] = fold
+                fold_importance.append(importance)
+
             if audit is not None and self.config.purged_cv:
                 audit.purged_split(
                     train_end=label_end_time.iloc[train],
                     test_start=event_time.iloc[test],
                     embargo=CV_EMBARGO,
                 )
+
+        self.oos_importance_ = _aggregate_importance(fold_importance)
 
         return pd.DataFrame(
             {"score": scores, "fold": folds, "label": y},
@@ -111,3 +128,18 @@ def permutation_importance(model, features: pd.DataFrame, labels: pd.Series,
         "importance": result.importances_mean,
         "std": result.importances_std,
     }).sort_values("importance", ascending=False).reset_index(drop=True))
+
+
+def _aggregate_importance(folds: list[pd.DataFrame]) -> pd.DataFrame:
+    """Average permutation importance measured only on held-out fold rows."""
+    if not folds:
+        return pd.DataFrame(columns=["feature", "importance", "std", "folds"])
+    combined = pd.concat(folds, ignore_index=True)
+    return (
+        combined.groupby("feature", as_index=False)
+        .agg(importance=("importance", "mean"), std=("importance", "std"),
+             folds=("fold", "nunique"))
+        .fillna({"std": 0.0})
+        .sort_values("importance", ascending=False)
+        .reset_index(drop=True)
+    )

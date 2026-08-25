@@ -81,10 +81,10 @@ def build_labels(events: pd.DataFrame, returns: pd.DataFrame,
                                      "label", "estimation_end", "label_end_session"])
 
     out = pd.DataFrame(rows)
-    # The threshold is a property of the sample, so it is set once, globally, and
-    # never re-estimated inside a CV fold -- doing that would let each fold's own
-    # outcomes define its cut point.
-    threshold = out["reaction"].quantile(config.label_quantile)
+    # Fixed ex ante. A quantile estimated over this full frame would use future
+    # test-fold outcomes to define what counts as material, even if the model
+    # itself never trains on those outcomes.
+    threshold = config.reaction_threshold
     out["label"] = (out["reaction"] >= threshold).astype(int)
     out.attrs["reaction_threshold"] = float(threshold)
     # Attrition, itemised. An event that cannot be measured is not a bug, but an
@@ -135,7 +135,9 @@ def _measure(panel: tuple[np.ndarray, np.ndarray, np.ndarray], grid: SessionGrid
     market = grid.market
 
     est_end = entry - config.estimation_gap_sessions
-    est_start = est_end - config.estimation_sessions
+    # Both slice endpoints are inclusive below, so +1 is required for exactly
+    # `estimation_sessions` observations rather than 121 for a 120-session config.
+    est_start = est_end - config.estimation_sessions + 1
     if est_start < 0:
         return "not enough history before the event"
 

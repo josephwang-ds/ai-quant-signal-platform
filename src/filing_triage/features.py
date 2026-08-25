@@ -137,9 +137,10 @@ def _novelty_features(frame: pd.DataFrame) -> pd.DataFrame:
               .transform(lambda s: s.shift(1).expanding().median()))
 
     return pd.DataFrame({
-        # A first-ever filing is neither novel nor familiar; the sample median is
-        # the honest default, and `first_filing` lets the model treat it separately.
-        "novelty": novelty.fillna(novelty.median() if novelty.notna().any() else 0.5),
+        # A first-ever filing is neither novel nor familiar. Use a fixed neutral
+        # value rather than a full-sample median whose value includes future docs;
+        # `first_filing` lets the model learn that the value was unavailable.
+        "novelty": novelty.fillna(0.5),
         "first_filing": novelty.isna().astype(int),
         "log_doc_chars": np.log1p(chars),
         "doc_chars_vs_median": (chars / median).replace([np.inf, -np.inf], np.nan).fillna(1.0),
@@ -170,9 +171,12 @@ def _issuer_state_features(frame: pd.DataFrame, returns: pd.DataFrame,
     # feature to want, which is why this bug is so easy to ship.
     panel["vol_20"] = grouped["ret"].transform(lambda s: roll(s, 20, "std"))
     panel["abs_ret_5"] = grouped["ret"].transform(lambda s: roll(s.abs(), 5, "mean"))
+    dollar_volume = panel["close"] * panel["volume"]
     panel["log_dollar_volume"] = np.log1p(
-        grouped.apply(lambda g: roll(g["close"] * g["volume"], 20, "mean"),
-                      include_groups=False).reset_index(level=0, drop=True))
+        dollar_volume.groupby(panel["ticker"], sort=False).transform(
+            lambda series: roll(series, 20, "mean")
+        )
+    )
 
     # Grouped shift, not a bare one: a plain .shift(1) would carry the last row
     # of each ticker into the first row of the next.
@@ -187,7 +191,10 @@ def _issuer_state_features(frame: pd.DataFrame, returns: pd.DataFrame,
 
     out = joined[["vol_20", "abs_ret_5", "log_dollar_volume", "rel_volume"]].copy()
     out.index = frame.index
-    return out.fillna(out.median(numeric_only=True))
+    # HistGradientBoosting handles NaN natively. Preserving missingness avoids a
+    # full-sample median whose value would carry future market observations into
+    # an earlier test fold.
+    return out
 
 
 def feature_columns(features: pd.DataFrame) -> list[str]:

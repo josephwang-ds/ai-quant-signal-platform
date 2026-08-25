@@ -85,6 +85,81 @@ def mean_daily_precision_at_k(predictions: pd.DataFrame, sessions: pd.Series,
     return float(np.mean(daily)), len(daily), available
 
 
+def mean_daily_random_precision_at_k(predictions: pd.DataFrame, sessions: pd.Series,
+                                     k: int = 5) -> tuple[float, int, int]:
+    """Expected precision of reading k random filings on the same eligible days.
+
+    Within a session, the expected precision of a random sample is that session's
+    material-event rate. Averaging those rates over the exact sessions counted by
+    the model is deterministic and avoids comparing the model with a pooled base
+    rate drawn from a different mix of thin and crowded days.
+    """
+    frame = predictions.assign(session=sessions.reindex(predictions.index).to_numpy())
+    daily, available = [], 0
+    for _, group in frame.groupby("session"):
+        available += 1
+        if len(group) <= k:
+            continue
+        daily.append(float(group["label"].mean()))
+    if not daily:
+        return float("nan"), 0, available
+    return float(np.mean(daily)), len(daily), available
+
+
+def operational_baselines(predictions: pd.DataFrame, events: pd.DataFrame,
+                          k: int = 5) -> dict[str, float | int]:
+    """Compare the model with workflows an analyst could actually use.
+
+    All methods see the same out-of-sample events on the same sessions. Arrival
+    order reads the first filings accepted. The item heuristic reads Item 2.02
+    earnings filings first, then falls back to arrival order. Random is the exact
+    expected precision within each eligible session rather than a simulated draw.
+    """
+    metadata = events.set_index("event_id")[["entry_session", "acceptance_time", "items"]]
+    frame = predictions.join(metadata, how="left")
+    if frame[["entry_session", "acceptance_time"]].isna().any().any():
+        raise ValueError("predictions contain event IDs missing from the event metadata")
+
+    model_daily, random_daily, arrival_daily, item_daily = [], [], [], []
+    for _, group in frame.groupby("entry_session"):
+        if len(group) <= k:
+            continue
+        labels = group["label"].to_numpy()
+        model_daily.append(precision_at_k(labels, group["score"].to_numpy(), k))
+        random_daily.append(float(group["label"].mean()))
+
+        arrival = group.sort_values("acceptance_time", kind="stable").head(k)
+        arrival_daily.append(float(arrival["label"].mean()))
+
+        item = group.assign(
+            is_item_202=group["items"].fillna("").astype(str).str.contains(
+                r"(?:^|,)\s*2\.02(?:,|$)", regex=True
+            )
+        ).sort_values(
+            ["is_item_202", "acceptance_time"], ascending=[False, True], kind="stable"
+        ).head(k)
+        item_daily.append(float(item["label"].mean()))
+
+    sessions = len(model_daily)
+    if not sessions:
+        return {f"operational_sessions_at_{k}": 0}
+
+    model_precision = float(np.mean(model_daily))
+    random_precision = float(np.mean(random_daily))
+    arrival_precision = float(np.mean(arrival_daily))
+    item_precision = float(np.mean(item_daily))
+    return {
+        f"operational_sessions_at_{k}": sessions,
+        f"daily_model_precision_at_{k}": model_precision,
+        f"daily_random_precision_at_{k}": random_precision,
+        f"daily_arrival_precision_at_{k}": arrival_precision,
+        f"daily_item_202_precision_at_{k}": item_precision,
+        f"daily_lift_vs_random_at_{k}": _ratio(model_precision, random_precision),
+        f"daily_lift_vs_arrival_at_{k}": _ratio(model_precision, arrival_precision),
+        f"daily_lift_vs_item_202_at_{k}": _ratio(model_precision, item_precision),
+    }
+
+
 def queue_sizes(predictions: pd.DataFrame, sessions: pd.Series) -> dict:
     """How crowded the daily queue actually is.
 
@@ -103,7 +178,8 @@ def queue_sizes(predictions: pd.DataFrame, sessions: pd.Series) -> dict:
 
 
 def evaluate(predictions: pd.DataFrame, ks: tuple[int, ...] = DEFAULT_KS,
-             sessions: pd.Series | None = None) -> dict:
+             sessions: pd.Series | None = None,
+             events: pd.DataFrame | None = None) -> dict:
     """Headline metrics over all out-of-sample predictions."""
     labels = predictions["label"].to_numpy()
     scores = predictions["score"].to_numpy()
@@ -121,17 +197,23 @@ def evaluate(predictions: pd.DataFrame, ks: tuple[int, ...] = DEFAULT_KS,
         metrics[f"ndcg_at_{k}"] = ndcg_at_k(labels, scores, k)
 
     if sessions is not None:
-        base = metrics["base_rate"]
         metrics.update(queue_sizes(predictions, sessions))
         for k in (3, 5, 10):
             precision, counted, available = mean_daily_precision_at_k(
                 predictions, sessions, k)
+            random_precision, random_counted, _ = mean_daily_random_precision_at_k(
+                predictions, sessions, k)
+            if random_counted != counted:
+                raise RuntimeError("model and random baselines counted different sessions")
             metrics[f"daily_precision_at_{k}"] = precision
-            metrics[f"daily_lift_at_{k}"] = (precision / base if base else float("nan"))
+            metrics[f"daily_random_precision_at_{k}"] = random_precision
+            metrics[f"daily_lift_at_{k}"] = _ratio(precision, random_precision)
             metrics[f"daily_sessions_at_{k}"] = counted
             # Below this the metric is measuring the calendar, not the ranker.
             metrics[f"daily_usable_at_{k}"] = bool(counted >= 30
                                                    and counted >= 0.1 * available)
+    if events is not None:
+        metrics.update(operational_baselines(predictions, events, k=5))
     return metrics
 
 
@@ -184,3 +266,7 @@ def _safe(fn, labels: np.ndarray, scores: np.ndarray) -> float:
     if len(np.unique(labels)) < 2:
         return float("nan")
     return float(fn(labels, scores))
+
+
+def _ratio(numerator: float, denominator: float) -> float:
+    return numerator / denominator if denominator and np.isfinite(denominator) else float("nan")

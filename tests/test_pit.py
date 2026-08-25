@@ -113,7 +113,7 @@ class TestClock:
 
     def test_naive_datetime_is_rejected(self):
         with pytest.raises(ValueError, match="timezone"):
-            self.clock.entry_session(datetime(2024, 10, 31, 18, 3))
+            self.clock.entry_session(datetime(2024, 10, 31, 18, 3))  # noqa: DTZ001
 
 
 class TestNaiveEntryIsActuallyWrong:

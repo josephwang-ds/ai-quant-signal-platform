@@ -45,11 +45,11 @@ STAGES: list[tuple[str, dict, str]] = [
     ("+ point-in-time entry", {
         "shift_trailing_features": True, "pit_entry": True,
         "pit_universe": True, "purged_cv": True,
-    }, ("Enter at the first open after the acceptance time. Barely moves the "
-        "metric -- and hands back every impossible trade.")),
+    }, ("Enter at the first open after the acceptance time. This also changes the "
+        "measured window; the invariant is that every impossible entry disappears.")),
 ]
 
-# Average precision leads. With a 10% base rate this is a ranking problem, and AUC
+# Average precision leads. With a rare fixed-threshold label this is a ranking problem, and AUC
 # is the wrong headline for one: it averages over the whole ranking, including the
 # long tail nobody reads. It is also blunt about leaks that concentrate on the
 # positives -- the unshifted-window bug moves AUC by 0.04 and average precision

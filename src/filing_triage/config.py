@@ -16,7 +16,7 @@ from datetime import timedelta
 class PipelineConfig:
     # -- measurement design ------------------------------------------------ #
     embargo: timedelta = timedelta(0)
-    """Delay between the filing becoming public and being allowed to act.
+    """Delay between EDGAR acceptance and being allowed to act.
     Sweeping this is how we measure how fast the reaction is over."""
 
     event_window_sessions: int = 2
@@ -29,8 +29,11 @@ class PipelineConfig:
     """Sessions left between the estimation window and the event, so that
     pre-announcement drift does not contaminate the baseline."""
 
-    label_quantile: float = 0.90
-    """A filing is 'worth reading' if its reaction lands in this top slice."""
+    reaction_threshold: float = 2.0
+    """A filing is 'worth reading' if its absolute abnormal reaction is at least
+    this many issuer-specific residual standard deviations. This cutoff is fixed
+    before any fold is observed; a full-sample quantile would let future outcomes
+    define the meaning of a test-fold label."""
 
     # -- correctness switches (True = correct) ----------------------------- #
     shift_trailing_features: bool = True
@@ -40,8 +43,8 @@ class PipelineConfig:
 
     pit_entry: bool = True
     """Enter at the first open after the acceptance time, not on the filing date.
-    ~80% of 8-Ks land outside market hours; the naive version buys before the
-    news exists."""
+    The naive filing-date version can use an opening print that predates the
+    accepted timestamp."""
 
     pit_universe: bool = True
     """Resolve index membership as of the event date, not as of today."""

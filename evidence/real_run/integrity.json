@@ -1,0 +1,14 @@
+{
+  "impossible_entries": 0,
+  "impossible_share": 0.0,
+  "median_hindsight_hours": 0.0,
+  "max_hindsight_hours": -0.05611111111111111,
+  "events_dropped_by_universe": 0,
+  "events_total": 11702,
+  "events_measured": 11674,
+  "attrition": {
+    "missing price bars inside the event window": 7,
+    "event window runs past the end of the price data": 15,
+    "entry session has no price bar": 6
+  }
+}

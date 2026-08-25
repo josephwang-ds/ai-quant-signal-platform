@@ -24,6 +24,7 @@ import json
 import os
 import time
 from dataclasses import dataclass
+from datetime import timedelta
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
@@ -40,6 +41,8 @@ ACCEPTANCE_TZ = ZoneInfo(os.environ.get("EDGAR_ACCEPTANCE_TZ", "America/New_York
 MAX_REQUESTS_PER_SECOND = 8      # SEC's ceiling is 10; leave headroom.
 MAX_RETRIES = 5
 BACKOFF_BASE = 2.0
+SUBMISSIONS_CACHE_MAX_AGE = timedelta(hours=6)
+TICKER_MAP_CACHE_MAX_AGE = timedelta(days=1)
 
 
 class EdgarAccessError(RuntimeError):
@@ -117,10 +120,21 @@ class EdgarClient:
         raise RuntimeError(
             f"gave up on {url} after {MAX_RETRIES} attempts: {last_error}")
 
-    def _cached(self, key: str, url: str) -> bytes:
+    def _cached(
+        self,
+        key: str,
+        url: str,
+        *,
+        max_age: timedelta | None = None,
+        refresh: bool = False,
+    ) -> bytes:
         path = self.cache_dir / key
         path.parent.mkdir(parents=True, exist_ok=True)
-        if path.exists():
+        fresh_enough = (
+            max_age is None
+            or time.time() - path.stat().st_mtime <= max_age.total_seconds()
+        ) if path.exists() else False
+        if path.exists() and not refresh and fresh_enough:
             return path.read_bytes()
         payload = self._get(url)
         # Write via a temporary file: a run interrupted mid-write must not leave a
@@ -139,16 +153,31 @@ class EdgarClient:
     # -- endpoints --------------------------------------------------------- #
     def ticker_map(self) -> pd.DataFrame:
         """ticker -> CIK, straight from the SEC's own mapping."""
-        raw = json.loads(self._cached("company_tickers.json", SEC_TICKERS_URL))
+        raw = json.loads(
+            self._cached(
+                "company_tickers.json",
+                SEC_TICKERS_URL,
+                max_age=TICKER_MAP_CACHE_MAX_AGE,
+            )
+        )
         return pd.DataFrame([
             {"ticker": v["ticker"].upper(), "cik": int(v["cik_str"]), "name": v["title"]}
             for v in raw.values()
         ])
 
-    def submissions(self, cik: int) -> dict:
-        """Full submission history, following the SEC's pagination shards."""
+    def submissions(self, cik: int, *, refresh: bool = False) -> dict:
+        """Full submission history, refreshing the mutable recent-filing head.
+
+        Historical pagination shards are immutable and remain cached by filename.
+        The head changes whenever a company files, so treating it as a permanent
+        cache silently makes every later ingest stale.
+        """
         head = json.loads(self._cached(
-            f"submissions/CIK{cik:010d}.json", SEC_SUBMISSIONS_URL.format(cik=cik)))
+            f"submissions/CIK{cik:010d}.json",
+            SEC_SUBMISSIONS_URL.format(cik=cik),
+            max_age=SUBMISSIONS_CACHE_MAX_AGE,
+            refresh=refresh,
+        ))
         shards = []
         for extra in head.get("filings", {}).get("files", []):
             url = f"https://data.sec.gov/submissions/{extra['name']}"

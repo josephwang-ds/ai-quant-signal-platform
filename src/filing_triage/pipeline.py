@@ -18,7 +18,7 @@ from filing_triage.guards import LeakageAudit
 from filing_triage.ingest.prices import to_returns
 from filing_triage.ingest.universe import restrict_to_membership
 from filing_triage.labels import build_labels
-from filing_triage.model import TriageModel, permutation_importance
+from filing_triage.model import TriageModel
 from filing_triage.pit import CALENDAR, TradingClock, naive_entry_session_from_filing_date
 
 
@@ -73,10 +73,9 @@ def run(events: pd.DataFrame, prices: pd.DataFrame, membership: pd.DataFrame,
         label_end_time=pd.to_datetime(aligned["label_end_session"]).dt.tz_localize(
             events["acceptance_time"].dt.tz),
         audit=audit,
+        compute_importance=compute_importance,
     )
 
-    # Permutation importance costs more than the rest of the pipeline combined,
-    # and the leakage study runs that pipeline five times over. It wants metrics.
     # Walk-forward tests folds 1..n, so the earliest block is only ever training
     # data and those events never receive an out-of-sample score. That is correct
     # and it is also the last place the count silently drops -- without this line
@@ -88,10 +87,9 @@ def run(events: pd.DataFrame, prices: pd.DataFrame, membership: pd.DataFrame,
         integrity["attrition"] = dict(integrity.get("attrition") or {})
         integrity["attrition"]["held out by walk-forward as training-only"] = held_back
 
-    importance = pd.DataFrame()
-    if compute_importance and len(predictions) and aligned["label"].nunique() > 1:
-        fitted = model.fit_full(features, aligned["label"])
-        importance = permutation_importance(fitted, features, aligned["label"])
+    # Importance is calculated on each fold's held-out rows, never on the data
+    # used to fit that fold. Leakage/embargo studies disable it for runtime.
+    importance = model.oos_importance_
 
     integrity["events_scored"] = len(predictions)
 
@@ -104,6 +102,7 @@ def run(events: pd.DataFrame, prices: pd.DataFrame, membership: pd.DataFrame,
         metrics=evaluate(
             predictions,
             sessions=events.set_index("event_id")["entry_session"],
+            events=events,
         ) if len(predictions) else {},
         by_fold=evaluate_by_fold(predictions) if len(predictions) else pd.DataFrame(),
         audit=audit,
@@ -167,8 +166,8 @@ def _audit(events: pd.DataFrame, features: pd.DataFrame, membership: pd.DataFram
         "entry_open": entry_open,
     })
     audit.causal(tradability, fact="acceptance_time", decision="entry_open",
-                 label="entry opens after the filing was public",
-                 holds="no position is entered at a price printed before the filing")
+                 label="entry opens after the EDGAR accepted timestamp",
+                 holds="no entry uses a price printed before EDGAR acceptance")
 
     est = pd.DataFrame({
         "estimation_end": pd.to_datetime(labels["estimation_end"]),

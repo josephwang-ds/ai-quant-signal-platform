@@ -36,7 +36,7 @@ class PriceUnavailable(RuntimeError):
 
 
 def fetch_daily(ticker: str, *, cache_dir: Path = Path("data/cache/prices"),
-                timeout: int = 30,
+                timeout: int = 30, refresh: bool = False,
                 sources: tuple[str, ...] = DEFAULT_SOURCES) -> pd.DataFrame:
     """One issuer's full daily history, cached to parquet.
 
@@ -47,7 +47,7 @@ def fetch_daily(ticker: str, *, cache_dir: Path = Path("data/cache/prices"),
     cache_dir = Path(cache_dir)
     cache_dir.mkdir(parents=True, exist_ok=True)
     cached = cache_dir / f"{ticker.upper()}.parquet"
-    if cached.exists():
+    if cached.exists() and not refresh:
         return pd.read_parquet(cached)
 
     problems = []
@@ -62,7 +62,9 @@ def fetch_daily(ticker: str, *, cache_dir: Path = Path("data/cache/prices"),
             continue
 
         if frame is not None and not frame.empty:
-            frame.to_parquet(cached, index=False)
+            temporary = cached.with_name(f".{cached.name}.part")
+            frame.to_parquet(temporary, index=False)
+            temporary.replace(cached)
             return frame
         problems.append(f"{source}: returned no rows")
 

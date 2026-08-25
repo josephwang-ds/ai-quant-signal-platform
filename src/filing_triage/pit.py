@@ -241,7 +241,7 @@ def _as_et(dt: datetime) -> datetime:
 def naive_entry_session_from_filing_date(filing_date: date) -> date:
     """BUG, ON PURPOSE. Treats the filing *date* as tradable at its own open.
 
-    Roughly 80% of 8-Ks are accepted outside market hours. For those, this enters
+    Many 8-Ks are accepted outside market hours. For those, this enters
     the position hours before the information existed. `experiments/leakage.py`
     measures what that hindsight is worth.
     """

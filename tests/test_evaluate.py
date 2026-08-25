@@ -16,7 +16,9 @@ from filing_triage.evaluate import (
     evaluate,
     lift_at_k,
     mean_daily_precision_at_k,
+    mean_daily_random_precision_at_k,
     ndcg_at_k,
+    operational_baselines,
     precision_at_k,
     queue_sizes,
     recall_at_k,
@@ -87,6 +89,29 @@ class TestDailyQueueMetric:
         second, *_ = mean_daily_precision_at_k(*_frame([0] * 8, labels, bad), k=5)
         assert first > second
 
+    def test_random_baseline_uses_the_same_eligible_sessions(self):
+        predictions, sessions = _frame(
+            sessions=[0] * 6 + [1] * 2,
+            labels=[1, 0, 0, 0, 0, 0, 1, 1],
+            scores=[0.9, 0.8, 0.7, 0.6, 0.5, 0.4, 0.1, 0.2],
+        )
+        precision, counted, available = mean_daily_random_precision_at_k(
+            predictions, sessions, k=5
+        )
+        assert (counted, available) == (1, 2)
+        assert precision == pytest.approx(1 / 6)
+
+    def test_daily_lift_uses_matched_random_not_the_global_base(self):
+        predictions, sessions = _frame(
+            sessions=[0] * 6 + [1] * 2,
+            labels=[1, 0, 0, 0, 0, 0, 1, 1],
+            scores=[0.9, 0.8, 0.7, 0.6, 0.5, 0.4, 0.1, 0.2],
+        )
+        metrics = evaluate(predictions, sessions=sessions)
+        assert metrics["daily_precision_at_5"] == pytest.approx(0.2)
+        assert metrics["daily_random_precision_at_5"] == pytest.approx(1 / 6)
+        assert metrics["daily_lift_at_5"] == pytest.approx(1.2)
+
     def test_usability_flag_is_false_for_a_thin_universe(self):
         """A universe of forty issuers files about twice a session; the queue
         metric cannot be computed from that and must not be reported."""
@@ -109,3 +134,32 @@ class TestQueueSizes:
         sizes = queue_sizes(predictions, sessions)
         assert sizes["sessions"] == 3
         assert sizes["filings_per_session_max"] == 3
+
+
+class TestOperationalBaselines:
+    def test_compares_model_arrival_and_item_heuristic_on_the_same_session(self):
+        ids = [f"event-{index}" for index in range(6)]
+        predictions = pd.DataFrame(
+            {
+                "label": [0, 0, 0, 0, 1, 1],
+                "score": [0.9, 0.8, 0.7, 0.6, 0.95, 1.0],
+            },
+            index=ids,
+        )
+        events = pd.DataFrame(
+            {
+                "event_id": ids,
+                "entry_session": [0] * 6,
+                "acceptance_time": pd.date_range("2024-01-01", periods=6, freq="h"),
+                "items": ["8.01", "8.01", "8.01", "8.01", "2.02", "2.02,9.01"],
+            }
+        )
+
+        metrics = operational_baselines(predictions, events, k=5)
+
+        assert metrics["operational_sessions_at_5"] == 1
+        assert metrics["daily_model_precision_at_5"] == pytest.approx(0.4)
+        assert metrics["daily_random_precision_at_5"] == pytest.approx(1 / 3)
+        assert metrics["daily_arrival_precision_at_5"] == pytest.approx(0.2)
+        assert metrics["daily_item_202_precision_at_5"] == pytest.approx(0.4)
+        assert metrics["daily_lift_vs_arrival_at_5"] == pytest.approx(2.0)

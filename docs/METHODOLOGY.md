@@ -16,7 +16,7 @@ filings in the order they arrive.
 A standard market-model event study.
 
 ```
-estimation window   [entry - 20 - 120, entry - 20] sessions
+estimation window   [entry - 139, entry - 20] sessions (120 observations)
                     regress issuer return on market return
                     -> alpha, beta, residual standard deviation
 
@@ -34,9 +34,10 @@ biotech land on the same scale.
 decoration. Without it the baseline absorbs any pre-announcement drift and shrinks
 the abnormality being measured.
 
-**The label** is `reaction >= 90th percentile` — "material" means top decile.
-The threshold is computed once over the whole sample and never re-estimated inside
-a fold, which would let each fold's own outcomes set its cut point.
+**The label** is `reaction >= 2.0` — the absolute abnormal reaction is at least two
+issuer-specific residual standard deviations. The cutoff is declared before the
+sample is observed. A full-sample percentile would let future test-fold outcomes
+help define what "material" means, even if the model never trained on those rows.
 
 ## Features
 
@@ -61,11 +62,18 @@ Purged, embargoed walk-forward, five folds. A training event survives only if it
 entire outcome window closed before the test fold opened, plus a five-day embargo.
 See [LEAKAGE.md](LEAKAGE.md) §4.
 
-Metrics are ranking metrics. With a 10% base rate, accuracy is worthless —
-"nothing is material" scores 90%. The headline is **average precision**, with
+Metrics are ranking metrics. With a rare outcome, accuracy is worthless —
+"nothing is material" can look strong while surfacing nothing. The headline is
+**average precision**, with
 **mean daily precision@5** as the product metric: of the five filings surfaced
 each morning, how many actually mattered. Averaging the daily figure is both what
 the product does and far more stable than one pooled top-5 over three years.
+
+Daily lift uses the expected random precision on the **same eligible sessions**,
+not the pooled sample base rate. The report also compares the model with arrival
+order and a simple rule that reads Item 2.02 earnings filings first. Those are
+credible alternatives to deploying a model and are evaluated on exactly the same
+out-of-sample rows.
 
 ROC AUC is reported as a familiar cross-check, not as the headline. It averages
 over the whole ranking including the tail nobody reads, and it is blunt about
