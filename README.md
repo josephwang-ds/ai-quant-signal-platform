@@ -43,8 +43,8 @@ Use `SUPABASE_SECRET_KEY` for the current `sb_secret_...` backend key;
 `SUPABASE_SERVICE_ROLE_KEY` remains a legacy JWT fallback. Neither may enter
 frontend/browser configuration or a public build, and publishable keys are rejected.
 The versioned migration and current Secret-key path have completed a controlled live
-read-only PostgREST smoke test. The repository still defaults to local storage and
-contains no Supabase project identifier or credential.
+PostgREST write/read/cleanup smoke test. The repository still defaults to local storage
+and contains no Supabase project identifier or credential.
 The entry searches all 193 companies in the current local evidence universe while
 keeping AAPL/MSFT/NVDA as featured examples. It states when a company is genuinely
 outside that universe. It makes no forecast or recommendation.

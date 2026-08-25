@@ -65,9 +65,9 @@ defines no embedding column or vector dimension. Its table/index creation, polic
 replacement, and grants are safe to rerun during reviewed setup. Public policies expose
 approved SEC/news metadata, while document chunks inherit access through their parent
 document and uploaded evidence plus provenance remain owner-only. The schema and current
-Secret-key adapter have completed a controlled live read-only PostgREST smoke test. No
-project identifier, credential, authentication UI, or deployed dual-write worker is
-stored or enabled by this repository.
+Secret-key adapter have completed a controlled live PostgREST write/read/cleanup smoke
+test with no test record left behind. No project identifier, credential, authentication
+UI, or deployed dual-write worker is stored or enabled by this repository.
 
 ## Logical tables
 
