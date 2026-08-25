@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
 import pytest
+import requests
 
 from company_lens.cli import main
 from company_lens.contracts import Citation, CompanySnapshot, FilingBrief
@@ -36,9 +38,29 @@ def test_cli_search_controls_require_an_import_source(capsys) -> None:
     assert "require --llm-document or --llm-headlines" in capsys.readouterr().err
 
 
+@pytest.mark.parametrize("backend", ["supabase", "dual"])
+def test_cli_remote_storage_modes_require_backend_environment(
+    backend: str,
+    monkeypatch,
+    capsys,
+) -> None:
+    monkeypatch.delenv("SUPABASE_URL", raising=False)
+    monkeypatch.delenv("SUPABASE_SERVICE_ROLE_KEY", raising=False)
+
+    with pytest.raises(SystemExit) as error:
+        main(["AAPL", "--storage-backend", backend])
+
+    assert error.value.code == 2
+    message = capsys.readouterr().err
+    assert "SUPABASE_URL" in message
+    assert "SUPABASE_SERVICE_ROLE_KEY" in message
+
+
+@pytest.mark.parametrize("backend", ["local", "dual"])
 def test_cli_persists_retrieval_rules_and_fallback_provenance_locally(
     tmp_path,
     monkeypatch,
+    backend: str,
 ) -> None:
     performance = {
         "asset": {"total_return": 0.2, "cagr": 0.1, "max_drawdown": -0.15},
@@ -100,6 +122,16 @@ def test_cli_persists_retrieval_rules_and_fallback_provenance_locally(
         lambda *args, **kwargs: OfflineProvider(),
     )
     monkeypatch.setattr("company_lens.cli.render_company_page", fake_render)
+    if backend == "dual":
+        monkeypatch.setenv("SUPABASE_URL", "https://example.supabase.co")
+        monkeypatch.setenv("SUPABASE_SERVICE_ROLE_KEY", "service-role-test-secret")
+
+        class FailingSession:
+            def request(self, *args, **kwargs):
+                del args, kwargs
+                raise requests.ConnectionError("offline")
+
+        monkeypatch.setattr("company_lens.storage.requests.Session", FailingSession)
     document = tmp_path / "note.md"
     document.write_text("Revenue was $45 million.", encoding="utf-8")
     storage_dir = tmp_path / "storage"
@@ -116,6 +148,8 @@ def test_cli_persists_retrieval_rules_and_fallback_provenance_locally(
             "0",
             "--storage-dir",
             str(storage_dir),
+            "--storage-backend",
+            backend,
             "--llm-cache",
             str(tmp_path / "cache"),
             "--out",
@@ -134,3 +168,8 @@ def test_cli_persists_retrieval_rules_and_fallback_provenance_locally(
     assert storage.list_records("llm_runs")[0]["validator_status"] == (
         "deterministic_fallback"
     )
+    payload = json.loads((tmp_path / "snapshot.json").read_text(encoding="utf-8"))
+    expected_status = "degraded" if backend == "dual" else "stored"
+    grounded = payload["provenance"]["grounded_explanation"]
+    assert grounded["storage"]["status"] == expected_status
+    assert grounded["retrieval"]["storage"]["status"] == expected_status

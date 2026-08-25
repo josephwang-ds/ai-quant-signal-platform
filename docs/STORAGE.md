@@ -37,11 +37,31 @@ or fallback LLM provenance under `data/build/company_lens_storage/` by default.
 `--storage-dir` can redirect that local cache for tests or operations. Persistence
 failures are reported as a bounded status and do not remove the deterministic page.
 
+`SupabaseStorage` is an optional `requests`/PostgREST adapter using bounded network
+timeouts and primary-key upserts. It is created only when
+`--storage-backend supabase` or `--storage-backend dual` is explicit. `dual` writes
+local JSON first and then makes a best-effort remote write; a remote failure marks
+provenance as degraded while preserving the complete local record set. This is not a
+distributed transaction, queue, or synchronization service.
+
+```bash
+company-lens AAPL --llm --storage-backend local
+company-lens AAPL --llm --storage-backend dual
+```
+
+Remote modes require `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` in the worker
+environment. The service-role key is backend-only: never place it in Vercel frontend
+configuration, browser JavaScript, or a public artifact. Local mode does not read or
+require either variable.
+
 The reviewed, unapplied migration at
 `ops/supabase/0001_evidence_storage.sql` mirrors those records, enables row-level
 security, and adds deterministic full-text indexes. It intentionally defines no
-embedding column or vector dimension. No Supabase project, credentials, network
-connection, authentication UI, remote adapter, or dual-write path is configured.
+embedding column or vector dimension. Its table/index creation and policy replacement
+are safe to rerun during reviewed setup. Public policies expose approved SEC/news
+metadata, while document chunks inherit access through their parent document and
+uploaded evidence plus provenance remain owner-only. No Supabase project, credentials,
+network connection, authentication UI, or migration deployment is configured here.
 
 ## Logical tables
 
@@ -72,7 +92,8 @@ Postgres. Do not store API keys in either table or browser configuration.
 ## Migration order
 
 1. Keep current file-backed static build and validate retrieval quality.
-2. Add Postgres tables and full-text search; dual-write build artifacts during testing.
+2. Review and apply the prepared Postgres tables/RLS, then exercise the optional
+   dual-write adapter against a non-production project.
 3. Select an embedding model with a frozen retrieval evaluation before fixing vector
    dimensions or creating an HNSW index.
 4. Add Storage/RLS for authenticated uploads.

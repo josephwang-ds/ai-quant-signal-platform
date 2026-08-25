@@ -31,7 +31,17 @@ JSON/CSV headline index can add an Evidence Scope section with at most three
 source-linked company or market headlines; normal builds use the honest
 not-configured state and make no live-news request. Opt-in grounded retrieval runs
 persist their documents, selected chunks, safe reader rules, and run provenance to
-local versioned JSON by default; no database is required.
+local versioned JSON by default; no database is required. A backend worker can
+explicitly select the optional PostgREST adapter without changing the snapshot:
+
+```bash
+company-lens AAPL --llm --storage-backend local
+company-lens AAPL --llm --storage-backend dual  # requires backend-only Supabase env vars
+```
+
+The Supabase service-role key must never enter frontend/browser configuration or a
+public build. The migration is prepared but unapplied; this repository does not create
+or connect a Supabase project by default.
 The entry searches all 193 companies in the current local evidence universe while
 keeping AAPL/MSFT/NVDA as featured examples. It states when a company is genuinely
 outside that universe. It makes no forecast or recommendation.
@@ -189,7 +199,7 @@ embargo sweep, and writes a self-contained HTML report.
 
 ```bash
 make quick           # smaller, no leakage study, ~30s
-make test            # 197 tests
+make test            # 211 tests
 make audit           # the leakage checks as an exit code
 make llm-eval        # frozen English/Chinese grounded-output scorecard
 make llm-eval-openai-dry-run  # inspect 20-case paid benchmark scope; sends nothing
@@ -357,7 +367,7 @@ src/filing_triage/
   experiments.py   the leakage study and the embargo sweep
   report.py        self-contained HTML
   synth.py         the offline corpus
-tests/             197 tests; test_guards, test_pipeline and
+tests/             211 tests; test_guards, test_pipeline and
                    test_ingest_integration are the ones that matter
 docs/              METHODOLOGY.md, LEAKAGE.md
 ```

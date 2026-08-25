@@ -1,7 +1,6 @@
 -- Company Lens persistence boundary. Review offline before applying to Supabase/Postgres.
 -- Deliberately no vector column: its dimension depends on a selected, evaluated model.
-
-create extension if not exists pgcrypto;
+-- Table/index creation and policy replacement are safe to rerun during reviewed setup.
 
 create table if not exists public.documents (
   document_id text primary key,
@@ -96,6 +95,7 @@ alter table public.retrieval_runs enable row level security;
 alter table public.llm_runs enable row level security;
 
 -- Public reads are limited to approved source metadata. User uploads remain private.
+drop policy if exists "public source documents are readable" on public.documents;
 create policy "public source documents are readable"
   on public.documents for select
   using (
@@ -103,23 +103,14 @@ create policy "public source documents are readable"
     and source_type in ('sec_filing', 'company_news', 'market_news')
   );
 
+drop policy if exists "owners manage documents" on public.documents;
 create policy "owners manage documents"
   on public.documents for all
   using (owner_id = auth.uid())
   with check (owner_id = auth.uid());
 
-create policy "public source chunks are readable"
-  on public.document_chunks for select
-  using (
-    exists (
-      select 1
-      from public.documents
-      where documents.document_id = document_chunks.document_id
-        and documents.owner_id is null
-        and documents.source_type in ('sec_filing', 'company_news', 'market_news')
-    )
-  );
-
+drop policy if exists "public source chunks are readable" on public.document_chunks;
+drop policy if exists "owners manage document chunks" on public.document_chunks;
 create policy "owners manage document chunks"
   on public.document_chunks for all
   using (
@@ -139,25 +130,30 @@ create policy "owners manage document chunks"
     )
   );
 
+drop policy if exists "public headlines are readable" on public.headlines;
 create policy "public headlines are readable"
   on public.headlines for select
   using (owner_id is null);
 
+drop policy if exists "owners manage headlines" on public.headlines;
 create policy "owners manage headlines"
   on public.headlines for all
   using (owner_id = auth.uid())
   with check (owner_id = auth.uid());
 
+drop policy if exists "owners manage rulesets" on public.rulesets;
 create policy "owners manage rulesets"
   on public.rulesets for all
   using (owner_id = auth.uid())
   with check (owner_id = auth.uid());
 
+drop policy if exists "owners manage retrieval runs" on public.retrieval_runs;
 create policy "owners manage retrieval runs"
   on public.retrieval_runs for all
   using (owner_id = auth.uid())
   with check (owner_id = auth.uid());
 
+drop policy if exists "owners manage llm runs" on public.llm_runs;
 create policy "owners manage llm runs"
   on public.llm_runs for all
   using (owner_id = auth.uid())

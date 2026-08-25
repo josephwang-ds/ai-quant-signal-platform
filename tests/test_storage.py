@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import re
+from dataclasses import fields
 from pathlib import Path
 
 import pytest
@@ -228,5 +229,27 @@ def test_supabase_migration_has_rls_and_no_premature_vector_dimension() -> None:
         assert f"alter table public.{table} enable row level security" in migration
     assert "auth.uid()" in migration
     assert "service-role" not in migration
+    assert "supabase.co" not in migration
+    assert 'create policy "public source chunks are readable"' not in migration
+    assert 'drop policy if exists "owners manage documents"' in migration
+    assert "documents.owner_id = document_chunks.owner_id" not in migration
     assert re.search(r"(?<![a-z])vector\s*\(", migration) is None
     assert "embedding vector" not in migration
+
+    records_by_table = {
+        "documents": StoredDocument,
+        "document_chunks": StoredChunk,
+        "headlines": StoredHeadline,
+        "rulesets": StoredRuleset,
+        "retrieval_runs": StoredRetrievalRun,
+        "llm_runs": StoredLlmRun,
+    }
+    for table, record_type in records_by_table.items():
+        match = re.search(
+            rf"create table if not exists public\.{table} \((.*?)\n\);",
+            migration,
+            re.DOTALL,
+        )
+        assert match is not None
+        for field in fields(record_type):
+            assert re.search(rf"\n\s+{field.name}\s", match.group(1))

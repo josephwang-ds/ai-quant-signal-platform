@@ -29,12 +29,16 @@ links back to its evidence.
 | `company_lens.llm` | structured explanation, bounded retrieval, validation and fallback | authoritative calculations or open web browsing |
 | `company_lens.snapshots` | source assembly, freshness, provenance, warnings | provider-specific UI behavior |
 | `company_lens.contracts` | stable serialized read models | business logic |
+| `company_lens.storage` | local JSON and optional PostgREST evidence persistence adapters | snapshot calculations or UI authentication |
 
 ## Current vertical slice
 
 `company-lens AAPL` reads `events.parquet`, `prices.parquet`, `universe.csv`, and
 `provenance.json` from `data/build`. It writes a versioned JSON payload and a
 self-contained HTML page that remain useful without network access or an LLM key.
+Evidence persistence stays behind `EvidenceStorage`: local JSON is the default,
+Supabase is explicit and backend-only, and dual-write degradation cannot prevent the
+deterministic snapshot or page from being written.
 
 The snapshot contains:
 

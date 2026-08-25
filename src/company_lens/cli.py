@@ -24,7 +24,11 @@ from company_lens.llm import (
     persist_llm_provenance,
     persist_retrieval,
 )
-from company_lens.storage import LocalJsonStorage
+from company_lens.storage import (
+    StorageConfigurationError,
+    create_storage,
+    storage_write_status,
+)
 from company_lens.universe import UnsupportedCompanyError
 from company_lens.web import render_company_page
 
@@ -65,6 +69,12 @@ def main(argv: list[str] | None = None) -> int:
         "--storage-dir",
         default="data/build/company_lens_storage",
         help="local JSON persistence root for retrieval and LLM provenance",
+    )
+    parser.add_argument(
+        "--storage-backend",
+        choices=("local", "supabase", "dual"),
+        default="local",
+        help="evidence persistence backend; remote modes require backend-only Supabase env vars",
     )
     parser.add_argument(
         "--llm-document",
@@ -125,6 +135,10 @@ def main(argv: list[str] | None = None) -> int:
         and not (args.llm_document or args.llm_headlines)
     ):
         parser.error("LLM search controls require --llm-document or --llm-headlines")
+    try:
+        storage = create_storage(args.storage_backend, args.storage_dir)
+    except StorageConfigurationError as error:
+        parser.error(str(error))
 
     try:
         snapshot = build_snapshot(
@@ -139,7 +153,6 @@ def main(argv: list[str] | None = None) -> int:
         parser.error(str(error))
     llm_result = None
     if args.llm and snapshot.latest_filings:
-        storage = LocalJsonStorage(args.storage_dir)
         provider = create_explanation_provider(
             args.llm_provider,
             model=args.llm_model,
@@ -196,13 +209,17 @@ def main(argv: list[str] | None = None) -> int:
                     latency_ms=retrieval_latency_ms,
                 )
                 storage_provenance = {
-                    "status": "stored",
+                    "status": storage_write_status(storage),
+                    "backend": args.storage_backend,
                     "retrieval_run_id": stored_retrieval.run_id,
                     "ruleset_id": stored_retrieval.ruleset_id,
                     "index_version": stored_retrieval.index_version,
                 }
             except (OSError, TypeError, ValueError):
-                storage_provenance = {"status": "failed"}
+                storage_provenance = {
+                    "status": "failed",
+                    "backend": args.storage_backend,
+                }
             retrieval_provenance = {
                 "query": query,
                 "scope": scope.to_dict(),
@@ -210,7 +227,7 @@ def main(argv: list[str] | None = None) -> int:
                 "chunks_selected": len(chunks),
                 "citations": [chunk.citation for chunk in chunks],
                 "reader_rules": list(args.llm_rule),
-                "local_storage": storage_provenance,
+                "storage": storage_provenance,
             }
             snapshot = replace(
                 snapshot,
@@ -238,11 +255,15 @@ def main(argv: list[str] | None = None) -> int:
                 result=llm_result,
             )
             llm_storage_provenance = {
-                "status": "stored",
+                "status": storage_write_status(storage),
+                "backend": args.storage_backend,
                 "llm_run_id": llm_storage_run_id,
             }
         except (OSError, TypeError, ValueError):
-            llm_storage_provenance = {"status": "failed"}
+            llm_storage_provenance = {
+                "status": "failed",
+                "backend": args.storage_backend,
+            }
         provenance = {
             **snapshot.provenance,
             "grounded_explanation": {
@@ -256,7 +277,7 @@ def main(argv: list[str] | None = None) -> int:
                     else "grounded_llm"
                 ),
                 "retrieval": retrieval_provenance,
-                "local_storage": llm_storage_provenance,
+                "storage": llm_storage_provenance,
             },
         }
         snapshot = replace(
