@@ -174,8 +174,8 @@ packets rather than selected by reputation. See `docs/LLM.md`.
 - beginner and professional explanation depth;
 - bilingual English/Chinese output;
 - read-only `Ask this company` API/UI over the implemented bounded retrieval contract;
-- scheduled source-linked headline ingestion from a reviewed vendor (the current page
-  accepts only an optional local JSON/CSV cache);
+- source-linked headline ingestion from Finnhub is implemented behind an explicit API
+  key and bounded daily cache; production activation and vendor-terms review remain;
 - configure the live-tested Supabase adapter only on the future Vultr backend worker;
 - run the same frozen scorecard against Terra and Luna with current explicit prices;
 - review failed concepts and extend cases only when they add a distinct event pattern;

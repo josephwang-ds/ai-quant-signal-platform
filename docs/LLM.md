@@ -194,7 +194,10 @@ The company-page builder can render that cached metadata with
 `--headline-index PATH`; it filters company rows by exact ticker, permits global market
 context, and displays no more than three source-linked rows. Normal production builds
 do not configure the synthetic sample index, and an omitted index renders an honest
-not-configured state. This is a read-only local adapter, not live-news ingestion.
+not-configured state. `scripts/refresh_headlines.py` can create this bounded cache from
+Finnhub's company-news and market-news endpoints. It stores only provider-supplied
+metadata and short summaries—never article bodies or vendor sentiment—and retains the
+last good rows through an upstream failure.
 
 See [STORAGE.md](STORAGE.md) for the recommended Vercel/Vultr/Supabase deployment split.
 

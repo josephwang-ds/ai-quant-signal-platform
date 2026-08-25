@@ -8,7 +8,8 @@ A low-cost Vultr worker is provisioned in Tokyo with Ubuntu 24.04, 1 vCPU, 1 GB 
 25 GB SSD, and the image-provided 2.3 GiB swap. The code and the four core build
 artifacts are installed under `/opt/company-lens`; a deterministic AAPL build completed
 in about 15 seconds. SSH also listens on port 443 as a temporary fallback while Vultr's
-Tokyo network incident affects port 22. The server secret file and systemd timer remain
+Tokyo network incident affects port 22. The live Finnhub adapter and last-good headline
+cache are implemented locally, but the server secret file and systemd timer remain
 deliberately unapplied, so the instance cannot refresh or deploy automatically yet.
 
 ## Recommended shape
@@ -68,6 +69,20 @@ sudo cp ops/company-lens.env.example /etc/company-lens.env
 sudo chmod 600 /etc/company-lens.env
 sudoedit /etc/company-lens.env
 ```
+
+Add a Finnhub key only if live headline context is enabled:
+
+```dotenv
+FINNHUB_API_KEY="replace-with-finnhub-key"
+COMPANY_LENS_HEADLINE_INDEX="/opt/company-lens/data/build/headlines.json"
+```
+
+The scheduled worker queries the current local universe rather than a hard-coded
+three-ticker list. It requests company-news metadata once per ticker, waits between
+requests, adds a bounded global-market set, keeps at most five cached rows per ticker
+for fourteen days, and sends the API key in a request header. The public company page
+still shows at most three exact-ticker/global-market rows. Review the vendor terms for
+the final hosting context before enabling a public production refresh.
 
 ## Create and test the Vercel frontend
 
