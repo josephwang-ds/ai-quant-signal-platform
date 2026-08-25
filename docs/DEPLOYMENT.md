@@ -2,8 +2,14 @@
 
 The public HTML bundle is deployed at <https://company-lens-demo.vercel.app>. Vercel
 automatically assigned the first deployment to production even though the CLI command
-did not pass `--prod`; later non-`--prod` deployments remain previews. The Vultr worker,
-server secret file, and systemd timer are still unapplied.
+did not pass `--prod`; later non-`--prod` deployments remain previews.
+
+A low-cost Vultr worker is provisioned in Tokyo with Ubuntu 24.04, 1 vCPU, 1 GB RAM,
+25 GB SSD, and the image-provided 2.3 GiB swap. The code and the four core build
+artifacts are installed under `/opt/company-lens`; a deterministic AAPL build completed
+in about 15 seconds. SSH also listens on port 443 as a temporary fallback while Vultr's
+Tokyo network incident affects port 22. The server secret file and systemd timer remain
+deliberately unapplied, so the instance cannot refresh or deploy automatically yet.
 
 ## Recommended shape
 
@@ -23,9 +29,11 @@ systemd timer on Vultr
 
 The full local page directory is about 97 MB because it includes 58 MB of JSON build
 artifacts. The Vercel bundle publishes only the 195 HTML files, currently about
-41.6 MB. Vultr keeps the roughly 335 MB accession and price caches. Start with Ubuntu,
-2 vCPU, 4 GB RAM, and at least 40 GB disk; resize only if the journal shows memory
-pressure or refresh time becomes uncomfortable.
+41.6 MB. The low-cost worker initially keeps only `events.parquet`, `prices.parquet`,
+`universe.csv`, and `provenance.json` (about 81 MB) and runs one task at a time. Copy the
+roughly 335 MB accession and price caches only before enabling live refresh. Upgrade to
+2 vCPU and 4 GB RAM only if the full 193-page refresh shows sustained swap pressure or
+an unacceptable runtime.
 
 ## One-time Vultr setup
 

@@ -17,6 +17,7 @@ from company_lens.snapshots import build_snapshot
 from company_lens.snapshots.builder import (
     DEFAULT_PERIODS,
     _downsample_growth,
+    _group_frames,
     _headline_context,
 )
 from company_lens.universe import UnsupportedCompanyError, resolve_supported_company
@@ -191,6 +192,21 @@ def test_chart_sampling_preserves_endpoints_and_metric_grain() -> None:
     assert len(sampled) <= 520
     assert sampled[0] == growth[0]
     assert sampled[-1] == growth[-1]
+
+
+def test_group_frames_is_compatible_with_pandas_mapping_protocol() -> None:
+    frame = pd.DataFrame(
+        [
+            {"ticker": "AAPL", "value": 1},
+            {"ticker": "MSFT", "value": 2},
+            {"ticker": "AAPL", "value": 3},
+        ]
+    )
+
+    groups = _group_frames(frame, frame["ticker"])
+
+    assert list(groups) == ["AAPL", "MSFT"]
+    assert groups["AAPL"]["value"].tolist() == [1, 3]
 
 
 def test_headline_context_caps_rows_and_never_leaks_company_tickers(tmp_path) -> None:

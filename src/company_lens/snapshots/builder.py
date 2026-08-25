@@ -74,12 +74,11 @@ def build_snapshots(
     price_tickers = prices["ticker"].astype(str).str.upper()
     event_tickers = events["ticker"].astype(str).str.upper()
     benchmark_rows = prices[price_tickers == benchmark.upper()]
-    price_groups = dict(
-        prices[price_tickers != benchmark.upper()].groupby(
-            prices.loc[price_tickers != benchmark.upper(), "ticker"].astype(str).str.upper()
-        )
+    price_groups = _group_frames(
+        prices[price_tickers != benchmark.upper()],
+        prices.loc[price_tickers != benchmark.upper(), "ticker"].astype(str).str.upper(),
     )
-    event_groups = dict(events.groupby(event_tickers, sort=False))
+    event_groups = _group_frames(events, event_tickers)
     return [
         _assemble_snapshot(
             company,
@@ -93,6 +92,11 @@ def build_snapshots(
         )
         for company in companies
     ]
+
+
+def _group_frames(frame: pd.DataFrame, keys: pd.Series) -> dict[str, pd.DataFrame]:
+    """Materialize ticker groups without relying on GroupBy's mapping protocol."""
+    return {str(ticker): group for ticker, group in frame.groupby(keys, sort=False)}
 
 
 def _assemble_snapshot(
