@@ -45,6 +45,7 @@ def test_cli_remote_storage_modes_require_backend_environment(
     capsys,
 ) -> None:
     monkeypatch.delenv("SUPABASE_URL", raising=False)
+    monkeypatch.delenv("SUPABASE_SECRET_KEY", raising=False)
     monkeypatch.delenv("SUPABASE_SERVICE_ROLE_KEY", raising=False)
 
     with pytest.raises(SystemExit) as error:
@@ -53,6 +54,7 @@ def test_cli_remote_storage_modes_require_backend_environment(
     assert error.value.code == 2
     message = capsys.readouterr().err
     assert "SUPABASE_URL" in message
+    assert "SUPABASE_SECRET_KEY" in message
     assert "SUPABASE_SERVICE_ROLE_KEY" in message
 
 
@@ -124,7 +126,7 @@ def test_cli_persists_retrieval_rules_and_fallback_provenance_locally(
     monkeypatch.setattr("company_lens.cli.render_company_page", fake_render)
     if backend == "dual":
         monkeypatch.setenv("SUPABASE_URL", "https://example.supabase.co")
-        monkeypatch.setenv("SUPABASE_SERVICE_ROLE_KEY", "service-role-test-secret")
+        monkeypatch.setenv("SUPABASE_SECRET_KEY", "sb_secret_test-secret")
 
         class FailingSession:
             def request(self, *args, **kwargs):

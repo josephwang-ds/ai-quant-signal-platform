@@ -39,9 +39,11 @@ company-lens AAPL --llm --storage-backend local
 company-lens AAPL --llm --storage-backend dual  # requires backend-only Supabase env vars
 ```
 
-The Supabase service-role key must never enter frontend/browser configuration or a
-public build. The migration is prepared but unapplied; this repository does not create
-or connect a Supabase project by default.
+Use `SUPABASE_SECRET_KEY` for the current `sb_secret_...` backend key;
+`SUPABASE_SERVICE_ROLE_KEY` remains a legacy JWT fallback. Neither may enter
+frontend/browser configuration or a public build, and publishable keys are rejected.
+The migration is prepared but unapplied; this repository does not create or connect a
+Supabase project by default.
 The entry searches all 193 companies in the current local evidence universe while
 keeping AAPL/MSFT/NVDA as featured examples. It states when a company is genuinely
 outside that universe. It makes no forecast or recommendation.
@@ -199,7 +201,7 @@ embargo sweep, and writes a self-contained HTML report.
 
 ```bash
 make quick           # smaller, no leakage study, ~30s
-make test            # 211 tests
+make test            # 217 tests
 make audit           # the leakage checks as an exit code
 make llm-eval        # frozen English/Chinese grounded-output scorecard
 make llm-eval-openai-dry-run  # inspect 20-case paid benchmark scope; sends nothing
@@ -367,7 +369,7 @@ src/filing_triage/
   experiments.py   the leakage study and the embargo sweep
   report.py        self-contained HTML
   synth.py         the offline corpus
-tests/             211 tests; test_guards, test_pipeline and
+tests/             217 tests; test_guards, test_pipeline and
                    test_ingest_integration are the ones that matter
 docs/              METHODOLOGY.md, LEAKAGE.md
 ```

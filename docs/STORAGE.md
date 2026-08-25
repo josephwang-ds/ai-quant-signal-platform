@@ -49,10 +49,13 @@ company-lens AAPL --llm --storage-backend local
 company-lens AAPL --llm --storage-backend dual
 ```
 
-Remote modes require `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` in the worker
-environment. The service-role key is backend-only: never place it in Vercel frontend
-configuration, browser JavaScript, or a public artifact. Local mode does not read or
-require either variable.
+Remote modes require `SUPABASE_URL` plus a backend key in the worker environment.
+Prefer the current `SUPABASE_SECRET_KEY` (`sb_secret_...`); the legacy
+`SUPABASE_SERVICE_ROLE_KEY` JWT remains a compatibility fallback. Secret keys are sent
+only as the PostgREST `apikey` header, while legacy JWTs also use Bearer authorization.
+Publishable keys are rejected. Backend keys must never appear in Vercel frontend
+configuration, browser JavaScript, or a public artifact. Local mode reads none of these
+variables.
 
 The reviewed, unapplied migration at
 `ops/supabase/0001_evidence_storage.sql` mirrors those records, enables row-level
@@ -84,7 +87,8 @@ Postgres. Do not store API keys in either table or browser configuration.
 - Published SEC/headline metadata and approved snapshots may be publicly readable.
 - A user's uploaded documents, rulesets, retrieval runs, and unpublished output are
   owner-only through row-level security.
-- Only the Vultr worker holds a Supabase service-role key and LLM provider keys.
+- Only the Vultr worker holds the recommended Supabase Secret key (or a legacy
+  service-role JWT) and LLM provider keys.
 - Uploaded document text is always treated as untrusted evidence, never instructions.
 - Deletes first mark records inactive; a background job removes object-storage files and
   derived chunks so the operation is auditable.

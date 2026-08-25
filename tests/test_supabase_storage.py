@@ -20,7 +20,9 @@ from company_lens.storage import (
     create_storage,
 )
 
-KEY = "service-role-test-secret"
+KEY = "sb_secret_test-secret"
+LEGACY_JWT = "eyJhbGciOiJIUzI1NiJ9.legacy-service-role.signature"
+PUBLISHABLE_KEY = "sb_publishable_test-key"
 URL = "https://example.supabase.co"
 
 
@@ -162,6 +164,28 @@ def test_supabase_maps_every_record_batches_chunks_and_uses_primary_keys() -> No
     assert session.calls[1]["json"][0]["metadata"]["tags"] == ["earnings", "risk"]
 
 
+def test_current_secret_key_sends_only_apikey_header() -> None:
+    session = FakeSession()
+    storage = SupabaseStorage(URL, KEY, session=session)
+
+    storage.save_document(_records()[0])
+
+    headers = session.calls[0]["headers"]
+    assert headers["apikey"] == KEY
+    assert "Authorization" not in headers
+
+
+def test_legacy_service_role_jwt_sends_apikey_and_bearer_headers() -> None:
+    session = FakeSession()
+    storage = SupabaseStorage(URL, LEGACY_JWT, session=session)
+
+    storage.save_document(_records()[0])
+
+    headers = session.calls[0]["headers"]
+    assert headers["apikey"] == LEGACY_JWT
+    assert headers["Authorization"] == f"Bearer {LEGACY_JWT}"
+
+
 def test_supabase_get_and_list_are_bounded_and_deterministic() -> None:
     session = FakeSession(
         [
@@ -245,6 +269,73 @@ def test_storage_factory_defaults_local_without_reading_supabase_env(
     assert isinstance(storage, LocalJsonStorage)
 
 
+def test_secret_key_environment_takes_precedence_over_legacy(
+    tmp_path,
+    monkeypatch,
+) -> None:
+    session = FakeSession()
+    monkeypatch.setenv("SUPABASE_URL", URL)
+    monkeypatch.setenv("SUPABASE_SECRET_KEY", KEY)
+    monkeypatch.setenv("SUPABASE_SERVICE_ROLE_KEY", LEGACY_JWT)
+
+    storage = create_storage("supabase", tmp_path / "storage", session=session)
+    storage.save_document(_records()[0])
+
+    headers = session.calls[0]["headers"]
+    assert headers["apikey"] == KEY
+    assert "Authorization" not in headers
+
+
+def test_explicit_key_takes_precedence_over_both_environment_keys(
+    tmp_path,
+    monkeypatch,
+) -> None:
+    session = FakeSession()
+    monkeypatch.setenv("SUPABASE_URL", URL)
+    monkeypatch.setenv("SUPABASE_SECRET_KEY", KEY)
+    monkeypatch.setenv("SUPABASE_SERVICE_ROLE_KEY", "legacy-environment-key")
+
+    storage = create_storage(
+        "supabase",
+        tmp_path / "storage",
+        supabase_key=LEGACY_JWT,
+        session=session,
+    )
+    storage.save_document(_records()[0])
+
+    headers = session.calls[0]["headers"]
+    assert headers["apikey"] == LEGACY_JWT
+    assert headers["Authorization"] == f"Bearer {LEGACY_JWT}"
+
+
+@pytest.mark.parametrize("source", ["explicit", "environment"])
+def test_publishable_key_is_rejected_for_backend_storage(
+    source: str,
+    tmp_path,
+    monkeypatch,
+) -> None:
+    monkeypatch.setenv("SUPABASE_URL", URL)
+    monkeypatch.delenv("SUPABASE_SERVICE_ROLE_KEY", raising=False)
+    explicit = PUBLISHABLE_KEY if source == "explicit" else None
+    if source == "environment":
+        monkeypatch.setenv("SUPABASE_SECRET_KEY", PUBLISHABLE_KEY)
+    else:
+        monkeypatch.delenv("SUPABASE_SECRET_KEY", raising=False)
+
+    with pytest.raises(StorageConfigurationError) as error:
+        create_storage(
+            "supabase",
+            tmp_path / "storage",
+            supabase_key=explicit,
+            session=FakeSession(),
+        )
+
+    message = str(error.value)
+    assert "publishable" in message
+    assert PUBLISHABLE_KEY not in message
+    assert "Authorization" not in message
+
+
 @pytest.mark.parametrize("backend", ["supabase", "dual"])
 def test_remote_storage_modes_fail_fast_when_configuration_is_missing(
     backend: str,
@@ -252,6 +343,7 @@ def test_remote_storage_modes_fail_fast_when_configuration_is_missing(
     monkeypatch,
 ) -> None:
     monkeypatch.delenv("SUPABASE_URL", raising=False)
+    monkeypatch.delenv("SUPABASE_SECRET_KEY", raising=False)
     monkeypatch.delenv("SUPABASE_SERVICE_ROLE_KEY", raising=False)
 
     with pytest.raises(StorageConfigurationError) as error:
@@ -259,6 +351,7 @@ def test_remote_storage_modes_fail_fast_when_configuration_is_missing(
 
     message = str(error.value)
     assert "SUPABASE_URL" in message
+    assert "SUPABASE_SECRET_KEY" in message
     assert "SUPABASE_SERVICE_ROLE_KEY" in message
     assert KEY not in message
 

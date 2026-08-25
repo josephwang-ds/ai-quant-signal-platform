@@ -236,21 +236,28 @@ class SupabaseStorage:
     def __init__(
         self,
         url: str,
-        service_role_key: str,
+        backend_key: str,
         *,
         session: requests.Session | None = None,
         timeout: float = 10.0,
     ) -> None:
         if not url:
             raise StorageConfigurationError("missing SUPABASE_URL")
-        if not service_role_key:
-            raise StorageConfigurationError("missing SUPABASE_SERVICE_ROLE_KEY")
+        if not backend_key:
+            raise StorageConfigurationError(
+                "missing SUPABASE_SECRET_KEY or SUPABASE_SERVICE_ROLE_KEY"
+            )
+        if backend_key.startswith("sb_publishable_"):
+            raise StorageConfigurationError(
+                "SUPABASE publishable keys are not valid for backend evidence storage"
+            )
         if not url.startswith(("https://", "http://")):
             raise StorageConfigurationError("SUPABASE_URL must use http or https")
         if timeout <= 0:
             raise ValueError("Supabase storage timeout must be positive")
         self.base_url = f"{url.rstrip('/')}/rest/v1"
-        self._service_role_key = service_role_key
+        self._backend_key = backend_key
+        self._uses_legacy_jwt = not backend_key.startswith("sb_secret_")
         self._session = session or requests.Session()
         self.timeout = timeout
 
@@ -325,10 +332,11 @@ class SupabaseStorage:
     ) -> Any:
         table = TABLES[collection]
         headers = {
-            "apikey": self._service_role_key,
-            "Authorization": f"Bearer {self._service_role_key}",
+            "apikey": self._backend_key,
             "Content-Type": "application/json",
         }
+        if self._uses_legacy_jwt:
+            headers["Authorization"] = f"Bearer {self._backend_key}"
         if upsert:
             headers["Prefer"] = "resolution=merge-duplicates,return=minimal"
         try:
@@ -437,15 +445,16 @@ def create_storage(
         raise StorageConfigurationError(f"unsupported storage backend: {backend}")
 
     url = supabase_url or os.environ.get("SUPABASE_URL")
-    key = supabase_key or os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
-    missing = [
-        name
-        for name, value in (
-            ("SUPABASE_URL", url),
-            ("SUPABASE_SERVICE_ROLE_KEY", key),
-        )
-        if not value
-    ]
+    key = (
+        supabase_key
+        or os.environ.get("SUPABASE_SECRET_KEY")
+        or os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
+    )
+    missing = []
+    if not url:
+        missing.append("SUPABASE_URL")
+    if not key:
+        missing.append("SUPABASE_SECRET_KEY or SUPABASE_SERVICE_ROLE_KEY")
     if missing:
         names = ", ".join(missing)
         raise StorageConfigurationError(f"missing required storage configuration: {names}")
