@@ -1,7 +1,9 @@
-# Planned scheduled deployment
+# Scheduled deployment
 
-This is an unapplied runbook. No Vultr worker or Vercel project is currently connected
-or deployed by this repository.
+The public HTML bundle is deployed at <https://company-lens-demo.vercel.app>. Vercel
+automatically assigned the first deployment to production even though the CLI command
+did not pass `--prod`; later non-`--prod` deployments remain previews. The Vultr worker,
+server secret file, and systemd timer are still unapplied.
 
 ## Recommended shape
 
@@ -21,7 +23,7 @@ systemd timer on Vultr
 
 The full local page directory is about 97 MB because it includes 58 MB of JSON build
 artifacts. The Vercel bundle publishes only the 195 HTML files, currently about
-38.5 MB. Vultr keeps the roughly 335 MB accession and price caches. Start with Ubuntu,
+41.6 MB. Vultr keeps the roughly 335 MB accession and price caches. Start with Ubuntu,
 2 vCPU, 4 GB RAM, and at least 40 GB disk; resize only if the journal shows memory
 pressure or refresh time becomes uncomfortable.
 

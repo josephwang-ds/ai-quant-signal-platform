@@ -8,6 +8,8 @@
 > [roadmap](docs/ROADMAP.md), [grounded LLM strategy](docs/LLM.md), and
 > [deployment guide](docs/DEPLOYMENT.md).
 
+Live Company Lens: <https://company-lens-demo.vercel.app>
+
 The first vertical slice is runnable against the existing local real-data build:
 
 ```bash
@@ -16,7 +18,7 @@ make company-featured # -> quick AAPL/MSFT/NVDA showcase build
 make company-pages  # -> all 193 locally available company pages + index
 make refresh-filings # -> check SEC heads, append unseen 8-Ks, rebuild pages
 make refresh-all    # -> locked SEC + market refresh for scheduled operation
-make vercel-bundle  # -> public 38.5 MB HTML-only prebuilt frontend
+make vercel-bundle  # -> public 41.6 MB HTML-only prebuilt frontend
 make vercel-deploy  # -> publish that bundle to Vercel production
 make nlp-eval       # -> labeled prior-filing change-detection metrics
 ```
