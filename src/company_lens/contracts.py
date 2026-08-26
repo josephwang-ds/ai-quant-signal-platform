@@ -76,6 +76,7 @@ class FilingTimelinePoint:
     item_label: str
     source_url: str
     reaction: FilingReaction | None = None
+    item_label_zh: str | None = None
 
 
 @dataclass(frozen=True)
@@ -103,6 +104,90 @@ class HeadlineBrief:
 
 
 @dataclass(frozen=True)
+class FundamentalCitation:
+    citation_id: str
+    taxonomy: str
+    concept: str
+    accession: str
+    form: str
+    source_url: str
+    period_start: str | None
+    period_end: str
+    filed_date: str
+    accepted_at: str | None
+    fiscal_year: int
+    fiscal_period: str
+    unit: str
+    document_fy: int | None = None
+    document_fp: str | None = None
+
+
+@dataclass(frozen=True)
+class FundamentalObservation:
+    metric_id: str
+    value: float
+    unit: str
+    period_start: str | None
+    period_end: str
+    fiscal_year: int
+    knowledge_at: str
+    citation: FundamentalCitation
+    quality_flags: tuple[str, ...] = ()
+
+
+@dataclass(frozen=True)
+class FundamentalSeries:
+    metric_id: str
+    label: str
+    definition: str
+    expected_unit: str
+    observations: tuple[FundamentalObservation, ...]
+    concept_priority: tuple[str, ...]
+    coverage_status: str
+
+
+@dataclass(frozen=True)
+class DerivedMetricObservation:
+    metric_id: str
+    value: float | None
+    unit: str
+    period_end: str
+    fiscal_year: int
+    status: Literal["available", "missing_input", "not_meaningful"]
+    formula_version: str
+    components: dict[str, str | None]
+    quality_flags: tuple[str, ...] = ()
+
+
+@dataclass(frozen=True)
+class DerivedMetricSeries:
+    metric_id: str
+    label: str
+    definition: str
+    unit: str
+    observations: tuple[DerivedMetricObservation, ...]
+
+
+@dataclass(frozen=True)
+class FundamentalsSection:
+    schema_version: str
+    status: Literal[
+        "available", "not_ingested", "insufficient_history", "unsupported_template"
+    ]
+    template: str
+    requested_years: int
+    knowledge_at: str | None
+    annual_periods: tuple[dict[str, Any], ...]
+    reported_series: tuple[FundamentalSeries, ...]
+    derived_series: tuple[DerivedMetricSeries, ...]
+    coverage: dict[str, Any]
+    warnings: tuple[str, ...]
+    provenance: dict[str, Any]
+    as_reported_series: tuple[FundamentalSeries, ...] = ()
+    series_basis: str = "latest_restated"
+
+
+@dataclass(frozen=True)
 class CompanySnapshot:
     schema_version: str
     ticker: str
@@ -122,10 +207,13 @@ class CompanySnapshot:
     filing_timeline: list[FilingTimelinePoint] = field(default_factory=list)
     evidence_scope: EvidenceScopeSummary | None = None
     headlines: list[HeadlineBrief] = field(default_factory=list)
+    fundamentals: FundamentalsSection | None = None
 
     def to_dict(self) -> dict[str, Any]:
         payload = asdict(self)
         if self.evidence_scope is None:
             payload.pop("evidence_scope")
             payload.pop("headlines")
+        if self.fundamentals is None:
+            payload.pop("fundamentals")
         return payload

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 from dataclasses import asdict, dataclass
 from datetime import UTC, date, datetime
 from pathlib import Path
@@ -10,7 +11,12 @@ from typing import Any
 
 import pandas as pd
 
-from company_lens.universe import supported_companies
+from company_lens.fundamentals import (
+    build_fundamentals_section,
+    fundamentals_path,
+    save_fundamentals,
+)
+from company_lens.universe import SupportedCompany, supported_companies
 from filing_triage.ingest.edgar import EdgarClient, parse_submissions
 from filing_triage.ingest.prices import fetch_daily
 
@@ -34,6 +40,17 @@ class MarketRefreshResult:
     refreshed_tickers: list[str]
     failed_tickers: list[str]
     latest_price_date: str | None
+
+
+@dataclass(frozen=True)
+class FundamentalsRefreshResult:
+    status: str
+    checked_at: str
+    companies_checked: int
+    refreshed_tickers: list[str]
+    failed_tickers: list[str]
+    artifact_paths: list[str]
+    failures: tuple[dict[str, str], ...] = ()
 
 
 def refresh_filings(
@@ -186,6 +203,116 @@ def refresh_market_data(
     return result
 
 
+def refresh_fundamentals(
+    *,
+    data_dir: str | Path = "data/build",
+    universe_path: str | Path | None = None,
+    tickers: list[str] | tuple[str, ...] | None = None,
+    requested_years: int = 10,
+    client: Any | None = None,
+    refresh: bool = True,
+) -> FundamentalsRefreshResult:
+    """Fetch Company Facts, normalize annual series, and write local artifacts.
+
+    Defaults to AAPL only. Tests inject a fake client so the suite never hits SEC.
+    """
+    root = Path(data_dir)
+    universe = Path(universe_path) if universe_path else root / "universe.csv"
+    companies = supported_companies(universe)
+    requested = {ticker.strip().upper() for ticker in (tickers or ("AAPL",))}
+    if companies:
+        known = {company.ticker for company in companies}
+        missing = sorted(requested - known)
+        if missing:
+            raise ValueError(f"unknown local ticker(s): {', '.join(missing)}")
+        targets = [company for company in companies if company.ticker in requested]
+    else:
+        targets = [
+            SupportedCompany(
+                ticker=ticker,
+                display_name=ticker,
+                official_name=ticker,
+                cik=320193 if ticker == "AAPL" else None,
+            )
+            for ticker in sorted(requested)
+        ]
+
+    sec = client or EdgarClient()
+    refreshed: list[str] = []
+    failures: list[dict[str, str]] = []
+    artifacts: list[str] = []
+
+    for company in targets:
+        if company.cik is None:
+            failure = {
+                "ticker": company.ticker,
+                "exception_type": "MissingCIK",
+                "message": "Company has no local CIK mapping.",
+            }
+            failures.append(failure)
+            print(
+                f"fundamentals refresh failed ticker={failure['ticker']} "
+                f"type={failure['exception_type']} message={failure['message']}"
+            )
+            continue
+        try:
+            facts = sec.company_facts(company.cik, refresh=refresh)
+            submissions = sec.submissions(company.cik, refresh=False)
+            section = build_fundamentals_section(
+                facts,
+                ticker=company.ticker,
+                submissions=submissions,
+                requested_years=requested_years,
+            )
+            path = fundamentals_path(root, company.ticker)
+            save_fundamentals(section, path)
+            refreshed.append(company.ticker)
+            artifacts.append(str(path))
+        except Exception as exc:  # noqa: BLE001 - isolate per-issuer failures
+            failure = _safe_refresh_failure(company.ticker, exc)
+            failures.append(failure)
+            print(
+                f"fundamentals refresh failed ticker={failure['ticker']} "
+                f"type={failure['exception_type']} message={failure['message']}"
+            )
+
+    checked_at = datetime.now(UTC).isoformat()
+    failed_tickers = sorted({row["ticker"] for row in failures})
+    result = FundamentalsRefreshResult(
+        status="partial" if failures else "current",
+        checked_at=checked_at,
+        companies_checked=len(targets) - len(failed_tickers),
+        refreshed_tickers=sorted(refreshed),
+        failed_tickers=failed_tickers,
+        artifact_paths=artifacts,
+        failures=tuple(failures),
+    )
+    _write_fundamentals_provenance(root / "provenance.json", result)
+    return result
+
+
+def _safe_refresh_failure(ticker: str, exc: BaseException) -> dict[str, str]:
+    """Return a loggable failure record without credentials or request headers."""
+    return {
+        "ticker": ticker,
+        "exception_type": type(exc).__name__,
+        "message": _safe_exception_message(exc),
+    }
+
+
+def _safe_exception_message(exc: BaseException) -> str:
+    text = str(exc).replace("\n", " ").strip() or type(exc).__name__
+    # Drop credential-bearing phrases entirely, then scrub leftover token-like blobs.
+    text = re.sub(
+        r"(?i)\b(?:authorization|api[_-]?key|bearer|password|secret|token|cookie)\b"
+        r"(?:\s*[:=]\s*|\s+)[^\s,;]+(?:\s+[A-Za-z0-9._\-]{8,})?",
+        "[redacted]",
+        text,
+    )
+    text = re.sub(r"(?i)\b[A-Za-z0-9_\-]{16,}\b", "[redacted]", text)
+    return text[:240]
+
+
 def _cutoff_date(events: pd.DataFrame, since: str | date | None) -> date:
     if since is not None:
         return pd.Timestamp(since).date()
@@ -214,6 +341,16 @@ def _write_refresh_provenance(
 def _write_market_provenance(path: Path, result: MarketRefreshResult) -> None:
     provenance = json.loads(path.read_text()) if path.exists() else {"source": "edgar"}
     provenance["market_refresh"] = asdict(result)
+    temporary = path.with_name(f".{path.name}.part")
+    temporary.write_text(json.dumps(provenance, indent=2), encoding="utf-8")
+    temporary.replace(path)
+
+
+def _write_fundamentals_provenance(
+    path: Path, result: FundamentalsRefreshResult
+) -> None:
+    provenance = json.loads(path.read_text()) if path.exists() else {"source": "edgar"}
+    provenance["fundamentals_refresh"] = asdict(result)
     temporary = path.with_name(f".{path.name}.part")
     temporary.write_text(json.dumps(provenance, indent=2), encoding="utf-8")
     temporary.replace(path)

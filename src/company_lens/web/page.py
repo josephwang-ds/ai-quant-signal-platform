@@ -19,6 +19,7 @@ from company_lens.contracts import (
     FilingChange,
     FilingEntity,
     FilingTimelinePoint,
+    FundamentalsSection,
     HeadlineBrief,
 )
 from company_lens.profiles import DEMO_PROFILES
@@ -96,6 +97,19 @@ autocomplete="off" spellcheck="false" required>
 <p id="search-status" class="search-status" aria-live="polite"
 data-status-key="search.hint">Type an exact ticker or
 company name from the current local universe.</p></form></div>
+    <section class="method-note" id="method">
+    <p class="eyebrow" data-index-i18n="method.eyebrow">HOW TO READ A LENS</p>
+    <h2 data-index-i18n="method.title">Company first. Evidence second.</h2>
+    <p data-index-i18n="method.intro">Every page follows one order: historical picture, latest SEC disclosure, then
+    company-specific context. Broad market headlines and implementation details stay off
+    the company page so they cannot be mistaken for company evidence.</p>
+    <ol><li><span>01</span><strong data-index-i18n="method.history">History</strong><small data-index-i18n="method.history_copy">Price and risk versus SPY</small></li>
+    <li><span>02</span><strong data-index-i18n="method.disclosure">Disclosure</strong><small data-index-i18n="method.disclosure_copy">What the latest 8-K actually says</small></li>
+    <li><span>03</span><strong data-index-i18n="method.boundary">Boundary</strong><small data-index-i18n="method.boundary_copy">Citations, limitations, no forecast</small></li></ol>
+    <details class="method-tech-note"><summary data-index-i18n="method.expand">Under the hood</summary>
+    <p class="method-tech" data-index-i18n="method.tech"><strong>Under the hood:</strong> point-in-time SEC ingestion,
+    return and risk calculations, deterministic NLP change filtering, and an optional
+    source-bounded LLM explanation layer.</p></details></section>
     <p class="featured-label" data-index-i18n="featured">Featured examples</p><div class="companies">{links}</div>
     <details class="company-directory" id="directory"><summary><div>
     <p class="eyebrow" data-index-i18n="directory.eyebrow">LOCAL DIRECTORY</p>
@@ -106,19 +120,6 @@ company name from the current local universe.</p></form></div>
     <button id="directory-previous" type="button" data-index-i18n="directory.previous">Previous</button>
     <button id="directory-next" type="button" data-index-i18n="directory.next">Next</button>
     </div></div><div class="directory-grid" id="directory-grid"></div></div></details>
-    <details class="method-note" id="method"><summary><div>
-    <p class="eyebrow" data-index-i18n="method.eyebrow">HOW TO READ A LENS</p>
-    <h2 data-index-i18n="method.title">Company first. Evidence second.</h2></div>
-    <span data-index-i18n="method.expand">Open the 3-step guide</span></summary><div class="method-body">
-    <p data-index-i18n="method.intro">Every page follows one order: historical picture, latest SEC disclosure, then
-    company-specific context. Broad market headlines and implementation details stay off
-    the company page so they cannot be mistaken for company evidence.</p>
-    <ol><li><span>01</span><strong data-index-i18n="method.history">History</strong><small data-index-i18n="method.history_copy">Price and risk versus SPY</small></li>
-    <li><span>02</span><strong data-index-i18n="method.disclosure">Disclosure</strong><small data-index-i18n="method.disclosure_copy">What the latest 8-K actually says</small></li>
-    <li><span>03</span><strong data-index-i18n="method.boundary">Boundary</strong><small data-index-i18n="method.boundary_copy">Citations, limitations, no forecast</small></li></ol>
-    <p class="method-tech" data-index-i18n="method.tech"><strong>Under the hood:</strong> point-in-time SEC ingestion,
-    return and risk calculations, deterministic NLP change filtering, and an optional
-    source-bounded LLM explanation layer.</p></div></details>
     <p class="foot" data-index-i18n="footer">Cached real-data demonstration ·
 SEC EDGAR + vendor-adjusted daily prices</p></main>
 <script type="application/json" id="company-data">{search_payload}</script>
@@ -167,6 +168,23 @@ def _document(snapshot: CompanySnapshot) -> str:
         for label in snapshot.period_options
     )
     brief = _brief(snapshot)
+    fundamentals_available = (
+        snapshot.fundamentals is not None
+        and snapshot.fundamentals.status == "available"
+    )
+    if fundamentals_available:
+        intro_key = "brief.intro_with_trends"
+        intro = (
+            "Start with the latest disclosure, the historical ride, and source-linked "
+            "annual business trends. Price expectations and valuation are still not connected."
+        )
+    else:
+        intro_key = "brief.intro"
+        intro = (
+            "Start with the latest disclosure, the historical ride, and "
+            "the evidence boundary. Multi-year financials and price expectations "
+            "are not on this page yet."
+        )
     evidence_context = _evidence_context(snapshot.evidence_scope, snapshot.headlines)
     context_nav = (
         '<a href="#context" data-i18n="nav.company_news">Company news</a>'
@@ -231,8 +249,12 @@ def _document(snapshot: CompanySnapshot) -> str:
       <p class="eyebrow" data-i18n="hero.eyebrow">COMPANY OVERVIEW · REAL CACHED DATA</p>
       <div class="company-title"><h1>{html.escape(company_name)}</h1>
       <span>{html.escape(snapshot.ticker)}</span></div>
-      <p class="profile-category">{html.escape(str(snapshot.profile.get('category', 'Public company')))}</p>
-      <p class="hero-copy">{html.escape(str(snapshot.profile.get('summary', 'Business profile unavailable.')))}</p>
+      <p class="profile-category" data-i18n="profile.category"
+      data-i18n-en="{html.escape(str(snapshot.profile.get('category', 'Public company')))}"
+      data-i18n-zh="{html.escape(str(snapshot.profile.get('category_zh') or snapshot.profile.get('category', 'Public company')))}">{html.escape(str(snapshot.profile.get('category', 'Public company')))}</p>
+      <p class="hero-copy" data-i18n="profile.summary"
+      data-i18n-en="{html.escape(str(snapshot.profile.get('summary', 'Business profile unavailable.')))}"
+      data-i18n-zh="{html.escape(str(snapshot.profile.get('summary_zh') or snapshot.profile.get('summary', 'Business profile unavailable.')))}">{html.escape(str(snapshot.profile.get('summary', 'Business profile unavailable.')))}</p>
       {_profile_meta(snapshot.profile)}
         </div>
     <div class="market-observation">
@@ -242,32 +264,29 @@ def _document(snapshot: CompanySnapshot) -> str:
     </div>
   </section>
 
-  <nav class="workspace-switcher" id="workspace" aria-label="Company research views">
-    <div><p class="eyebrow" data-i18n="workspace.eyebrow">RESEARCH WORKSPACE</p>
-    <strong data-i18n="workspace.title">Choose one view at a time</strong></div>
-    <div class="workspace-links">
-      <a href="#brief" data-view-target="brief"><span>01</span><b data-i18n="nav.overview">Overview</b></a>
-      <a href="#performance" data-view-target="performance"><span>02</span><b data-i18n="nav.history">History</b></a>
-      <a href="#filings" data-view-target="filings"><span>03</span><b data-i18n="nav.filings">Filings</b></a>
-      <a href="#ask" data-view-target="ask"><span>04</span><b data-i18n="nav.ask">Ask AI</b></a>
-      {'<a href="#context" data-view-target="context"><span>05</span><b data-i18n="nav.company_news">Company news</b></a>' if evidence_context else ''}
+  <nav class="page-nav" id="page-nav" aria-label="On this page">
+    <div><p class="eyebrow" data-i18n="workspace.eyebrow">ON THIS PAGE</p>
+    <strong data-i18n="workspace.title">Read the brief, then verify below.</strong></div>
+    <div class="page-nav-links">
+      <a href="#brief"><span>01</span><b data-i18n="nav.overview">Overview</b></a>
+      <a href="#performance"><span>02</span><b data-i18n="nav.history">History</b></a>
+      <a href="#filings"><span>03</span><b data-i18n="nav.filings">Filings</b></a>
+      <a href="#ask"><span>04</span><b data-i18n="nav.ask">Ask AI</b></a>
+      {'<a href="#context"><span>05</span><b data-i18n="nav.company_news">Company news</b></a>' if evidence_context else ''}
     </div>
   </nav>
 
-  <section class="brief-section" id="brief" data-workspace-view="brief" aria-labelledby="brief-title">
+  <section class="brief-section" id="brief" aria-labelledby="brief-title">
     <div class="section-heading">
-          <div><p class="eyebrow" data-i18n="brief.eyebrow">AT A GLANCE</p>
+          <div><p class="eyebrow" data-i18n="brief.eyebrow">ONE-MINUTE BRIEF</p>
           <h2 id="brief-title" data-i18n="brief.title">What matters on this page</h2></div>
       <span class="mode-badge" data-explanation-mode="{html.escape(str(snapshot.explanation.get('mode') or 'unavailable'))}">{_mode_label(snapshot.explanation.get('mode'))}</span>
     </div>
-        <p class="brief-intro" data-i18n="brief.intro">The latest disclosure and one historical reference point.
-        Details remain below when you want to verify them.</p>
+        <p class="brief-intro" data-i18n="{intro_key}">{intro}</p>
         <div class="brief-grid">{brief}</div>
       </section>
 
-  {_ask_section(snapshot)}
-
-  <section class="performance-section" id="performance" data-workspace-view="performance" aria-labelledby="performance-title">
+  <section class="performance-section" id="performance" aria-labelledby="performance-title">
     <div class="section-heading performance-heading">
       <div><p class="eyebrow" data-i18n="performance.eyebrow">HISTORICAL INVESTMENT PICTURE</p>
       <h2 id="performance-title" data-i18n="performance.title">What happened to $10,000?</h2></div>
@@ -310,7 +329,7 @@ def _document(snapshot: CompanySnapshot) -> str:
         <div class="risk-note" id="risk-note"></div>
   </section>
 
-  <section class="filings-section" id="filings" data-workspace-view="filings" aria-labelledby="filings-title">
+  <section class="filings-section" id="filings" aria-labelledby="filings-title">
     <div class="section-heading">
       <div><p class="eyebrow" data-i18n="filings.eyebrow">FILING INTELLIGENCE</p>
       <h2 id="filings-title" data-i18n="filings.title">Recent 8-K disclosures</h2></div>
@@ -320,10 +339,12 @@ def _document(snapshot: CompanySnapshot) -> str:
       <span class="freshness" data-freshness-key="{source_check_key}"
       data-freshness-date="{html.escape(source_check_date)}">{source_check_prefix}{' ' if source_check_date else ''}{html.escape(source_check_date)}</span></div>
     </div>
-        <p class="section-intro" data-i18n="filings.intro">The newest filing opens first. Read what arrived, what the
+        <p class="section-intro" data-i18n="filings.intro">The newest filing stays open. Read what arrived, what the
         next eligible session did, and whether the wording changed in a substantive way.</p>
         <div class="filing-list">{filings}</div>
   </section>
+
+  {_ask_section()}
 
   {evidence_context}
 
@@ -339,16 +360,14 @@ def _document(snapshot: CompanySnapshot) -> str:
 </body></html>"""
 
 
-def _ask_section(snapshot: CompanySnapshot) -> str:
-    ticker = html.escape(snapshot.ticker)
-    return f"""<section class="ask-section" id="ask" data-workspace-view="ask"
+def _ask_section() -> str:
+    return """<section class="ask-section" id="ask"
     aria-labelledby="ask-title">
     <div class="section-heading"><div><p class="eyebrow" data-i18n="ask.eyebrow">CONTROLLED LLM Q&amp;A</p>
     <h2 id="ask-title" data-i18n="ask.title">Ask the evidence</h2></div>
     <span class="ask-validation" data-i18n="ask.validated">Every answer is validated</span></div>
-    <p class="section-intro" data-i18n="ask.intro">Choose a model and ask about {ticker}. The model receives only
-    this page's cached SEC passages, calculated history, filing reaction, and matched company
-    headlines. Unsupported citations, invented numbers, advice, and forecasts are withheld.</p>
+    <p class="section-intro" data-i18n="ask.intro">Start with a guided research task, review the drafted
+    question, then choose whether to send it. The model can use only this page's frozen evidence.</p>
     <div class="ask-layout">
       <form class="ask-form" id="ask-form">
         <div class="ask-controls">
@@ -358,32 +377,65 @@ def _ask_section(snapshot: CompanySnapshot) -> str:
           <option value="English">English</option><option value="Chinese">中文</option>
           </select></label>
         </div>
+        <div class="ask-step-heading"><span>1</span><div>
+        <strong data-i18n="ask.choose_task">Choose what to investigate</strong>
+        <small data-i18n="ask.choose_task_copy">Selecting a tab drafts a bounded question. Nothing is sent automatically.</small>
+        </div></div>
+        <div class="ask-task-tabs" role="tablist" aria-label="Guided research questions">
+          <button type="button" role="tab" data-ask-task="filing"
+          data-i18n="ask.task_filing">Latest filing</button>
+          <button type="button" role="tab" data-ask-task="history"
+          data-i18n="ask.task_history">History vs benchmark</button>
+          <button type="button" role="tab" data-ask-task="risk"
+          data-i18n="ask.task_risk">Risk experienced</button>
+          <button type="button" role="tab" data-ask-task="limits"
+          data-i18n="ask.task_limits">Evidence limits</button>
+          <button type="button" role="tab" data-ask-task="quality"
+          data-i18n="ask.task_quality">Business quality</button>
+          <button type="button" role="tab" data-ask-task="cash"
+          data-i18n="ask.task_cash">Earnings & cash</button>
+          <button type="button" role="tab" data-ask-task="capital"
+          data-i18n="ask.task_capital">Per-share capital</button>
+          <button type="button" role="tab" data-ask-task="thesis"
+          data-i18n="ask.task_thesis">Thesis risks</button>
+          <button type="button" role="tab" data-ask-task="missing"
+          data-i18n="ask.task_missing">Missing evidence</button>
+        </div>
+        <div class="ask-task-preview" id="ask-task-preview">
+          <span data-i18n="ask.guided_prompt">GUIDED PROMPT</span>
+          <strong id="ask-task-title"></strong>
+          <p id="ask-task-description"></p>
+        </div>
+        <div class="ask-step-heading ask-review-step"><span>2</span><div>
+        <strong data-i18n="ask.review_question">Review or edit the drafted question</strong>
+        <small data-i18n="ask.review_question_copy">You stay in control before the request is sent.</small>
+        </div></div>
         <label class="ask-question"><span data-i18n="ask.question">Question</span>
         <textarea id="ask-question" maxlength="280" rows="3"
         placeholder="What does the latest 8-K tell me?"
         data-i18n-placeholder="ask.placeholder" required></textarea></label>
-        <div class="ask-suggestions" aria-label="Suggested questions">
-          <button type="button" data-i18n="ask.latest_8k"
-          data-question-en="What does the latest 8-K tell me?"
-          data-question-zh="最新一份 8-K 披露了什么？">Latest 8-K</button>
-          <button type="button" data-i18n="ask.vs_benchmark"
-          data-question-en="How did {ticker} perform versus its benchmark?"
-          data-question-zh="{ticker} 与基准相比表现如何？">Vs benchmark</button>
-          <button type="button" data-i18n="ask.evidence_limits"
-          data-question-en="What are the limits of this evidence?"
-          data-question-zh="目前这些证据有哪些局限？">Evidence limits</button>
-        </div>
         <div class="ask-submit-row"><button id="ask-submit" type="submit" disabled
-        data-i18n="ask.submit">Ask model</button>
+        data-i18n="ask.submit">3 · Ask selected model</button>
+        <button id="ask-retry" type="button" hidden data-i18n="ask.retry">Retry model check</button>
         <span id="ask-status" aria-live="polite"
         data-status-key="ask.checking_models">Checking available models…</span></div>
       </form>
       <div class="ask-result" id="ask-result" aria-live="polite">
-        <p class="ask-result-kicker" data-i18n="ask.control_title">HOW CONTROL STAYS VISIBLE</p>
-        <ol><li><span>1</span><span data-i18n="ask.control_1">Question is matched to a frozen {ticker} evidence packet.</span></li>
-        <li><span>2</span><span data-i18n="ask.control_2">The selected provider returns structured claims and citation IDs.</span></li>
-        <li><span>3</span><span data-i18n="ask.control_3">A server-side validator rejects unsupported citations, numbers,
-        advice, or forecasts before anything appears here.</span></li></ol>
+        <p class="ask-result-kicker" data-i18n="ask.scope_title">WHAT THIS DEMO CAN ANSWER</p>
+        <div class="ask-scope-groups">
+          <section class="ask-scope-group in-scope"><strong data-i18n="ask.in_scope">In scope</strong>
+          <ul><li data-i18n="ask.in_scope_1">What the latest 8-K says, with cited passages</li>
+          <li data-i18n="ask.in_scope_2">Historical return and risk versus the benchmark</li>
+          <li data-i18n="ask.in_scope_3">Observed filing reaction and prior wording changes</li>
+          <li data-i18n="ask.in_scope_4">Which evidence is present or missing</li></ul></section>
+          <section class="ask-scope-group out-scope"><strong data-i18n="ask.out_scope">Always withheld</strong>
+          <ul><li data-i18n="ask.out_scope_1">Buy, sell, or hold recommendations</li>
+          <li data-i18n="ask.out_scope_2">Price targets and future forecasts</li>
+          <li data-i18n="ask.out_scope_3">Uncited facts or invented numbers</li>
+          <li data-i18n="ask.out_scope_4">Claims beyond the frozen evidence packet</li></ul></section>
+        </div>
+        <div class="ask-control-flow"><span data-i18n="ask.control_flow">
+        Draft question → bounded evidence → model → validator → cited answer</span></div>
       </div>
     </div>
     <p class="ask-boundary" data-i18n="ask.boundary"><strong>Scope:</strong> explanation, not recommendation ·
@@ -409,7 +461,7 @@ def _evidence_context(
         "not_configured": "Not configured",
     }[scope.status]
     freshness = _pretty_context_time(scope.generated_at) if scope.generated_at else "Unknown"
-    return f"""<section class="context-section" id="context" data-workspace-view="context"
+    return f"""<section class="context-section" id="context"
     aria-labelledby="context-title">
     <div class="section-heading"><div><p class="eyebrow" data-i18n="context.eyebrow">COMPANY-SPECIFIC CONTEXT</p>
     <h2 id="context-title" data-i18n="context.title">Recent company coverage</h2></div>
@@ -469,8 +521,16 @@ def _brief(snapshot: CompanySnapshot) -> str:
         _citation_link(value) for value in changed.get("citations", [])
     )
     if latest:
-        filing_title_key = ""
         filing_title = latest.items[0]["label"] if latest.items else "Corporate update"
+        filing_title_zh = (
+            latest.items[0].get("label_zh") or filing_title
+            if latest.items
+            else "公司更新"
+        )
+        filing_title_attrs = (
+            f' data-i18n="filing.item_title" data-i18n-en="{html.escape(filing_title)}" '
+            f'data-i18n-zh="{html.escape(str(filing_title_zh))}"'
+        )
         filing_meta = (
             f'<span>{html.escape(latest.form)}</span>'
             f'<span>{html.escape(_pretty_date(latest.accepted_at))}</span>'
@@ -485,16 +545,23 @@ def _brief(snapshot: CompanySnapshot) -> str:
             'rel="noreferrer" data-i18n="filing.open_sec">Open SEC filing ↗</a>'
         )
     else:
-        filing_title_key = ' data-i18n="filing.no_local_filing"'
+        filing_title_attrs = ' data-i18n="filing.no_local_filing"'
         filing_title = "No local filing"
         filing_meta = '<span data-i18n="filing.evidence_unavailable">Evidence unavailable</span>'
         source_link = ""
+    fundamentals_card = _fundamentals_brief_card(snapshot.fundamentals)
+    changed_en = str(changed.get("text", "Not available."))
+    changed_zh = str(changed.get("text_zh") or changed_en)
+    uncertainty_en = str(uncertainty.get("text", "Not available."))
+    uncertainty_zh = str(uncertainty.get("text_zh") or uncertainty_en)
     return f"""
     <article class="brief-card brief-lead observed">
       <div class="brief-card-heading"><span data-i18n="brief.latest_disclosure">Latest SEC disclosure</span>{source_link}</div>
-      <h3{filing_title_key}>{html.escape(filing_title)}</h3>
-      <p>{html.escape(str(changed.get('text', 'Not available.')))}</p>
+      <h3{filing_title_attrs}>{html.escape(filing_title)}</h3>
+      <p data-i18n="brief.changed_claim" data-i18n-en="{html.escape(changed_en)}"
+      data-i18n-zh="{html.escape(changed_zh)}">{html.escape(changed_en)}</p>
       <div class="brief-meta">{filing_meta}</div><div class="claim-links">{changed_links}</div>
+      <a href="#filings" data-i18n="brief.explore_filings">Read the filing evidence ↓</a>
     </article>
     <article class="brief-card brief-numbers calculated">
       <span data-i18n="brief.selected_period">Selected historical period</span>
@@ -504,16 +571,189 @@ def _brief(snapshot: CompanySnapshot) -> str:
       </div>
       <p><span id="brief-period-label"></span> <span data-i18n="brief.period_context">of adjusted daily prices versus
       {html.escape(snapshot.benchmark)}. Context, not a forecast.</span></p>
-      <a href="#performance" data-view-target="performance"
+      <a href="#performance"
       data-i18n="brief.explore_history">Explore the full history ↓</a>
     </article>
-    <p class="brief-boundary"><strong data-i18n="brief.boundary">Boundary:</strong>
-    {html.escape(str(uncertainty.get('text', 'Not available.')))}</p>"""
+    <article class="brief-card brief-limit guardrail">
+      <span data-i18n="brief.boundary">Boundary:</span>
+      <p data-i18n="brief.uncertainty_claim" data-i18n-en="{html.escape(uncertainty_en)}"
+      data-i18n-zh="{html.escape(uncertainty_zh)}">{html.escape(uncertainty_en)}</p>
+    </article>
+    {fundamentals_card}"""
 
 
 def _first_claim(explanation: dict, section: str) -> dict:
     claims = explanation.get(section, [])
     return claims[0] if claims else {"text": "Not available.", "citations": []}
+
+
+def _fundamentals_brief_card(section: FundamentalsSection | None) -> str:
+    if section is None or section.status != "available":
+        return """<article class="brief-card brief-missing interpreted">
+      <span data-i18n="brief.missing_title">Not on this page yet</span>
+      <p data-i18n="brief.missing_copy">Valuation expectations and multi-year financial trends are not connected yet.
+      This brief does not estimate intrinsic value or say whether the business is cheap.</p>
+    </article>"""
+    rows = "".join(_fundamentals_trend_row(item) for item in _fundamentals_trend_rows(section))
+    return f"""<article class="brief-card brief-quality observed">
+      <span data-i18n="brief.quality_title">Annual business trends</span>
+      <ul class="brief-trends">{rows}</ul>
+      <p class="brief-valuation-note" data-i18n="brief.valuation_unconnected">Valuation expectations are still not connected.
+      This page does not estimate intrinsic value or say whether the business is cheap.</p>
+    </article>"""
+
+
+def _fundamentals_trend_rows(section: FundamentalsSection) -> list[dict[str, Any]]:
+    specs = (
+        ("revenue", "reported", "brief.metric_revenue", "Revenue", "USD"),
+        ("gross_margin", "derived", "brief.metric_gross_margin", "Gross margin", "ratio"),
+        (
+            "operating_margin",
+            "derived",
+            "brief.metric_operating_margin",
+            "Operating margin",
+            "ratio",
+        ),
+        (
+            "fcf_per_share",
+            "derived",
+            "brief.metric_fcf_per_share",
+            "Free cash flow / share",
+            "USD/shares",
+        ),
+        (
+            "diluted_shares",
+            "reported",
+            "brief.metric_diluted_shares",
+            "Diluted shares",
+            "shares",
+        ),
+    )
+    rows: list[dict[str, Any]] = []
+    for metric_id, kind, i18n_key, label, unit in specs:
+        series = _series_by_id(section, metric_id, kind)
+        if series is None:
+            continue
+        if kind == "derived":
+            observations = [
+                item for item in series.observations if item.status == "available"
+            ]
+        else:
+            observations = [
+                item
+                for item in series.observations
+                if "share_basis_noncomparable" not in item.quality_flags
+            ]
+        if len(observations) < 2:
+            continue
+        window = observations[-10:]
+        start = window[0]
+        latest = window[-1]
+        start_value = start.value
+        latest_value = latest.value
+        if start_value is None or latest_value is None:
+            continue
+        if latest_value > start_value * 1.02:
+            direction = "up"
+            direction_label = "Up"
+            direction_key = "brief.trend_up"
+        elif latest_value < start_value * 0.98:
+            direction = "down"
+            direction_label = "Down"
+            direction_key = "brief.trend_down"
+        else:
+            direction = "flat"
+            direction_label = "Flat"
+            direction_key = "brief.trend_flat"
+        source_url = ""
+        if kind == "reported":
+            source_url = latest.citation.source_url
+        else:
+            source_url = _component_source_url(section, latest.components)
+        coverage = (
+            "complete"
+            if len(window) >= section.requested_years
+            else "partial"
+        )
+        rows.append(
+            {
+                "label": label,
+                "i18n_key": i18n_key,
+                "start": _format_fundamental_value(float(start_value), unit),
+                "latest": _format_fundamental_value(float(latest_value), unit),
+                "direction": direction,
+                "direction_label": direction_label,
+                "direction_key": direction_key,
+                "period": f"FY{start.fiscal_year}-FY{latest.fiscal_year}",
+                "coverage": coverage,
+                "source_url": source_url,
+                "latest_year": latest.fiscal_year,
+            }
+        )
+    return rows
+
+
+def _series_by_id(section: FundamentalsSection, metric_id: str, kind: str):
+    pool = section.derived_series if kind == "derived" else section.reported_series
+    return next((item for item in pool if item.metric_id == metric_id), None)
+
+
+def _format_fundamental_value(value: float | None, unit: str) -> str:
+    if value is None:
+        return "n/a"
+    if unit == "ratio":
+        return f"{value * 100:.1f}%"
+    if unit in {"USD", "USD/shares"}:
+        scale = abs(value)
+        if scale >= 1_000_000_000:
+            return f"${value / 1_000_000_000:.1f}B"
+        if scale >= 1_000_000:
+            return f"${value / 1_000_000:.1f}M"
+        if unit == "USD/shares":
+            return f"${value:,.2f}"
+        return f"${value:,.0f}"
+    if unit == "shares":
+        scale = abs(value)
+        if scale >= 1_000_000_000:
+            return f"{value / 1_000_000_000:.2f}B"
+        if scale >= 1_000_000:
+            return f"{value / 1_000_000:.1f}M"
+        return f"{value:,.0f}"
+    return f"{value:,.4g}"
+
+
+def _fundamentals_trend_row(item: dict[str, Any]) -> str:
+    source = ""
+    if item["source_url"]:
+        source = (
+            f'<a href="{html.escape(item["source_url"])}" target="_blank" rel="noreferrer">'
+            f'FY{item["latest_year"]} 10-K ↗</a>'
+        )
+    return (
+        f'<li data-direction="{html.escape(item["direction"])}">'
+        f'<div class="trend-values"><strong>{html.escape(item["latest"])}</strong>'
+        f'<span>{html.escape(item["start"])} → {html.escape(item["latest"])}</span></div>'
+        f'<small><span data-i18n="{item["i18n_key"]}">{html.escape(item["label"])}</span>'
+        f' · {html.escape(item["period"])}'
+        f' · <span data-i18n="{item["direction_key"]}">{html.escape(item["direction_label"])}</span>'
+        f' · <span data-i18n="brief.coverage_{html.escape(item["coverage"])}">'
+        f'{html.escape(item["coverage"])}</span></small>'
+        f"{source}"
+        "</li>"
+    )
+
+
+def _component_source_url(section: FundamentalsSection, components: dict[str, str | None]) -> str:
+    ids = [value for value in components.values() if value]
+    citation_lookup = {
+        observation.citation.citation_id: observation.citation.source_url
+        for series in section.reported_series
+        for observation in series.observations
+    }
+    for citation_id in ids:
+        if citation_id in citation_lookup:
+            return citation_lookup[citation_id]
+    return ""
 
 
 def _mode_label(mode: Any) -> str:
@@ -527,11 +767,15 @@ def _mode_label(mode: Any) -> str:
 def _filing_card(filing: FilingBrief, index: int, benchmark: str) -> str:
     item_chips = "".join(
         f'<span class="item-chip" title="{html.escape(item["label"])}">'
-        f'{html.escape(item["code"])} · {html.escape(item["label"])}</span>'
+        f'{html.escape(item["code"])} · '
+        f'<span data-i18n="item.{html.escape(item["code"])}" '
+        f'data-i18n-en="{html.escape(item["label"])}" '
+        f'data-i18n-zh="{html.escape(item.get("label_zh") or item["label"])}">'
+        f'{html.escape(item["label"])}</span></span>'
         for item in filing.items
     )
     reaction = (
-        "Reaction not yet measurable"
+        '<span data-i18n="filing.reaction_not_measurable">Reaction not yet measurable</span>'
         if filing.reaction is None
         else f"{_signed_percent(filing.reaction.benchmark_adjusted_move)} vs {benchmark}"
     )
@@ -551,14 +795,7 @@ def _filing_card(filing: FilingBrief, index: int, benchmark: str) -> str:
             '<p class="missing" data-i18n="filing.no_passages">'
             "No passage passed the deterministic relevance threshold.</p>"
         )
-    expanded = " open" if index == 0 else ""
-    return f"""<details class="filing-card"{expanded}>
-      <summary><div><span class="filing-form">{html.escape(filing.form)}</span>
-      <strong>{html.escape(filing.items[0]['label'] if filing.items else 'Corporate update')}</strong>
-      <small><span data-i18n="filing.accepted">Accepted</span> {html.escape(_pretty_date(filing.accepted_at))}</small></div>
-      <div class="filing-summary-meta"><span>{html.escape(reaction)}</span>
-      <span data-i18n="filing.view_evidence">View evidence</span><i>⌄</i></div></summary>
-      <div class="filing-body"><div class="filing-items">{item_chips}</div>
+    body = f"""<div class="filing-items">{item_chips}</div>
       {_reaction_block(filing, benchmark)}
       {_comparison_block(filing)}
       <details class="source-details"><summary data-i18n="filing.source_facts">Source passages and extracted facts</summary>
@@ -566,7 +803,33 @@ def _filing_card(filing: FilingBrief, index: int, benchmark: str) -> str:
       <h3 data-i18n="filing.relevant_passages">Relevant passages</h3><div class="passages">{passages}</div></div>
       <aside><span data-i18n="filing.source_record">Source record</span><code>{html.escape(filing.accession)}</code>
       <a href="{html.escape(filing.source_url)}" target="_blank" rel="noreferrer" data-i18n="filing.open_sec">Open SEC filing ↗</a>
-      <p data-i18n="filing.source_note">SEC excerpts remain in the filed language so citations can be verified exactly.</p></aside></div></details></div>
+      <p data-i18n="filing.source_note">SEC excerpts remain in the filed language so citations can be verified exactly.</p></aside></div></details>"""
+    title_text = filing.items[0]["label"] if filing.items else "Corporate update"
+    title_zh = filing.items[0].get("label_zh") or title_text if filing.items else "公司更新"
+    title = html.escape(title_text)
+    localized_title = (
+        f'<span data-i18n="item.{html.escape(filing.items[0]["code"])}" '
+        f'data-i18n-en="{title}" data-i18n-zh="{html.escape(title_zh)}">{title}</span>'
+        if filing.items
+        else f'<span data-i18n-en="{title}" data-i18n-zh="{html.escape(title_zh)}">{title}</span>'
+    )
+    accepted = html.escape(_pretty_date(filing.accepted_at))
+    if index == 0:
+        return f"""<article class="filing-card filing-lead">
+      <header class="filing-lead-header"><span class="filing-form">{html.escape(filing.form)}</span>
+      <div><p class="eyebrow" data-i18n="filing.latest">Latest disclosure</p>
+      <h3>{localized_title}</h3>
+      <small><span data-i18n="filing.accepted">Accepted</span> {accepted}</small></div>
+      <a href="{html.escape(filing.source_url)}" target="_blank" rel="noreferrer"
+      data-i18n="filing.open_sec">Open SEC filing ↗</a></header>
+      <div class="filing-body">{body}</div></article>"""
+    return f"""<details class="filing-card">
+      <summary><div><span class="filing-form">{html.escape(filing.form)}</span>
+      <strong>{localized_title}</strong>
+      <small><span data-i18n="filing.accepted">Accepted</span> {accepted}</small></div>
+      <div class="filing-summary-meta"><span>{html.escape(reaction)}</span>
+      <span data-i18n="filing.view_evidence">View evidence</span><i>⌄</i></div></summary>
+      <div class="filing-body">{body}</div>
       </details>"""
 
 
@@ -577,8 +840,13 @@ def _filing_timeline(points: list[FilingTimelinePoint], benchmark: str) -> str:
     for point in points:
         if point.reaction is None:
             direction = "unavailable"
-            move = "Reaction unavailable"
-            context = "Required session bars are not both cached"
+            move = (
+                '<span data-i18n="reaction.unavailable_move">Reaction unavailable</span>'
+            )
+            context = (
+                '<span data-i18n="reaction.missing_session_bars">'
+                "Required session bars are not both cached</span>"
+            )
         else:
             value = point.reaction.benchmark_adjusted_move
             direction = "positive" if value > 0 else "negative" if value < 0 else "flat"
@@ -589,19 +857,22 @@ def _filing_timeline(points: list[FilingTimelinePoint], benchmark: str) -> str:
                 else f"{point.reaction.prior_sample_size} earlier measurable filings"
             )
         accepted = datetime.fromisoformat(point.accepted_at).strftime("%b %d, %Y")
+        label_zh = point.item_label_zh or point.item_label
         events.append(
             f'<a class="timeline-event {direction}" href="{html.escape(point.source_url)}" '
             f'target="_blank" rel="noreferrer"><span>{html.escape(accepted)}</span>'
-            f'<i aria-hidden="true"></i><strong>{html.escape(point.item_label)}</strong>'
-            f'<small>Item {html.escape(point.item_code)}</small><b>{html.escape(move)}</b>'
-            f'<em>{html.escape(context)}</em></a>'
+            f'<i aria-hidden="true"></i><strong data-i18n="item.{html.escape(point.item_code)}" '
+            f'data-i18n-en="{html.escape(point.item_label)}" '
+            f'data-i18n-zh="{html.escape(label_zh)}">{html.escape(point.item_label)}</strong>'
+            f'<small>Item {html.escape(point.item_code)}</small><b>{move}</b>'
+            f'<em>{context}</em></a>'
         )
     return f"""<section class="timeline-panel" aria-label="Recent filing timeline">
-    <div class="timeline-heading"><div><span>Recent filing timeline</span>
-    <strong>What arrived, and how the next eligible session moved</strong></div>
-    <small>Oldest → newest · latest {len(points)}</small></div>
+    <div class="timeline-heading"><div><span data-i18n="timeline.title">Recent filing timeline</span>
+    <strong data-i18n="timeline.subtitle">What arrived, and how the next eligible session moved</strong></div>
+    <small data-i18n="timeline.range" data-i18n-count="{len(points)}">Oldest → newest · latest {len(points)}</small></div>
     <div class="timeline-track">{''.join(events)}</div>
-    <p>Relative moves are open-to-close company returns less {html.escape(benchmark)};
+    <p data-i18n="timeline.boundary">Relative moves are open-to-close company returns less {html.escape(benchmark)};
     they are historical context, not event forecasts.</p></section>"""
 
 
@@ -615,14 +886,27 @@ def _reaction_block(filing: FilingBrief, benchmark: str) -> str:
             "first eligible session.</span></div>"
         )
     if reaction.magnitude_percentile is None:
-        history_value = "Building history"
+        history_value = (
+            '<span data-i18n="reaction.building_history">Building history</span>'
+        )
+        suffix = "s" if reaction.prior_sample_size != 1 else ""
         history_note = (
+            f'<span data-i18n="reaction.history_note_building" '
+            f'data-i18n-count="{reaction.prior_sample_size}" data-i18n-suffix="{suffix}">'
             f"{reaction.prior_sample_size} earlier measurable filing"
-            f"{'s' if reaction.prior_sample_size != 1 else ''}; shown after 5"
+            f"{suffix}; shown after 5</span>"
         )
     else:
-        history_value = f"More extreme than {reaction.magnitude_percentile:.0%}"
-        history_note = f"of {reaction.prior_sample_size} earlier measurable filings"
+        pct = f"{reaction.magnitude_percentile:.0%}"
+        history_value = (
+            f'<span data-i18n="reaction.more_extreme" data-i18n-pct="{html.escape(pct)}">'
+            f"More extreme than {pct}</span>"
+        )
+        history_note = (
+            f'<span data-i18n="reaction.history_note_extreme" '
+            f'data-i18n-count="{reaction.prior_sample_size}">'
+            f"of {reaction.prior_sample_size} earlier measurable filings</span>"
+        )
     asset_move = _signed_percent(reaction.asset_open_to_close)
     benchmark_move = _signed_percent(reaction.benchmark_open_to_close)
     relative_move = _signed_percent(reaction.benchmark_adjusted_move)
@@ -636,8 +920,8 @@ def _reaction_block(filing: FilingBrief, benchmark: str) -> str:
     <small data-i18n="reaction.open_close">open to close</small></div>
     <div><span data-i18n="reaction.after_benchmark">After subtracting {html.escape(benchmark)}</span><strong>{html.escape(relative_move)}</strong>
     <small>{html.escape(asset_move)} less {html.escape(benchmark_move)}</small></div>
-    <div><span data-i18n="reaction.compared">Compared with past filings</span><strong>{html.escape(history_value)}</strong>
-    <small>{html.escape(history_note)}</small></div></div>
+    <div><span data-i18n="reaction.compared">Compared with past filings</span><strong>{history_value}</strong>
+    <small>{history_note}</small></div></div>
     <p data-i18n="reaction.boundary">This is the first session whose opening followed SEC acceptance. It shows what
     happened next; it does not claim the filing caused the move.</p></section>"""
 
@@ -813,16 +1097,22 @@ def _script(default_period: str, ticker: str, benchmark: str) -> str:
                 "nav.filings": "Filings",
                 "nav.company_news": "Company news",
                 "nav.trust": "Evidence, not prediction",
-                "workspace.eyebrow": "RESEARCH WORKSPACE",
-                "workspace.title": "Choose one view at a time",
+                "workspace.eyebrow": "ON THIS PAGE",
+                "workspace.title": "Read the brief, then verify below.",
                 "hero.eyebrow": "COMPANY OVERVIEW · REAL CACHED DATA",
                 "hero.latest_close": "Latest adjusted close",
                 "hero.observed": "Observed",
-                "brief.eyebrow": "AT A GLANCE",
+                "brief.eyebrow": "ONE-MINUTE BRIEF",
                 "brief.title": "What matters on this page",
                 "brief.intro": (
-                    "The latest disclosure and one historical reference point. "
-                    "Details remain below when you want to verify them."
+                    "Start with the latest disclosure, the historical ride, and the "
+                    "evidence boundary. Multi-year financials and price expectations "
+                    "are not on this page yet."
+                ),
+                "brief.intro_with_trends": (
+                    "Start with the latest disclosure, the historical ride, and "
+                    "source-linked annual business trends. Price expectations and "
+                    "valuation are still not connected."
                 ),
                 "brief.latest_disclosure": "Latest SEC disclosure",
                 "brief.selected_period": "Selected historical period",
@@ -832,7 +1122,119 @@ def _script(default_period: str, ticker: str, benchmark: str) -> str:
                     "of adjusted daily prices versus {benchmark}. Context, not a forecast."
                 ),
                 "brief.explore_history": "Explore the full history ↓",
+                "brief.explore_filings": "Read the filing evidence ↓",
                 "brief.boundary": "Boundary:",
+                "brief.missing_title": "Not on this page yet",
+                "brief.missing_copy": (
+                    "Valuation expectations and multi-year financial trends are not "
+                    "connected yet. This brief does not estimate intrinsic value or "
+                    "say whether the business is cheap."
+                ),
+                "brief.quality_title": "Annual business trends",
+                "brief.valuation_unconnected": (
+                    "Valuation expectations are still not connected. This page does "
+                    "not estimate intrinsic value or say whether the business is cheap."
+                ),
+                "brief.metric_revenue": "Revenue",
+                "brief.metric_gross_margin": "Gross margin",
+                "brief.metric_operating_margin": "Operating margin",
+                "brief.metric_free_cash_flow": "Free cash flow",
+                "brief.metric_fcf_per_share": "Free cash flow / share",
+                "brief.metric_diluted_shares": "Diluted shares",
+                "brief.metric_share_change": "Diluted share change",
+                "brief.trend_up": "Up",
+                "brief.trend_down": "Down",
+                "brief.trend_flat": "Flat",
+                "brief.coverage_complete": "complete",
+                "brief.coverage_partial": "partial",
+                "brief.coverage_missing": "missing",
+                "reaction.building_history": "Building history",
+                "reaction.more_extreme": "More extreme than {pct}",
+                "reaction.history_note_building": (
+                    "{count} earlier measurable filing{suffix}; shown after 5"
+                ),
+                "reaction.history_note_extreme": "of {count} earlier measurable filings",
+                "reaction.unavailable_move": "Reaction unavailable",
+                "reaction.missing_session_bars": "Required session bars are not both cached",
+                "timeline.title": "Recent filing timeline",
+                "timeline.subtitle": "What arrived, and how the next eligible session moved",
+                "timeline.range": "Oldest → newest · latest {count}",
+                "timeline.boundary": (
+                    "Relative moves are open-to-close company returns less {benchmark}; "
+                    "they are historical context, not event forecasts."
+                ),
+                "filing.reaction_not_measurable": "Reaction not yet measurable",
+                "item.1.01": "Material agreement entered",
+                "item.1.02": "Material agreement terminated",
+                "item.1.03": "Bankruptcy or receivership",
+                "item.2.01": "Asset acquisition or disposition",
+                "item.2.02": "Results of operations (earnings)",
+                "item.2.03": "Direct financial obligation created",
+                "item.2.04": "Triggering event accelerating an obligation",
+                "item.2.05": "Costs from exit or disposal",
+                "item.2.06": "Material impairment",
+                "item.3.01": "Delisting or listing-rule failure",
+                "item.3.02": "Unregistered equity sale",
+                "item.3.03": "Material modification to security holder rights",
+                "item.4.01": "Auditor changed",
+                "item.4.02": "Prior financial statements not reliable",
+                "item.5.01": "Change in control",
+                "item.5.02": "Director or principal officer change",
+                "item.5.03": "Fiscal year or bylaw amendment",
+                "item.5.07": "Shareholder vote results",
+                "item.7.01": "Regulation FD disclosure",
+                "item.8.01": "Other events",
+                "item.9.01": "Financial statements and exhibits",
+                "item.other": "Other disclosure",
+                "explain.no_filing": "No filing is available for this company in the local dataset.",
+                "ask.task_quality": "Business quality",
+                "ask.task_cash": "Earnings & cash",
+                "ask.task_capital": "Per-share capital",
+                "ask.task_thesis": "Thesis risks",
+                "ask.task_missing": "Missing evidence",
+                "ask.task_quality_title": "Review multi-year business quality",
+                "ask.task_quality_copy": (
+                    "Uses source-linked annual revenue, margins, free cash flow per share, "
+                    "and diluted shares."
+                ),
+                "ask.task_quality_question": (
+                    "Using only the annual fundamentals evidence, how did revenue, gross "
+                    "margin, operating margin, free cash flow per share, and diluted shares "
+                    "change over the available fiscal years?"
+                ),
+                "ask.task_cash_title": "Compare earnings and cash quality",
+                "ask.task_cash_copy": (
+                    "Uses net income, operating cash flow, free cash flow, and conversion ratios."
+                ),
+                "ask.task_cash_question": (
+                    "What do operating cash flow, free cash flow, and cash conversion say "
+                    "about earnings quality in the latest comparable fiscal years?"
+                ),
+                "ask.task_capital_title": "Inspect per-share capital allocation",
+                "ask.task_capital_copy": (
+                    "Uses diluted shares, free cash flow per share, buybacks, and dividends "
+                    "when present."
+                ),
+                "ask.task_capital_question": (
+                    "How did diluted shares and free cash flow per share change, and what "
+                    "capital-return evidence is present?"
+                ),
+                "ask.task_thesis_title": "Surface thesis risks in the evidence",
+                "ask.task_thesis_copy": (
+                    "Uses filing passages, reaction context, and fundamentals coverage warnings."
+                ),
+                "ask.task_thesis_question": (
+                    "Which cited filings, reactions, or fundamentals gaps most clearly "
+                    "challenge a durable long-term business thesis?"
+                ),
+                "ask.task_missing_title": "List missing evidence",
+                "ask.task_missing_copy": (
+                    "Uses interpretation limits and fundamentals coverage status."
+                ),
+                "ask.task_missing_question": (
+                    "What important evidence is missing from this page for judging business "
+                    "quality, cash quality, or per-share value creation?"
+                ),
                 "mode.grounded": "Source-bounded AI",
                 "mode.fallback": "Source-backed summary",
                 "mode.unavailable": "Explanation unavailable",
@@ -840,29 +1242,78 @@ def _script(default_period: str, ticker: str, benchmark: str) -> str:
                 "ask.title": "Ask the evidence",
                 "ask.validated": "Every answer is validated",
                 "ask.intro": (
-                    "Choose a model and ask about {ticker}. The model receives only "
-                    "this page's cached SEC passages, calculated history, filing reaction, "
-                    "and matched company headlines. Unsupported citations, invented "
-                    "numbers, advice, and forecasts are withheld."
+                    "Start with a guided research task, review the drafted question, then "
+                    "choose whether to send it. The model can use only this page's frozen "
+                    "evidence."
                 ),
                 "ask.model": "Model",
                 "ask.loading_models": "Loading live models…",
                 "ask.answer_language": "Answer language",
                 "ask.question": "Question",
                 "ask.placeholder": "What does the latest 8-K tell me?",
-                "ask.latest_8k": "Latest 8-K",
-                "ask.vs_benchmark": "Vs benchmark",
-                "ask.evidence_limits": "Evidence limits",
-                "ask.submit": "Ask model",
-                "ask.checking_models": "Checking available models…",
-                "ask.control_title": "HOW CONTROL STAYS VISIBLE",
-                "ask.control_1": "Question is matched to a frozen {ticker} evidence packet.",
-                "ask.control_2": (
-                    "The selected provider returns structured claims and citation IDs."
+                "ask.choose_task": "Choose what to investigate",
+                "ask.choose_task_copy": (
+                    "Selecting a tab drafts a bounded question. Nothing is sent automatically."
                 ),
-                "ask.control_3": (
-                    "A server-side validator rejects unsupported citations, numbers, "
-                    "advice, or forecasts before anything appears here."
+                "ask.task_filing": "Latest filing",
+                "ask.task_history": "History vs benchmark",
+                "ask.task_risk": "Risk experienced",
+                "ask.task_limits": "Evidence limits",
+                "ask.guided_prompt": "GUIDED PROMPT",
+                "ask.review_question": "Review or edit the drafted question",
+                "ask.review_question_copy": (
+                    "You stay in control before the request is sent."
+                ),
+                "ask.task_filing_title": "Explain the newest disclosure",
+                "ask.task_filing_copy": (
+                    "Uses the latest cached 8-K, extracted facts, and source passages."
+                ),
+                "ask.task_filing_question": (
+                    "What does the latest 8-K say, and which cited passages support "
+                    "the answer?"
+                ),
+                "ask.task_history_title": "Compare historical performance",
+                "ask.task_history_copy": (
+                    "Uses calculated returns for the selected period and the same-date "
+                    "{benchmark} comparison."
+                ),
+                "ask.task_history_question": (
+                    "How did {ticker} perform versus {benchmark} over the selected "
+                    "historical period?"
+                ),
+                "ask.task_risk_title": "Explain the risk that actually occurred",
+                "ask.task_risk_copy": (
+                    "Uses drawdown, volatility, worst day, beta, and recovery metrics."
+                ),
+                "ask.task_risk_question": (
+                    "What risk did {ticker} experience in the selected period, and what "
+                    "can these historical metrics not predict?"
+                ),
+                "ask.task_limits_title": "Audit the evidence boundary",
+                "ask.task_limits_copy": (
+                    "Identifies what is cached, what is missing, and what the page "
+                    "cannot establish."
+                ),
+                "ask.task_limits_question": (
+                    "What evidence is included and excluded, and what conclusions "
+                    "cannot be supported?"
+                ),
+                "ask.submit": "3 · Ask selected model",
+                "ask.retry": "Retry model check",
+                "ask.checking_models": "Checking available models…",
+                "ask.scope_title": "WHAT THIS DEMO CAN ANSWER",
+                "ask.in_scope": "In scope",
+                "ask.in_scope_1": "What the latest 8-K says, with cited passages",
+                "ask.in_scope_2": "Historical return and risk versus the benchmark",
+                "ask.in_scope_3": "Observed filing reaction and prior wording changes",
+                "ask.in_scope_4": "Which evidence is present or missing",
+                "ask.out_scope": "Always withheld",
+                "ask.out_scope_1": "Buy, sell, or hold recommendations",
+                "ask.out_scope_2": "Price targets and future forecasts",
+                "ask.out_scope_3": "Uncited facts or invented numbers",
+                "ask.out_scope_4": "Claims beyond the frozen evidence packet",
+                "ask.control_flow": (
+                    "Draft question → bounded evidence → model → validator → cited answer"
                 ),
                 "ask.boundary": (
                     "Scope: explanation, not recommendation · maximum 280 characters · "
@@ -903,10 +1354,11 @@ def _script(default_period: str, ticker: str, benchmark: str) -> str:
                 "filings.sec_collected": "SEC cache collected",
                 "filings.sec_unavailable": "SEC cache time unavailable",
                 "filings.intro": (
-                    "The newest filing opens first. Read what arrived, what the next eligible "
+                    "The newest filing stays open. Read what arrived, what the next eligible "
                     "session did, and whether the wording changed in a substantive way."
                 ),
                 "filing.accepted": "Accepted",
+                "filing.latest": "Latest disclosure",
                 "filing.view_evidence": "View evidence",
                 "filing.source_facts": "Source passages and extracted facts",
                 "filing.extracted_facts": "Extracted facts",
@@ -978,9 +1430,11 @@ def _script(default_period: str, ticker: str, benchmark: str) -> str:
                 ),
                 "ask.models_ready": "{count} validated model{suffix} available",
                 "ask.models_unavailable": "Live models unavailable",
-                "ask.offline": (
-                    "The page data remains available; live Q&A is currently offline."
+                "ask.not_configured": "Live Q&A is not configured",
+                "ask.not_configured_status": (
+                    "Live Q&A is not configured; all page evidence remains available."
                 ),
+                "ask.offline": "Unable to check live models. The page evidence remains available.",
                 "ask.reading": "Reading the bounded evidence packet…",
                 "ask.waiting": "Waiting for the selected model…",
                 "ask.answer_failed": "The answer could not be generated.",
@@ -998,21 +1452,117 @@ def _script(default_period: str, ticker: str, benchmark: str) -> str:
                 "nav.filings": "公司披露",
                 "nav.company_news": "公司新闻",
                 "nav.trust": "基于证据，不做预测",
-                "workspace.eyebrow": "公司研究工作台",
-                "workspace.title": "每次聚焦一个研究视图",
+                "workspace.eyebrow": "本页目录",
+                "workspace.title": "先读一分钟摘要，再核验下方证据。",
                 "hero.eyebrow": "公司概览 · 真实缓存数据",
                 "hero.latest_close": "最新复权收盘价",
                 "hero.observed": "观测日期",
                 "brief.eyebrow": "一分钟概览",
                 "brief.title": "这页最值得关注的内容",
-                "brief.intro": "先看最新披露和一个历史参照；需要核验时，再展开下方证据。",
+                "brief.intro": (
+                    "先看最新披露、历史体验和证据边界。多年财务趋势和价格隐含预期尚未接入。"
+                ),
+                "brief.intro_with_trends": (
+                    "先看最新披露、历史体验，以及带来源链接的年度经营趋势。价格隐含预期和估值仍未接入。"
+                ),
                 "brief.latest_disclosure": "最新 SEC 披露",
                 "brief.selected_period": "所选历史期间",
                 "brief.total_return": "累计回报",
                 "brief.max_drawdown": "最大回撤",
                 "brief.period_context": "的复权日线数据，对比 {benchmark}。仅作历史背景，不代表预测。",
                 "brief.explore_history": "查看完整历史 ↓",
+                "brief.explore_filings": "阅读披露证据 ↓",
                 "brief.boundary": "证据边界：",
+                "brief.missing_title": "本页尚未覆盖",
+                "brief.missing_copy": (
+                    "估值预期和多年财务趋势尚未接入。这份摘要不估计内在价值，也不判断公司是否便宜。"
+                ),
+                "brief.quality_title": "年度经营趋势",
+                "brief.valuation_unconnected": (
+                    "估值预期仍未接入。本页不估计内在价值，也不判断公司是否便宜。"
+                ),
+                "brief.metric_revenue": "营业收入",
+                "brief.metric_gross_margin": "毛利率",
+                "brief.metric_operating_margin": "营业利润率",
+                "brief.metric_free_cash_flow": "自由现金流",
+                "brief.metric_fcf_per_share": "每股自由现金流",
+                "brief.metric_diluted_shares": "稀释股本",
+                "brief.metric_share_change": "稀释股本变动",
+                "brief.trend_up": "上升",
+                "brief.trend_down": "下降",
+                "brief.trend_flat": "大致持平",
+                "brief.coverage_complete": "完整",
+                "brief.coverage_partial": "部分",
+                "brief.coverage_missing": "缺失",
+                "reaction.building_history": "历史样本仍在积累",
+                "reaction.more_extreme": "比 {pct} 的历史样本更极端",
+                "reaction.history_note_building": (
+                    "已有 {count} 次可测算披露{suffix}；满 5 次后显示分位"
+                ),
+                "reaction.history_note_extreme": "基于此前 {count} 次可测算披露",
+                "reaction.unavailable_move": "暂无法测算市场反应",
+                "reaction.missing_session_bars": "所需交易日行情未同时缓存",
+                "timeline.title": "近期披露时间线",
+                "timeline.subtitle": "披露何时到达，以及下一可交易日如何变动",
+                "timeline.range": "由旧到新 · 最近 {count} 条",
+                "timeline.boundary": (
+                    "相对变动为公司开盘至收盘收益减去 {benchmark}；这是历史背景，不是事件预测。"
+                ),
+                "filing.reaction_not_measurable": "市场反应尚不可测算",
+                "item.1.01": "签署重大协议",
+                "item.1.02": "终止重大协议",
+                "item.1.03": "破产或接管",
+                "item.2.01": "资产收购或处置",
+                "item.2.02": "经营业绩(财报)",
+                "item.2.03": "产生直接财务义务",
+                "item.2.04": "触发义务加速事件",
+                "item.2.05": "退出或处置成本",
+                "item.2.06": "重大减值",
+                "item.3.01": "退市或上市规则问题",
+                "item.3.02": "未注册股权出售",
+                "item.3.03": "重大修改证券持有人权利",
+                "item.4.01": "更换审计师",
+                "item.4.02": "此前财务报表不可靠",
+                "item.5.01": "控制权变更",
+                "item.5.02": "董事或主要高管变更",
+                "item.5.03": "财年或章程修订",
+                "item.5.07": "股东投票结果",
+                "item.7.01": "Regulation FD 披露",
+                "item.8.01": "其他事项",
+                "item.9.01": "财务报表与附件",
+                "item.other": "其他披露",
+                "explain.no_filing": "本地数据集中没有该公司的披露。",
+                "ask.task_quality": "经营质量",
+                "ask.task_cash": "盈利与现金",
+                "ask.task_capital": "每股资本",
+                "ask.task_thesis": "论点风险",
+                "ask.task_missing": "缺失证据",
+                "ask.task_quality_title": "审视多年经营质量",
+                "ask.task_quality_copy": "使用带来源链接的年度收入、利润率、每股自由现金流和稀释股本。",
+                "ask.task_quality_question": (
+                    "仅依据年度基本面证据，收入、毛利率、营业利润率、每股自由现金流和稀释股本"
+                    "在可获得的财政年度里如何变化？"
+                ),
+                "ask.task_cash_title": "比较盈利与现金质量",
+                "ask.task_cash_copy": "使用净利润、经营现金流、自由现金流及转化率。",
+                "ask.task_cash_question": (
+                    "经营现金流、自由现金流和现金转化率，对最近可比财政年度的盈利质量说明了什么？"
+                ),
+                "ask.task_capital_title": "检查每股资本配置",
+                "ask.task_capital_copy": "使用稀释股本、每股自由现金流，以及已有的回购与分红证据。",
+                "ask.task_capital_question": (
+                    "稀释股本和每股自由现金流如何变化？现有证据中有哪些资本回报信息？"
+                ),
+                "ask.task_thesis_title": "找出论点风险",
+                "ask.task_thesis_copy": "使用披露段落、市场反应背景和基本面覆盖缺口。",
+                "ask.task_thesis_question": (
+                    "哪些被引用的披露、市场反应或基本面缺口，最明显地挑战长期经营论点？"
+                ),
+                "ask.task_missing_title": "列出缺失证据",
+                "ask.task_missing_copy": "使用解释边界和基本面覆盖状态。",
+                "ask.task_missing_question": (
+                    "若要判断经营质量、现金质量或每股价值创造，本页还缺少哪些重要证据？"
+                ),
                 "mode.grounded": "来源受限的 AI",
                 "mode.fallback": "基于来源的摘要",
                 "mode.unavailable": "暂无解释",
@@ -1020,24 +1570,56 @@ def _script(default_period: str, ticker: str, benchmark: str) -> str:
                 "ask.title": "向证据提问",
                 "ask.validated": "每个答案都经过校验",
                 "ask.intro": (
-                    "选择模型并询问 {ticker}。模型只能读取本页缓存的 SEC 原文、计算得到的"
-                    "历史表现、披露后的市场反应和匹配到的公司新闻。无法支持的引用、虚构数字、"
-                    "投资建议和价格预测不会显示。"
+                    "先选择一个引导式研究任务，检查自动生成的问题，再决定是否发送。"
+                    "模型只能使用本页冻结的证据。"
                 ),
                 "ask.model": "模型",
                 "ask.loading_models": "正在读取可用模型…",
                 "ask.answer_language": "回答语言",
                 "ask.question": "问题",
                 "ask.placeholder": "最新一份 8-K 披露了什么？",
-                "ask.latest_8k": "最新 8-K",
-                "ask.vs_benchmark": "对比基准",
-                "ask.evidence_limits": "证据边界",
-                "ask.submit": "询问模型",
+                "ask.choose_task": "选择要研究的问题",
+                "ask.choose_task_copy": "选择标签会生成一个受限问题，但不会自动发送。",
+                "ask.task_filing": "最新披露",
+                "ask.task_history": "历史表现对比",
+                "ask.task_risk": "实际风险",
+                "ask.task_limits": "证据边界",
+                "ask.guided_prompt": "引导式问题",
+                "ask.review_question": "检查或修改生成的问题",
+                "ask.review_question_copy": "发送前由你最终确认。",
+                "ask.task_filing_title": "解释最新公司披露",
+                "ask.task_filing_copy": "使用最新缓存的 8-K、提取事实和来源段落。",
+                "ask.task_filing_question": "最新一份 8-K 说了什么？哪些引用段落支持这个回答？",
+                "ask.task_history_title": "比较历史表现",
+                "ask.task_history_copy": "使用所选期间的计算回报，并按相同日期与 {benchmark} 比较。",
+                "ask.task_history_question": (
+                    "在所选历史期间，{ticker} 相对 {benchmark} 的表现如何？"
+                ),
+                "ask.task_risk_title": "解释实际发生过的风险",
+                "ask.task_risk_copy": "使用回撤、波动率、最差单日、Beta 和修复时间指标。",
+                "ask.task_risk_question": (
+                    "所选期间内 {ticker} 经历了哪些风险？这些历史指标不能预测什么？"
+                ),
+                "ask.task_limits_title": "审查证据边界",
+                "ask.task_limits_copy": "说明缓存了什么、缺少什么，以及本页无法证明什么。",
+                "ask.task_limits_question": (
+                    "目前包含和排除了哪些证据？哪些结论无法得到支持？"
+                ),
+                "ask.submit": "3 · 询问所选模型",
+                "ask.retry": "重新检查模型",
                 "ask.checking_models": "正在检查可用模型…",
-                "ask.control_title": "如何让回答保持可控",
-                "ask.control_1": "问题只会匹配到冻结的 {ticker} 证据包。",
-                "ask.control_2": "所选模型必须返回结构化结论和引用编号。",
-                "ask.control_3": "服务端会拦截无来源引用、额外数字、投资建议和价格预测。",
+                "ask.scope_title": "这个演示可以回答什么",
+                "ask.in_scope": "可以回答",
+                "ask.in_scope_1": "最新 8-K 说了什么，并提供引用段落",
+                "ask.in_scope_2": "相对基准的历史回报和风险",
+                "ask.in_scope_3": "披露后的观测反应和历史措辞变化",
+                "ask.in_scope_4": "当前有哪些证据、缺少哪些证据",
+                "ask.out_scope": "始终拦截",
+                "ask.out_scope_1": "买入、卖出或持有建议",
+                "ask.out_scope_2": "目标价格和未来预测",
+                "ask.out_scope_3": "无引用事实或虚构数字",
+                "ask.out_scope_4": "超出冻结证据包的结论",
+                "ask.control_flow": "生成问题 → 受限证据 → 模型 → 校验器 → 带引用答案",
                 "ask.boundary": (
                     "范围：解释而非推荐 · 问题最多 280 字符 · 公开演示限流 · API 密钥只在服务端"
                 ),
@@ -1067,8 +1649,9 @@ def _script(default_period: str, ticker: str, benchmark: str) -> str:
                 "filings.sec_checked": "SEC 检查日期",
                 "filings.sec_collected": "SEC 缓存采集日期",
                 "filings.sec_unavailable": "SEC 缓存时间不可用",
-                "filings.intro": "最新披露默认展开：查看公司说了什么、下一可交易日如何变化，以及措辞是否有实质改变。",
+                "filings.intro": "最新披露保持展开：查看公司说了什么、下一可交易日如何变化，以及措辞是否有实质改变。",
                 "filing.accepted": "SEC 接收时间",
+                "filing.latest": "最新披露",
                 "filing.view_evidence": "查看证据",
                 "filing.source_facts": "来源段落与提取事实",
                 "filing.extracted_facts": "提取到的事实",
@@ -1125,7 +1708,9 @@ def _script(default_period: str, ticker: str, benchmark: str) -> str:
                 ),
                 "ask.models_ready": "已有 {count} 个通过校验的模型可用",
                 "ask.models_unavailable": "实时模型暂不可用",
-                "ask.offline": "页面证据仍可查看；实时问答目前离线。",
+                "ask.not_configured": "线上问答尚未配置",
+                "ask.not_configured_status": "线上问答尚未配置；页面证据仍可阅读。",
+                "ask.offline": "无法检查可用模型。页面证据仍可阅读。",
                 "ask.reading": "正在读取受限证据包…",
                 "ask.waiting": "正在等待所选模型…",
                 "ask.answer_failed": "暂时无法生成答案。",
@@ -1171,7 +1756,20 @@ function applyLanguage(language, persist=true) {{
   uiLanguage = language === 'zh' ? 'zh' : 'en';
   document.documentElement.lang = uiLanguage === 'zh' ? 'zh-CN' : 'en';
   document.querySelectorAll('[data-i18n]').forEach(element => {{
-    element.textContent = tr(element.dataset.i18n, {{ticker, benchmark}});
+    if (element.dataset.i18nEn || element.dataset.i18nZh) {{
+      element.textContent = uiLanguage === 'zh'
+        ? (element.dataset.i18nZh || element.dataset.i18nEn || element.textContent)
+        : (element.dataset.i18nEn || element.textContent);
+      return;
+    }}
+    const values = {{
+      ticker,
+      benchmark,
+      count: element.dataset.i18nCount || '',
+      suffix: element.dataset.i18nSuffix || '',
+      pct: element.dataset.i18nPct || '',
+    }};
+    element.textContent = tr(element.dataset.i18n, values);
   }});
   document.querySelectorAll('[data-i18n-placeholder]').forEach(element => {{
     element.placeholder = tr(element.dataset.i18nPlaceholder, {{ticker, benchmark}});
@@ -1190,10 +1788,6 @@ function applyLanguage(language, persist=true) {{
       ? 'mode.fallback'
       : 'mode.unavailable';
   modeBadge.textContent = tr(modeKey);
-  document.querySelectorAll('[data-question-en]').forEach(button => {{
-    const raw = uiLanguage === 'zh' ? button.dataset.questionZh : button.dataset.questionEn;
-    button.dataset.question = raw.replaceAll('{{ticker}}', ticker);
-  }});
   const toggle = document.getElementById('language-toggle');
   toggle.textContent = uiLanguage === 'zh' ? 'EN' : '中文';
   toggle.setAttribute('aria-label', uiLanguage === 'zh' ? 'Switch to English' : '切换为中文');
@@ -1203,9 +1797,12 @@ function applyLanguage(language, persist=true) {{
     'performance.benchmark_ending', {{benchmark}},
   );
   refreshAskStatus();
-  if (askModel.dataset.state === 'unavailable' && askModel.options.length) {{
-    askModel.options[0].textContent = tr('ask.models_unavailable');
+  if (askModel.options.length && (askModel.dataset.state === 'unavailable' || askModel.dataset.state === 'not_configured')) {{
+    askModel.options[0].textContent = tr(
+      askModel.dataset.state === 'not_configured' ? 'ask.not_configured' : 'ask.models_unavailable',
+    );
   }}
+  refreshAskTask();
   if (persist) {{
     try {{ window.localStorage.setItem('company-lens-language', uiLanguage); }} catch (error) {{}}
   }}
@@ -1301,8 +1898,87 @@ const askModel = document.getElementById('ask-model');
 const askLanguage = document.getElementById('ask-language');
 const askQuestion = document.getElementById('ask-question');
 const askSubmit = document.getElementById('ask-submit');
+const askRetry = document.getElementById('ask-retry');
 const askStatus = document.getElementById('ask-status');
 const askResult = document.getElementById('ask-result');
+const askTaskTitle = document.getElementById('ask-task-title');
+const askTaskDescription = document.getElementById('ask-task-description');
+const askTaskTabs = Array.from(document.querySelectorAll('[data-ask-task]'));
+const askTaskDefinitions = {{
+  filing: {{
+    title: 'ask.task_filing_title',
+    copy: 'ask.task_filing_copy',
+    question: 'ask.task_filing_question',
+  }},
+  history: {{
+    title: 'ask.task_history_title',
+    copy: 'ask.task_history_copy',
+    question: 'ask.task_history_question',
+  }},
+  risk: {{
+    title: 'ask.task_risk_title',
+    copy: 'ask.task_risk_copy',
+    question: 'ask.task_risk_question',
+  }},
+  limits: {{
+    title: 'ask.task_limits_title',
+    copy: 'ask.task_limits_copy',
+    question: 'ask.task_limits_question',
+  }},
+  quality: {{
+    title: 'ask.task_quality_title',
+    copy: 'ask.task_quality_copy',
+    question: 'ask.task_quality_question',
+  }},
+  cash: {{
+    title: 'ask.task_cash_title',
+    copy: 'ask.task_cash_copy',
+    question: 'ask.task_cash_question',
+  }},
+  capital: {{
+    title: 'ask.task_capital_title',
+    copy: 'ask.task_capital_copy',
+    question: 'ask.task_capital_question',
+  }},
+  thesis: {{
+    title: 'ask.task_thesis_title',
+    copy: 'ask.task_thesis_copy',
+    question: 'ask.task_thesis_question',
+  }},
+  missing: {{
+    title: 'ask.task_missing_title',
+    copy: 'ask.task_missing_copy',
+    question: 'ask.task_missing_question',
+  }},
+}};
+let activeAskTask = 'filing';
+let lastGuidedQuestion = '';
+
+function refreshAskTask(forceQuestion=false) {{
+  const definition = askTaskDefinitions[activeAskTask] || askTaskDefinitions.filing;
+  const values = {{ticker, benchmark}};
+  const nextQuestion = tr(definition.question, values);
+  const shouldReplace = forceQuestion
+    || !askQuestion.value.trim()
+    || askQuestion.value === lastGuidedQuestion;
+  askTaskTitle.textContent = tr(definition.title, values);
+  askTaskDescription.textContent = tr(definition.copy, values);
+  askTaskTabs.forEach(tab => {{
+    const active = tab.dataset.askTask === activeAskTask;
+    tab.classList.toggle('active', active);
+    tab.setAttribute('aria-selected', String(active));
+    tab.tabIndex = active ? 0 : -1;
+  }});
+  if (shouldReplace) askQuestion.value = nextQuestion;
+  lastGuidedQuestion = nextQuestion;
+}}
+
+function selectAskTask(task) {{
+  if (!askTaskDefinitions[task]) return;
+  activeAskTask = task;
+  refreshAskTask(true);
+  askQuestion.focus();
+}}
 
 function setAskStatus(message, state='') {{
   askStatus.textContent = message;
@@ -1327,24 +2003,35 @@ function refreshAskStatus() {{
 }}
 
 async function loadAskModels() {{
+  askRetry.hidden = true;
   try {{
     const response = await fetch('/api/ask', {{headers: {{Accept: 'application/json'}}}});
-    if (!response.ok) throw new Error(tr('ask.offline'));
+    if (!response.ok) throw new Error('network');
     const payload = await response.json();
+    const models = Array.isArray(payload.models) ? payload.models : [];
     askModel.replaceChildren();
-    payload.models.forEach(model => {{
+    if (!models.length) {{
+      const option = document.createElement('option');
+      option.textContent = tr('ask.not_configured');
+      askModel.append(option);
+      askModel.dataset.state = 'not_configured';
+      askModel.disabled = true;
+      askSubmit.disabled = true;
+      setTranslatedAskStatus('ask.not_configured_status', {{}}, 'notice');
+      return;
+    }}
+    models.forEach(model => {{
       const option = document.createElement('option');
       option.value = model.id;
       option.textContent = `${{model.provider}} · ${{model.model}}`;
       askModel.append(option);
     }});
-    if (!payload.models.length) throw new Error(tr('ask.offline'));
     askModel.dataset.state = 'ready';
     askModel.disabled = false;
     askSubmit.disabled = false;
     setTranslatedAskStatus('ask.models_ready', {{
-      count: payload.models.length,
-      suffix: payload.models.length === 1 ? '' : 's',
+      count: models.length,
+      suffix: models.length === 1 ? '' : 's',
     }}, 'ready');
   }} catch (error) {{
     askModel.replaceChildren();
@@ -1352,14 +2039,24 @@ async function loadAskModels() {{
     option.textContent = tr('ask.models_unavailable');
     askModel.append(option);
     askModel.dataset.state = 'unavailable';
+    askModel.disabled = true;
+    askSubmit.disabled = true;
+    askRetry.hidden = false;
     setTranslatedAskStatus('ask.offline', {{}}, 'error');
   }}
 }}
 
-document.querySelectorAll('[data-question]').forEach(button => {{
-  button.addEventListener('click', () => {{
-    askQuestion.value = button.dataset.question;
-    askQuestion.focus();
+askRetry.addEventListener('click', loadAskModels);
+
+askTaskTabs.forEach((tab, index) => {{
+  tab.addEventListener('click', () => selectAskTask(tab.dataset.askTask));
+  tab.addEventListener('keydown', event => {{
+    if (!['ArrowLeft', 'ArrowRight'].includes(event.key)) return;
+    event.preventDefault();
+    const direction = event.key === 'ArrowRight' ? 1 : -1;
+    const nextIndex = (index + direction + askTaskTabs.length) % askTaskTabs.length;
+    askTaskTabs[nextIndex].focus();
+    selectAskTask(askTaskTabs[nextIndex].dataset.askTask);
   }});
 }});
 
@@ -1450,42 +2147,32 @@ function safeAskHref(value) {{
   return '#ask';
 }}
 
-const workspaceViews = Array.from(document.querySelectorAll('[data-workspace-view]'));
-const workspaceLinks = Array.from(
-  document.querySelectorAll('[data-view-target], .section-nav a[href^="#"]'),
+const pageNavLinks = Array.from(
+  document.querySelectorAll('.page-nav a[href^="#"], .section-nav a[href^="#"]'),
 );
-const workspaceTarget = link => link.dataset.viewTarget || link.getAttribute('href').slice(1);
+const pageSections = pageNavLinks
+  .map(link => document.getElementById(link.getAttribute('href').slice(1)))
+  .filter(Boolean);
 
-function activateWorkspace(view, updateHash=false, scroll=false) {{
-  const target = workspaceViews.find(panel => panel.dataset.workspaceView === view);
-  if (!target) return false;
-  document.documentElement.classList.add('workspace-enhanced');
-  workspaceViews.forEach(panel => {{
-    const active = panel === target;
-    panel.classList.toggle('workspace-active', active);
-    panel.toggleAttribute('hidden', !active);
-  }});
-  workspaceLinks.forEach(link => {{
-    const active = workspaceTarget(link) === view;
+function setActivePageNav(id) {{
+  pageNavLinks.forEach(link => {{
+    const active = link.getAttribute('href') === `#${{id}}`;
     link.classList.toggle('active', active);
-    if (active) link.setAttribute('aria-current', 'page');
+    if (active) link.setAttribute('aria-current', 'location');
     else link.removeAttribute('aria-current');
   }});
-  if (updateHash) history.pushState(null, '', `#${{view}}`);
-  if (scroll) document.getElementById('workspace').scrollIntoView({{block: 'start'}});
-  return true;
 }}
 
-workspaceLinks.forEach(link => link.addEventListener('click', event => {{
-  event.preventDefault();
-  activateWorkspace(workspaceTarget(link), true, true);
-}}));
-window.addEventListener('hashchange', () => {{
-  const view = window.location.hash.slice(1);
-  if (view) activateWorkspace(view);
-}});
-const requestedView = window.location.hash.slice(1);
-activateWorkspace(requestedView || 'brief');
+if ('IntersectionObserver' in window && pageSections.length) {{
+  const visible = new Map();
+  const observer = new IntersectionObserver(entries => {{
+    entries.forEach(entry => visible.set(entry.target.id, entry.isIntersecting));
+    const current = pageSections.find(section => visible.get(section.id));
+    if (current) setActivePageNav(current.id);
+  }}, {{rootMargin: '-150px 0px -55% 0px', threshold: [0.12, 0.35]}});
+  pageSections.forEach(section => observer.observe(section));
+}}
+if (window.location.hash) setActivePageNav(window.location.hash.slice(1));
 
 document.getElementById('language-toggle').addEventListener('click', () => {{
   applyLanguage(uiLanguage === 'en' ? 'zh' : 'en');
@@ -1534,7 +2221,7 @@ const indexTranslations = {
     'directory.page': 'Page {page} of {pages} · {count} cached companies',
     'method.eyebrow': 'HOW TO READ A LENS',
     'method.title': 'Company first. Evidence second.',
-    'method.expand': 'Open the 3-step guide',
+    'method.expand': 'Under the hood',
     'method.intro': 'Every page follows one order: historical picture, latest SEC disclosure, then company-specific context. Broad market headlines and implementation details stay off the company page so they cannot be mistaken for company evidence.',
     'method.history': 'History',
     'method.history_copy': 'Price and risk versus SPY',
@@ -1568,7 +2255,7 @@ const indexTranslations = {
     'directory.page': '第 {page} / {pages} 页 · 共 {count} 家缓存公司',
     'method.eyebrow': '如何阅读公司页',
     'method.title': '先看公司，再核验证据。',
-    'method.expand': '展开三步阅读指南',
+    'method.expand': '技术细节',
     'method.intro': '每个公司页按同一顺序呈现：长期历史表现、最新 SEC 披露、公司相关信息。宽泛市场新闻和实现细节不会混入公司证据。',
     'method.history': '历史表现',
     'method.history_copy': '价格与风险对比 SPY',
@@ -1695,27 +2382,30 @@ def _css() -> str:
 *{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:var(--paper);color:var(--ink);font-family:Inter,ui-sans-serif,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;font-size:16px;line-height:1.55}.topbar{height:70px;padding:0 max(28px,calc((100vw - 1240px)/2));display:flex;align-items:center;border-bottom:1px solid var(--line);background:rgba(244,243,239,.94);position:sticky;top:0;z-index:20;backdrop-filter:blur(16px)}.brand{display:flex;align-items:center;gap:10px;color:var(--navy);font-weight:760;text-decoration:none;letter-spacing:-.02em}.brand-mark{display:grid;place-items:center;width:32px;height:32px;border-radius:9px;background:var(--navy);color:white;font-size:11px;letter-spacing:.04em}.topbar nav{display:flex;align-items:center;margin-left:55px;gap:8px}.company-search-link{padding:7px 10px;border-radius:8px;color:var(--muted);font-size:12px;font-weight:700;text-decoration:none}.company-search-link:hover{background:var(--panel);color:var(--ink)}.current-symbol{padding:5px 8px;border:1px solid var(--line);border-radius:7px;background:var(--panel);color:var(--ink);font-size:11px;font-weight:800;letter-spacing:.06em}.trust-label{margin-left:auto;color:var(--green);font-size:12px;font-weight:750;text-transform:uppercase;letter-spacing:.08em}.language-toggle{margin-left:14px;padding:6px 10px;border:1px solid var(--line);border-radius:999px;background:var(--panel);color:var(--ink);font:750 11px/1.2 "Avenir Next","Segoe UI",sans-serif;cursor:pointer}.language-toggle:hover{border-color:#aebbc0;color:var(--blue)}.language-toggle:focus-visible{outline:3px solid rgba(40,100,220,.18);outline-offset:2px}main{max-width:1240px;margin:auto;padding:30px 28px 90px}.scope-warning{padding:11px 15px;border:1px solid #ead2ad;border-radius:10px;background:var(--amber-soft);display:flex;gap:15px;font-size:12px;color:#775020}.scope-warning strong{text-transform:uppercase;letter-spacing:.08em}.company-hero{display:flex;justify-content:space-between;align-items:end;padding:65px 0 48px}.eyebrow{margin:0 0 10px;color:var(--blue);font-size:11px;font-weight:800;letter-spacing:.13em}.company-title{display:flex;align-items:center;gap:16px}.company-title h1{margin:0;font-family:Georgia,"Times New Roman",serif;font-size:clamp(40px,5vw,68px);font-weight:500;line-height:1.05;letter-spacing:-.045em}.company-title>span{padding:7px 10px;background:var(--navy);border-radius:8px;color:#fff;font-size:13px;font-weight:800;letter-spacing:.06em}.hero-copy{max-width:650px;margin:17px 0 0;color:var(--muted);font-size:18px}.market-observation{min-width:220px;padding-left:25px;border-left:1px solid var(--line);display:flex;flex-direction:column;align-items:flex-end}.market-observation span,.ending-card>span{color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.08em;font-weight:700}.market-observation strong{font-family:Georgia,serif;font-size:38px;font-weight:500}.market-observation small{color:var(--muted)}section{margin-bottom:28px;padding:38px;border:1px solid var(--line);border-radius:20px;background:var(--panel);box-shadow:0 1px 0 rgba(255,255,255,.6)}.section-heading{display:flex;align-items:start;justify-content:space-between;gap:24px}.section-heading h2,.trust-section h2{margin:0;font-family:Georgia,serif;font-size:34px;font-weight:500;letter-spacing:-.025em}.mode-badge,.freshness{padding:7px 10px;border:1px solid var(--line);border-radius:999px;color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.06em}.brief-section{background:var(--navy);color:#fff;border-color:var(--navy);box-shadow:var(--shadow)}.brief-section .eyebrow{color:#78a7ff}.brief-section .mode-badge{border-color:#365166;color:#aebfca}.brief-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;margin-top:28px;background:#365166;border:1px solid #365166;border-radius:14px;overflow:hidden}.brief-card{min-height:190px;padding:25px;background:#122d41}.brief-card>span{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.1em}.brief-card.observed>span{color:#80aaff}.brief-card.calculated>span{color:#5fd0aa}.brief-card.interpreted>span{color:#e9b66d}.brief-card p{font-family:Georgia,serif;font-size:20px;line-height:1.45}.claim-links{display:flex;gap:8px}.claim-links a{font-size:11px;color:#d9e6ee;text-decoration:none;border-bottom:1px solid #6e8290}.authority-row{display:flex;gap:25px;margin-top:22px;color:#aebfca;font-size:11px}.authority-row span{display:flex;align-items:center;gap:7px}.dot{width:7px;height:7px;border-radius:50%}.dot.observed{background:#80aaff}.dot.calculated{background:#5fd0aa}.dot.interpreted{background:#e9b66d}.performance-section{padding-bottom:30px}.performance-heading{align-items:center}.period-control{display:flex;padding:4px;background:var(--paper);border-radius:10px}.period-button{border:0;background:transparent;padding:7px 13px;border-radius:7px;color:var(--muted);font-weight:750;cursor:pointer}.period-button:hover{color:var(--ink)}.period-button.active{background:var(--panel);color:var(--blue);box-shadow:0 2px 8px rgba(20,40,55,.08)}.section-intro{max-width:730px;margin:10px 0 28px;color:var(--muted)}.performance-layout{display:grid;grid-template-columns:minmax(0,1fr) 230px;gap:18px}.chart-panel{position:relative;border:1px solid var(--line);border-radius:14px;padding:18px;background:#fbfcfc}.chart-legend{height:25px;display:flex;align-items:center;gap:18px;color:var(--muted);font-size:11px}.chart-legend span:last-child{margin-left:auto}.line{display:inline-block;width:18px;height:3px;border-radius:2px;margin-right:6px;vertical-align:middle}.line.asset{background:var(--blue)}.line.benchmark{background:#8a969e}#growth-chart{display:block;width:100%;overflow:visible}#growth-chart path{fill:none;stroke-linecap:round;stroke-linejoin:round}#asset-path{stroke:var(--blue);stroke-width:3}#benchmark-path{stroke:#99a4ab;stroke-width:2}#chart-grid line{stroke:#e6eaeb;stroke-width:1}#chart-labels text{font-size:10px;fill:#7c888f}#hover-line{stroke:#91a0a8;stroke-dasharray:3 3;opacity:0;pointer-events:none}#asset-point{fill:var(--blue);stroke:white;stroke-width:2;opacity:0}#benchmark-point{fill:#89969e;stroke:white;stroke-width:2;opacity:0}.chart-hit{fill:transparent;cursor:crosshair}.chart-tooltip{position:absolute;top:72px;transform:translateX(-50%);display:none;min-width:155px;padding:10px 12px;background:var(--navy);color:#fff;border-radius:9px;box-shadow:var(--shadow);pointer-events:none;font-size:11px}.chart-tooltip.visible{display:flex;flex-direction:column}.chart-tooltip b{margin-bottom:4px}.ending-card{padding:24px;background:var(--blue-soft);border-radius:14px;display:flex;flex-direction:column}.ending-card>strong{margin:8px 0 2px;font-family:Georgia,serif;font-size:34px;font-weight:500;color:#173f91}.ending-card>small{color:#4d6d9f}.mini-comparison{margin-top:auto;padding-top:18px;border-top:1px solid #cfdbf3;display:flex;flex-direction:column;color:#4d6d9f;font-size:11px}.mini-comparison b{font-size:17px;color:#173f91}.metric-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:10px;margin-top:18px}.metric-card{padding:16px;border:1px solid var(--line);border-radius:12px}.metric-card>span{display:flex;justify-content:space-between;min-height:36px;color:var(--muted);font-size:11px;font-weight:700}.metric-card i{display:grid;place-items:center;width:17px;height:17px;border:1px solid var(--line);border-radius:50%;font-style:normal}.metric-card strong{display:block;font-family:Georgia,serif;font-size:25px;font-weight:500}.metric-card small{display:none}.risk-note{display:flex;gap:20px;margin-top:18px;padding:15px 18px;border-left:3px solid var(--amber);background:var(--amber-soft);color:#664b2e;font-size:13px}.risk-note strong{min-width:130px}.filing-list{display:flex;flex-direction:column;gap:10px}.filing-card{border:1px solid var(--line);border-radius:14px;overflow:hidden}.filing-card summary{list-style:none;padding:18px 20px;display:flex;align-items:center;justify-content:space-between;cursor:pointer}.filing-card summary::-webkit-details-marker{display:none}.filing-card summary>div:first-child{display:grid;grid-template-columns:auto 1fr;gap:2px 11px;align-items:center}.filing-card summary strong{font-size:15px}.filing-card summary small{grid-column:2;color:var(--muted)}.filing-form{grid-row:1/3;padding:7px 9px;background:var(--green-soft);color:var(--green);border-radius:8px;font-weight:800}.filing-summary-meta{display:flex;align-items:center;gap:18px;color:var(--muted);font-size:12px}.filing-summary-meta i{font-size:18px;transition:transform .2s}.filing-card[open] .filing-summary-meta i{transform:rotate(180deg)}.filing-body{padding:0 20px 22px;border-top:1px solid var(--line);background:#fbfcfc}.filing-items{display:flex;flex-wrap:wrap;gap:7px;padding:16px 0}.item-chip,.number-chip{padding:5px 8px;border-radius:7px;background:var(--paper);color:var(--muted);font-size:11px;text-decoration:none}.number-chip{background:var(--blue-soft);color:#2855a7;font-weight:750}.filing-columns{display:grid;grid-template-columns:minmax(0,1fr) 230px;gap:30px}.filing-columns h3{margin:16px 0 8px;font-size:11px;text-transform:uppercase;letter-spacing:.08em}.number-list{display:flex;flex-wrap:wrap;gap:6px}.passages{display:flex;flex-direction:column;gap:8px}blockquote{margin:0;padding:14px 16px;border-left:2px solid #9db8ed;background:#fff}blockquote p{margin:0 0 7px;font-family:Georgia,serif;font-size:15px}blockquote a,.filing-columns aside a{color:var(--blue);font-size:10px;text-decoration:none}.filing-columns aside{padding:16px;border-radius:10px;background:var(--paper);display:flex;flex-direction:column;align-items:start;gap:8px;font-size:11px;color:var(--muted)}.filing-columns aside>span{text-transform:uppercase;letter-spacing:.08em}.filing-columns aside code{word-break:break-all;color:var(--ink)}.missing,.empty{color:var(--muted);font-size:12px;font-style:italic}.trust-section{background:#e9ece9}.trust-section>.eyebrow{color:var(--green)}.trust-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:15px;margin-top:28px}.trust-grid article{padding:20px;background:rgba(255,255,255,.6);border-radius:12px}.trust-grid article>span{font-family:Georgia,serif;color:var(--green);font-size:24px}.trust-grid h3{margin:8px 0 4px}.trust-grid p{margin:0;color:var(--muted);font-size:13px}footer{max-width:1240px;margin:auto;padding:28px;display:flex;justify-content:space-between;border-top:1px solid var(--line);color:var(--muted);font-size:12px}footer>div:first-child{display:flex;flex-direction:column}.footer-meta{display:flex;gap:20px}
 .freshness-group{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:6px}.entity-chip{display:inline-flex;align-items:center;gap:6px}.entity-chip small{padding-right:6px;border-right:1px solid #b9c9e8;color:#60749a;font-size:8px;text-transform:uppercase;letter-spacing:.05em}.entity-mark{padding:1px 3px;border-radius:3px;background:#e8efff;color:inherit}.entity-mark.percentage{background:#e7f5ee}.entity-mark.date{background:#fff0da}.reaction-panel{margin:0 0 14px;padding:18px;border:1px solid #cfe0d8;border-radius:12px;background:#f3f8f5}.reaction-heading{display:flex;justify-content:space-between;gap:20px}.reaction-heading>div{display:flex;flex-direction:column}.reaction-heading span{color:var(--green);font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.07em}.reaction-heading strong{font-size:13px}.reaction-heading>small{color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:.07em}.reaction-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:13px}.reaction-grid>div{padding:12px;border:1px solid #dbe8e1;border-radius:9px;background:#fff;display:flex;flex-direction:column}.reaction-grid span{color:var(--muted);font-size:9px;text-transform:uppercase;letter-spacing:.07em}.reaction-grid strong{margin:3px 0;font-family:Georgia,serif;font-size:19px;font-weight:500}.reaction-grid small,.reaction-panel>p{color:var(--muted);font-size:10px}.reaction-panel>p{margin:12px 0 0}.reaction-empty{display:flex;flex-direction:column;margin:0 0 14px;padding:13px 15px;border:1px dashed #cfe0d8;border-radius:10px;color:var(--muted);font-size:11px}.reaction-empty strong{color:var(--ink)}.comparison-panel{margin:0 0 22px;padding:18px;border:1px solid #cddbed;border-radius:12px;background:#f5f8fd}.comparison-heading{display:flex;justify-content:space-between;gap:20px}.comparison-heading>div{display:flex;flex-direction:column}.comparison-heading span{color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:.07em}.comparison-heading strong{font-size:13px}.comparison-heading a,.change-quote a{color:var(--blue);font-size:10px;text-decoration:none}.change-counts{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px}.change-count{padding:4px 7px;border-radius:999px;font-size:10px;font-weight:750}.change-count.changed{background:#fff1d8;color:#825616}.change-count.added{background:var(--green-soft);color:var(--green)}.change-count.removed{background:#f8e9e7;color:#98473e}.change-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:12px}.change-card{padding:12px;border:1px solid var(--line);border-radius:9px;background:#fff}.change-card header{display:flex;justify-content:space-between;gap:10px}.change-card header>strong{font-size:11px;text-transform:uppercase;letter-spacing:.07em}.similarity{color:var(--muted);font-size:10px}.change-quote{margin-top:9px;padding-left:9px;border-left:2px solid #b9c8df}.change-quote>span{color:var(--muted);font-size:9px;text-transform:uppercase;letter-spacing:.08em}.change-quote p{margin:2px 0 5px;font-family:Georgia,serif;font-size:13px;line-height:1.4}.comparison-empty{display:flex;flex-direction:column;margin:0 0 22px;padding:13px 15px;border:1px dashed var(--line);border-radius:10px;color:var(--muted);font-size:11px}.comparison-empty strong{color:var(--ink)}.profile-category{margin:18px 0 0;color:var(--blue);font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.09em}.hero-copy{margin-top:6px}.profile-meta{display:flex;flex-wrap:wrap;gap:6px 16px;margin-top:14px;color:var(--muted);font-size:11px}.profile-meta a{color:var(--blue);text-decoration:none;border-bottom:1px solid #aac0eb}.metric-grid{grid-template-columns:repeat(4,1fr)}
 .timeline-panel{margin:0 0 20px;padding:18px;border:1px solid var(--line);border-radius:12px;background:#fbfcfc}.timeline-heading{display:flex;justify-content:space-between;gap:20px}.timeline-heading>div{display:flex;flex-direction:column}.timeline-heading span{color:var(--blue);font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.07em}.timeline-heading strong{font-size:13px}.timeline-heading>small{color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:.06em}.timeline-track{position:relative;display:grid;grid-auto-flow:column;grid-auto-columns:minmax(155px,1fr);gap:8px;margin-top:16px;padding-top:14px;overflow-x:auto;scrollbar-width:thin}.timeline-track:before{content:"";position:absolute;top:20px;left:12px;right:12px;height:1px;background:var(--line)}.timeline-event{position:relative;min-height:145px;padding:20px 12px 12px;border:1px solid var(--line);border-radius:9px;background:#fff;color:var(--ink);text-decoration:none;display:flex;flex-direction:column}.timeline-event>i{position:absolute;top:-10px;left:14px;width:13px;height:13px;border:3px solid #fff;border-radius:50%;background:#8d989f;box-shadow:0 0 0 1px var(--line)}.timeline-event.positive>i{background:var(--green)}.timeline-event.negative>i{background:#a74e43}.timeline-event>span,.timeline-event>small{color:var(--muted);font-size:9px;text-transform:uppercase;letter-spacing:.05em}.timeline-event>strong{margin:5px 0 2px;font-size:11px;line-height:1.35}.timeline-event>b{margin-top:auto;font-size:12px}.timeline-event>em{color:var(--muted);font-size:9px;font-style:normal}.timeline-panel>p{margin:11px 0 0;color:var(--muted);font-size:10px}
-.topbar .section-nav{margin-left:auto;gap:3px}.section-nav a{padding:7px 9px;border-radius:7px;color:var(--muted);font-size:11px;font-weight:750;text-decoration:none}.section-nav a:hover{background:var(--panel);color:var(--blue)}.trust-label{margin-left:22px}.company-hero{padding:46px 0 34px}.evidence-flow{display:flex;align-items:center;gap:9px;margin-top:18px;color:var(--muted);font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.07em}.evidence-flow span{padding:5px 8px;border:1px solid var(--line);border-radius:999px;background:rgba(255,255,255,.62)}.evidence-flow i{color:var(--blue);font-style:normal}.brief-section{background:linear-gradient(135deg,#0d2436 0%,#132f43 100%)}.brief-intro{max-width:680px;margin:9px 0 0;color:#aebfca;font-size:13px}.brief-grid{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:10px;margin-top:26px;background:transparent;border:0;border-radius:0;overflow:visible}.brief-card{min-height:0;padding:24px;border:1px solid #365166;border-radius:13px;background:rgba(16,43,62,.82)}.brief-lead{grid-column:span 7;background:linear-gradient(145deg,#173a55,#122d41)}.brief-numbers{grid-column:span 5;background:#102f38}.brief-reading,.brief-limit{grid-column:span 6}.brief-limit{background:#302c2a;border-color:#5b4a3b}.brief-card>span,.brief-card-heading>span{font-size:10px;font-weight:850;text-transform:uppercase;letter-spacing:.11em}.brief-card.observed>span,.brief-card.observed .brief-card-heading>span{color:#80aaff}.brief-card.calculated>span{color:#5fd0aa}.brief-card.interpreted>span{color:#b7c9ff}.brief-card.guardrail>span{color:#e9b66d}.brief-card-heading{display:flex;justify-content:space-between;gap:18px}.brief-card-heading>a,.brief-numbers>a{color:#d9e6ee;font-size:10px;text-decoration:none;border-bottom:1px solid #6e8290}.brief-card h3{max-width:540px;margin:18px 0 7px;font-family:Georgia,serif;font-size:26px;font-weight:500;line-height:1.15}.brief-card p{margin:11px 0;font-family:Georgia,serif;font-size:17px;line-height:1.48}.brief-lead>p{font-size:19px}.brief-meta{display:flex;flex-wrap:wrap;gap:6px;margin:18px 0 8px}.brief-meta span{padding:5px 7px;border:1px solid #466177;border-radius:6px;color:#bacad4;font-size:9px}.brief-metrics{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:19px 0 14px}.brief-metrics>div{padding:14px;border:1px solid #28514e;border-radius:10px;background:rgba(9,33,37,.55)}.brief-metrics strong{display:block;font-family:Georgia,serif;font-size:31px;font-weight:500;color:#77ddb8}.brief-metrics small{color:#9bb9ae;font-size:9px;text-transform:uppercase;letter-spacing:.06em}.brief-numbers p{color:#b8c9c4;font-family:inherit;font-size:11px}.claim-links{flex-wrap:wrap}.authority-row{align-items:center}.authority-row span b{color:#fff;font-size:9px}.authority-row>em{color:#627786;font-style:normal}.diagnostic-heading{display:flex;justify-content:space-between;align-items:end;margin-top:22px;padding-top:17px;border-top:1px solid var(--line)}.diagnostic-heading span{font-size:12px;font-weight:800}.diagnostic-heading small{color:var(--muted);font-size:10px}.metric-grid{grid-template-columns:repeat(3,1fr);margin-top:10px}.metric-card{background:#fbfcfc;transition:border-color .18s,transform .18s}.metric-card:hover{border-color:#b9c9d8;transform:translateY(-1px)}.trust-grid article>b{display:block;margin-top:7px;color:var(--green);font-size:8px;letter-spacing:.1em}#brief,#performance,#filings,#context,#method{scroll-margin-top:90px}.section-nav a:focus-visible,.brief-card a:focus-visible,.headline-card a:focus-visible{outline:3px solid #80aaff;outline-offset:3px}
-.workspace-switcher{position:sticky;top:70px;z-index:14;display:grid;grid-template-columns:auto minmax(0,1fr);align-items:center;gap:28px;margin:0 0 28px;padding:12px 14px;border:1px solid var(--line);background:rgba(244,243,239,.96);backdrop-filter:blur(14px);box-shadow:0 10px 30px rgba(24,42,53,.06)}.workspace-switcher p{margin:0}.workspace-switcher>div:first-child{min-width:170px}.workspace-switcher>div:first-child strong{font:500 17px/1.2 Georgia,serif}.workspace-links{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(108px,1fr);gap:5px;overflow-x:auto}.workspace-links a{display:grid;grid-template-columns:auto 1fr;align-items:center;gap:8px;padding:10px 11px;border:1px solid transparent;color:var(--muted);text-decoration:none}.workspace-links a span{color:#97a3aa;font-size:9px;font-weight:800}.workspace-links a b{font-size:11px}.workspace-links a:hover{border-color:var(--line);background:var(--panel);color:var(--blue)}.workspace-links a.active{border-color:var(--navy);background:var(--navy);color:#fff}.workspace-links a.active span{color:#87afff}.section-nav a.active{background:var(--panel);color:var(--blue)}[data-workspace-view][hidden]{display:none!important}#workspace{scroll-margin-top:82px}
+.topbar .section-nav{margin-left:auto;gap:3px}.section-nav a{padding:7px 9px;border-radius:7px;color:var(--muted);font-size:11px;font-weight:750;text-decoration:none}.section-nav a:hover{background:var(--panel);color:var(--blue)}.trust-label{margin-left:22px}.company-hero{padding:46px 0 34px}.evidence-flow{display:flex;align-items:center;gap:9px;margin-top:18px;color:var(--muted);font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.07em}.evidence-flow span{padding:5px 8px;border:1px solid var(--line);border-radius:999px;background:rgba(255,255,255,.62)}.evidence-flow i{color:var(--blue);font-style:normal}.brief-section{background:linear-gradient(135deg,#0d2436 0%,#132f43 100%)}.brief-intro{max-width:680px;margin:9px 0 0;color:#aebfca;font-size:13px}.brief-grid{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:10px;margin-top:26px;background:transparent;border:0;border-radius:0;overflow:visible}.brief-card{min-height:0;padding:24px;border:1px solid #365166;border-radius:13px;background:rgba(16,43,62,.82)}.brief-lead{grid-column:span 7;background:linear-gradient(145deg,#173a55,#122d41)}.brief-numbers{grid-column:span 5;background:#102f38}.brief-reading,.brief-limit{grid-column:span 6}.brief-limit{background:#302c2a;border-color:#5b4a3b}.brief-card>span,.brief-card-heading>span{font-size:10px;font-weight:850;text-transform:uppercase;letter-spacing:.11em}.brief-card.observed>span,.brief-card.observed .brief-card-heading>span{color:#80aaff}.brief-card.calculated>span{color:#5fd0aa}.brief-card.interpreted>span{color:#b7c9ff}.brief-card.guardrail>span{color:#e9b66d}.brief-card-heading{display:flex;justify-content:space-between;gap:18px}.brief-lead a,.brief-numbers a{color:#d9e6ee;font-size:10px;text-decoration:none;border-bottom:1px solid #6e8290}.filing-lead-header{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:12px 16px;align-items:center;padding:18px 20px;border-bottom:1px solid var(--line)}.filing-lead-header .eyebrow{margin:0 0 4px}.filing-lead-header h3{margin:0;font-size:18px;line-height:1.25}.filing-lead-header small{color:var(--muted)}.filing-lead-header a{color:var(--blue);font-size:11px;font-weight:750;text-decoration:none}.filing-lead .filing-body{border-top:0}.brief-card h3{max-width:540px;margin:18px 0 7px;font-family:Georgia,serif;font-size:26px;font-weight:500;line-height:1.15}.brief-card p{margin:11px 0;font-family:Georgia,serif;font-size:17px;line-height:1.48}.brief-lead>p{font-size:19px}.brief-meta{display:flex;flex-wrap:wrap;gap:6px;margin:18px 0 8px}.brief-meta span{padding:5px 7px;border:1px solid #466177;border-radius:6px;color:#bacad4;font-size:9px}.brief-metrics{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:19px 0 14px}.brief-metrics>div{padding:14px;border:1px solid #28514e;border-radius:10px;background:rgba(9,33,37,.55)}.brief-metrics strong{display:block;font-family:Georgia,serif;font-size:31px;font-weight:500;color:#77ddb8}.brief-metrics small{color:#9bb9ae;font-size:9px;text-transform:uppercase;letter-spacing:.06em}.brief-numbers p{color:#b8c9c4;font-family:inherit;font-size:11px}.claim-links{flex-wrap:wrap}.authority-row{align-items:center}.authority-row span b{color:#fff;font-size:9px}.authority-row>em{color:#627786;font-style:normal}.diagnostic-heading{display:flex;justify-content:space-between;align-items:end;margin-top:22px;padding-top:17px;border-top:1px solid var(--line)}.diagnostic-heading span{font-size:12px;font-weight:800}.diagnostic-heading small{color:var(--muted);font-size:10px}.metric-grid{grid-template-columns:repeat(3,1fr);margin-top:10px}.metric-card{background:#fbfcfc;transition:border-color .18s,transform .18s}.metric-card:hover{border-color:#b9c9d8;transform:translateY(-1px)}.trust-grid article>b{display:block;margin-top:7px;color:var(--green);font-size:8px;letter-spacing:.1em}#brief,#ask,#performance,#filings,#context,#page-nav,#method{scroll-margin-top:150px}.section-nav a:focus-visible,.brief-card a:focus-visible,.headline-card a:focus-visible{outline:3px solid #80aaff;outline-offset:3px}
+.page-nav{position:sticky;top:70px;z-index:14;display:grid;grid-template-columns:auto minmax(0,1fr);align-items:center;gap:28px;margin:0 0 28px;padding:12px 14px;border:1px solid var(--line);background:rgba(244,243,239,.96);backdrop-filter:blur(14px)}.page-nav p{margin:0}.page-nav>div:first-child{min-width:170px}.page-nav>div:first-child strong{font:500 17px/1.2 Georgia,serif}.page-nav-links{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(108px,1fr);gap:5px;overflow-x:auto}.page-nav-links a{display:grid;grid-template-columns:auto 1fr;align-items:center;gap:8px;padding:10px 11px;border:1px solid transparent;color:var(--muted);text-decoration:none}.page-nav-links a span{color:#97a3aa;font-size:9px;font-weight:800}.page-nav-links a b{font-size:11px}.page-nav-links a:hover{border-color:var(--line);background:var(--panel);color:var(--blue)}.page-nav-links a.active{border-color:var(--navy);background:var(--navy);color:#fff}.page-nav-links a.active span{color:#87afff}.section-nav a.active{background:var(--panel);color:var(--blue)}#page-nav{scroll-margin-top:82px}
 .context-section{background:#f9faf8}.context-status{padding:7px 10px;border:1px solid var(--line);border-radius:999px;color:var(--green);font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.07em}.context-status.stale{color:var(--amber);border-color:#e5c89e;background:var(--amber-soft)}.headline-list{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}.headline-card{padding:17px;border:1px solid var(--line);border-radius:12px;background:#fff;display:flex;flex-direction:column;align-items:flex-start}.headline-card h3{margin:13px 0 11px;font:500 18px/1.35 Georgia,serif}.headline-meta{display:flex;flex-direction:column;color:var(--muted);font-size:10px}.headline-card>a{margin-top:auto;padding-top:15px;color:var(--blue);font-size:10px;font-weight:750;text-decoration:none}
-@media(max-width:900px){.trust-label{display:none}.company-hero{align-items:start}.brief-grid,.trust-grid{grid-template-columns:1fr}.brief-card{min-height:auto}.performance-layout{grid-template-columns:1fr}.ending-card{min-height:190px}.metric-grid{grid-template-columns:repeat(3,1fr)}.filing-columns{grid-template-columns:1fr}.authority-row{flex-wrap:wrap}.section-nav{display:none}.brief-lead,.brief-numbers,.brief-reading,.brief-limit{grid-column:1}.brief-grid{gap:8px}.brief-metrics strong{font-size:28px}.headline-list{grid-template-columns:1fr}}
+@media(max-width:900px){.trust-label{display:none}.company-hero{align-items:start}.brief-grid,.trust-grid{grid-template-columns:1fr}.brief-card{min-height:auto}.performance-layout{grid-template-columns:1fr}.ending-card{min-height:190px}.metric-grid{grid-template-columns:repeat(3,1fr)}.filing-columns{grid-template-columns:1fr}.authority-row{flex-wrap:wrap}.section-nav{display:none}.brief-grid{gap:8px}.brief-metrics strong{font-size:28px}.headline-list{grid-template-columns:1fr}}
 @media(max-width:620px){.topbar{padding:0 16px}.topbar nav{margin-left:auto}.company-search-link{padding:6px}.trust-label{display:none}.brand>span:last-child{display:none}main{padding:18px 14px 60px}.scope-warning{flex-direction:column;gap:2px}.company-hero{padding:42px 0 30px;flex-direction:column;gap:25px}.market-observation{align-items:start;border-left:0;padding-left:0}.company-title{align-items:start}.company-title h1{font-size:42px}section{padding:24px 18px}.section-heading{flex-direction:column}.performance-heading{align-items:start}.metric-grid{grid-template-columns:repeat(2,1fr)}.period-control{width:100%}.period-button{flex:1}.risk-note{flex-direction:column;gap:4px}.filing-card summary strong{max-width:190px}.filing-summary-meta>span{display:none}.footer-meta{display:none}}
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*{transition:none!important}}
 @media(max-width:620px){.profile-meta{flex-direction:column;align-items:flex-start;gap:3px}.timeline-heading,.reaction-heading,.comparison-heading{flex-direction:column;gap:6px}.reaction-grid,.change-list{grid-template-columns:1fr}.timeline-track{grid-auto-columns:minmax(145px,72vw)}.topbar .section-nav,.company-search-link{display:none}.topbar .company-nav{margin-left:auto}.company-hero{padding:24px 0 18px;gap:13px}.hero-copy{font-size:15px;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}.profile-meta>span{display:none}.profile-meta{margin-top:8px}.evidence-flow{display:none}.market-observation{width:100%;padding:11px 14px;border:1px solid var(--line);border-radius:12px;background:var(--panel);align-items:flex-start}.market-observation strong{font-size:29px}.brief-card{padding:19px}.brief-card h3{font-size:22px}.brief-card p,.brief-lead>p{font-size:16px}.brief-card-heading{flex-direction:column;gap:5px}.brief-metrics{grid-template-columns:1fr 1fr}.authority-row{gap:8px}.authority-row>em{display:none}.diagnostic-heading{align-items:start;flex-direction:column;gap:2px}.metric-grid{grid-template-columns:1fr 1fr}.metric-card{padding:13px}.trust-grid{gap:8px}}
-body{font-family:"Avenir Next","Segoe UI",sans-serif}.company-hero{border:0;border-radius:0;background:transparent;box-shadow:none;margin-bottom:0}.brief-section{border-radius:8px}.brief-grid{grid-template-columns:repeat(12,minmax(0,1fr));gap:0;border-top:1px solid #365166;border-bottom:1px solid #365166}.brief-card{border:0;border-radius:0;background:transparent}.brief-lead{border-right:1px solid #365166}.brief-metrics>div{padding:10px 0;border:0;border-radius:0;background:transparent}.brief-metrics>div+div{padding-left:18px;border-left:1px solid #28514e}.brief-boundary{grid-column:1/-1;margin:0;padding:17px 24px;color:#aebfca;font-size:12px}.brief-boundary strong{color:#e9b66d}.performance-section,.filings-section,.context-section{padding:58px 0;border:0;border-top:1px solid var(--line);border-radius:0;background:transparent;box-shadow:none}.diagnostics-disclosure{margin-top:20px;border-top:1px solid var(--line)}.diagnostics-disclosure>summary,.source-details>summary{padding:14px 0;color:var(--blue);font-size:12px;font-weight:750;cursor:pointer}.metric-card{border-radius:3px;background:rgba(255,255,255,.55)}.filing-card{border-radius:4px;background:#fff}.filing-card summary{min-height:76px}.reaction-panel,.comparison-panel{border-width:0 0 0 3px;border-radius:0}.reaction-grid>div{border:0;border-left:1px solid #dbe8e1;border-radius:0;background:transparent}.reaction-grid>div:first-child{border-left:0}.comparison-clear{display:flex;flex-direction:column;margin-top:14px;color:var(--muted);font-size:12px}.comparison-clear strong{margin-bottom:3px;color:var(--ink)}.source-details{margin-top:8px;border-top:1px solid var(--line)}.filing-columns aside{border-radius:3px}.context-freshness{margin:-14px 0 20px;color:var(--muted);font-size:10px}.headline-list{grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:0;border-top:1px solid var(--line)}.headline-card{padding:20px 22px;border:0;border-right:1px solid var(--line);border-radius:0;background:transparent}.headline-card:last-child{border-right:0}.headline-card h3{margin:10px 0 14px}.headline-meta{display:flex;flex-direction:row;flex-wrap:wrap;gap:5px 12px}.headline-meta span:first-child{color:var(--ink);font-weight:750}.headline-card>a{padding-top:2px}footer a{margin-top:5px;color:var(--blue);text-decoration:none}#brief,#ask,#performance,#filings,#context{scroll-margin-top:90px}
+body{font-family:"Avenir Next","Segoe UI",sans-serif}.company-hero{border:0;border-radius:0;background:transparent;box-shadow:none;margin-bottom:0}.brief-section{border-radius:8px}.brief-grid{grid-template-columns:repeat(12,minmax(0,1fr));gap:0;border-top:1px solid #365166;border-bottom:1px solid #365166}.brief-card{border:0;border-radius:0;background:transparent}.brief-lead{border-right:1px solid #365166}.brief-metrics>div{padding:10px 0;border:0;border-radius:0;background:transparent}.brief-metrics>div+div{padding-left:18px;border-left:1px solid #28514e}.brief-boundary{grid-column:1/-1;margin:0;padding:17px 24px;color:#aebfca;font-size:12px}.brief-boundary strong{color:#e9b66d}.performance-section,.filings-section,.context-section{padding:58px 0;border:0;border-top:1px solid var(--line);border-radius:0;background:transparent;box-shadow:none}.diagnostics-disclosure{margin-top:20px;border-top:1px solid var(--line)}.diagnostics-disclosure>summary,.source-details>summary{padding:14px 0;color:var(--blue);font-size:12px;font-weight:750;cursor:pointer}.metric-card{border-radius:3px;background:rgba(255,255,255,.55)}.filing-card{border-radius:4px;background:#fff}.filing-card summary{min-height:76px}.reaction-panel,.comparison-panel{border-width:0 0 0 3px;border-radius:0}.reaction-grid>div{border:0;border-left:1px solid #dbe8e1;border-radius:0;background:transparent}.reaction-grid>div:first-child{border-left:0}.comparison-clear{display:flex;flex-direction:column;margin-top:14px;color:var(--muted);font-size:12px}.comparison-clear strong{margin-bottom:3px;color:var(--ink)}.source-details{margin-top:8px;border-top:1px solid var(--line)}.filing-columns aside{border-radius:3px}.context-freshness{margin:-14px 0 20px;color:var(--muted);font-size:10px}.headline-list{grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:0;border-top:1px solid var(--line)}.headline-card{padding:20px 22px;border:0;border-right:1px solid var(--line);border-radius:0;background:transparent}.headline-card:last-child{border-right:0}.headline-card h3{margin:10px 0 14px}.headline-meta{display:flex;flex-direction:row;flex-wrap:wrap;gap:5px 12px}.headline-meta span:first-child{color:var(--ink);font-weight:750}.headline-card>a{padding-top:2px}footer a{margin-top:5px;color:var(--blue);text-decoration:none}#brief,#ask,#performance,#filings,#context{scroll-margin-top:150px}
 .ask-section{padding:58px 0;border:0;border-top:1px solid var(--line);border-radius:0;background:transparent;box-shadow:none}.ask-validation{padding:7px 10px;border:1px solid #b9d8ca;border-radius:999px;color:var(--green);font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.07em}.ask-layout{display:grid;grid-template-columns:minmax(0,5fr) minmax(320px,4fr);border:1px solid var(--line);background:var(--panel)}.ask-form{padding:28px;border-right:1px solid var(--line)}.ask-controls{display:grid;grid-template-columns:1fr 150px;gap:12px}.ask-form label{display:flex;flex-direction:column;gap:7px;color:var(--muted);font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.08em}.ask-form select,.ask-form textarea{width:100%;border:1px solid var(--line);border-radius:4px;background:#fff;color:var(--ink);font:500 14px/1.5 "Avenir Next","Segoe UI",sans-serif}.ask-form select{height:43px;padding:0 11px}.ask-form textarea{resize:vertical;min-height:90px;padding:12px}.ask-form select:focus,.ask-form textarea:focus{outline:3px solid rgba(40,100,220,.14);border-color:var(--blue)}.ask-question{margin-top:17px}.ask-suggestions{display:flex;flex-wrap:wrap;gap:7px;margin-top:10px}.ask-suggestions button{padding:6px 9px;border:1px solid var(--line);border-radius:999px;background:transparent;color:var(--blue);font-size:10px;cursor:pointer}.ask-suggestions button:hover{background:var(--blue-soft)}.ask-submit-row{display:flex;align-items:center;gap:13px;margin-top:20px}.ask-submit-row>button{min-width:120px;padding:11px 16px;border:0;border-radius:4px;background:var(--navy);color:#fff;font-weight:800;cursor:pointer}.ask-submit-row>button:disabled{opacity:.45;cursor:not-allowed}.ask-submit-row>span{color:var(--muted);font-size:10px}.ask-submit-row>span.ready{color:var(--green)}.ask-submit-row>span.error{color:#98473e}.ask-result{min-height:330px;padding:28px;background:#f8faf8;color:var(--muted);font-size:13px}.ask-result-kicker,.ask-answer-heading>span{margin:0;color:var(--green);font-size:10px;font-weight:850;letter-spacing:.1em}.ask-result>ol{margin:18px 0 0;padding:0;list-style:none}.ask-result>ol li{display:grid;grid-template-columns:25px 1fr;gap:10px;padding:12px 0;border-top:1px solid var(--line)}.ask-result>ol li span{color:var(--green);font-weight:850}.ask-result.loading{display:grid;place-items:center}.ask-result.error{display:grid;place-items:center;color:#98473e}.ask-answer-heading{display:flex;justify-content:space-between;gap:15px;padding-bottom:12px;border-bottom:1px solid var(--line)}.ask-answer-heading small{color:var(--muted)}.ask-result article{padding:15px 0;border-bottom:1px solid var(--line)}.ask-result article p{margin:0;color:var(--ink);font:500 17px/1.45 Georgia,serif}.ask-citations{display:flex;flex-wrap:wrap;gap:7px;margin-top:9px}.ask-citations a{color:var(--blue);font-size:10px;text-decoration:none;border-bottom:1px solid #aec2e9}.ask-limitations{margin-top:15px}.ask-limitations>summary{color:var(--amber);font-size:11px;font-weight:800;cursor:pointer}.ask-limitations article p{font:inherit;color:var(--muted)}.ask-boundary{margin:14px 0 0;color:var(--muted);font-size:10px}.ask-boundary strong{color:var(--ink)}
+.ask-controls{margin-bottom:24px}.ask-step-heading{display:grid;grid-template-columns:26px 1fr;gap:10px;align-items:start}.ask-step-heading>span{display:grid;place-items:center;width:24px;height:24px;border:1px solid #b8c8df;border-radius:50%;color:var(--blue);font-size:10px;font-weight:850}.ask-step-heading>div{display:flex;flex-direction:column}.ask-step-heading strong{font-size:12px}.ask-step-heading small{color:var(--muted);font-size:10px}.ask-task-tabs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));margin-top:13px;border:1px solid var(--line)}.ask-task-tabs button{min-height:48px;padding:8px;border:0;border-left:1px solid var(--line);border-top:1px solid var(--line);background:#fff;color:var(--muted);font-size:10px;font-weight:750;cursor:pointer}.ask-task-tabs button:nth-child(-n+3){border-top:0}.ask-task-tabs button:nth-child(3n+1){border-left:0}.ask-task-tabs button:hover{background:var(--blue-soft);color:var(--blue)}.ask-task-tabs button.active{background:var(--navy);color:#fff}.ask-task-tabs button:focus-visible{position:relative;z-index:1;outline:3px solid rgba(40,100,220,.25);outline-offset:1px}.ask-task-preview{padding:15px 17px;border-width:0 1px 1px;border-style:solid;border-color:var(--line);background:#f8fafc;display:grid;grid-template-columns:1fr;gap:3px}.ask-task-preview>span{color:var(--blue);font-size:8px;font-weight:850;letter-spacing:.1em}.ask-task-preview>strong{font:500 18px/1.3 Georgia,serif}.ask-task-preview>p{margin:2px 0 0;color:var(--muted);font-size:11px}.ask-review-step{margin-top:23px}.ask-question{margin-top:10px}.ask-scope-groups{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:20px}.ask-scope-group{padding-top:12px;border-top:2px solid var(--green)}.ask-scope-group.out-scope{border-color:#b76a4f}.ask-scope-group>strong{color:var(--ink);font-size:11px}.ask-scope-group ul{margin:10px 0 0;padding-left:17px}.ask-scope-group li{margin:0 0 9px;font-size:11px;line-height:1.45}.ask-scope-group.in-scope li::marker{color:var(--green)}.ask-scope-group.out-scope li::marker{color:#b76a4f}.ask-control-flow{margin-top:18px;padding:12px;border:1px solid #cfe0d8;background:#fff;color:var(--green);font-size:9px;font-weight:800;text-align:center;text-transform:uppercase;letter-spacing:.05em}
 @media(max-width:900px){.brief-lead{border-right:0;border-bottom:1px solid #365166}.headline-card{border-right:0;border-bottom:1px solid var(--line)}}
 @media(max-width:900px){.ask-layout{grid-template-columns:1fr}.ask-form{border-right:0;border-bottom:1px solid var(--line)}}
-@media(max-width:620px){.ask-section,.performance-section,.filings-section,.context-section{padding:40px 0}.ask-controls{grid-template-columns:1fr}.ask-form,.ask-result{padding:20px}.ask-submit-row{align-items:flex-start;flex-direction:column}.brief-section{border-radius:4px}.reaction-grid>div{padding-left:0;border-left:0;border-top:1px solid #dbe8e1}.reaction-grid>div:first-child{border-top:0}.filing-summary-meta span:first-child{display:block}.filing-summary-meta span:nth-child(2){display:none}}
-@media(max-width:760px){.workspace-switcher{top:70px;display:block;margin-left:-14px;margin-right:-14px;padding:10px 14px;border-left:0;border-right:0}.workspace-switcher>div:first-child{display:none}.workspace-links{grid-auto-columns:minmax(95px,1fr)}.workspace-links a{padding:9px}.workspace-links a span{display:none}}
+@media(max-width:620px){.ask-section,.performance-section,.filings-section,.context-section{padding:40px 0}.ask-controls{grid-template-columns:1fr}.ask-form,.ask-result{padding:20px}.ask-submit-row{align-items:flex-start;flex-direction:column}.ask-task-tabs{grid-template-columns:1fr 1fr}.ask-task-tabs button:nth-child(3){border-left:0}.ask-task-tabs button:nth-child(n+3){border-top:1px solid var(--line)}.ask-scope-groups{grid-template-columns:1fr}.brief-section{border-radius:4px}.reaction-grid>div{padding-left:0;border-left:0;border-top:1px solid #dbe8e1}.reaction-grid>div:first-child{border-top:0}.filing-summary-meta span:first-child{display:block}.filing-summary-meta span:nth-child(2){display:none}}
+@media(max-width:760px){.page-nav{top:70px;display:block;margin-left:-14px;margin-right:-14px;padding:10px 14px;border-left:0;border-right:0}.page-nav>div:first-child{display:none}.page-nav-links{grid-auto-columns:minmax(95px,1fr)}.page-nav-links a{padding:9px}.page-nav-links a span{display:none}}
+.brief-reading,.brief-limit,.brief-missing,.brief-quality{grid-column:span 6}.brief-limit{background:#2a3338}.brief-missing,.brief-quality{background:#1d2a38}.brief-trends{margin:16px 0 10px;padding:0;list-style:none;display:flex;flex-direction:column;gap:10px}.brief-trends li{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1.4fr) auto;gap:8px;align-items:end}.brief-trends .trend-values{display:flex;flex-direction:column;gap:2px}.brief-trends strong{font:500 22px/1 Georgia,serif;color:#d9e6ee}.brief-trends .trend-values span{color:#9bb0bd;font-size:10px}.brief-trends small{color:#9bb0bd;font-size:10px;text-transform:uppercase;letter-spacing:.06em}.brief-trends a{color:#d9e6ee;font-size:10px;text-decoration:none;border-bottom:1px solid #6e8290}.brief-valuation-note{margin:12px 0 0;color:#aebfca;font-family:inherit;font-size:12px}.brief-lead a,.brief-numbers>a,.brief-lead .brief-card-heading+a{display:inline-block;margin-top:10px;color:#d9e6ee;font-size:10px;text-decoration:none;border-bottom:1px solid #6e8290}#brief,#ask,#performance,#filings,#context,#page-nav{scroll-margin-top:150px}.filing-lead-header{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:12px 16px;align-items:center;padding:18px 20px;border-bottom:1px solid var(--line)}.filing-lead-header .eyebrow{margin:0 0 4px}.filing-lead-header h3{margin:0;font-size:18px;line-height:1.25}.filing-lead-header small{color:var(--muted)}.filing-lead-header a{color:var(--blue);font-size:11px;font-weight:750;text-decoration:none}.filing-lead .filing-body{border-top:0}#ask-retry{min-width:0;border:1px solid var(--line);background:#fff;color:var(--ink)}.ask-submit-row>span.notice{color:var(--muted)}@media(max-width:900px){.filing-lead-header{grid-template-columns:auto 1fr;align-items:start}.filing-lead-header a{grid-column:1/-1}}
+@media(max-width:900px){.brief-grid{grid-template-columns:1fr}.brief-lead,.brief-numbers,.brief-reading,.brief-limit,.brief-missing,.brief-quality{grid-column:1/-1}}
 """
 
 
 def _index_css() -> str:
     return """
-:root{--ink:#102537;--muted:#667681;--blue:#2864dc;--paper:#f3f2ed}*{box-sizing:border-box}body{margin:0;min-height:100vh;display:grid;place-items:center;background:var(--paper);color:var(--ink);font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}main{width:min(920px,calc(100% - 40px));padding:80px 0}.eyebrow{color:var(--blue);font-size:11px;font-weight:800;letter-spacing:.14em}h1{margin:22px 0;font:500 clamp(48px,8vw,86px)/.98 Georgia,serif;letter-spacing:-.05em}h1 em{color:var(--blue);font-weight:500}.lede{max-width:660px;color:var(--muted);font-size:19px}.companies{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:55px}.company-link{padding:25px;border:1px solid #d7dcdd;border-radius:14px;background:#fff;text-decoration:none;color:var(--ink);display:flex;flex-direction:column;transition:transform .2s,box-shadow .2s}.company-link:hover{transform:translateY(-3px);box-shadow:0 16px 40px rgba(20,38,52,.1)}.company-link span{font:500 30px Georgia,serif}.company-link small{margin-top:25px;color:var(--blue)}.foot{margin-top:30px;color:var(--muted);font-size:11px}@media(max-width:650px){main{padding:50px 0}.companies{grid-template-columns:1fr}.company-link{padding:18px}.company-link small{margin-top:8px}}
-.company-search{max-width:660px;margin-top:34px}.company-search label{display:block;margin-bottom:8px;font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.08em}.search-row{display:grid;grid-template-columns:1fr auto;gap:8px}.search-row input{min-width:0;padding:15px 17px;border:1px solid #d7dcdd;border-radius:7px;background:#fff;color:var(--ink);font:inherit;outline:none}.search-row input:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(40,100,220,.12)}.search-row button{padding:0 20px;border:0;border-radius:7px;background:var(--ink);color:#fff;font-weight:750;cursor:pointer}.search-status{margin:7px 2px 0;color:var(--muted);font-size:11px}.search-status.error{color:#a4432d}.featured-label{margin:30px 0 -25px;color:var(--muted);font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.1em}.companies{margin-top:35px}.company-link{padding:22px;border-radius:5px}.company-link strong{margin-top:3px;color:var(--muted);font-size:12px}.company-link small{margin-top:21px}.return-link{display:inline-block;margin-top:24px;color:var(--blue);font-weight:750;text-decoration:none}.method-note{margin-top:80px;padding:54px 0 0;border-top:1px solid #d7dcdd}.method-note h2{margin:8px 0 10px;font:500 38px/1.1 Georgia,serif;letter-spacing:-.025em}.method-note>p:not(.eyebrow){max-width:720px;color:var(--muted);font-size:16px}.method-note ol{margin:30px 0 0;padding:0;border-top:1px solid #d7dcdd;list-style:none}.method-note li{display:grid;grid-template-columns:44px 130px 1fr;gap:16px;padding:16px 0;border-bottom:1px solid #d7dcdd}.method-note li span{color:var(--blue);font-weight:800}.method-note li small{color:var(--muted)}.method-tech{padding-top:18px;font-size:13px!important}.method-tech strong{color:var(--ink)}body{display:block;font-family:"Avenir Next","Segoe UI",sans-serif}main{width:min(1040px,calc(100% - 40px))}@media(max-width:650px){.search-row{grid-template-columns:1fr}.search-row button{padding:14px}.method-note{margin-top:55px;padding-top:36px}.method-note li{grid-template-columns:36px 1fr}.method-note li small{grid-column:2}}
+:root{--ink:#102537;--muted:#667681;--blue:#2864dc;--paper:#f3f2ed}*{box-sizing:border-box}body{margin:0;min-height:100vh;display:grid;place-items:center;background:var(--paper);color:var(--ink);font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}main{width:min(920px,calc(100% - 40px));padding:48px 0}.eyebrow{color:var(--blue);font-size:11px;font-weight:800;letter-spacing:.14em}h1{margin:22px 0;font:500 clamp(48px,8vw,86px)/.98 Georgia,serif;letter-spacing:-.05em}h1 em{color:var(--blue);font-weight:500}.lede{max-width:660px;color:var(--muted);font-size:19px}.companies{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:55px}.company-link{padding:25px;border:1px solid #d7dcdd;border-radius:14px;background:#fff;text-decoration:none;color:var(--ink);display:flex;flex-direction:column;transition:transform .2s,box-shadow .2s}.company-link:hover{transform:translateY(-3px);box-shadow:0 16px 40px rgba(20,38,52,.1)}.company-link span{font:500 30px Georgia,serif}.company-link small{margin-top:25px;color:var(--blue)}.foot{margin-top:30px;color:var(--muted);font-size:11px}@media(max-width:650px){main{padding:50px 0}.companies{grid-template-columns:1fr}.company-link{padding:18px}.company-link small{margin-top:8px}}
+.company-search{max-width:660px;margin-top:34px}.company-search label{display:block;margin-bottom:8px;font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.08em}.search-row{display:grid;grid-template-columns:1fr auto;gap:8px}.search-row input{min-width:0;padding:15px 17px;border:1px solid #d7dcdd;border-radius:7px;background:#fff;color:var(--ink);font:inherit;outline:none}.search-row input:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(40,100,220,.12)}.search-row button{padding:0 20px;border:0;border-radius:7px;background:var(--ink);color:#fff;font-weight:750;cursor:pointer}.search-status{margin:7px 2px 0;color:var(--muted);font-size:11px}.search-status.error{color:#a4432d}.featured-label{margin:30px 0 -25px;color:var(--muted);font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.1em}.companies{margin-top:35px}.company-link{padding:22px;border-radius:5px}.company-link strong{margin-top:3px;color:var(--muted);font-size:12px}.company-link small{margin-top:21px}.return-link{display:inline-block;margin-top:24px;color:var(--blue);font-weight:750;text-decoration:none}.method-note{margin-top:80px;padding:54px 0 0;border-top:1px solid #d7dcdd}.method-note h2{margin:8px 0 10px;font:500 38px/1.1 Georgia,serif;letter-spacing:-.025em}.method-note>p:not(.eyebrow){max-width:720px;color:var(--muted);font-size:16px}.method-note ol{margin:30px 0 0;padding:0;border-top:1px solid #d7dcdd;list-style:none}.method-note li{display:grid;grid-template-columns:44px 130px 1fr;gap:16px;padding:16px 0;border-bottom:1px solid #d7dcdd}.method-note li span{color:var(--blue);font-weight:800}.method-note li small{color:var(--muted)}.method-tech{padding-top:18px;font-size:13px!important}.method-tech strong{color:var(--ink)}body{display:block;font-family:"Avenir Next","Segoe UI",sans-serif}main{width:min(1040px,calc(100% - 40px));margin:0 auto}@media(max-width:650px){.search-row{grid-template-columns:1fr}.search-row button{padding:14px}.method-note{margin-top:55px;padding-top:36px}.method-note li{grid-template-columns:36px 1fr}.method-note li small{grid-column:2}}
 .index-language-toggle{float:right;margin-top:-34px;padding:7px 12px;border:1px solid #d7dcdd;border-radius:999px;background:#fff;color:var(--ink);font:750 11px/1.2 "Avenir Next","Segoe UI",sans-serif;cursor:pointer}.index-language-toggle:hover{border-color:#aebbc0;color:var(--blue)}.index-language-toggle:focus-visible{outline:3px solid rgba(40,100,220,.16);outline-offset:2px}
-.index-topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:70px;padding-bottom:16px;border-bottom:1px solid #d7dcdd}.index-brand{display:flex;align-items:center;gap:10px;color:var(--ink);text-decoration:none}.index-brand>span{display:grid;place-items:center;width:32px;height:32px;border-radius:8px;background:var(--ink);color:#fff;font-size:10px;font-weight:850}.index-brand strong{font-size:13px}.index-topbar>div{display:flex;align-items:center;gap:14px}.index-topbar small{color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:.08em}.index-language-toggle{float:none;margin:0}.index-hero{max-width:790px}.method-note{margin-top:56px;padding:0;border:1px solid #d7dcdd;background:rgba(255,255,255,.45)}.method-note>summary{list-style:none;display:flex;align-items:center;justify-content:space-between;gap:24px;padding:24px 26px;cursor:pointer}.method-note>summary::-webkit-details-marker{display:none}.method-note>summary .eyebrow{margin:0 0 5px}.method-note>summary h2{margin:0;font-size:28px}.method-note>summary>span{color:var(--blue);font-size:11px;font-weight:800}.method-note[open]>summary{border-bottom:1px solid #d7dcdd}.method-body{padding:24px 26px 28px}.method-body>p{max-width:720px;color:var(--muted);font-size:14px}.method-body ol{margin-top:22px}@media(max-width:650px){.index-topbar{margin-bottom:44px}.index-topbar small{display:none}.method-note>summary{align-items:flex-start;padding:20px;flex-direction:column;gap:8px}.method-note>summary h2{font-size:24px}.method-body{padding:20px}}
+.index-topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:28px;padding-bottom:16px;border-bottom:1px solid #d7dcdd}.index-brand{display:flex;align-items:center;gap:10px;color:var(--ink);text-decoration:none}.index-brand>span{display:grid;place-items:center;width:32px;height:32px;border-radius:8px;background:var(--ink);color:#fff;font-size:10px;font-weight:850}.index-brand strong{font-size:13px}.index-topbar>div{display:flex;align-items:center;gap:14px}.index-topbar small{color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:.08em}.index-language-toggle{float:none;margin:0}.index-hero{max-width:790px}.index-hero h1{margin:14px 0 12px}.company-search{margin-top:22px}.method-note{margin:32px 0 8px;padding:22px 0 0;border:0;border-top:1px solid #d7dcdd;background:transparent}.method-note h2{margin:6px 0 8px;font:500 28px/1.15 Georgia,serif}.method-note>p:not(.eyebrow){max-width:720px;color:var(--muted);font-size:14px}.method-note ol{margin:18px 0 0}.method-tech-note{margin-top:10px}.method-tech-note>summary{color:var(--blue);font-size:11px;font-weight:800;cursor:pointer}.method-tech-note .method-tech{margin:10px 0 0;padding-top:0}.featured-label{margin:28px 0 -12px}@media(max-width:650px){.index-topbar{margin-bottom:22px}.index-topbar small{display:none}.method-note{margin-top:24px;padding-top:18px}.method-note h2{font-size:24px}}
 .company-directory{margin-top:56px;border:1px solid #d7dcdd;background:#fff}.company-directory>summary{list-style:none;display:flex;align-items:center;justify-content:space-between;gap:24px;padding:24px 26px;cursor:pointer}.company-directory>summary::-webkit-details-marker{display:none}.company-directory>summary .eyebrow{margin:0 0 5px}.company-directory>summary h2{margin:0;font:500 28px/1.1 Georgia,serif}.company-directory>summary>span{color:var(--blue);font-size:11px;font-weight:800}.company-directory[open]>summary{border-bottom:1px solid #d7dcdd}.directory-body{padding:22px 26px 26px}.directory-toolbar{display:flex;align-items:center;justify-content:space-between;gap:18px;margin-bottom:16px}.directory-toolbar p{margin:0;color:var(--muted);font-size:11px}.directory-toolbar>div{display:flex;gap:6px}.directory-toolbar button{padding:7px 10px;border:1px solid #d7dcdd;background:#fff;color:var(--ink);font-size:10px;font-weight:750;cursor:pointer}.directory-toolbar button:disabled{opacity:.35;cursor:not-allowed}.directory-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));border-top:1px solid #d7dcdd;border-left:1px solid #d7dcdd}.directory-link{min-width:0;padding:15px;border-right:1px solid #d7dcdd;border-bottom:1px solid #d7dcdd;color:var(--ink);text-decoration:none;display:grid;grid-template-columns:auto minmax(0,1fr);gap:2px 10px}.directory-link strong{font:500 18px Georgia,serif}.directory-link span{overflow:hidden;color:var(--muted);font-size:11px;text-overflow:ellipsis;white-space:nowrap}.directory-link small{grid-column:1/-1;margin-top:8px;color:var(--blue);font-size:9px}.directory-link:hover{background:#f7f9ff}@media(max-width:650px){.company-directory{margin-top:38px}.company-directory>summary{align-items:flex-start;padding:20px;flex-direction:column;gap:8px}.company-directory>summary h2{font-size:24px}.directory-body{padding:18px}.directory-toolbar{align-items:flex-start;flex-direction:column}.directory-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.directory-link{display:flex;flex-direction:column;gap:2px}.directory-link small{margin-top:6px}}
 """

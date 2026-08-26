@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import json
 from dataclasses import replace
+from pathlib import Path
 
 from company_lens.contracts import (
     Citation,
@@ -14,6 +16,7 @@ from company_lens.contracts import (
     FilingTimelinePoint,
     HeadlineBrief,
 )
+from company_lens.fundamentals import build_fundamentals_section
 from company_lens.web import render_company_page, render_index, render_unsupported
 
 
@@ -188,26 +191,46 @@ def test_company_page_is_self_contained_and_source_linked(tmp_path) -> None:
     assert "More extreme than 80%" in page
     assert "of 10 earlier measurable filings" in page
     assert "does not claim the filing caused the move" in page
-    assert "Recent filing timeline" not in page
+    assert 'class="timeline-panel"' not in page
     assert "What matters on this page" in page
     assert "Source-backed summary" in page
     assert "Latest SEC disclosure" in page
     assert "Selected historical period" in page
+    assert "Not on this page yet" in page
+    assert "Valuation expectations and multi-year financial trends are not connected yet." in page
     assert "Ask the evidence" in page
     assert "Every answer is validated" in page
     assert 'id="ask-model"' in page
     assert 'id="ask-question"' in page
+    assert 'id="ask-retry"' in page
+    assert page.count('role="tab" data-ask-task=') == 9
+    assert 'data-ask-task="filing"' in page
+    assert 'data-ask-task="risk"' in page
+    assert "Choose what to investigate" in page
+    assert "Nothing is sent automatically" in page
+    assert "What the latest 8-K says, with cited passages" in page
+    assert "Always withheld" in page
+    assert "Buy, sell, or hold recommendations" in page
+    assert "Draft question → bounded evidence → model → validator → cited answer" in page
+    assert "selectAskTask" in page
+    assert "lastGuidedQuestion" in page
+    assert "data-question-en" not in page
     assert "API keys remain server-side" in page
     assert "grounding_validation_failed" not in page
     assert "More risk metrics" in page
     assert page.count('class="metric-card"') == 6
     assert 'href="#brief" data-i18n="nav.overview">Overview</a>' in page
     assert 'href="#ask" data-i18n="nav.ask">Ask AI</a>' in page
-    assert 'id="workspace"' in page
-    assert page.count('data-workspace-view="') == 4
-    assert 'data-view-target="performance"' in page
-    assert "activateWorkspace" in page
-    assert "workspace-enhanced" in page
+    assert 'id="page-nav"' in page
+    assert "activateWorkspace" not in page
+    assert "workspace-enhanced" not in page
+    assert "data-workspace-view" not in page
+    assert "data-view-target" not in page
+    assert "IntersectionObserver" in page
+    assert 'class="filing-card filing-lead"' in page
+    assert page.index('id="brief"') < page.index('id="performance"')
+    assert page.index('id="performance"') < page.index('id="filings"')
+    assert page.index('id="filings"') < page.index('id="ask"')
     assert 'id="language-toggle"' in page
     assert 'data-i18n="ask.title"' in page
     assert 'data-i18n-placeholder="ask.placeholder"' in page
@@ -219,6 +242,9 @@ def test_company_page_is_self_contained_and_source_linked(tmp_path) -> None:
     assert 'data-status-key="ask.checking_models"' in page
     assert 'data-i18n="ask.checking_models"' not in page
     assert "refreshAskStatus" in page
+    assert '"ask.not_configured_status"' in page
+    assert "if (!models.length)" in page
+    assert "setTranslatedAskStatus('ask.offline'" in page
     assert 'data-freshness-key="filings.sec_collected"' in page
     assert "SEC excerpts remain in the filed language" in page
     assert "The architecture is the trust story" not in page
@@ -227,6 +253,50 @@ def test_company_page_is_self_contained_and_source_linked(tmp_path) -> None:
     assert '<div class="scope-meta">' not in page
     assert "retrieval_headlines" not in page
     assert "evidence_scope" not in _snapshot().to_dict()
+    assert "fundamentals" not in _snapshot().to_dict()
+
+
+def test_company_page_renders_source_linked_annual_trends_when_fundamentals_available(
+    tmp_path,
+) -> None:
+    fixtures = Path(__file__).resolve().parent / "fixtures" / "sec"
+    section = build_fundamentals_section(
+        json.loads((fixtures / "aapl_companyfacts_2016_2025.json").read_text()),
+        ticker="AAPL",
+        submissions=json.loads((fixtures / "aapl_submissions_fundamentals.json").read_text()),
+    )
+    snapshot = replace(_snapshot(), fundamentals=section)
+    page = render_company_page(snapshot, tmp_path / "abc.html").read_text()
+
+    assert 'class="brief-card brief-quality observed"' in page
+    assert 'class="brief-card brief-missing interpreted"' not in page
+    assert "Gross margin" in page
+    assert "Revenue" in page
+    assert "FY2016-FY2025" in page or "FY20" in page
+    assert "https://www.sec.gov/Archives/edgar/data/320193/" in page
+    assert "aapl-20250927x10k.htm" in page
+    assert "Valuation expectations are still not connected" in page
+    assert "does not estimate intrinsic value" in page
+    assert "source-linked annual business trends" in page
+    assert "Annual business trends" in page
+    script = page.rsplit("<script>", 1)[-1]
+    assert "operating_cash_flow" not in script
+    assert "abs(capex)" not in script
+    assert "gross_profit /" not in script
+    assert '"reported_series"' not in script
+    assert "ask.task_quality_question" in page
+    assert 'data-ask-task="quality"' in page
+    assert 'data-ask-task="cash"' in page
+    assert 'data-ask-task="capital"' in page
+    assert 'data-ask-task="thesis"' in page
+    assert 'data-ask-task="missing"' in page
+
+
+def test_company_page_keeps_missing_fundamentals_placeholder(tmp_path) -> None:
+    page = render_company_page(_snapshot(), tmp_path / "abc.html").read_text()
+    assert 'class="brief-card brief-missing interpreted"' in page
+    assert 'class="brief-card brief-quality observed"' not in page
+    assert "Valuation expectations and multi-year financial trends are not connected yet." in page
 
 
 def test_company_page_renders_at_most_three_safe_source_linked_headlines(tmp_path) -> None:
@@ -326,6 +396,9 @@ def test_company_page_renders_at_most_three_safe_source_linked_headlines(tmp_pat
     assert payload["headlines"][0]["publisher"].startswith("Publisher")
     assert "must-not-render" not in page
     assert "/Users/example/private" not in page
+    assert page.index('id="ask"') < page.index('id="context"')
+    assert 'href="#context"' in page
+    assert "activateWorkspace" not in page
 
 
 def test_company_page_uses_readable_demo_display_name(tmp_path) -> None:
@@ -376,8 +449,11 @@ def test_index_links_every_cached_company(tmp_path) -> None:
     assert '<details class="company-directory" id="directory">' in page
     assert 'id="directory-grid"' in page
     assert "const directoryPageSize = 9" in page
-    assert '<details class="method-note" id="method">' in page
+    assert '<section class="method-note" id="method">' in page
+    assert "<details class=\"method-note\"" not in page
     assert 'data-index-i18n="method.expand"' in page
+    assert "Open the 3-step guide" not in page
+    assert "Under the hood" in page
     assert 'data-index-i18n="hero.title"' in page
     assert "'hero.title': '理解一家公司。'" in page
     assert "Microsoft Corporation" in page
@@ -442,6 +518,29 @@ def test_company_page_renders_prior_filing_change_evidence(tmp_path) -> None:
     assert "1 changed" in page
     assert "Revenue was $100 million." in page
     assert "90% text match" in page
+    assert 'class="filing-card filing-lead"' in page
+
+
+def test_company_page_collapses_older_filings_not_the_page(tmp_path) -> None:
+    snapshot = _snapshot()
+    latest = snapshot.latest_filings[0]
+    older = replace(
+        latest,
+        accession="0000123-24-000000",
+        accepted_at="2024-09-20T17:00:00-04:00",
+        items=[{"code": "2.02", "label": "Earlier earnings update"}],
+    )
+    page = render_company_page(
+        replace(snapshot, latest_filings=[latest, older]),
+        tmp_path / "abc.html",
+    ).read_text()
+
+    assert page.count('class="filing-card') == 2
+    assert 'class="filing-card filing-lead"' in page
+    assert "Earlier earnings update" in page
+    assert "<details class=\"filing-card\">" in page
+    assert "toggleAttribute('hidden'" not in page
+    assert "activateWorkspace" not in page
 
 
 def test_static_404_preserves_supported_scope(tmp_path) -> None:

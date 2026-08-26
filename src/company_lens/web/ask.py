@@ -7,7 +7,7 @@ from typing import Any
 
 from company_lens.llm.grounded import NUMBER_LITERAL, localized_month_number_literals
 
-ASK_EVIDENCE_VERSION = "company-lens.ask-evidence.v1"
+ASK_EVIDENCE_VERSION = "company-lens.ask-evidence.v2"
 
 
 def build_ask_evidence(snapshot: dict[str, Any]) -> dict[str, Any]:
@@ -47,6 +47,12 @@ def build_ask_evidence(snapshot: dict[str, Any]) -> dict[str, Any]:
             "If the evidence does not answer the question, say so explicitly.",
         ],
     }
+    fundamentals = _fundamentals_packet(snapshot.get("fundamentals"), ticker, citations)
+    if fundamentals is not None:
+        evidence["fundamentals"] = fundamentals
+        evidence["interpretation_limits"].append(
+            "Annual fundamentals are latest-restated research values, not a valuation model."
+        )
     canonical = json.dumps(evidence, sort_keys=True, ensure_ascii=False)
     allowed_numbers = sorted(
         {
@@ -212,4 +218,132 @@ def _headline_packet(
                 "citation": citation,
             }
         )
+    return packet
+
+
+def _fundamentals_packet(
+    fundamentals: dict[str, Any] | None,
+    ticker: str,
+    citations: dict[str, dict[str, str]],
+) -> dict[str, Any] | None:
+    if not fundamentals or fundamentals.get("status") != "available":
+        return None
+    page = f"/{ticker.lower()}.html#brief"
+    series_basis = str(fundamentals.get("series_basis") or "latest_restated")
+    packet: dict[str, Any] = {
+        "status": fundamentals["status"],
+        "series_basis": series_basis,
+        "requested_years": fundamentals.get("requested_years"),
+        "knowledge_at": fundamentals.get("knowledge_at"),
+        "annual_trends": [],
+        "coverage_warnings": list(fundamentals.get("warnings") or [])[:6],
+    }
+    wanted = (
+        "revenue",
+        "gross_margin",
+        "operating_margin",
+        "fcf_per_share",
+        "diluted_shares",
+        "free_cash_flow",
+        "ocf_to_net_income",
+        "diluted_share_change",
+    )
+    reported = {
+        series["metric_id"]: series
+        for series in fundamentals.get("reported_series") or []
+    }
+    derived = {
+        series["metric_id"]: series
+        for series in fundamentals.get("derived_series") or []
+    }
+    source_citations = {
+        observation["citation"]["citation_id"]: observation["citation"]
+        for series in fundamentals.get("reported_series") or []
+        for observation in series.get("observations") or []
+        if observation.get("citation", {}).get("citation_id")
+    }
+    for metric_id in wanted:
+        series = reported.get(metric_id) or derived.get(metric_id)
+        if not series:
+            continue
+        observations = []
+        for item in series.get("observations") or []:
+            if item.get("status") not in (None, "available"):
+                continue
+            if item.get("value") is None:
+                continue
+            if "share_basis_noncomparable" in (item.get("quality_flags") or []):
+                continue
+            citation = f"metric:fundamentals.{metric_id}.{item['fiscal_year']}"
+            component_ids = [
+                value
+                for value in (item.get("components") or {}).values()
+                if value in source_citations
+            ]
+            direct = item.get("citation") or {}
+            direct_citation_id = direct.get("citation_id")
+            source_records = [direct] if direct.get("source_url") else [
+                source_citations[value] for value in component_ids
+            ]
+            source_urls = list(
+                dict.fromkeys(
+                    str(record.get("source_url"))
+                    for record in source_records
+                    if record.get("source_url")
+                )
+            )
+            for source_record in source_records:
+                source_id = source_record.get("citation_id")
+                source_url = source_record.get("source_url")
+                if not source_id or not source_url:
+                    continue
+                citations.setdefault(
+                    str(source_id),
+                    {
+                        "label": (
+                            f"SEC source for {series.get('label', metric_id)} "
+                            f"FY{item['fiscal_year']}"
+                        ),
+                        "url": str(source_url),
+                        "section": "fundamentals",
+                    },
+                )
+            citations[citation] = {
+                "label": f"{series.get('label', metric_id)} FY{item['fiscal_year']}",
+                "url": source_urls[0] if source_urls else page,
+                "section": "fundamentals",
+            }
+            observations.append(
+                {
+                    "fiscal_year": item["fiscal_year"],
+                    "period_end": item.get("period_end"),
+                    "value": item["value"],
+                    "unit": item.get("unit") or series.get("unit") or series.get("expected_unit"),
+                    "citation": citation,
+                    "source_citations": list(
+                        dict.fromkeys(
+                            component_ids
+                            or ([direct_citation_id] if direct_citation_id else [])
+                        )
+                    ),
+                    "formula_version": item.get("formula_version"),
+                }
+            )
+        if not observations:
+            continue
+        packet["annual_trends"].append(
+            {
+                "metric_id": metric_id,
+                "label": series.get("label", metric_id),
+                "definition": series.get("definition"),
+                "coverage_status": (
+                    "complete"
+                    if len(observations) >= int(packet.get("requested_years") or 10)
+                    else "partial"
+                ),
+                "observations": observations[-10:],
+            }
+        )
+    if not packet["annual_trends"]:
+        return None
     return packet

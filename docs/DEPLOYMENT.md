@@ -22,6 +22,7 @@ systemd timer on Vultr
         │
         ├── refresh mutable SEC submission heads
         ├── download only unseen accession documents
+        ├── refresh configured SEC Company Facts fundamentals
         ├── refresh daily market histories
         ├── rebuild 193 static company pages
         ├── package public HTML only (no snapshot JSON/cache)
@@ -75,6 +76,7 @@ Add a Finnhub key only if live headline context is enabled:
 ```dotenv
 FINNHUB_API_KEY="replace-with-finnhub-key"
 COMPANY_LENS_HEADLINE_INDEX="/opt/company-lens/data/build/headlines.json"
+COMPANY_LENS_FUNDAMENTALS_TICKERS="AAPL"
 ```
 
 The scheduled worker queries the current local universe rather than a hard-coded
@@ -132,6 +134,34 @@ For non-interactive CLI runs, Vercel recommends `VERCEL_ORG_ID` and
 `VERCEL_PROJECT_ID` so project linking is not required.
 The service stores any Vercel CLI state under `/opt/company-lens/data/vercel-cli`,
 because the hardened systemd unit does not expose the worker user's home directory.
+
+`VERCEL_PROJECT_ID` must be the project that currently serves the public domain
+(currently `company-lens-josephjwang` for `https://lens.josephjwang.com`). A stale
+ID will publish HTML to a different project.
+
+## Ask AI provider keys (Vercel, not Vultr)
+
+Live Q&A is a Vercel serverless function. It discovers providers only from API keys
+present in that project's environment. An empty environment returns `models: []` and
+the company page labels Q&A as not configured; it does not treat that as a network
+failure.
+
+Add these as sensitive Production variables on the linked Vercel project. Never put
+them in Git, generated HTML, `/etc/company-lens.env` command lines, or browser
+JavaScript:
+
+```dotenv
+OPENAI_API_KEY="replace-with-openai-key"
+COMPANY_LENS_OPENAI_MODEL="replace-with-a-currently-valid-openai-model"
+COMPANY_LENS_ASK_ORIGIN="https://lens.josephjwang.com"
+```
+
+Use an explicit `COMPANY_LENS_OPENAI_MODEL`. Do not rely on the function's default
+model name. Environment-variable changes do not repair an already-running
+deployment; redeploy production after adding them.
+
+After deploy, `GET https://lens.josephjwang.com/api/ask` should list the configured
+OpenAI model. A bounded POST is a paid provider call and needs a separate check.
 
 Add the production domain under Vercel **Project → Domains**, then create the DNS
 record Vercel shows. TLS is issued and renewed by Vercel. Do not point the public

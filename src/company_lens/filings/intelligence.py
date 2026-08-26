@@ -21,7 +21,7 @@ from company_lens.contracts import (
     FilingReaction,
     FilingTimelinePoint,
 )
-from filing_triage.ingest.edgar import ITEM_LABELS
+from filing_triage.ingest.edgar import ITEM_LABELS, ITEM_LABELS_ZH
 
 NUMBER_PATTERN = re.compile(
     r"(?<!\w)(?:\$\s?\d[\d,]*(?:\.\d+)?(?:\s?(?:thousand|million|billion))?"
@@ -72,7 +72,11 @@ def build_filing_briefs(
         passages = _rank_passages(str(row.text), row.accession, source_url)
         entities = _extract_entities(passages)
         items = [
-            {"code": code, "label": ITEM_LABELS.get(code, "Other disclosure")}
+            {
+                "code": code,
+                "label": ITEM_LABELS.get(code, "Other disclosure"),
+                "label_zh": ITEM_LABELS_ZH.get(code, "其他披露"),
+            }
             for code in _item_codes(str(row.items))
         ]
         briefs.append(
@@ -126,6 +130,7 @@ def build_filing_timeline(
                 accepted_at=pd.Timestamp(row.acceptance_time).isoformat(),
                 item_code=item_code,
                 item_label=ITEM_LABELS.get(item_code, "Corporate update"),
+                item_label_zh=ITEM_LABELS_ZH.get(item_code, "公司更新"),
                 source_url=_sec_url(int(row.cik), row.accession, row.primary_document),
                 reaction=reactions.get(str(row.accession)),
             )

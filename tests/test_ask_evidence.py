@@ -107,3 +107,98 @@ def test_ask_evidence_keeps_api_keys_and_local_paths_out() -> None:
 
     assert "secret" not in rendered
     assert "/Users/example" not in rendered
+
+
+def test_ask_evidence_includes_bounded_fundamentals_when_available() -> None:
+    snapshot = _snapshot()
+    snapshot["fundamentals"] = {
+        "status": "available",
+        "series_basis": "latest_restated",
+        "requested_years": 10,
+        "knowledge_at": "2025-10-31T18:00:00-04:00",
+        "warnings": ["Coverage note"],
+        "reported_series": [
+            {
+                "metric_id": "revenue",
+                "label": "Revenue",
+                "definition": "Top-line revenue",
+                "expected_unit": "USD",
+                "coverage_status": "complete",
+                "observations": [
+                    {
+                        "fiscal_year": 2024,
+                        "period_end": "2024-09-28",
+                        "value": 391_035_000_000,
+                        "unit": "USD",
+                        "status": "available",
+                        "quality_flags": ["share_basis_noncomparable"],
+                        "citation": {
+                            "citation_id": "sec:revenue:2024",
+                            "source_url": "https://www.sec.gov/2024-10k",
+                        },
+                    },
+                    {
+                        "fiscal_year": 2025,
+                        "period_end": "2025-09-27",
+                        "value": 416_161_000_000,
+                        "unit": "USD",
+                        "status": "available",
+                        "quality_flags": [],
+                        "citation": {
+                            "citation_id": "sec:revenue:2025",
+                            "source_url": "https://www.sec.gov/2025-10k",
+                        },
+                    },
+                ],
+            }
+        ],
+        "derived_series": [
+            {
+                "metric_id": "gross_margin",
+                "label": "Gross margin",
+                "definition": "gross_profit / revenue",
+                "unit": "ratio",
+                "observations": [
+                    {
+                        "fiscal_year": 2025,
+                        "period_end": "2025-09-27",
+                        "value": 0.46,
+                        "unit": "ratio",
+                        "status": "available",
+                        "formula_version": "formula.v1",
+                        "components": {"revenue": "sec:revenue:2025"},
+                    }
+                ],
+            }
+        ],
+    }
+    packet = build_ask_evidence(snapshot)
+    fundamentals = packet["evidence"]["fundamentals"]
+    assert fundamentals["series_basis"] == "latest_restated"
+    assert fundamentals["annual_trends"]
+    revenue = next(
+        series for series in fundamentals["annual_trends"] if series["metric_id"] == "revenue"
+    )
+    assert [item["fiscal_year"] for item in revenue["observations"]] == [2025]
+    assert "metric:fundamentals.revenue.2025" in packet["allowed_citations"]
+    assert packet["citations"]["metric:fundamentals.revenue.2025"]["url"] == (
+        "https://www.sec.gov/2025-10k"
+    )
+    assert packet["citations"]["metric:fundamentals.gross_margin.2025"]["url"] == (
+        "https://www.sec.gov/2025-10k"
+    )
+    gross_margin = next(
+        series
+        for series in fundamentals["annual_trends"]
+        if series["metric_id"] == "gross_margin"
+    )
+    assert gross_margin["observations"][0]["source_citations"] == ["sec:revenue:2025"]
+    assert gross_margin["observations"][0]["formula_version"] == "formula.v1"
+    assert "sec:revenue:2025" in packet["allowed_citations"]
+    assert packet["citations"]["sec:revenue:2025"]["url"] == (
+        "https://www.sec.gov/2025-10k"
+    )
+    assert revenue["coverage_status"] == "partial"
+    assert "416161000000" in packet["allowed_number_literals"] or "416,161,000,000" in str(
+        packet
+    )

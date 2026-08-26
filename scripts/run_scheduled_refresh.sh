@@ -15,6 +15,10 @@ fi
 status=0
 PYTHONPATH=src "$PYTHON_BIN" scripts/refresh_filings.py || status=$?
 PYTHONPATH=src "$PYTHON_BIN" scripts/refresh_market_data.py || status=$?
+FUNDAMENTALS_TICKERS="${COMPANY_LENS_FUNDAMENTALS_TICKERS:-AAPL}"
+read -r -a fundamentals_tickers <<< "$FUNDAMENTALS_TICKERS"
+PYTHONPATH=src "$PYTHON_BIN" scripts/refresh_fundamentals.py \
+  --tickers "${fundamentals_tickers[@]}" || status=$?
 HEADLINE_INDEX="${COMPANY_LENS_HEADLINE_INDEX:-$PROJECT_ROOT/data/build/headlines.json}"
 if [[ -n "${FINNHUB_API_KEY:-}" ]]; then
   PYTHONPATH=src "$PYTHON_BIN" scripts/refresh_headlines.py --out "$HEADLINE_INDEX" || status=$?

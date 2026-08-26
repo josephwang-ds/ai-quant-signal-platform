@@ -15,6 +15,7 @@ from company_lens.contracts import (
     HeadlineBrief,
 )
 from company_lens.filings import build_filing_briefs, build_filing_timeline
+from company_lens.fundamentals import try_load_fundamentals
 from company_lens.llm import ImportedDocument, deterministic_explanation, import_headline_index
 from company_lens.performance import historical_picture
 from company_lens.profiles import company_profile
@@ -143,6 +144,7 @@ def _assemble_snapshot(
     if not filings:
         warnings.append("No 8-K filing was available in the local event dataset.")
     evidence_scope, headlines = _headline_context(headline_documents, ticker)
+    fundamentals = try_load_fundamentals(root, ticker, requested_years=10)
 
     provenance = _provenance(root / "provenance.json")
     provenance.update(
@@ -150,13 +152,14 @@ def _assemble_snapshot(
             "prices_artifact": "prices.parquet",
             "events_artifact": "events.parquet",
             "generated_at": datetime.now(UTC).isoformat(),
-            "calculation": "company_lens.v1.7",
+            "calculation": "company_lens.v2.0",
             "filing_reaction": (
                 "issuer open-to-close return on the first eligible session after SEC "
                 "acceptance, less benchmark open-to-close return; magnitude percentile "
                 "uses only earlier measurable issuer filings"
             ),
             "chart_sampling": "deterministic stride; at most 520 points per period",
+            "fundamentals_status": fundamentals.status,
         }
     )
     explanation = deterministic_explanation(ticker, metrics, filings)
@@ -169,7 +172,7 @@ def _assemble_snapshot(
         filing_count=len(filings),
     )
     return CompanySnapshot(
-        schema_version="1.7",
+        schema_version="2.0",
         ticker=ticker,
         company_name=company_name,
         as_of=period["end"],
@@ -191,6 +194,7 @@ def _assemble_snapshot(
         filing_timeline=filing_timeline,
         evidence_scope=evidence_scope,
         headlines=headlines,
+        fundamentals=fundamentals,
     )
 
 

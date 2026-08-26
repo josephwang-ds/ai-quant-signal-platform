@@ -3,12 +3,18 @@ from __future__ import annotations
 import json
 import math
 from datetime import UTC, datetime
+from pathlib import Path
 
 import pandas as pd
 import pytest
 
 from company_lens.contracts import FilingReaction
 from company_lens.filings.intelligence import build_filing_briefs, build_filing_timeline
+from company_lens.fundamentals import (
+    build_fundamentals_section,
+    fundamentals_path,
+    save_fundamentals,
+)
 from company_lens.llm import deterministic_explanation
 from company_lens.llm.headlines import import_headline_index
 from company_lens.performance import historical_picture
@@ -85,7 +91,11 @@ def test_filing_brief_has_causal_novelty_and_cited_numbers() -> None:
 
     assert newest.novelty is not None
     assert oldest.novelty is None
-    assert newest.items[0] == {"code": "2.02", "label": "Results of operations (earnings)"}
+    assert newest.items[0] == {
+        "code": "2.02",
+        "label": "Results of operations (earnings)",
+        "label_zh": "经营业绩(财报)",
+    }
     assert newest.passages[0].anchor.startswith(newest.accession)
     assert any(number["value"] == "$120 million" for number in newest.key_numbers)
     money = next(entity for entity in newest.entities if entity.text == "$120 million")
@@ -419,3 +429,81 @@ def test_supported_company_resolver_has_one_stable_scope_error(tmp_path) -> None
         resolve_supported_company("TSLA", universe)
     with pytest.raises(UnsupportedCompanyError, match=r"TSLA.*not in the current"):
         build_snapshot("TSLA", data_dir=tmp_path)
+
+
+def _company_artifacts(tmp_path, ticker: str = "AAPL") -> None:
+    pd.DataFrame(
+        [{"ticker": ticker, "cik": 320193, "name": "Apple Inc."}]
+    ).to_csv(tmp_path / "universe.csv", index=False)
+    dates = pd.bdate_range("2024-01-02", periods=6)
+    prices = pd.DataFrame(
+        [
+            {"ticker": symbol, "date": date.date(), "open": close, "close": close}
+            for symbol, closes in {
+                ticker: [100, 110, 99, 120, 108, 130],
+                "SPY": [100, 102, 101, 104, 105, 108],
+            }.items()
+            for date, close in zip(dates, closes, strict=True)
+        ]
+    )
+    prices["high"] = prices["close"]
+    prices["low"] = prices["close"]
+    prices["volume"] = 1_000
+    prices.to_parquet(tmp_path / "prices.parquet", index=False)
+    events = pd.DataFrame(
+        {
+            "ticker": pd.Series(dtype="object"),
+            "cik": pd.Series(dtype="int64"),
+            "accession": pd.Series(dtype="object"),
+            "primary_document": pd.Series(dtype="object"),
+            "form": pd.Series(dtype="object"),
+            "items": pd.Series(dtype="object"),
+            "acceptance_time": pd.Series(dtype="datetime64[ns, America/New_York]"),
+            "text": pd.Series(dtype="object"),
+        }
+    )
+    events.to_parquet(tmp_path / "events.parquet", index=False)
+    (tmp_path / "provenance.json").write_text(json.dumps({"source": "edgar"}))
+
+
+def test_snapshot_emits_v2_not_ingested_fundamentals_when_artifact_missing(tmp_path) -> None:
+    _company_artifacts(tmp_path)
+    snapshot = build_snapshot("AAPL", data_dir=tmp_path)
+
+    assert snapshot.schema_version == "2.0"
+    assert snapshot.fundamentals is not None
+    assert snapshot.fundamentals.status == "not_ingested"
+    assert snapshot.provenance["calculation"] == "company_lens.v2.0"
+    assert snapshot.as_of == snapshot.period["end"]
+    payload = snapshot.to_dict()
+    assert payload["fundamentals"]["status"] == "not_ingested"
+    assert payload["fundamentals"]["knowledge_at"] is None
+
+
+def test_snapshot_attaches_available_fundamentals_without_changing_market_as_of(
+    tmp_path,
+) -> None:
+    _company_artifacts(tmp_path)
+    fixtures = Path(__file__).resolve().parent / "fixtures" / "sec"
+    section = build_fundamentals_section(
+        json.loads((fixtures / "aapl_companyfacts_2016_2025.json").read_text()),
+        ticker="AAPL",
+        submissions=json.loads((fixtures / "aapl_submissions_fundamentals.json").read_text()),
+    )
+    save_fundamentals(section, fundamentals_path(tmp_path, "AAPL"))
+
+    snapshot = build_snapshot("AAPL", data_dir=tmp_path)
+    assert snapshot.schema_version == "2.0"
+    assert snapshot.fundamentals is not None
+    assert snapshot.fundamentals.status == "available"
+    assert snapshot.fundamentals.knowledge_at is not None
+    assert snapshot.as_of == snapshot.period["end"]
+    assert snapshot.as_of != snapshot.fundamentals.knowledge_at
+    revenue = next(
+        series
+        for series in snapshot.fundamentals.reported_series
+        if series.metric_id == "revenue"
+    )
+    assert [obs.fiscal_year for obs in revenue.observations] == list(range(2016, 2026))
+    payload = snapshot.to_dict()
+    assert payload["fundamentals"]["schema_version"] == "company-lens.fundamentals.v1"

@@ -7,7 +7,7 @@
 # python (some Linux images are the other way round). PYTHON=... overrides all of it.
 PYTHON ?= $(shell   test -x .venv/bin/python && echo .venv/bin/python ||   command -v python3 2>/dev/null ||   command -v python 2>/dev/null)
 
-.PHONY: help install demo quick audit doctor test lint ingest refresh-filings refresh-headlines refresh-all vercel-bundle vercel-deploy run site company company-featured company-pages evidence nlp-eval llm-eval llm-eval-provider-dry-run llm-eval-openai-dry-run clean
+.PHONY: help install demo quick audit doctor test lint ingest refresh-filings refresh-fundamentals refresh-headlines refresh-all vercel-bundle vercel-deploy run site company company-featured company-pages evidence nlp-eval llm-eval llm-eval-provider-dry-run llm-eval-openai-dry-run clean
 
 help:
 	@echo "make install   install the package and dev dependencies"
@@ -19,6 +19,7 @@ help:
 	@echo "make test      run the test suite"
 	@echo "make ingest    pull real EDGAR filings and prices (needs network)"
 	@echo "make refresh-filings  incrementally check SEC for new 8-Ks (needs network)"
+	@echo "make refresh-fundamentals  refresh the AAPL annual Company Facts pilot"
 	@echo "make refresh-headlines  refresh bounded Finnhub headline metadata"
 	@echo "make refresh-all  locked SEC + market refresh and static page rebuild"
 	@echo "make vercel-bundle  package public HTML as Vercel prebuilt output"
@@ -100,6 +101,12 @@ refresh-filings: check-python
 	  echo '  export EDGAR_USER_AGENT="Your Name you@example.com"'; exit 1; }
 	PYTHONPATH=src $(PYTHON) scripts/refresh_filings.py
 	$(MAKE) company-pages
+
+refresh-fundamentals: check-python
+	@test -n "$$EDGAR_USER_AGENT" || { \
+	  echo 'EDGAR_USER_AGENT is not set. The SEC requires a real name and email.'; \
+	  echo '  export EDGAR_USER_AGENT="Your Name you@example.com"'; exit 1; }
+	PYTHONPATH=src $(PYTHON) scripts/refresh_fundamentals.py --tickers AAPL
 
 refresh-headlines: check-python
 	@test -n "$$FINNHUB_API_KEY" || { \

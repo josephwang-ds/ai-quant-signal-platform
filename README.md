@@ -17,6 +17,7 @@ make company        # -> one AAPL JSON snapshot + self-contained HTML page
 make company-featured # -> quick AAPL/MSFT/NVDA showcase build
 make company-pages  # -> all 193 locally available company pages + index
 make refresh-filings # -> check SEC heads, append unseen 8-Ks, rebuild pages
+make refresh-fundamentals # -> refresh the AAPL annual Company Facts pilot
 make refresh-all    # -> locked SEC + market refresh for scheduled operation
 make vercel-bundle  # -> static pages + private-evidence Q&A function
 make vercel-deploy  # -> publish that bundle to Vercel production
@@ -64,9 +65,9 @@ they are never shipped to the browser or included in the public static bundle.
 
 The production Q&A endpoint is intentionally a portfolio-demo boundary: a strict
 model allowlist, 280-character questions, short outputs, same-origin requests, and
-a best-effort 8-requests-per-hour/IP limit. A plain local static preview remains
-fully usable and clearly labels live Q&A as offline when the serverless function is
-not present.
+a best-effort 8-requests-per-hour/IP limit. A plain local static preview remains fully usable. If the Ask function returns no
+models, the page says live Q&A is not configured and keeps the evidence readable.
+A failed model check is a separate retryable error.
 
 ---
 
@@ -221,7 +222,7 @@ embargo sweep, and writes a self-contained HTML report.
 
 ```bash
 make quick           # smaller, no leakage study, ~30s
-make test            # 224 tests
+make test            # 255 tests
 make audit           # the leakage checks as an exit code
 make llm-eval        # frozen English/Chinese grounded-output scorecard
 make llm-eval-openai-dry-run  # inspect 20-case paid benchmark scope; sends nothing
@@ -389,12 +390,12 @@ src/filing_triage/
   experiments.py   the leakage study and the embargo sweep
   report.py        self-contained HTML
   synth.py         the offline corpus
-tests/             224 tests; test_guards, test_pipeline and
+tests/             255 tests; test_guards, test_pipeline and
                    test_ingest_integration are the ones that matter
 docs/              METHODOLOGY.md, LEAKAGE.md
 ```
 
-About 9,366 lines under `src/`, plus 4,223 of tests. It is meant to be read
+About 12,507 lines under `src/`, plus 5,071 of tests. It is meant to be read
 end to end, and a test asserts these figures have not drifted from the code.
 
 ---
