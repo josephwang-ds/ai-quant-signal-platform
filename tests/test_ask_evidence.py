@@ -180,6 +180,7 @@ def test_ask_evidence_includes_bounded_fundamentals_when_available() -> None:
         series for series in fundamentals["annual_trends"] if series["metric_id"] == "revenue"
     )
     assert [item["fiscal_year"] for item in revenue["observations"]] == [2025]
+    assert revenue["observations"][0]["display_value"] == "$416.2B"
     assert "metric:fundamentals.revenue.2025" in packet["allowed_citations"]
     assert packet["citations"]["metric:fundamentals.revenue.2025"]["url"] == (
         "https://www.sec.gov/2025-10k"
@@ -192,6 +193,7 @@ def test_ask_evidence_includes_bounded_fundamentals_when_available() -> None:
         for series in fundamentals["annual_trends"]
         if series["metric_id"] == "gross_margin"
     )
+    assert gross_margin["observations"][0]["display_value"] == "46.0%"
     assert gross_margin["observations"][0]["source_citations"] == ["sec:revenue:2025"]
     assert gross_margin["observations"][0]["formula_version"] == "formula.v1"
     assert "sec:revenue:2025" in packet["allowed_citations"]
@@ -202,3 +204,5 @@ def test_ask_evidence_includes_bounded_fundamentals_when_available() -> None:
     assert "416161000000" in packet["allowed_number_literals"] or "416,161,000,000" in str(
         packet
     )
+    assert "$416.2B" in packet["allowed_number_literals"]
+    assert "46.0%" in packet["allowed_number_literals"]

@@ -318,7 +318,18 @@ def _fundamentals_packet(
                     "fiscal_year": item["fiscal_year"],
                     "period_end": item.get("period_end"),
                     "value": item["value"],
-                    "unit": item.get("unit") or series.get("unit") or series.get("expected_unit"),
+                    "display_value": _format_evidence_value(
+                        float(item["value"]),
+                        str(
+                            item.get("unit")
+                            or series.get("unit")
+                            or series.get("expected_unit")
+                            or ""
+                        ),
+                    ),
+                    "unit": item.get("unit")
+                    or series.get("unit")
+                    or series.get("expected_unit"),
                     "citation": citation,
                     "source_citations": list(
                         dict.fromkeys(
@@ -347,3 +358,26 @@ def _fundamentals_packet(
     if not packet["annual_trends"]:
         return None
     return packet
+
+
+def _format_evidence_value(value: float, unit: str) -> str:
+    """Return a compact literal the model may quote without recalculating."""
+    if unit == "ratio":
+        return f"{value * 100:.1f}%"
+    if unit in {"USD", "USD/shares"}:
+        scale = abs(value)
+        if scale >= 1_000_000_000:
+            return f"${value / 1_000_000_000:.1f}B"
+        if scale >= 1_000_000:
+            return f"${value / 1_000_000:.1f}M"
+        if unit == "USD/shares":
+            return f"${value:,.2f}"
+        return f"${value:,.0f}"
+    if unit == "shares":
+        scale = abs(value)
+        if scale >= 1_000_000_000:
+            return f"{value / 1_000_000_000:.2f}B"
+        if scale >= 1_000_000:
+            return f"{value / 1_000_000:.1f}M"
+        return f"{value:,.0f}"
+    return f"{value:,.4g}"

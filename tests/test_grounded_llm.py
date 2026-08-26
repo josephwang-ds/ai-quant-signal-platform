@@ -44,6 +44,20 @@ def test_grounded_validator_preserves_signed_number_next_to_chinese_text() -> No
     assert result.errors == ()
 
 
+def test_grounded_validator_preserves_human_readable_magnitude_suffix() -> None:
+    response = _valid()
+    response["what_changed"][0]["text"] = "Revenue was $416.2B."
+
+    result = validate_grounded_explanation(
+        response,
+        allowed_citations={"filing#sentence-1", "metric:return"},
+        allowed_number_literals={"$416.2B", "+12.0%"},
+    )
+
+    assert result.ok
+    assert result.errors == ()
+
+
 def test_named_english_month_has_controlled_numeric_localization() -> None:
     evidence = {"passage": "The appointment is effective November 18, 2026."}
 

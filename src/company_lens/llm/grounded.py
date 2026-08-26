@@ -10,7 +10,7 @@ from typing import Protocol
 
 CLAIM_SECTIONS = ("what_changed", "why_it_matters", "uncertainties")
 NUMBER_LITERAL = re.compile(
-    r"(?<![A-Za-z0-9_.])[+-]?\$?(?:\d{1,3}(?:,\d{3})+|\d+)(?:\.\d+)?%?"
+    r"(?<![A-Za-z0-9_.])[+-]?\$?(?:\d{1,3}(?:,\d{3})+|\d+)(?:\.\d+)?(?:%|[KMBT])?"
 )
 MONTH_NUMBERS = {
     "january": "1",

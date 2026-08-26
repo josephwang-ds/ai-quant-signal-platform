@@ -61,3 +61,6 @@ def test_vercel_bundle_packages_private_grounded_ask_function(tmp_path) -> None:
     function_config = json.loads((function / ".vc-config.json").read_text())
     assert function_config["runtime"] == "nodejs22.x"
     assert function_config["handler"] == "index.js"
+    function_source = (function / "index.js").read_text()
+    assert "validation_feedback" in function_source
+    assert "prefer that exact human-readable literal" in function_source
