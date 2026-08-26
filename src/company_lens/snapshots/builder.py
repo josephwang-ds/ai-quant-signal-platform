@@ -207,27 +207,39 @@ def _headline_context(
     if documents is None:
         return None, []
     ticker = ticker.upper()
-    matching = [
+    company_matches = [
         document
         for document in documents
-        if document.source_type == "market_news"
-        or (
-            document.source_type == "company_news"
-            and (
-                document.ticker == ticker
-                or ticker in document.tickers
-            )
+        if document.source_type == "company_news"
+        and (
+            document.ticker == ticker
+            or ticker in document.tickers
         )
     ]
-    ranked = sorted(
-        matching,
+    market_matches = [
+        document for document in documents if document.source_type == "market_news"
+    ]
+    company_ranked = sorted(
+        company_matches,
         key=lambda document: (
             -_timestamp(document.published_at).timestamp(),
-            0 if document.source_type == "company_news" else 1,
             document.document_id,
         ),
     )
-    selected = ranked[:3]
+    market_ranked = sorted(
+        market_matches,
+        key=lambda document: (
+            -_timestamp(document.published_at).timestamp(),
+            document.document_id,
+        ),
+    )
+    # The page is a company lens, not a generic news feed: reserve up to two
+    # positions for exact-ticker context, then use market context to complete
+    # the three-card picture. If no company headline exists, show three market
+    # rows rather than pretending the ticker has current external coverage.
+    selected = company_ranked[:2]
+    selected.extend(market_ranked[: 3 - len(selected)])
+    matching = [*company_matches, *market_matches]
     headlines = [
         HeadlineBrief(
             headline=document.title,

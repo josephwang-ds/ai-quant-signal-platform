@@ -289,6 +289,43 @@ def test_headline_context_caps_rows_and_never_leaks_company_tickers(tmp_path) ->
     assert headlines[0].citation.startswith("news:headline-")
 
 
+def test_company_headlines_are_not_displaced_by_newer_market_rows(tmp_path) -> None:
+    path = tmp_path / "headlines.json"
+    path.write_text(
+        json.dumps(
+            [
+                {
+                    "headline": "Exact company context",
+                    "publisher": "Company Wire",
+                    "published_at": "2026-08-24T09:00:00+00:00",
+                    "url": "https://example.com/company",
+                    "ticker": "AAPL",
+                },
+                *[
+                    {
+                        "headline": f"Newer market context {index}",
+                        "publisher": "Market Wire",
+                        "published_at": f"2026-08-25T{index:02d}:00:00+00:00",
+                        "url": f"https://example.com/market-{index}",
+                    }
+                    for index in range(1, 5)
+                ],
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    _, headlines = _headline_context(import_headline_index(path), "AAPL")
+
+    assert len(headlines) == 3
+    assert headlines[0].headline == "Exact company context"
+    assert [headline.source_type for headline in headlines] == [
+        "company_news",
+        "market_news",
+        "market_news",
+    ]
+
+
 def test_company_profile_separates_curated_summary_from_observed_coverage() -> None:
     profile = company_profile(
         "MSFT",

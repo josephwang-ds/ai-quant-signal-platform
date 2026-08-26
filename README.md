@@ -204,7 +204,7 @@ embargo sweep, and writes a self-contained HTML report.
 
 ```bash
 make quick           # smaller, no leakage study, ~30s
-make test            # 220 tests
+make test            # 221 tests
 make audit           # the leakage checks as an exit code
 make llm-eval        # frozen English/Chinese grounded-output scorecard
 make llm-eval-openai-dry-run  # inspect 20-case paid benchmark scope; sends nothing
@@ -372,12 +372,12 @@ src/filing_triage/
   experiments.py   the leakage study and the embargo sweep
   report.py        self-contained HTML
   synth.py         the offline corpus
-tests/             220 tests; test_guards, test_pipeline and
+tests/             221 tests; test_guards, test_pipeline and
                    test_ingest_integration are the ones that matter
 docs/              METHODOLOGY.md, LEAKAGE.md
 ```
 
-About 8,756 lines under `src/`, plus 3,578 of tests. It is meant to be read
+About 9,366 lines under `src/`, plus 4,223 of tests. It is meant to be read
 end to end, and a test asserts these figures have not drifted from the code.
 
 ---
