@@ -163,6 +163,8 @@ def compare_filing_texts(
             continue
         used_current.add(current_position)
         used_prior.add(prior_position)
+        if _is_routine_period_update(current_sentence, prior_sentence):
+            continue
         changed.append(
             FilingChange(
                 kind="changed",
@@ -337,6 +339,31 @@ def _is_boilerplate(sentence: str) -> bool:
 
 def _normalize_sentence(sentence: str) -> str:
     return re.sub(r"[^a-z0-9]+", " ", sentence.lower()).strip()
+
+
+def _is_routine_period_update(current: str, prior: str) -> bool:
+    """Suppress roll-forwards whose only change is a date or fiscal quarter."""
+    current_signature = _period_signature(current)
+    prior_signature = _period_signature(prior)
+    return (
+        _normalize_sentence(current) != _normalize_sentence(prior)
+        and current_signature == prior_signature
+    )
+
+
+def _period_signature(sentence: str) -> str:
+    value = sentence.lower()
+    month = (
+        r"(?:jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|jun(?:e)?|"
+        r"jul(?:y)?|aug(?:ust)?|sep(?:tember)?|oct(?:ober)?|nov(?:ember)?|"
+        r"dec(?:ember)?)"
+    )
+    value = re.sub(rf"\b{month}\s+\d{{1,2}},?\s+\d{{4}}\b", " date ", value)
+    value = re.sub(r"\b\d{1,2}[/-]\d{1,2}[/-]\d{2,4}\b", " date ", value)
+    if "quarter" in value:
+        value = re.sub(r"\b(first|second|third|fourth)\b", " period ", value)
+        value = re.sub(r"\bq[1-4]\b", " period ", value)
+    return _normalize_sentence(value)
 
 
 def _citation(

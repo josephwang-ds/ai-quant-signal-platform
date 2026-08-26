@@ -169,7 +169,7 @@ def test_company_page_is_self_contained_and_source_linked(tmp_path) -> None:
     assert "https://www.sec.gov/example" in page
     assert "Revenue was " in page
     assert "$120 million" in page
-    assert "Cited entities" in page
+    assert "Extracted facts" in page
     assert 'class="entity-mark money"' in page
     assert "normalized 1.2e+08 USD" in page
     assert "SEC cache collected 2024-12-21" in page
@@ -183,23 +183,22 @@ def test_company_page_is_self_contained_and_source_linked(tmp_path) -> None:
     assert 'id="correlation"' in page
     assert 'id="worst-day"' in page
     assert "Prior comparison unavailable" in page
-    assert "Observed market reaction" in page
+    assert "What happened next" in page
     assert "+2.4% vs SPY" in page
-    assert "Larger than 80%" in page
+    assert "More extreme than 80%" in page
     assert "of 10 earlier measurable filings" in page
-    assert "not the full announcement impact or a forecast" in page
-    assert "Recent filing timeline" in page
-    assert "What arrived, and how the next eligible session moved" in page
-    assert "80% of earlier filings were smaller" in page
-    assert "Start with the signal" in page
-    assert "Rules-based brief" in page
-    assert "Latest disclosure" in page
-    assert "Selected historical lens" in page
-    assert "Supporting diagnostics" in page
+    assert "does not claim the filing caused the move" in page
+    assert "Recent filing timeline" not in page
+    assert "What matters on this page" in page
+    assert "Source-backed summary" in page
+    assert "Latest SEC disclosure" in page
+    assert "Selected historical period" in page
+    assert "More risk metrics" in page
     assert page.count('class="metric-card"') == 6
-    assert 'href="#brief">Brief</a>' in page
-    assert "The architecture is the trust story" in page
-    assert "No cached headline index is configured for this build." in page
+    assert 'href="#brief">Overview</a>' in page
+    assert "The architecture is the trust story" not in page
+    assert "How to read this lens" in page
+    assert "No cached headline index is configured for this build." not in page
     assert '<div class="scope-meta">' not in page
     assert "retrieval_headlines" not in page
     assert "evidence_scope" not in _snapshot().to_dict()
@@ -250,7 +249,7 @@ def test_company_page_renders_at_most_three_safe_source_linked_headlines(tmp_pat
             citation="news:headline-three#headline",
         ),
         HeadlineBrief(
-            headline="This fourth row must not render",
+            headline="Third company headline",
             publisher="Overflow Wire",
             published_at="2026-08-22T09:00:00+00:00",
             fetched_at=None,
@@ -259,6 +258,17 @@ def test_company_page_renders_at_most_three_safe_source_linked_headlines(tmp_pat
             ticker="ABC",
             topic=None,
             citation="news:headline-four#headline",
+        ),
+        HeadlineBrief(
+            headline="This fourth company row must not render",
+            publisher="Overflow Wire",
+            published_at="2026-08-21T09:00:00+00:00",
+            fetched_at=None,
+            url="https://example.com/fifth",
+            source_type="company_news",
+            ticker="ABC",
+            topic=None,
+            citation="news:headline-five#headline",
         ),
     ]
     snapshot = replace(
@@ -275,16 +285,17 @@ def test_company_page_renders_at_most_three_safe_source_linked_headlines(tmp_pat
     payload = snapshot.to_dict()
 
     assert page.count('class="headline-card"') == 3
-    assert "This fourth row must not render" not in page
+    assert "This fourth company row must not render" not in page
+    assert "Rates remain unchanged" not in page
     assert "&lt;script&gt;alert(&#x27;headline&#x27;)&lt;/script&gt;" in page
     assert "Publisher &lt;img src=x onerror=alert(1)&gt;" in page
-    assert "&lt;b&gt;earnings&lt;/b&gt;" in page
+    assert "&lt;b&gt;earnings&lt;/b&gt;" not in page
     assert "<script>alert('headline')</script>" not in page
     assert "https://example.com/company?a=1&amp;b=2" in page
-    assert "Company</span>" in page
-    assert "Market</span>" in page
-    assert "Fetch time unavailable" in page
-    assert "2 of 6 chunks selected" in page
+    assert "Company</span>" not in page
+    assert "Market</span>" not in page
+    assert "Fetch time unavailable" not in page
+    assert "2 of 6 chunks selected" not in page
     assert payload["headlines"][0]["citation"] == "news:headline-one#headline"
     assert payload["headlines"][0]["fetched_at"] == "2026-08-25T09:05:00+00:00"
     assert payload["headlines"][0]["publisher"].startswith("Publisher")
@@ -328,6 +339,8 @@ def test_index_links_every_cached_company(tmp_path) -> None:
     page = output.read_text()
 
     assert 'href="aapl.html"' in page
+    assert "point-in-time SEC ingestion" in page
+    assert "source-bounded LLM explanation layer" in page
     assert 'href="msft.html"' in page
     assert 'href="nvda.html"' in page
     assert 'id="ticker-search"' in page
@@ -387,7 +400,7 @@ def test_company_page_renders_prior_filing_change_evidence(tmp_path) -> None:
 
     page = render_company_page(snapshot, tmp_path / "abc.html").read_text()
 
-    assert "Compared with prior 8-K:2.02" in page
+    assert "What changed vs the last similar filing" in page
     assert "1 changed" in page
     assert "Revenue was $100 million." in page
     assert "90% text match" in page

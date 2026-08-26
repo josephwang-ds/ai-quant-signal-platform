@@ -10,7 +10,7 @@ def test_labeled_change_fixture_is_reproducible() -> None:
 
     metrics = evaluate_change_cases(cases)
 
-    assert metrics["fixture_cases"] == 4
+    assert metrics["fixture_cases"] == 6
     assert metrics["overall"]["precision"] == 1.0
     assert metrics["overall"]["recall"] == 1.0
     assert metrics["overall"]["f1"] == 1.0

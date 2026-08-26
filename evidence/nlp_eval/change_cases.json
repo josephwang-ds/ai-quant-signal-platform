@@ -38,5 +38,17 @@
     "prior_text": "The company reported quarterly revenue of $100 million.",
     "current_text": "The company reported quarterly revenue of $100 million.",
     "expected": []
+  },
+  {
+    "id": "routine_quarter_rollforward",
+    "prior_text": "Apple issued a press release regarding financial results for its second fiscal quarter ended March 28, 2026.",
+    "current_text": "Apple issued a press release regarding financial results for its third fiscal quarter ended June 27, 2026.",
+    "expected": []
+  },
+  {
+    "id": "routine_filing_date_rollforward",
+    "prior_text": "On April 30, 2026, Apple Inc. issued its quarterly report.",
+    "current_text": "On July 30, 2026, Apple Inc. issued its quarterly report.",
+    "expected": []
   }
 ]
