@@ -27,5 +27,4 @@ vercel deploy \
   --prebuilt \
   --archive=tgz \
   --prod \
-  --yes \
-  --token "$VERCEL_TOKEN"
+  --yes

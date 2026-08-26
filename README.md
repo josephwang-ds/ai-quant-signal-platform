@@ -18,7 +18,7 @@ make company-featured # -> quick AAPL/MSFT/NVDA showcase build
 make company-pages  # -> all 193 locally available company pages + index
 make refresh-filings # -> check SEC heads, append unseen 8-Ks, rebuild pages
 make refresh-all    # -> locked SEC + market refresh for scheduled operation
-make vercel-bundle  # -> public 41.6 MB HTML-only prebuilt frontend
+make vercel-bundle  # -> public 42.4 MB HTML-only prebuilt frontend
 make vercel-deploy  # -> publish that bundle to Vercel production
 make nlp-eval       # -> labeled prior-filing change-detection metrics
 ```
@@ -31,7 +31,9 @@ with source spans, retrospective benchmark-adjusted filing reactions compared on
 with earlier issuer filings, and a no-LLM explanation fallback. An optional local
 JSON/CSV headline index can add an Evidence Scope section with at most three
 source-linked company or market headlines; normal builds use the honest
-not-configured state and make no live-news request. Opt-in grounded retrieval runs
+not-configured state and make no live-news request. The production worker refreshes
+that bounded index from Finnhub on weekdays, keeps the last good cache on upstream
+failure, and then rebuilds all 193 pages. Opt-in grounded retrieval runs
 persist their documents, selected chunks, safe reader rules, and run provenance to
 local versioned JSON by default; no database is required. A backend worker can
 explicitly select the optional PostgREST adapter without changing the snapshot:

@@ -1,16 +1,16 @@
 # Scheduled deployment
 
-The public HTML bundle is deployed at <https://company-lens-demo.vercel.app>. Vercel
-automatically assigned the first deployment to production even though the CLI command
-did not pass `--prod`; later non-`--prod` deployments remain previews.
+The public HTML bundle is deployed at <https://company-lens-demo.vercel.app>. Production
+deployments now run non-interactively from the Vultr worker with an explicitly
+project-scoped Vercel token.
 
 A low-cost Vultr worker is provisioned in Tokyo with Ubuntu 24.04, 1 vCPU, 1 GB RAM,
-25 GB SSD, and the image-provided 2.3 GiB swap. The code and the four core build
-artifacts are installed under `/opt/company-lens`; a deterministic AAPL build completed
-in about 15 seconds. SSH also listens on port 443 as a temporary fallback while Vultr's
-Tokyo network incident affects port 22. The live Finnhub adapter and last-good headline
-cache are implemented locally, but the server secret file and systemd timer remain
-deliberately unapplied, so the instance cannot refresh or deploy automatically yet.
+25 GB SSD, and the image-provided 2.3 GiB swap. The code, core build artifacts, and
+roughly 336 MB accession/price caches are installed under `/opt/company-lens`. A live
+Finnhub AAPL smoke build produced two company headlines plus one market headline; a
+full 193-page build and production deploy also completed from the worker. SSH listens
+on port 443 as a fallback. The root-only server secret file and weekday systemd timer
+are installed and active.
 
 ## Recommended shape
 
@@ -30,11 +30,11 @@ systemd timer on Vultr
 
 The full local page directory is about 97 MB because it includes 58 MB of JSON build
 artifacts. The Vercel bundle publishes only the 195 HTML files, currently about
-41.6 MB. The low-cost worker initially keeps only `events.parquet`, `prices.parquet`,
-`universe.csv`, and `provenance.json` (about 81 MB) and runs one task at a time. Copy the
-roughly 335 MB accession and price caches only before enabling live refresh. Upgrade to
-2 vCPU and 4 GB RAM only if the full 193-page refresh shows sustained swap pressure or
-an unacceptable runtime.
+42.4 MB. The low-cost worker runs one task at a time and now has the roughly 336 MB
+accession and price caches needed for incremental refreshes. The first full page build
+took about five minutes, peaked near 560 MB resident memory, and briefly used about
+330 MB of swap. That is acceptable for an overnight bonus project; upgrade only if
+future runtimes become operationally inconvenient.
 
 ## One-time Vultr setup
 
@@ -125,6 +125,9 @@ VERCEL_PROJECT_ID="prj_project_id"
 
 The environment file is mode `600`; do not commit these values. The checked-in
 deploy script requires all three variables and uses a compressed prebuilt deployment.
+It lets the Vercel CLI read `VERCEL_TOKEN` from the environment instead of placing the
+credential in the process command line. The hardened service directs CLI home and
+cache writes into private paths under `/opt/company-lens/data` and disables telemetry.
 For non-interactive CLI runs, Vercel recommends `VERCEL_ORG_ID` and
 `VERCEL_PROJECT_ID` so project linking is not required.
 The service stores any Vercel CLI state under `/opt/company-lens/data/vercel-cli`,
@@ -144,7 +147,7 @@ sudo systemctl enable --now company-lens-refresh.timer
 sudo systemctl start company-lens-refresh.service
 ```
 
-The timer runs Monday through Friday at 23:30 UTC, with up to ten minutes of jitter.
+The enabled timer runs Monday through Friday at 23:30 UTC, with up to ten minutes of jitter.
 That is 07:30 China time the next morning and after the US market close in both EDT
 and EST. `Persistent=true` runs a missed job after a reboot. The refresh script also
 uses a file lock, so a manual run cannot overlap the scheduled run.
@@ -171,7 +174,7 @@ sudo systemctl reload nginx
 ```
 
 The generated HTML is self-contained, so Nginx does not need Python on web requests.
-The normal Vercel path publishes only 38.5 MB of HTML and therefore remains well under
+The normal Vercel path publishes only 42.4 MB of HTML and therefore remains well under
 the current 100 MB Hobby static CLI upload limit.
 
 ## Failure behavior
@@ -179,8 +182,7 @@ the current 100 MB Hobby static CLI upload limit.
 - Accessions are unique keys, so running the job twice does not duplicate filings.
 - A failed issuer retains its last good filing and price history.
 - Pages are rebuilt from the merged last-good artifacts even when a source is partial.
-- A future Vercel deployment should run only after the HTML build and public bundle
-  both succeed.
+- Vercel deployment runs only after the HTML build and public bundle both succeed.
 - Snapshot JSON, accession text, Parquet files, and SEC identity never enter the
   Vercel bundle.
 - A partial refresh exits non-zero after rebuilding, so systemd records a visible
