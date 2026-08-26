@@ -42,7 +42,7 @@ const PROVIDERS = {
     label: "Gemini",
     key: "GEMINI_API_KEY",
     modelEnv: "COMPANY_LENS_GEMINI_MODEL",
-    model: "gemini-3.7-flash",
+    model: "gemini-3.6-flash",
   },
 };
 
@@ -368,7 +368,8 @@ async function callGemini(model, packet) {
     systemInstruction: { parts: [{ text: SYSTEM_INSTRUCTIONS }] },
     contents: [{ role: "user", parts: [{ text: JSON.stringify(packet) }] }],
     generationConfig: {
-      maxOutputTokens: MAX_OUTPUT_TOKENS,
+      maxOutputTokens: 1_800,
+      thinkingConfig: { thinkingLevel: "low" },
       responseMimeType: "application/json",
       responseJsonSchema: OUTPUT_SCHEMA,
     },

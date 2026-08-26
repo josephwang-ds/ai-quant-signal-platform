@@ -135,6 +135,7 @@ def test_gemini_uses_native_interactions_structured_output() -> None:
     assert usage == {"input_tokens": 13, "output_tokens": 23}
     assert session.call["url"].endswith("/v1beta/interactions")
     assert session.call["json"]["response_format"]["mime_type"] == "application/json"
+    assert session.call["json"]["generation_config"] == {"thinking_level": "low"}
     assert session.call["headers"]["x-goog-api-key"] == "test"
 
 
@@ -145,7 +146,7 @@ def test_gemini_uses_native_interactions_structured_output() -> None:
         ("deepseek", "deepseek", "deepseek-v4-flash"),
         ("qianwen", "qwen", "qwen3.8-max"),
         ("claude", "anthropic", "claude-sonnet-5"),
-        ("google", "gemini", "gemini-3.7-flash"),
+        ("google", "gemini", "gemini-3.6-flash"),
     ],
 )
 def test_provider_factory_supports_user_facing_aliases(

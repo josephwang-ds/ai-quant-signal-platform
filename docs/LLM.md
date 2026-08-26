@@ -17,7 +17,7 @@ configuration decision; it is never exposed as a browser-side key or direct API 
 | `deepseek` | `deepseek-v4-flash` | Cost-sensitive independent challenger |
 | `qwen` | `qwen3.8-max` | Chinese-output challenger |
 | `anthropic` | `claude-sonnet-5` | Balanced frontier challenger |
-| `gemini` | `gemini-3.7-flash` | Low-cost/latency challenger |
+| `gemini` | `gemini-3.6-flash` | Low-cost/latency challenger |
 
 Current capability and pricing references are the providers' official pages:
 [OpenAI models](https://developers.openai.com/api/docs/models),

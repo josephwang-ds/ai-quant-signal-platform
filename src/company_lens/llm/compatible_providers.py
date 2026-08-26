@@ -286,7 +286,7 @@ class GeminiInteractionsProvider:
         self,
         *,
         api_key: str | None = None,
-        model: str = "gemini-3.7-flash",
+        model: str = "gemini-3.6-flash",
         base_url: str = "https://generativelanguage.googleapis.com/v1beta",
         timeout: float = 45.0,
         session: Any | None = None,
@@ -302,7 +302,7 @@ class GeminiInteractionsProvider:
         settings = {
             "api_key": os.environ.get("GEMINI_API_KEY"),
             "model": os.environ.get(
-                "COMPANY_LENS_GEMINI_MODEL", "gemini-3.7-flash"
+                "COMPANY_LENS_GEMINI_MODEL", "gemini-3.6-flash"
             ),
             "base_url": os.environ.get(
                 "GEMINI_BASE_URL",
@@ -360,6 +360,7 @@ class GeminiInteractionsProvider:
         return {
             "model": self.model,
             "input": f"{SYSTEM_INSTRUCTIONS}\n\nEvidence packet:\n{packet}",
+            "generation_config": {"thinking_level": "low"},
             "response_format": {
                 "type": "text",
                 "mime_type": "application/json",

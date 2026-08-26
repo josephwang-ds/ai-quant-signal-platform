@@ -64,3 +64,5 @@ def test_vercel_bundle_packages_private_grounded_ask_function(tmp_path) -> None:
     function_source = (function / "index.js").read_text()
     assert "validation_feedback" in function_source
     assert "prefer that exact human-readable literal" in function_source
+    assert 'model: "gemini-3.6-flash"' in function_source
+    assert 'thinkingConfig: { thinkingLevel: "low" }' in function_source
