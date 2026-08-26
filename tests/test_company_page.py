@@ -201,8 +201,26 @@ def test_company_page_is_self_contained_and_source_linked(tmp_path) -> None:
     assert "grounding_validation_failed" not in page
     assert "More risk metrics" in page
     assert page.count('class="metric-card"') == 6
-    assert 'href="#brief">Overview</a>' in page
-    assert 'href="#ask">Ask AI</a>' in page
+    assert 'href="#brief" data-i18n="nav.overview">Overview</a>' in page
+    assert 'href="#ask" data-i18n="nav.ask">Ask AI</a>' in page
+    assert 'id="workspace"' in page
+    assert page.count('data-workspace-view="') == 4
+    assert 'data-view-target="performance"' in page
+    assert "activateWorkspace" in page
+    assert "workspace-enhanced" in page
+    assert 'id="language-toggle"' in page
+    assert 'data-i18n="ask.title"' in page
+    assert 'data-i18n-placeholder="ask.placeholder"' in page
+    assert "company-lens-language" in page
+    assert "document.documentElement.lang" in page
+    assert '"zh": {' in page
+    assert '"ask.title": "向证据提问"' in page
+    assert "getElementById('ask-language').value" in page
+    assert 'data-status-key="ask.checking_models"' in page
+    assert 'data-i18n="ask.checking_models"' not in page
+    assert "refreshAskStatus" in page
+    assert 'data-freshness-key="filings.sec_collected"' in page
+    assert "SEC excerpts remain in the filed language" in page
     assert "The architecture is the trust story" not in page
     assert "How to read this lens" in page
     assert "No cached headline index is configured for this build." not in page
@@ -352,7 +370,16 @@ def test_index_links_every_cached_company(tmp_path) -> None:
     assert 'href="nvda.html"' in page
     assert 'id="ticker-search"' in page
     assert 'id="company-data"' in page
-    assert "Not in the current local ${companies.length}-company universe" in page
+    assert "Not in the current local {count}-company universe" in page
+    assert 'id="index-language-toggle"' in page
+    assert 'class="index-topbar"' in page
+    assert '<details class="company-directory" id="directory">' in page
+    assert 'id="directory-grid"' in page
+    assert "const directoryPageSize = 9" in page
+    assert '<details class="method-note" id="method">' in page
+    assert 'data-index-i18n="method.expand"' in page
+    assert 'data-index-i18n="hero.title"' in page
+    assert "'hero.title': '理解一家公司。'" in page
     assert "Microsoft Corporation" in page
 
 
@@ -376,6 +403,10 @@ def test_index_searches_full_universe_but_features_only_three(tmp_path) -> None:
     assert "const exactTicker" in page
     assert "const exactName" in page
     assert "exactTicker || exactName" in page
+    assert "directoryCompanies.slice(start, start + directoryPageSize)" in page
+    assert "setSearchStatus(" in page
+    assert "refreshSearchStatus();" in page
+    assert "status.textContent = indexTr('search.scope'" not in page
 
 
 def test_company_page_renders_prior_filing_change_evidence(tmp_path) -> None:
