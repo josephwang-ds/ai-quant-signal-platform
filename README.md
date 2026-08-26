@@ -18,7 +18,7 @@ make company-featured # -> quick AAPL/MSFT/NVDA showcase build
 make company-pages  # -> all 193 locally available company pages + index
 make refresh-filings # -> check SEC heads, append unseen 8-Ks, rebuild pages
 make refresh-all    # -> locked SEC + market refresh for scheduled operation
-make vercel-bundle  # -> public 42.4 MB HTML-only prebuilt frontend
+make vercel-bundle  # -> static pages + private-evidence Q&A function
 make vercel-deploy  # -> publish that bundle to Vercel production
 make nlp-eval       # -> labeled prior-filing change-detection metrics
 ```
@@ -52,6 +52,21 @@ and contains no Supabase project identifier or credential.
 The entry searches all 193 companies in the current local evidence universe while
 keeping AAPL/MSFT/NVDA as featured examples. It states when a company is genuinely
 outside that universe. It makes no forecast or recommendation.
+
+Each company page also includes a controlled **Ask the evidence** experience. A
+visitor can choose GPT, DeepSeek, Qwen, Claude, or Gemini and ask a company-specific
+question in English or Chinese. The server sends only that ticker's frozen snapshot
+evidence, requires structured claims with citation IDs, and withholds any response
+that introduces an unsupported citation or number, investment advice, or a price
+forecast. Answers show their evidence links, limitations, selected model, latency,
+and validator result. Provider keys stay in Vercel sensitive environment variables;
+they are never shipped to the browser or included in the public static bundle.
+
+The production Q&A endpoint is intentionally a portfolio-demo boundary: a strict
+model allowlist, 280-character questions, short outputs, same-origin requests, and
+a best-effort 8-requests-per-hour/IP limit. A plain local static preview remains
+fully usable and clearly labels live Q&A as offline when the serverless function is
+not present.
 
 ---
 
@@ -206,7 +221,7 @@ embargo sweep, and writes a self-contained HTML report.
 
 ```bash
 make quick           # smaller, no leakage study, ~30s
-make test            # 221 tests
+make test            # 224 tests
 make audit           # the leakage checks as an exit code
 make llm-eval        # frozen English/Chinese grounded-output scorecard
 make llm-eval-openai-dry-run  # inspect 20-case paid benchmark scope; sends nothing
@@ -374,7 +389,7 @@ src/filing_triage/
   experiments.py   the leakage study and the embargo sweep
   report.py        self-contained HTML
   synth.py         the offline corpus
-tests/             221 tests; test_guards, test_pipeline and
+tests/             224 tests; test_guards, test_pipeline and
                    test_ingest_integration are the ones that matter
 docs/              METHODOLOGY.md, LEAKAGE.md
 ```

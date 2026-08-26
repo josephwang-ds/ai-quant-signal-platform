@@ -193,9 +193,16 @@ def test_company_page_is_self_contained_and_source_linked(tmp_path) -> None:
     assert "Source-backed summary" in page
     assert "Latest SEC disclosure" in page
     assert "Selected historical period" in page
+    assert "Ask the evidence" in page
+    assert "Every answer is validated" in page
+    assert 'id="ask-model"' in page
+    assert 'id="ask-question"' in page
+    assert "API keys remain server-side" in page
+    assert "grounding_validation_failed" not in page
     assert "More risk metrics" in page
     assert page.count('class="metric-card"') == 6
     assert 'href="#brief">Overview</a>' in page
+    assert 'href="#ask">Ask AI</a>' in page
     assert "The architecture is the trust story" not in page
     assert "How to read this lens" in page
     assert "No cached headline index is configured for this build." not in page

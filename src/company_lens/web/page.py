@@ -186,7 +186,7 @@ def _document(snapshot: CompanySnapshot) -> str:
     <span class="current-symbol" aria-current="page">{html.escape(snapshot.ticker)}</span>
   </nav>
   <nav class="section-nav" aria-label="Page storyline">
-        <a href="#brief">Overview</a><a href="#performance">History</a>
+        <a href="#brief">Overview</a><a href="#ask">Ask AI</a><a href="#performance">History</a>
         <a href="#filings">Filings</a>{context_nav}
   </nav>
   <span class="trust-label">Evidence, not prediction</span>
@@ -220,6 +220,8 @@ def _document(snapshot: CompanySnapshot) -> str:
         Details remain below when you want to verify them.</p>
         <div class="brief-grid">{brief}</div>
       </section>
+
+  {_ask_section(snapshot)}
 
   <section class="performance-section" id="performance" aria-labelledby="performance-title">
     <div class="section-heading performance-heading">
@@ -287,6 +289,48 @@ def _document(snapshot: CompanySnapshot) -> str:
 <script type="application/json" id="period-data">{payload}</script>
 <script>{_script(default_period, snapshot.ticker, snapshot.benchmark)}</script>
 </body></html>"""
+
+
+def _ask_section(snapshot: CompanySnapshot) -> str:
+    ticker = html.escape(snapshot.ticker)
+    return f"""<section class="ask-section" id="ask" aria-labelledby="ask-title">
+    <div class="section-heading"><div><p class="eyebrow">CONTROLLED LLM Q&amp;A</p>
+    <h2 id="ask-title">Ask the evidence</h2></div>
+    <span class="ask-validation">Every answer is validated</span></div>
+    <p class="section-intro">Choose a model and ask about {ticker}. The model receives only
+    this page's cached SEC passages, calculated history, filing reaction, and matched company
+    headlines. Unsupported citations, invented numbers, advice, and forecasts are withheld.</p>
+    <div class="ask-layout">
+      <form class="ask-form" id="ask-form">
+        <div class="ask-controls">
+          <label>Model<select id="ask-model" name="provider" disabled>
+          <option>Loading live models…</option></select></label>
+          <label>Answer language<select id="ask-language" name="language">
+          <option value="English">English</option><option value="Chinese">中文</option>
+          </select></label>
+        </div>
+        <label class="ask-question">Question
+        <textarea id="ask-question" maxlength="280" rows="3"
+        placeholder="What does the latest 8-K tell me?" required></textarea></label>
+        <div class="ask-suggestions" aria-label="Suggested questions">
+          <button type="button" data-question="What does the latest 8-K tell me?">Latest 8-K</button>
+          <button type="button" data-question="How did {ticker} perform versus its benchmark?">Vs benchmark</button>
+          <button type="button" data-question="What are the limits of this evidence?">Evidence limits</button>
+        </div>
+        <div class="ask-submit-row"><button id="ask-submit" type="submit" disabled>Ask model</button>
+        <span id="ask-status" aria-live="polite">Checking available models…</span></div>
+      </form>
+      <div class="ask-result" id="ask-result" aria-live="polite">
+        <p class="ask-result-kicker">HOW CONTROL STAYS VISIBLE</p>
+        <ol><li><span>1</span>Question is matched to a frozen {ticker} evidence packet.</li>
+        <li><span>2</span>The selected provider returns structured claims and citation IDs.</li>
+        <li><span>3</span>A server-side validator rejects unsupported citations, numbers,
+        advice, or forecasts before anything appears here.</li></ol>
+      </div>
+    </div>
+    <p class="ask-boundary"><strong>Scope:</strong> explanation, not recommendation ·
+    maximum 280 characters · public-demo rate limit · API keys remain server-side</p>
+    </section>"""
 
 
 def _evidence_context(
@@ -757,6 +801,137 @@ svg.addEventListener('pointermove', event => {{
 svg.addEventListener('pointerleave', hideTooltip);
 document.querySelectorAll('.period-button').forEach(button => button.addEventListener('click',()=>setPeriod(button.dataset.period)));
 setPeriod({json.dumps(default_period)});
+
+const askForm = document.getElementById('ask-form');
+const askModel = document.getElementById('ask-model');
+const askLanguage = document.getElementById('ask-language');
+const askQuestion = document.getElementById('ask-question');
+const askSubmit = document.getElementById('ask-submit');
+const askStatus = document.getElementById('ask-status');
+const askResult = document.getElementById('ask-result');
+
+function setAskStatus(message, state='') {{
+  askStatus.textContent = message;
+  askStatus.className = state;
+}}
+
+async function loadAskModels() {{
+  try {{
+    const response = await fetch('/api/ask', {{headers: {{Accept: 'application/json'}}}});
+    if (!response.ok) throw new Error('Live model service is unavailable.');
+    const payload = await response.json();
+    askModel.replaceChildren();
+    payload.models.forEach(model => {{
+      const option = document.createElement('option');
+      option.value = model.id;
+      option.textContent = `${{model.provider}} · ${{model.model}}`;
+      askModel.append(option);
+    }});
+    if (!payload.models.length) throw new Error('No live model is configured.');
+    askModel.disabled = false;
+    askSubmit.disabled = false;
+    setAskStatus(`${{payload.models.length}} validated model${{payload.models.length === 1 ? '' : 's'}} available`, 'ready');
+  }} catch (error) {{
+    askModel.innerHTML = '<option>Live models unavailable</option>';
+    setAskStatus('The page data remains available; live Q&A is currently offline.', 'error');
+  }}
+}}
+
+document.querySelectorAll('[data-question]').forEach(button => {{
+  button.addEventListener('click', () => {{
+    askQuestion.value = button.dataset.question;
+    askQuestion.focus();
+  }});
+}});
+
+askForm.addEventListener('submit', async event => {{
+  event.preventDefault();
+  const question = askQuestion.value.trim();
+  if (!question || askModel.disabled) return;
+  askSubmit.disabled = true;
+  askResult.className = 'ask-result loading';
+  askResult.textContent = 'Reading the bounded evidence packet…';
+  setAskStatus('Waiting for the selected model…');
+  try {{
+    const response = await fetch('/api/ask', {{
+      method: 'POST',
+      headers: {{'Content-Type': 'application/json', Accept: 'application/json'}},
+      body: JSON.stringify({{
+        ticker,
+        provider: askModel.value,
+        language: askLanguage.value,
+        depth: 'beginner',
+        question,
+      }}),
+    }});
+    const payload = await response.json();
+    if (!response.ok) throw new Error(payload.message || 'The answer could not be generated.');
+    renderAskAnswer(payload);
+    setAskStatus(`${{payload.meta.model}} · ${{payload.meta.latency_ms}} ms · validator passed`, 'ready');
+  }} catch (error) {{
+    askResult.className = 'ask-result error';
+    askResult.textContent = error.message || 'The selected model is unavailable.';
+    setAskStatus('No unvalidated answer was shown.', 'error');
+  }} finally {{
+    askSubmit.disabled = askModel.disabled;
+  }}
+}});
+
+function renderAskAnswer(payload) {{
+  askResult.replaceChildren();
+  askResult.className = 'ask-result answered';
+  const heading = document.createElement('div');
+  heading.className = 'ask-answer-heading';
+  const label = document.createElement('span');
+  label.textContent = 'VALIDATED ANSWER';
+  const model = document.createElement('small');
+  model.textContent = `${{payload.meta.provider}} · evidence through ${{payload.meta.evidence_as_of}}`;
+  heading.append(label, model);
+  askResult.append(heading);
+  payload.answer.forEach(claim => askResult.append(renderAskClaim(claim)));
+  const details = document.createElement('details');
+  details.className = 'ask-limitations';
+  const summary = document.createElement('summary');
+  summary.textContent = 'What this answer cannot establish';
+  details.append(summary);
+  payload.boundaries.forEach(claim => details.append(renderAskClaim(claim)));
+  askResult.append(details);
+}}
+
+function renderAskClaim(claim) {{
+  const article = document.createElement('article');
+  const copy = document.createElement('p');
+  copy.textContent = claim.text;
+  article.append(copy);
+  if (claim.citations.length) {{
+    const links = document.createElement('div');
+    links.className = 'ask-citations';
+    claim.citations.forEach(citation => {{
+      const link = document.createElement('a');
+      link.href = safeAskHref(citation.url);
+      link.textContent = citation.label;
+      if (link.href.startsWith('http')) {{
+        link.target = '_blank';
+        link.rel = 'noopener noreferrer';
+      }}
+      links.append(link);
+    }});
+    article.append(links);
+  }}
+  return article;
+}}
+
+function safeAskHref(value) {{
+  try {{
+    const url = new URL(value, window.location.origin);
+    if (url.protocol === 'https:' || (url.protocol === 'http:' && url.origin === window.location.origin)) {{
+      return url.href;
+    }}
+  }} catch (error) {{}}
+  return '#ask';
+}}
+
+loadAskModels();
 """
 
 
@@ -805,9 +980,11 @@ def _css() -> str:
 @media(max-width:620px){.topbar{padding:0 16px}.topbar nav{margin-left:auto}.company-search-link{padding:6px}.trust-label{display:none}.brand>span:last-child{display:none}main{padding:18px 14px 60px}.scope-warning{flex-direction:column;gap:2px}.company-hero{padding:42px 0 30px;flex-direction:column;gap:25px}.market-observation{align-items:start;border-left:0;padding-left:0}.company-title{align-items:start}.company-title h1{font-size:42px}section{padding:24px 18px}.section-heading{flex-direction:column}.performance-heading{align-items:start}.metric-grid{grid-template-columns:repeat(2,1fr)}.period-control{width:100%}.period-button{flex:1}.risk-note{flex-direction:column;gap:4px}.filing-card summary strong{max-width:190px}.filing-summary-meta>span{display:none}.footer-meta{display:none}}
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*{transition:none!important}}
 @media(max-width:620px){.profile-meta{flex-direction:column;align-items:flex-start;gap:3px}.timeline-heading,.reaction-heading,.comparison-heading{flex-direction:column;gap:6px}.reaction-grid,.change-list{grid-template-columns:1fr}.timeline-track{grid-auto-columns:minmax(145px,72vw)}.topbar .section-nav,.company-search-link{display:none}.topbar .company-nav{margin-left:auto}.company-hero{padding:24px 0 18px;gap:13px}.hero-copy{font-size:15px;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}.profile-meta>span{display:none}.profile-meta{margin-top:8px}.evidence-flow{display:none}.market-observation{width:100%;padding:11px 14px;border:1px solid var(--line);border-radius:12px;background:var(--panel);align-items:flex-start}.market-observation strong{font-size:29px}.brief-card{padding:19px}.brief-card h3{font-size:22px}.brief-card p,.brief-lead>p{font-size:16px}.brief-card-heading{flex-direction:column;gap:5px}.brief-metrics{grid-template-columns:1fr 1fr}.authority-row{gap:8px}.authority-row>em{display:none}.diagnostic-heading{align-items:start;flex-direction:column;gap:2px}.metric-grid{grid-template-columns:1fr 1fr}.metric-card{padding:13px}.trust-grid{gap:8px}}
-body{font-family:"Avenir Next","Segoe UI",sans-serif}.company-hero{border:0;border-radius:0;background:transparent;box-shadow:none;margin-bottom:0}.brief-section{border-radius:8px}.brief-grid{grid-template-columns:repeat(12,minmax(0,1fr));gap:0;border-top:1px solid #365166;border-bottom:1px solid #365166}.brief-card{border:0;border-radius:0;background:transparent}.brief-lead{border-right:1px solid #365166}.brief-metrics>div{padding:10px 0;border:0;border-radius:0;background:transparent}.brief-metrics>div+div{padding-left:18px;border-left:1px solid #28514e}.brief-boundary{grid-column:1/-1;margin:0;padding:17px 24px;color:#aebfca;font-size:12px}.brief-boundary strong{color:#e9b66d}.performance-section,.filings-section,.context-section{padding:58px 0;border:0;border-top:1px solid var(--line);border-radius:0;background:transparent;box-shadow:none}.diagnostics-disclosure{margin-top:20px;border-top:1px solid var(--line)}.diagnostics-disclosure>summary,.source-details>summary{padding:14px 0;color:var(--blue);font-size:12px;font-weight:750;cursor:pointer}.metric-card{border-radius:3px;background:rgba(255,255,255,.55)}.filing-card{border-radius:4px;background:#fff}.filing-card summary{min-height:76px}.reaction-panel,.comparison-panel{border-width:0 0 0 3px;border-radius:0}.reaction-grid>div{border:0;border-left:1px solid #dbe8e1;border-radius:0;background:transparent}.reaction-grid>div:first-child{border-left:0}.comparison-clear{display:flex;flex-direction:column;margin-top:14px;color:var(--muted);font-size:12px}.comparison-clear strong{margin-bottom:3px;color:var(--ink)}.source-details{margin-top:8px;border-top:1px solid var(--line)}.filing-columns aside{border-radius:3px}.context-freshness{margin:-14px 0 20px;color:var(--muted);font-size:10px}.headline-list{grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:0;border-top:1px solid var(--line)}.headline-card{padding:20px 22px;border:0;border-right:1px solid var(--line);border-radius:0;background:transparent}.headline-card:last-child{border-right:0}.headline-card h3{margin:10px 0 14px}.headline-meta{display:flex;flex-direction:row;flex-wrap:wrap;gap:5px 12px}.headline-meta span:first-child{color:var(--ink);font-weight:750}.headline-card>a{padding-top:2px}footer a{margin-top:5px;color:var(--blue);text-decoration:none}#brief,#performance,#filings,#context{scroll-margin-top:90px}
+body{font-family:"Avenir Next","Segoe UI",sans-serif}.company-hero{border:0;border-radius:0;background:transparent;box-shadow:none;margin-bottom:0}.brief-section{border-radius:8px}.brief-grid{grid-template-columns:repeat(12,minmax(0,1fr));gap:0;border-top:1px solid #365166;border-bottom:1px solid #365166}.brief-card{border:0;border-radius:0;background:transparent}.brief-lead{border-right:1px solid #365166}.brief-metrics>div{padding:10px 0;border:0;border-radius:0;background:transparent}.brief-metrics>div+div{padding-left:18px;border-left:1px solid #28514e}.brief-boundary{grid-column:1/-1;margin:0;padding:17px 24px;color:#aebfca;font-size:12px}.brief-boundary strong{color:#e9b66d}.performance-section,.filings-section,.context-section{padding:58px 0;border:0;border-top:1px solid var(--line);border-radius:0;background:transparent;box-shadow:none}.diagnostics-disclosure{margin-top:20px;border-top:1px solid var(--line)}.diagnostics-disclosure>summary,.source-details>summary{padding:14px 0;color:var(--blue);font-size:12px;font-weight:750;cursor:pointer}.metric-card{border-radius:3px;background:rgba(255,255,255,.55)}.filing-card{border-radius:4px;background:#fff}.filing-card summary{min-height:76px}.reaction-panel,.comparison-panel{border-width:0 0 0 3px;border-radius:0}.reaction-grid>div{border:0;border-left:1px solid #dbe8e1;border-radius:0;background:transparent}.reaction-grid>div:first-child{border-left:0}.comparison-clear{display:flex;flex-direction:column;margin-top:14px;color:var(--muted);font-size:12px}.comparison-clear strong{margin-bottom:3px;color:var(--ink)}.source-details{margin-top:8px;border-top:1px solid var(--line)}.filing-columns aside{border-radius:3px}.context-freshness{margin:-14px 0 20px;color:var(--muted);font-size:10px}.headline-list{grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:0;border-top:1px solid var(--line)}.headline-card{padding:20px 22px;border:0;border-right:1px solid var(--line);border-radius:0;background:transparent}.headline-card:last-child{border-right:0}.headline-card h3{margin:10px 0 14px}.headline-meta{display:flex;flex-direction:row;flex-wrap:wrap;gap:5px 12px}.headline-meta span:first-child{color:var(--ink);font-weight:750}.headline-card>a{padding-top:2px}footer a{margin-top:5px;color:var(--blue);text-decoration:none}#brief,#ask,#performance,#filings,#context{scroll-margin-top:90px}
+.ask-section{padding:58px 0;border:0;border-top:1px solid var(--line);border-radius:0;background:transparent;box-shadow:none}.ask-validation{padding:7px 10px;border:1px solid #b9d8ca;border-radius:999px;color:var(--green);font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.07em}.ask-layout{display:grid;grid-template-columns:minmax(0,5fr) minmax(320px,4fr);border:1px solid var(--line);background:var(--panel)}.ask-form{padding:28px;border-right:1px solid var(--line)}.ask-controls{display:grid;grid-template-columns:1fr 150px;gap:12px}.ask-form label{display:flex;flex-direction:column;gap:7px;color:var(--muted);font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.08em}.ask-form select,.ask-form textarea{width:100%;border:1px solid var(--line);border-radius:4px;background:#fff;color:var(--ink);font:500 14px/1.5 "Avenir Next","Segoe UI",sans-serif}.ask-form select{height:43px;padding:0 11px}.ask-form textarea{resize:vertical;min-height:90px;padding:12px}.ask-form select:focus,.ask-form textarea:focus{outline:3px solid rgba(40,100,220,.14);border-color:var(--blue)}.ask-question{margin-top:17px}.ask-suggestions{display:flex;flex-wrap:wrap;gap:7px;margin-top:10px}.ask-suggestions button{padding:6px 9px;border:1px solid var(--line);border-radius:999px;background:transparent;color:var(--blue);font-size:10px;cursor:pointer}.ask-suggestions button:hover{background:var(--blue-soft)}.ask-submit-row{display:flex;align-items:center;gap:13px;margin-top:20px}.ask-submit-row>button{min-width:120px;padding:11px 16px;border:0;border-radius:4px;background:var(--navy);color:#fff;font-weight:800;cursor:pointer}.ask-submit-row>button:disabled{opacity:.45;cursor:not-allowed}.ask-submit-row>span{color:var(--muted);font-size:10px}.ask-submit-row>span.ready{color:var(--green)}.ask-submit-row>span.error{color:#98473e}.ask-result{min-height:330px;padding:28px;background:#f8faf8;color:var(--muted);font-size:13px}.ask-result-kicker,.ask-answer-heading>span{margin:0;color:var(--green);font-size:10px;font-weight:850;letter-spacing:.1em}.ask-result>ol{margin:18px 0 0;padding:0;list-style:none}.ask-result>ol li{display:grid;grid-template-columns:25px 1fr;gap:10px;padding:12px 0;border-top:1px solid var(--line)}.ask-result>ol li span{color:var(--green);font-weight:850}.ask-result.loading{display:grid;place-items:center}.ask-result.error{display:grid;place-items:center;color:#98473e}.ask-answer-heading{display:flex;justify-content:space-between;gap:15px;padding-bottom:12px;border-bottom:1px solid var(--line)}.ask-answer-heading small{color:var(--muted)}.ask-result article{padding:15px 0;border-bottom:1px solid var(--line)}.ask-result article p{margin:0;color:var(--ink);font:500 17px/1.45 Georgia,serif}.ask-citations{display:flex;flex-wrap:wrap;gap:7px;margin-top:9px}.ask-citations a{color:var(--blue);font-size:10px;text-decoration:none;border-bottom:1px solid #aec2e9}.ask-limitations{margin-top:15px}.ask-limitations>summary{color:var(--amber);font-size:11px;font-weight:800;cursor:pointer}.ask-limitations article p{font:inherit;color:var(--muted)}.ask-boundary{margin:14px 0 0;color:var(--muted);font-size:10px}.ask-boundary strong{color:var(--ink)}
 @media(max-width:900px){.brief-lead{border-right:0;border-bottom:1px solid #365166}.headline-card{border-right:0;border-bottom:1px solid var(--line)}}
-@media(max-width:620px){.performance-section,.filings-section,.context-section{padding:40px 0}.brief-section{border-radius:4px}.reaction-grid>div{padding-left:0;border-left:0;border-top:1px solid #dbe8e1}.reaction-grid>div:first-child{border-top:0}.filing-summary-meta span:first-child{display:block}.filing-summary-meta span:nth-child(2){display:none}}
+@media(max-width:900px){.ask-layout{grid-template-columns:1fr}.ask-form{border-right:0;border-bottom:1px solid var(--line)}}
+@media(max-width:620px){.ask-section,.performance-section,.filings-section,.context-section{padding:40px 0}.ask-controls{grid-template-columns:1fr}.ask-form,.ask-result{padding:20px}.ask-submit-row{align-items:flex-start;flex-direction:column}.brief-section{border-radius:4px}.reaction-grid>div{padding-left:0;border-left:0;border-top:1px solid #dbe8e1}.reaction-grid>div:first-child{border-top:0}.filing-summary-meta span:first-child{display:block}.filing-summary-meta span:nth-child(2){display:none}}
 """
 
 
