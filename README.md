@@ -43,7 +43,7 @@ context, or all of it. Each scope carries its own citation and number
 allow-lists, so a model answering from the narrow scope cannot cite a headline it
 was never shown; the validator rejects it and the answer is withheld.
 
-Live Company Lens: <https://company-lens-demo.vercel.app>
+Live Company Lens: <https://lens.josephjwang.com>
 Build and operations: **[docs/COMPANY_LENS.md](docs/COMPANY_LENS.md)** ·
 [scope](docs/SCOPE.md) · [architecture](docs/ARCHITECTURE.md) ·
 [deployment](docs/DEPLOYMENT.md)
