@@ -1,13 +1,13 @@
 check,status,violations,checked,detail
 timestamps carry a timezone,pass,0,15,all datetime columns are tz-aware
-causal: acceptance_time <= decision_time,pass,0,11674,every fact predates the decision that uses it
-events unique on cik+accession,pass,0,11674,no duplicate events
-universe membership is point-in-time,pass,0,11674,every event's issuer was in the index on that date
+causal: acceptance_time <= decision_time,pass,0,11665,every fact predates the decision that uses it
+events unique on cik+accession,pass,0,11665,no duplicate events
+universe membership is point-in-time,pass,0,11665,every event's issuer was in the index on that date
 no outcome-derived columns in the feature matrix,pass,0,38,feature matrix is free of outcome-derived columns
-entry opens after the EDGAR accepted timestamp,pass,0,11674,no entry uses a price printed before EDGAR acceptance
-estimation window ends before the event,pass,0,11674,baselines are estimated on pre-event data only
-train/test split is purged and embargoed,pass,0,3862,"gap between last training label and first test event is 5 days 11:37:19, at or beyond the 5 days, 0:00:00 embargo"
-train/test split is purged and embargoed,pass,0,5800,"gap between last training label and first test event is 5 days 21:11:03, at or beyond the 5 days, 0:00:00 embargo"
-train/test split is purged and embargoed,pass,0,7669,"gap between last training label and first test event is 6 days 23:08:42, at or beyond the 5 days, 0:00:00 embargo"
-train/test split is purged and embargoed,pass,0,9645,"gap between last training label and first test event is 6 days 21:53:35, at or beyond the 5 days, 0:00:00 embargo"
-train/test split is purged and embargoed,pass,0,11623,"gap between last training label and first test event is 6 days 12:29:49, at or beyond the 5 days, 0:00:00 embargo"
+entry opens after the EDGAR accepted timestamp,pass,0,11665,no entry uses a price printed before EDGAR acceptance
+estimation window ends before the event,pass,0,11665,baselines are estimated on pre-event data only
+train/test split is purged and embargoed,pass,0,3861,"gap between last training label and first test event is 5 days 20:22:09, at or beyond the 5 days, 0:00:00 embargo"
+train/test split is purged and embargoed,pass,0,5799,"gap between last training label and first test event is 6 days 10:02:54, at or beyond the 5 days, 0:00:00 embargo"
+train/test split is purged and embargoed,pass,0,7661,"gap between last training label and first test event is 7 days 11:01:30, at or beyond the 5 days, 0:00:00 embargo"
+train/test split is purged and embargoed,pass,0,9637,"gap between last training label and first test event is 7 days 11:50:00, at or beyond the 5 days, 0:00:00 embargo"
+train/test split is purged and embargoed,pass,0,11610,"gap between last training label and first test event is 6 days 21:03:59, at or beyond the 5 days, 0:00:00 embargo"

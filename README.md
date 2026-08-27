@@ -14,11 +14,11 @@ announced itself — every one produced a result the author would have preferred
 | + purged, embargoed CV | 0.594 | 0.839 | 1 |
 | + trailing windows shifted | 0.424 | 0.775 | 1 |
 | + point-in-time universe | 0.424 | 0.775 | 1 |
-| + point-in-time entry | **0.366** | **0.739** | **0** |
+| + point-in-time entry | **0.366** | **0.738** | **0** |
 
 The audited numbers carry intervals, because a point estimate is a claim with its
-error bar deleted: average precision **0.366 [0.337, 0.396]**, ROC AUC
-**0.739 [0.720, 0.756]**, 95% cluster bootstrap over 959 sessions.
+error bar deleted: average precision **0.367 [0.338, 0.398]**, ROC AUC
+**0.738 [0.719, 0.756]**, 95% cluster bootstrap over 957 sessions.
 
 Full story, method and diagrams: **[the write-up](web/showcase.html)**.
 Details below, and in [docs/LEAKAGE.md](docs/LEAKAGE.md) and
@@ -65,7 +65,7 @@ is answerable.
 ---
 
 > [!NOTE]
-> **The figures below come from a real EDGAR pull**: 11,702 8-K filings from 193
+> **The figures below come from a real EDGAR pull**: 11,716 8-K filings from 193
 > issuers, 2022 to 2026, with prices from yfinance. Reproduce them with
 > `make universe && make ingest && make run` (about 40 minutes).
 >
@@ -99,27 +99,55 @@ queue after its acceptance time and reduces that count to zero. Because it also
 changes the outcome window and class balance, its metric movement is not a clean
 estimate of one leak's cost; the zero impossible-entry count is the invariant.
 
-The real sample has 63.5% of acceptances outside regular market hours. The larger
+The real sample has 63.2% of acceptances outside regular market hours. The larger
 95.4% impossible-entry share under the naive rule also includes intraday filings:
 that day's opening print still predates a filing accepted at 10 a.m.
 
-**What the audited model is worth.** Filings arrive at a median of 9 a session.
-Reading the model's top five surfaces material post-queue reactions at **19.0%**
-precision over the 769 sessions crowded enough for ranking to matter. Every
-comparison below is a *paired* bootstrap over those same sessions — model and
-baseline are rescored on one shared resample, because they see the same days and
-treating them as separate experiments would widen the interval on their
-difference for no reason.
+**What the audited model is worth.** Filings arrive at a median of 9 a session,
+and reading the model's top five surfaces material reactions at **18.8%**
+precision over the 766 sessions crowded enough for ranking to matter. That number
+needs two things attached before it means anything.
+
+**It cannot be read against 100%.** A session holding one material filing caps
+precision@5 at 20% however good the ranking is, and on this sample **37% of
+eligible sessions hold none at all** — on those days a perfect ranker scores
+zero. The achievable ceiling is **28.3%**, the floor is 11.6%, and the model
+captures **43% of the gap between them**.
+
+**And `k = 5` was assumed, not derived.** It came from a reader's supposed
+capacity, which is a product constraint; quoting one `k` as *the* metric promotes
+it to a scientific one. The lift is precisely the reading that does not survive
+that promotion:
+
+| Read k | Sessions | Random | Model | Ceiling | Lift | Span captured |
+|---|---|---|---|---|---|---|
+| 1 | 942 | 11.7% | 30.7% | 58.3% | 2.63× | 41% |
+| 3 | 887 | 11.8% | 22.2% | 37.8% | 1.88× | 40% |
+| **5** | **766** | **11.6%** | **18.8%** | **28.3%** | **1.61×** | **43%** |
+| 10 | 365 | 13.6% | 18.3% | 22.7% | 1.35× | 52% |
+| 20 | 60 | 16.0% | 18.1% | 19.7% | 1.13× | 57% |
+
+The lift runs from 2.63× to 1.13× on an unchanged model; the share of achievable
+span barely moves. Sessions fall away with `k` because a capacity above the day's
+filing count is not triage, it is reading everything — which is the real limit on
+how far this can be pushed, and why `k = 20` covers 6% of days and is reported
+anyway. Full sweep in
+[`capacity_profile.csv`](evidence/real_run/capacity_profile.csv).
+
+The baseline comparison below fixes `k = 5` to stay comparable. Every one is a
+*paired* bootstrap over the same sessions — model and baseline are rescored on
+one shared resample, because they see the same days and treating them as separate
+experiments would widen the interval on their difference for no reason.
 
 | Read the top five by | Precision | Model lift | 95% interval | Draws favouring the baseline |
 |---|---|---|---|---|
-| the model | 19.0% | — | — | — |
-| random selection | 11.7% | 1.63× | [1.56, 1.71] | 0 / 2000 |
-| arrival order | 9.4% | 2.02× | [1.82, 2.26] | 0 / 2000 |
-| “Item 2.02 earnings first” | 13.5% | 1.41× | [1.31, 1.52] | 0 / 2000 |
+| the model | 18.8% | — | — | — |
+| random selection | 11.6% | 1.61× | [1.54, 1.70] | 0 / 2000 |
+| arrival order | 9.3% | 2.01× | [1.81, 2.25] | 0 / 2000 |
+| “Item 2.02 earnings first” | 13.4% | 1.40× | [1.30, 1.51] | 0 / 2000 |
 
 The last column is the one worth reading first, and it is the one the earlier
-version of this README could not answer. A lift of 1.41× over an item heuristic
+version of this README could not answer. A lift of 1.40× over an item heuristic
 that a reader could implement in an afternoon is only a result if it survives
 resampling; here it does, in every draw. Useful triage, not a trading strategy —
 and the next section says exactly how much that caveat is worth.
@@ -130,7 +158,7 @@ is the most uncomfortable number here.
 
 The label is a market-model event study, so the reaction is measured
 close-to-close — which means the entry session's return is anchored at the
-*previous* close. For the 63.5% of filings accepted outside market hours, that
+*previous* close. For the 63.2% of filings accepted outside market hours, that
 price was printed before the filing existed. None of the leakage guards can see
 this: `causal(acceptance_time <= entry_open)` passes on every row precisely
 because the label never touches `entry_open`.
@@ -140,7 +168,7 @@ Measuring the same filings both ways says what the difference is worth:
 | Filings | Median share of the reaction already in the opening print |
 |---|---|
 | all | 6.4% |
-| not material | 3.0% |
+| not material | 3.1% |
 | **material (≥ 2.0σ)** | **27.7%** |
 | material, accepted after the close | **45.7%** |
 
@@ -154,7 +182,7 @@ look*.
 Close-to-close stays the label, because the question is which disclosures
 mattered and the overnight gap is part of the answer, not contamination of it.
 But the same pipeline scored against an open-anchored label — asking what was
-still on the table at the open — drops from 0.366 average precision to 0.143.
+still on the table at the open — drops from 0.366 average precision to 0.140.
 That is not the ranker failing; it is a harder question. Both rows are in
 [`evidence/real_run/anchoring_study.csv`](evidence/real_run/anchoring_study.csv)
 and reproduced by `experiments.reaction_capture_profile`.
@@ -164,8 +192,8 @@ if they had been chosen by watching the out-of-sample metric that would be a
 selection leak spanning the whole project — the one kind no guard can catch,
 because every individual run is clean and the contamination lives in which run
 was kept. Rather than answer with a promise, the answer is a spread: perturbing
-each setting one at a time moves average precision across a range of **0.033**,
-narrower than the **0.059** bootstrap interval on the default configuration. The
+each setting one at a time moves average precision across a range of **0.032**,
+narrower than the **0.060** bootstrap interval on the default configuration. The
 defaults are also not the best cell in the grid. No achievable amount of tuning
 produced this headline. See
 [`hyperparameter_sensitivity.csv`](evidence/real_run/hyperparameter_sensitivity.csv).
@@ -174,17 +202,17 @@ produced this headline. See
 ranking decays within a session. Whatever is being measured is mostly over by the
 next open.
 
-**Where the other filings went.** 11,702 were ingested and 9,729 were scored. The
+**Where the other filings went.** 11,716 were ingested and 9,721 were scored. The
 gap is itemised rather than left as arithmetic for the reader, because an
 unexplained drop is indistinguishable from a bug:
 
 | | Filings |
 |---|---|
-| Scored out of sample | 9,729 |
-| Held out by walk-forward as training-only | 1,945 |
-| Event window ran past the end of the price data | 15 |
+| Scored out of sample | 9,721 |
+| Held out by walk-forward as training-only | 1,944 |
+| Event window ran past the end of the price data | 11 |
 | Missing price bars inside the event window | 7 |
-| Entry session had no price bar | 6 |
+| Entry session had no price bar | 33 |
 
 The large line is the honest cost of the split. Walk-forward tests folds 1..n, so
 the earliest block is only ever training data and never receives an out-of-sample
@@ -253,7 +281,7 @@ embargo sweep, and writes a self-contained HTML report.
 
 ```bash
 make quick           # smaller, no leakage study, ~30s
-make test            # 335 tests
+make test            # 348 tests
 make audit           # the leakage checks as an exit code
 make llm-eval        # frozen English/Chinese grounded-output scorecard
 make llm-eval-openai-dry-run  # inspect 20-case paid benchmark scope; sends nothing
@@ -437,7 +465,7 @@ src/filing_triage/
                    and hyperparameter sensitivity grid
   report.py        self-contained HTML
   synth.py         the offline corpus
-tests/             335 tests; test_guards, test_pipeline, test_uncertainty
+tests/             348 tests; test_guards, test_pipeline, test_uncertainty
                    and test_ingest_integration are the ones that matter
 docs/              METHODOLOGY.md, LEAKAGE.md, COMPANY_LENS.md
 ```

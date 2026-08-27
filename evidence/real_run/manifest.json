@@ -1,6 +1,6 @@
 {
-  "schema_version": "1.0",
-  "exported_at": "2026-08-27T01:43:41.740667+00:00",
+  "schema_version": "1.1",
+  "exported_at": "2026-08-27T09:31:51.467249+00:00",
   "pipeline_config": {
     "reaction_threshold": 2.0,
     "event_window_sessions": 2,
@@ -12,7 +12,65 @@
   "uncertainty": {
     "method": "cluster bootstrap over sessions; paired for baselines",
     "draws": 2000,
-    "sessions": 959
+    "sessions": 957
+  },
+  "inputs": {
+    "events": {
+      "rows": 11716,
+      "columns": [
+        "acceptance_time",
+        "accession",
+        "cik",
+        "event_id",
+        "filing_date",
+        "form",
+        "items",
+        "period_of_report",
+        "primary_document",
+        "text",
+        "ticker"
+      ],
+      "sha256": "fec33e5bdc9a6f1fd51558b5df68752471874cb5c8702fbe5ff481c7d4fe871c"
+    },
+    "prices": {
+      "rows": 1982600,
+      "columns": [
+        "close",
+        "date",
+        "high",
+        "low",
+        "open",
+        "ticker",
+        "volume"
+      ],
+      "sha256": "d52cb1f58823e07ff4f810f1a4c7694825029d332e0acf9c6e4d699a63af14fd",
+      "first_session": "1962-01-02",
+      "last_session": "2026-08-20"
+    },
+    "membership": {
+      "rows": 193,
+      "columns": [
+        "cik",
+        "end_date",
+        "name",
+        "start_date",
+        "ticker"
+      ],
+      "sha256": "f25717f8df474e35604ee9884bc9a4291e21065652cf1bd016bfaaa26d884390"
+    },
+    "note": "Digests are over canonicalised content, not file bytes, so a pandas or pyarrow upgrade does not change them. Vendor prices are adjusted as of the pull date: a later split rewrites history without adding a row, which shows up here as an unchanged row count and a changed digest."
+  },
+  "environment": {
+    "python": "3.12.14",
+    "platform": "macOS-26.5.2",
+    "packages": {
+      "pandas": "3.0.5",
+      "numpy": "2.5.2",
+      "scipy": "1.18.1",
+      "scikit-learn": "1.9.0",
+      "pyarrow": "25.0.1",
+      "yfinance": "1.7.0"
+    }
   },
   "files": [
     "metrics.json",
@@ -25,7 +83,9 @@
     "baseline_intervals.csv",
     "reaction_capture.csv",
     "anchoring_study.csv",
-    "hyperparameter_sensitivity.csv"
+    "hyperparameter_sensitivity.csv",
+    "capacity_profile.csv",
+    "session_material_counts.csv"
   ],
   "raw_data_committed": false,
   "note": "Metrics are real-data results; the convenience universe has survivorship bias."

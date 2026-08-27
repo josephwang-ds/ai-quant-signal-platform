@@ -41,7 +41,7 @@ help define what "material" means, even if the model never trained on those rows
 
 **Where the event window starts** is a decision, not a detail. A close-to-close
 series anchors the entry session's return at the *previous* close, which for the
-63.5% of 8-Ks accepted outside market hours was printed before the filing
+63.2% of 8-Ks accepted outside market hours was printed before the filing
 existed. No leakage guard sees this: `causal(acceptance_time <= entry_open)`
 passes on every row precisely because the label never touches `entry_open`.
 
@@ -84,11 +84,35 @@ entire outcome window closed before the test fold opened, plus a five-day embarg
 See [LEAKAGE.md](LEAKAGE.md) §4.
 
 Metrics are ranking metrics. With a rare outcome, accuracy is worthless —
-"nothing is material" can look strong while surfacing nothing. The headline is
-**average precision**, with
-**mean daily precision@5** as the product metric: of the five filings surfaced
-each morning, how many actually mattered. Averaging the daily figure is both what
-the product does and far more stable than one pooled top-5 over three years.
+"nothing is material" can look strong while surfacing nothing.
+
+**Average precision is the result.** It is threshold-free, uses the whole
+ranking, and imposes no capacity, which is what makes it comparable across
+pipeline versions and what makes the leakage ladder legible.
+
+**Daily precision@k is one operational reading of it**, and it is deliberately
+demoted here. Earlier versions called it the product metric and quoted `k = 5`
+beside average precision as an equal, which promoted a product constraint to a
+scientific one: `k` is how many filings someone reads, it was assumed from a
+reader's supposed capacity, and nothing in the data derives it. Two corrections
+follow.
+
+*It has a ceiling well below 1.* A session holding one material filing caps
+precision@5 at 0.2 however good the ranking is, and 37% of eligible sessions
+hold none at all. The achievable ceiling on the real sample is 28.3% against a
+11.6% floor, so the reading is not "19.0%" but "43% of the gap between them".
+
+*And the whole capacity curve is reported, not one point.* Across `k` from 1 to
+20 the lift moves 2.63× to 1.13× on an unchanged model while the span captured
+stays near 0.4. The lift is the reading that depends on the assumption; the span
+is the one that survives it. Sessions also fall away sharply with `k`, because a
+capacity above the day's filing count is reading everything rather than
+triaging — the real limit on how far the metric can be pushed.
+
+A pooled top-k over the whole sample is *not* reported as a headline anywhere,
+and the reason is worth stating because it is the most flattering number
+available: the whole-sample top five is five rows drawn from three years, which
+no reader could have acted on, since the queue arrives one morning at a time.
 
 Daily lift uses the expected random precision on the **same eligible sessions**,
 not the pooled sample base rate. The report also compares the model with arrival
@@ -107,7 +131,7 @@ that argument with bare point estimates. A reader cannot tell 1.63× ± 0.05 fro
 1.63× ± 0.6, and only one of those is a result.
 
 **Resampled by session, not by row.** Filings on the same morning share a market
-and a macro tape, so treating 9,729 events as 9,729 independent draws would
+and a macro tape, so treating 9,721 events as 9,721 independent draws would
 understate the interval. Measured, the correction is worth about 4% of the width
 — far less than it sounds, because the label is already a market-model residual,
 so the common factor that would have driven same-day correlation was subtracted
@@ -138,7 +162,7 @@ out-of-sample metric would be a selection leak spanning the whole project, and
 the one class no guard can catch — every individual run is clean and the
 contamination lives in which run was kept. Answered with a spread rather than a
 promise: perturbing each setting one at a time moves average precision across
-0.033, narrower than the 0.059 bootstrap interval on the default, and the
+0.032, narrower than the 0.060 bootstrap interval on the default, and the
 defaults are not the best cell in the grid.
 
 ## Reproducibility
@@ -185,7 +209,7 @@ different problems.
   disclaimer. The label is anchored at the previous close, so for a material
   filing accepted after the bell a median **45.7%** of the reaction is already in
   the opening print — gone before any entry rule could act. Scored against an
-  open-anchored label the pipeline falls from 0.366 average precision to 0.143.
+  open-anchored label the pipeline falls from 0.367 average precision to 0.140.
   The embargo sweep says the rest decays within the session.
 - **Daily bars only.** The entry convention — the first *open* at or after the
   decision time — is the most conservative one available at daily resolution.

@@ -58,6 +58,15 @@ def main() -> int:
     experiments.hyperparameter_sensitivity(events, prices, membership).to_csv(
         args.out / "hyperparameter_sensitivity.csv", index=False)
 
+    # k is how many filings someone reads, and the project assumed five rather
+    # than deriving it. Reporting the sweep turns that assumption into something
+    # a reader can check: the lift swings from 2.6x to 1.1x across capacities,
+    # while the share of achievable span the model captures barely moves.
+    experiments.capacity_profile(result.predictions, result.events).to_csv(
+        args.out / "capacity_profile.csv", index=False)
+    experiments.session_material_counts(result.predictions, result.events).to_csv(
+        args.out / "session_material_counts.csv", index=False)
+
     leakage_path = args.build / "leakage_study.csv"
     if not leakage_path.exists():
         raise ValueError("data/build/leakage_study.csv is missing; run `make run` first")
@@ -98,6 +107,8 @@ def main() -> int:
             "reaction_capture.csv",
             "anchoring_study.csv",
             "hyperparameter_sensitivity.csv",
+            "capacity_profile.csv",
+            "session_material_counts.csv",
         ],
         "raw_data_committed": False,
         "note": "Metrics are real-data results; the convenience universe has survivorship bias.",

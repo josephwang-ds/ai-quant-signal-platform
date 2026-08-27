@@ -20,7 +20,7 @@ The measured cost of each is in the report (`make demo`) and in
 | `filing_date` | the calendar date EDGAR stamped | No — a *date*, no time |
 | `acceptanceDateTime` | when EDGAR accepted the submission | **Yes** |
 
-**63.5%** of 8-Ks in the real sample are accepted outside regular market hours.
+**63.2%** of 8-Ks in the real sample are accepted outside regular market hours.
 For those, treating `filing_date` as tradable at that day's open buys the
 position hours before the information existed. (The synthetic corpus is
 generated at 80%, deliberately harsher than reality; the two figures are
@@ -141,7 +141,7 @@ above will find it and ask.
 
 **The observation.** The label is a market-model event study measured
 close-to-close, so the entry session's return is anchored at the *previous*
-close. For the 63.5% of filings accepted outside market hours, that price was
+close. For the 63.2% of filings accepted outside market hours, that price was
 printed before the filing existed. The measured reaction therefore contains the
 overnight gap in which the news was priced, while `pit_entry` maintains that
 entry happens at the open.
@@ -167,7 +167,7 @@ filing by filing:
 | Filings | Median share of the reaction already in the opening print |
 |---|---|
 | all | 6.4% |
-| not material | 3.0% |
+| not material | 3.1% |
 | **material (≥ 2.0σ)** | **27.7%** |
 | material, accepted after the close | **45.7%** |
 
@@ -176,7 +176,7 @@ ratio of two small numbers is noise. Restrict to the ones that cleared the
 materiality cutoff and it jumps; restrict to those accepted after the close and
 nearly half the move is gone before the bell — concentrated exactly where the
 ranker is trying to look. Scored against an open-anchored label the pipeline
-falls from 0.366 average precision to 0.143. That is the question getting harder,
+falls from 0.367 average precision to 0.140. That is the question getting harder,
 not the ranker failing, and the two rows are only meaningful read together.
 
 This is why "useful triage, not a trading strategy" is a number in this
@@ -188,7 +188,7 @@ constants by watching the out-of-sample metric would contaminate the whole
 project, and every individual run would still be clean. The contamination lives
 in *which run was kept*. The answer is a spread rather than a promise —
 `experiments.hyperparameter_sensitivity` perturbs each setting in turn and moves
-average precision across a range of 0.033, narrower than the 0.059 bootstrap
+average precision across a range of 0.032, narrower than the 0.060 bootstrap
 interval on the default configuration, and the defaults are not the best cell in
 the grid.
 

@@ -19,6 +19,7 @@ import pandas as pd
 
 from filing_triage import pipeline
 from filing_triage.config import PipelineConfig
+from filing_triage.evaluate import daily_baseline_table
 from filing_triage.ingest.prices import to_returns
 from filing_triage.labels import build_labels
 from filing_triage.pit import TradingClock
@@ -268,3 +269,88 @@ def hyperparameter_sensitivity(events: pd.DataFrame, prices: pd.DataFrame,
             **{k: result.metrics.get(k, float("nan")) for k in HEADLINE},
         })
     return pd.DataFrame(rows)
+
+
+# Reading capacities worth reporting. Not a search for the best one: the point
+# is that a reader can see how much the headline depends on a number the project
+# assumed rather than derived.
+CAPACITIES = (1, 2, 3, 5, 10, 20)
+
+
+def capacity_profile(predictions: pd.DataFrame, events: pd.DataFrame,
+                     capacities: tuple[int, ...] = CAPACITIES) -> pd.DataFrame:
+    """precision@k against its floor and its ceiling, across reading capacities.
+
+    `k` is how many filings someone reads, not how many arrive, and the project
+    fixed it at five because that was the assumed capacity of the reader it was
+    written for. That is a product constraint, and quoting one k as *the* metric
+    promotes it to a scientific one. This reports the whole tradeoff instead.
+
+    Three columns make it readable, and the third is the one that matters:
+
+      ``oracle``  what a perfect ranker scores. It is not 1.0 and is usually far
+                  from it -- a session holding one material filing caps
+                  precision@5 at 0.2 however good the ranking is -- so raw
+                  precision cannot be read without it.
+      ``random``  the floor: each session's own material rate, exactly, not a
+                  simulated draw.
+      ``span``    where the model sits between the two. Raw precision falls as k
+                  grows and so does the ceiling, largely cancelling; the span is
+                  what survives the choice of k.
+
+    ``sessions`` falls away sharply with k, and that is the real limit on how far
+    this can be pushed: a capacity above the day's filing count is not triage,
+    it is reading everything, so those sessions are excluded and at k=20 almost
+    nothing is left.
+    """
+    rows = []
+    total_sessions = predictions.join(
+        events.set_index("event_id")[["entry_session"]], how="left"
+    )["entry_session"].nunique()
+
+    for k in capacities:
+        table = daily_baseline_table(predictions, events, k)
+        if table.empty:
+            continue
+        model = float(table["model"].mean())
+        random = float(table["random"].mean())
+        oracle = float(table["oracle"].mean())
+        span = oracle - random
+        rows.append({
+            "capacity_k": k,
+            "sessions": len(table),
+            "session_share": len(table) / total_sessions if total_sessions else float("nan"),
+            "model": model,
+            "random_floor": random,
+            "oracle_ceiling": oracle,
+            "arrival": float(table["arrival"].mean()),
+            "item_202": float(table["item_202"].mean()),
+            "lift_vs_random": model / random if random > 0 else float("nan"),
+            "span_captured": (model - random) / span if span > 0 else float("nan"),
+        })
+    return pd.DataFrame(rows)
+
+
+def session_material_counts(predictions: pd.DataFrame, events: pd.DataFrame,
+                            k: int = 5) -> pd.DataFrame:
+    """How many material filings a session actually holds, which sets the ceiling.
+
+    The distribution is the explanation for why the ceiling is as low as it is,
+    and it is not something the model can do anything about. On the real sample
+    a third of eligible sessions contain no material filing at all: on those days
+    a perfect ranker scores zero, and so does everything else.
+    """
+    frame = predictions.join(
+        events.set_index("event_id")[["entry_session"]], how="left")
+    per_session = frame.groupby("entry_session")["label"].agg(["size", "sum"])
+    eligible = per_session[per_session["size"] > k]
+    if eligible.empty:
+        return pd.DataFrame(columns=["material_filings", "sessions", "share",
+                                     "ceiling_at_k"])
+    counts = eligible["sum"].astype(int).value_counts().sort_index()
+    return pd.DataFrame({
+        "material_filings": counts.index,
+        "sessions": counts.to_numpy(),
+        "share": counts.to_numpy() / len(eligible),
+        "ceiling_at_k": [min(int(n), k) / k for n in counts.index],
+    })

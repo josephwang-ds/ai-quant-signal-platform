@@ -142,6 +142,13 @@ def daily_baseline_table(predictions: pd.DataFrame, events: pd.DataFrame,
         rows.append({
             "session": session,
             "filings": len(group),
+            "material": int(labels.sum()),
+            # What a perfect ranker would score here, which is not 1.0 and is
+            # usually far from it: a session with one material filing caps
+            # precision@5 at 0.2 however good the model is. Reported so the
+            # model's number can be read against what was achievable rather
+            # than against an unreachable 100%.
+            "oracle": min(int(labels.sum()), k) / k,
             "model": precision_at_k(labels, group["score"].to_numpy(), k),
             # Within a session the expected precision of a random draw is that
             # session's own material rate -- exact, so no simulated draw needed.
@@ -149,7 +156,8 @@ def daily_baseline_table(predictions: pd.DataFrame, events: pd.DataFrame,
             "arrival": float(arrival["label"].mean()),
             "item_202": float(item["label"].mean()),
         })
-    return pd.DataFrame(rows, columns=["session", "filings", *BASELINES])
+    return pd.DataFrame(
+        rows, columns=["session", "filings", "material", "oracle", *BASELINES])
 
 
 def operational_baselines(predictions: pd.DataFrame, events: pd.DataFrame,
@@ -170,12 +178,20 @@ def operational_baselines(predictions: pd.DataFrame, events: pd.DataFrame,
     random_precision = float(table["random"].mean())
     arrival_precision = float(table["arrival"].mean())
     item_precision = float(table["item_202"].mean())
+    oracle_precision = float(table["oracle"].mean())
     return {
         f"operational_sessions_at_{k}": sessions,
         f"daily_model_precision_at_{k}": model_precision,
         f"daily_random_precision_at_{k}": random_precision,
         f"daily_arrival_precision_at_{k}": arrival_precision,
         f"daily_item_202_precision_at_{k}": item_precision,
+        f"daily_oracle_precision_at_{k}": oracle_precision,
+        # Where the model sits between the floor and the ceiling, which is the
+        # only reading of precision@k that survives changing k. The raw
+        # precision falls as k grows and so does the ceiling, so the ratio moves
+        # far less than either -- see `experiments.capacity_profile`.
+        f"daily_span_captured_at_{k}": _ratio(
+            model_precision - random_precision, oracle_precision - random_precision),
         f"daily_lift_vs_random_at_{k}": _ratio(model_precision, random_precision),
         f"daily_lift_vs_arrival_at_{k}": _ratio(model_precision, arrival_precision),
         f"daily_lift_vs_item_202_at_{k}": _ratio(model_precision, item_precision),

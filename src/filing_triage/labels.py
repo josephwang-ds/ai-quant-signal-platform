@@ -26,7 +26,7 @@ trying to measure.
 
 **Where the event window starts is a correctness decision, not a detail.** A
 close-to-close series anchors the entry session's return at the previous close.
-For the 63.5% of 8-Ks accepted outside market hours, that price was printed
+For the 63.2% of 8-Ks accepted outside market hours, that price was printed
 before the filing existed, so the measured reaction contains the overnight gap
 in which the news was priced -- while `pit_entry` claims the entry is the open.
 The guards cannot catch this: `causal(acceptance_time <= entry_open)` passes on

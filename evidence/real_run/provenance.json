@@ -1,8 +1,8 @@
 {
   "source": "edgar",
-  "written_at": "2026-08-21T02:22:46.438138+00:00",
+  "written_at": "2026-08-27T04:20:30.221211+00:00",
   "issuers": 193,
-  "filings": 11702,
+  "filings": 11716,
   "failed_issuers": [],
   "unresolved_ciks": 0,
   "universe": {
@@ -22,18 +22,5 @@
     ],
     "start_date": "2022-01-03"
   },
-  "note": "SEC EDGAR submissions + daily bars",
-  "fundamentals_refresh": {
-    "status": "current",
-    "checked_at": "2026-08-26T14:20:36.494083+00:00",
-    "companies_checked": 1,
-    "refreshed_tickers": [
-      "AAPL"
-    ],
-    "failed_tickers": [],
-    "artifact_paths": [
-      "data/build/fundamentals/aapl.json"
-    ],
-    "failures": []
-  }
+  "note": "SEC EDGAR submissions + daily bars"
 }

@@ -277,8 +277,11 @@ def _pipeline_and_report(events, prices, membership, out: Path,
     if study.empty:
         print("\nreport needs the leakage study; rerun without --quick")
     else:
-        path = report.render(result, study, sweep, out,
-                             provenance=_read_provenance())
+        path = report.render(
+            result, study, sweep, out,
+            provenance=_read_provenance(),
+            capacity=experiments.capacity_profile(result.predictions, result.events),
+        )
         print(f"\nreport written to {path}")
 
     if not result.audit.passed:
@@ -363,9 +366,15 @@ def _headline(metrics: dict,
     counted = metrics.get("daily_sessions_at_5", 0)
     if metrics.get("daily_usable_at_5"):
         random_lift = _paired_lift(comparisons, "random")
+        ceiling = metrics.get("daily_oracle_precision_at_5", float("nan"))
+        span = metrics.get("daily_span_captured_at_5", float("nan"))
         rows += [
             ("daily precision @5", (f"{metrics['daily_precision_at_5']:.1%} "
+                                    f"of a {ceiling:.1%} ceiling "
                                     f"({counted} sessions)")),
+            # The lift depends on a reading capacity the project assumed rather
+            # than derived; the span survives it. Both are printed, span first.
+            ("share of achievable span @5", f"{span:.0%}"),
             ("lift vs matched random @5",
              random_lift or f"{metrics['daily_lift_at_5']:.2f}x"),
             ("arrival-order precision @5",
