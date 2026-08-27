@@ -1,6 +1,6 @@
 {
   "schema_version": "1.1",
-  "exported_at": "2026-08-27T09:52:18.891385+00:00",
+  "exported_at": "2026-08-27T10:24:30.761606+00:00",
   "pipeline_config": {
     "reaction_threshold": 2.0,
     "event_window_sessions": 2,

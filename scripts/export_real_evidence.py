@@ -79,10 +79,25 @@ def main() -> int:
         paired.to_csv(args.out / "model_comparison_paired.csv", index=False)
         _write_json(args.out / "nested_selection.json", nested)
 
-    leakage_path = args.build / "leakage_study.csv"
-    if not leakage_path.exists():
-        raise ValueError("data/build/leakage_study.csv is missing; run `make run` first")
-    pd.read_csv(leakage_path).to_csv(args.out / "leakage_study.csv", index=False)
+    # Recomputed here rather than copied out of data/build. The copy was whatever
+    # `make run` last wrote, so changing the estimator and re-exporting produced a
+    # package whose headline came from one model and whose ladder came from
+    # another -- both plausible, disagreeing, and silent about it. The ladder is
+    # five extra pipeline runs; a self-consistent evidence package is worth them.
+    study = experiments.run_leakage_study(events, prices, membership)
+    study.to_csv(args.out / "leakage_study.csv", index=False)
+
+    # The ladder's last rung is the honest pipeline, which is the same
+    # configuration the headline metrics came from. If those two ever disagree,
+    # the package is describing two different runs and every comparison a reader
+    # makes across its files is void.
+    honest = float(study.iloc[-1]["average_precision"])
+    if abs(honest - result.metrics["average_precision"]) > 1e-9:
+        raise ValueError(
+            f"ladder's honest rung scores {honest:.6f} but the headline metrics "
+            f"say {result.metrics['average_precision']:.6f}; the evidence package "
+            "would be internally inconsistent"
+        )
 
     _write_json(args.out / "manifest.json", {
         "schema_version": "1.1",

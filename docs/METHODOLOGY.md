@@ -100,10 +100,10 @@ follow.
 *It has a ceiling well below 1.* A session holding one material filing caps
 precision@5 at 0.2 however good the ranking is, and 37% of eligible sessions
 hold none at all. The achievable ceiling on the real sample is 28.3% against a
-11.6% floor, so the reading is not "19.0%" but "43% of the gap between them".
+11.6% floor, so the reading is not "19.4%" but "47% of the gap between them".
 
 *And the whole capacity curve is reported, not one point.* Across `k` from 1 to
-20 the lift moves 2.63× to 1.13× on an unchanged model while the span captured
+20 the lift moves 2.59× to 1.14× on an unchanged model while the span captured
 stays near 0.4. The lift is the reading that depends on the assumption; the span
 is the one that survives it. Sessions also fall away sharply with `k`, because a
 capacity above the day's filing count is reading everything rather than
@@ -162,7 +162,7 @@ out-of-sample metric would be a selection leak spanning the whole project, and
 the one class no guard can catch — every individual run is clean and the
 contamination lives in which run was kept. Answered with a spread rather than a
 promise: perturbing each setting one at a time moves average precision across
-0.032, narrower than the 0.060 bootstrap interval on the default, and the
+0.018, narrower than the 0.062 bootstrap interval on the default, and the
 defaults are not the best cell in the grid.
 
 ## Does the model family matter
@@ -182,7 +182,7 @@ while their paired difference is about three times tighter at
 distinguishable on this sample.**
 
 Family is worth a spread of 0.027 in average precision. The validation scheme is
-worth 0.235. That ratio is the argument for where the attention went.
+worth 0.220. That ratio is the argument for where the attention went.
 
 **Every candidate is a Pipeline, and that is a leakage decision.** Two of the
 families cannot take a NaN, and the obvious remedy — impute the feature frame
@@ -245,7 +245,7 @@ different problems.
   disclaimer. The label is anchored at the previous close, so for a material
   filing accepted after the bell a median **45.7%** of the reaction is already in
   the opening print — gone before any entry rule could act. Scored against an
-  open-anchored label the pipeline falls from 0.367 average precision to 0.140.
+  open-anchored label the pipeline falls from 0.378 average precision to 0.158.
   The embargo sweep says the rest decays within the session.
 - **Daily bars only.** The entry convention — the first *open* at or after the
   decision time — is the most conservative one available at daily resolution.

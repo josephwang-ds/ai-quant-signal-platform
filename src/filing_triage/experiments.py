@@ -18,6 +18,7 @@ import numpy as np
 import pandas as pd
 
 from filing_triage import pipeline, selection
+from filing_triage.candidates import sensitivity_grid
 from filing_triage.config import PipelineConfig
 from filing_triage.evaluate import daily_baseline_table
 from filing_triage.ingest.prices import to_returns
@@ -221,22 +222,11 @@ def reaction_capture_profile(events: pd.DataFrame, prices: pd.DataFrame,
     ])
 
 
-# A deliberately coarse grid around the defaults. Wide enough that a result which
-# only exists at one setting would show up as a spread; not a search, and never
-# used to pick anything.
-SENSITIVITY_GRID: list[dict] = [
-    {},                                              # the shipped defaults
-    {"max_depth": 3},
-    {"max_depth": 6},
-    {"max_iter": 100},
-    {"max_iter": 400},
-    {"learning_rate": 0.03},
-    {"learning_rate": 0.12},
-    {"min_samples_leaf": 10},
-    {"min_samples_leaf": 60},
-    {"l2_regularization": 0.0},
-    {"l2_regularization": 5.0},
-]
+# The grid now lives with the families in `candidates`, because it has to follow
+# whichever one is configured. A grid hard-coded to the previous default would
+# still run, still print a reassuring spread, and be perturbing parameters the
+# current estimator does not have -- a sensitivity study that has silently
+# stopped testing anything is worse than none, because it reads as evidence.
 
 
 def hyperparameter_sensitivity(events: pd.DataFrame, prices: pd.DataFrame,
@@ -257,7 +247,7 @@ def hyperparameter_sensitivity(events: pd.DataFrame, prices: pd.DataFrame,
     could have produced the headline, and the provenance question stops mattering.
     """
     base = base or PipelineConfig()
-    grid = grid if grid is not None else SENSITIVITY_GRID
+    grid = grid if grid is not None else sensitivity_grid(base.estimator)
     rows = []
     for overrides in grid:
         result = pipeline.run(events, prices, membership, base,
@@ -356,7 +346,10 @@ def session_material_counts(predictions: pd.DataFrame, events: pd.DataFrame,
     })
 
 
-SHIPPED_CANDIDATE = "hist_gbdt (shipped)"
+# The reference the differences are measured against is whichever family is
+# actually configured, not a name frozen at the time this was written. Hard-coding
+# it would leave the table quietly comparing against a family the pipeline no
+# longer uses.
 
 
 def model_comparison(events: pd.DataFrame, prices: pd.DataFrame,
@@ -399,7 +392,7 @@ def model_comparison(events: pd.DataFrame, prices: pd.DataFrame,
     scored = selection.candidate_predictions(
         features, aligned["label"], event_time, label_end_time)
     paired = selection.paired_candidate_differences(
-        scored, indexed["entry_session"], reference=SHIPPED_CANDIDATE)
+        scored, indexed["entry_session"], reference=base.estimator)
     nested = selection.nested_selection_score(
         features, aligned["label"], event_time, label_end_time)
     return table, paired, nested

@@ -64,7 +64,7 @@ class TestPreprocessingStaysInsideTheFold:
     def test_the_shipped_family_needs_no_imputer(self):
         """HistGradientBoosting learns a direction for missing values from the
         training split, so imputing would discard information it uses."""
-        assert "impute" not in dict(build("hist_gbdt (shipped)").named_steps)
+        assert "impute" not in dict(build("hist_gbdt").named_steps)
 
     def test_a_fitted_imputer_uses_only_the_rows_it_was_shown(self):
         """The property the Pipeline is relied on for, asserted directly."""
@@ -178,13 +178,13 @@ class TestCandidatesAreComparedInPairs:
             frames["features"], frames["labels"], frames["event_time"],
             frames["label_end_time"])
         return selection.paired_candidate_differences(
-            scored, frames["sessions"], reference="hist_gbdt (shipped)", n_boot=200)
+            scored, frames["sessions"], reference="hist_gbdt", n_boot=200)
 
     def test_the_reference_is_not_compared_with_itself(self, paired):
-        assert "hist_gbdt (shipped)" not in set(paired["candidate"])
+        assert "hist_gbdt" not in set(paired["candidate"])
 
     def test_every_other_family_is_compared(self, paired):
-        assert set(paired["candidate"]) == set(CANDIDATES) - {"hist_gbdt (shipped)"}
+        assert set(paired["candidate"]) == set(CANDIDATES) - {"hist_gbdt"}
 
     def test_the_difference_lies_inside_its_own_interval(self, paired):
         assert (paired["difference_ci_low"] <= paired["difference_ci_high"]).all()
@@ -204,8 +204,8 @@ class TestCandidatesAreComparedInPairs:
             frames["features"], frames["labels"], frames["event_time"],
             frames["label_end_time"], frames["sessions"])
         indexed = table.set_index("candidate")
-        reference_width = (indexed.loc["hist_gbdt (shipped)", "average_precision_ci_high"]
-                           - indexed.loc["hist_gbdt (shipped)", "average_precision_ci_low"])
+        reference_width = (indexed.loc["hist_gbdt", "average_precision_ci_high"]
+                           - indexed.loc["hist_gbdt", "average_precision_ci_low"])
         for _, row in paired.iterrows():
             other = indexed.loc[row["candidate"]]
             independent_width = (other["average_precision_ci_high"]

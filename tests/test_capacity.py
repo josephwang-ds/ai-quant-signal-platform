@@ -14,6 +14,8 @@ and a third of eligible sessions hold none at all.
 
 from __future__ import annotations
 
+from pathlib import Path
+
 import numpy as np
 import pandas as pd
 import pytest
@@ -21,6 +23,8 @@ import pytest
 from filing_triage import experiments, pipeline
 from filing_triage.config import PipelineConfig
 from filing_triage.evaluate import daily_baseline_table
+
+ROOT = Path(__file__).resolve().parents[1]
 
 
 @pytest.fixture(scope="module")
@@ -120,3 +124,57 @@ class TestEmptyInputsDoNotRaise:
         events = pd.DataFrame(columns=["event_id", "entry_session",
                                        "acceptance_time", "items"])
         assert experiments.capacity_profile(empty, events).empty
+
+
+class TestTheEvidencePackageIsSelfConsistent:
+    """Files in one package must describe one run.
+
+    They stopped doing so the first time the estimator changed: the headline
+    metrics were recomputed while the leakage ladder was copied out of
+    `data/build`, where it had been left by an earlier run of a different model.
+    Both numbers were plausible, they disagreed, and nothing said so -- which is
+    the failure mode this project exists to refuse, aimed at its own evidence.
+    """
+
+    EVIDENCE = ROOT / "evidence" / "real_run"
+
+    def _has_evidence(self) -> bool:
+        return (self.EVIDENCE / "metrics.json").exists()
+
+    def test_the_ladders_honest_rung_matches_the_headline(self):
+        import csv
+        import json
+
+        if not self._has_evidence():
+            pytest.skip("no exported evidence in this checkout")
+        metrics = json.loads((self.EVIDENCE / "metrics.json").read_text())
+        with (self.EVIDENCE / "leakage_study.csv").open() as handle:
+            ladder = list(csv.DictReader(handle))
+        honest = float(ladder[-1]["average_precision"])
+        assert honest == pytest.approx(metrics["average_precision"], abs=1e-9), (
+            "the ladder and the headline metrics come from different runs"
+        )
+
+    def test_every_file_the_manifest_lists_exists(self):
+        import json
+
+        if not self._has_evidence():
+            pytest.skip("no exported evidence in this checkout")
+        manifest = json.loads((self.EVIDENCE / "manifest.json").read_text())
+        missing = [name for name in manifest["files"]
+                   if not (self.EVIDENCE / name).exists()]
+        assert not missing, f"manifest lists files that are not there: {missing}"
+
+    def test_the_capacity_sweep_agrees_with_the_headline_at_k5(self):
+        import csv
+        import json
+
+        if not self._has_evidence():
+            pytest.skip("no exported evidence in this checkout")
+        metrics = json.loads((self.EVIDENCE / "metrics.json").read_text())
+        with (self.EVIDENCE / "capacity_profile.csv").open() as handle:
+            row = next(r for r in csv.DictReader(handle) if r["capacity_k"] == "5")
+        assert float(row["model"]) == pytest.approx(
+            metrics["daily_precision_at_5"], abs=1e-9)
+        assert float(row["oracle_ceiling"]) == pytest.approx(
+            metrics["daily_oracle_precision_at_5"], abs=1e-9)

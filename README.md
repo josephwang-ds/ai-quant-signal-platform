@@ -2,23 +2,30 @@
 
 **Which of today's SEC filings deserve a human read?**
 
-A pipeline written the obvious way reports an **average precision of 0.601** on
-real SEC filings. The version that survives its own audit reports **0.366**.
+A pipeline written the obvious way reports an **average precision of 0.598** on
+real SEC filings. The version that survives its own audit reports **0.378**.
 
 That gap is not model improvement. It is four common pipeline bugs, none of which
 announced itself — every one produced a result the author would have preferred.
 
-| Stage | Avg precision | ROC AUC | Guards failing |
-|---|---|---|---|
-| Naive pipeline | **0.601** | **0.843** | 1 |
-| + purged, embargoed CV | 0.594 | 0.839 | 1 |
-| + trailing windows shifted | 0.424 | 0.775 | 1 |
-| + point-in-time universe | 0.424 | 0.775 | 1 |
-| + point-in-time entry | **0.366** | **0.738** | **0** |
+| Stage | Avg precision | ROC AUC | Impossible entries | Guards failing |
+|---|---|---|---|---|
+| Naive pipeline | **0.598** | **0.841** | 11,224 | 1 |
+| + purged, embargoed CV | 0.599 | 0.841 | 11,224 | 1 |
+| + trailing windows shifted | 0.430 | 0.780 | 11,224 | 1 |
+| + point-in-time universe | 0.430 | 0.780 | 11,224 | 1 |
+| + point-in-time entry | **0.378** | **0.747** | **0** | **0** |
 
 The audited numbers carry intervals, because a point estimate is a claim with its
-error bar deleted: average precision **0.367 [0.338, 0.398]**, ROC AUC
-**0.738 [0.719, 0.756]**, 95% cluster bootstrap over 957 sessions.
+error bar deleted: average precision **0.378 [0.347, 0.409]**, ROC AUC
+**0.747 [0.729, 0.764]**, 95% cluster bootstrap over 957 sessions.
+
+Two rows move the wrong way or not at all, and the impossible-entry column is why
+that is not a contradiction. Purged CV *raises* the score slightly here, and the
+universe row does not move at all — a metric is not the thing being fixed. The
+count is: 11,224 entries that used a price printed before the filing existed,
+reduced to zero. That column is an invariant, comparable across rows in a way the
+metric is not, because each fix also changes which filings are measurable.
 
 Full story, method and diagrams: **[the write-up](web/showcase.html)**.
 Details below, and in [docs/LEAKAGE.md](docs/LEAKAGE.md) and
@@ -93,18 +100,18 @@ remove. The pipeline is reporting its own blind spot rather than hiding it.
 
 **The entry row also changes the measured population.** The filing-date rule uses
 that date's opening print even when acceptance came hours later. In this sample it
-creates 11,168 impossible entries—95.4% of measurable filings—with a median 10.6
+creates 11,224 impossible entries—95.8% of measurable filings—with a median 10.6
 hours of hindsight. The corrected rule places every filing in the first market-open
 queue after its acceptance time and reduces that count to zero. Because it also
 changes the outcome window and class balance, its metric movement is not a clean
 estimate of one leak's cost; the zero impossible-entry count is the invariant.
 
 The real sample has 63.2% of acceptances outside regular market hours. The larger
-95.4% impossible-entry share under the naive rule also includes intraday filings:
+95.8% impossible-entry share under the naive rule also includes intraday filings:
 that day's opening print still predates a filing accepted at 10 a.m.
 
 **What the audited model is worth.** Filings arrive at a median of 9 a session,
-and reading the model's top five surfaces material reactions at **18.8%**
+and reading the model's top five surfaces material reactions at **19.4%**
 precision over the 766 sessions crowded enough for ranking to matter. That number
 needs two things attached before it means anything.
 
@@ -112,7 +119,7 @@ needs two things attached before it means anything.
 precision@5 at 20% however good the ranking is, and on this sample **37% of
 eligible sessions hold none at all** — on those days a perfect ranker scores
 zero. The achievable ceiling is **28.3%**, the floor is 11.6%, and the model
-captures **43% of the gap between them**.
+captures **47% of the gap between them**.
 
 **And `k = 5` was assumed, not derived.** It came from a reader's supposed
 capacity, which is a product constraint; quoting one `k` as *the* metric promotes
@@ -121,13 +128,14 @@ that promotion:
 
 | Read k | Sessions | Random | Model | Ceiling | Lift | Span captured |
 |---|---|---|---|---|---|---|
-| 1 | 942 | 11.7% | 30.7% | 58.3% | 2.63× | 41% |
-| 3 | 887 | 11.8% | 22.2% | 37.8% | 1.88× | 40% |
-| **5** | **766** | **11.6%** | **18.8%** | **28.3%** | **1.61×** | **43%** |
+| 1 | 942 | 11.7% | 30.3% | 58.3% | 2.59× | 40% |
+| 2 | 920 | 11.7% | 25.5% | 45.9% | 2.17× | 40% |
+| 3 | 887 | 11.8% | 23.3% | 37.8% | 1.98× | 44% |
+| **5** | **766** | **11.6%** | **19.4%** | **28.3%** | **1.67×** | **47%** |
 | 10 | 365 | 13.6% | 18.3% | 22.7% | 1.35× | 52% |
-| 20 | 60 | 16.0% | 18.1% | 19.7% | 1.13× | 57% |
+| 20 | 60 | 16.0% | 18.2% | 19.7% | 1.14× | 59% |
 
-The lift runs from 2.63× to 1.13× on an unchanged model; the share of achievable
+The lift runs from 2.59× to 1.14× on an unchanged model; the share of achievable
 span barely moves. Sessions fall away with `k` because a capacity above the day's
 filing count is not triage, it is reading everything — which is the real limit on
 how far this can be pushed, and why `k = 20` covers 6% of days and is reported
@@ -141,13 +149,13 @@ experiments would widen the interval on their difference for no reason.
 
 | Read the top five by | Precision | Model lift | 95% interval | Draws favouring the baseline |
 |---|---|---|---|---|
-| the model | 18.8% | — | — | — |
-| random selection | 11.6% | 1.61× | [1.54, 1.70] | 0 / 2000 |
-| arrival order | 9.3% | 2.01× | [1.81, 2.25] | 0 / 2000 |
-| “Item 2.02 earnings first” | 13.4% | 1.40× | [1.30, 1.51] | 0 / 2000 |
+| the model | 19.4% | — | — | — |
+| random selection | 11.6% | 1.67× | [1.59, 1.75] | 0 / 2000 |
+| arrival order | 9.3% | 2.08× | [1.88, 2.31] | 0 / 2000 |
+| “Item 2.02 earnings first” | 13.4% | 1.44× | [1.34, 1.56] | 0 / 2000 |
 
 The last column is the one worth reading first, and it is the one the earlier
-version of this README could not answer. A lift of 1.40× over an item heuristic
+version of this README could not answer. A lift of 1.44× over an item heuristic
 that a reader could implement in an afternoon is only a result if it survives
 resampling; here it does, in every draw. Useful triage, not a trading strategy —
 and the next section says exactly how much that caveat is worth.
@@ -182,7 +190,7 @@ look*.
 Close-to-close stays the label, because the question is which disclosures
 mattered and the overnight gap is part of the answer, not contamination of it.
 But the same pipeline scored against an open-anchored label — asking what was
-still on the table at the open — drops from 0.366 average precision to 0.140.
+still on the table at the open — drops from 0.378 average precision to 0.158.
 That is not the ranker failing; it is a harder question. Both rows are in
 [`evidence/real_run/anchoring_study.csv`](evidence/real_run/anchoring_study.csv)
 and reproduced by `experiments.reaction_capture_profile`.
@@ -194,28 +202,37 @@ events, the same purge:
 
 | Family | Average precision | vs shipped | 95% interval on the difference | Draws favouring the shipped one |
 |---|---|---|---|---|
-| random forest | 0.378 | +0.011 | [−0.003, +0.024] | 132 / 2000 |
-| **hist gradient boosting (shipped)** | **0.367** | — | — | — |
-| logistic regression | 0.351 | −0.016 | [−0.035, +0.001] | 1920 / 2000 |
-| stratified dummy | 0.129 | −0.239 | [−0.266, −0.212] | 2000 / 2000 |
+| **random forest (shipped)** | **0.378** | — | — | — |
+| hist gradient boosting | 0.367 | −0.011 | [−0.024, +0.003] | 1868 / 2000 |
+| logistic regression | 0.351 | −0.027 | [−0.044, −0.009] | 1998 / 2000 |
+| stratified dummy | 0.129 | −0.249 | [−0.278, −0.222] | 2000 / 2000 |
 
 Differences are *paired* — the families saw the same events on the same days, so
 the difference is measured within a resample. It matters here: independently the
-intervals on random forest [0.347, 0.409] and the shipped estimator
-[0.338, 0.398] overlap almost entirely, while their paired difference is three
-times tighter. Even so it straddles zero. **The three real families are not
-distinguishable on this sample.**
+intervals on random forest [0.347, 0.409] and gradient boosting [0.338, 0.398]
+overlap almost entirely, while their paired difference is three times tighter.
+Even so it straddles zero: **those two are not distinguishable on this sample.**
+The linear model is, narrowly — its interval clears zero — which is the one
+ranking here the data actually supports.
 
 Which is the point. Swapping the family moves average precision across
-**0.027**; swapping the validation scheme moves it **0.235**, nearly nine times
-as far. The interesting code was never the estimator.
+**0.027**; swapping the validation scheme moves it **0.220**, eight times as far.
+The interesting code was never the estimator.
 
-Selecting between families is itself a selection leak, so the comparison above
-is descriptive and a *nested* score prices the procedure: an inner purged split
-inside each outer training block picks the winner, and no test fold informs the
-choice made for it. That scores **0.378**, and the same family wins every fold —
-so here the selection is stable rather than noise-chasing, and its premium over
-the descriptive table is zero. See
+**How the shipped family was chosen.** Not by reading the table and keeping the
+top row — that is the selection leak the project refuses everywhere else, and it
+stays a leak when the thing selected is a model. It was chosen by a *nested*
+procedure that prices selection rather than performing it: an inner purged,
+embargoed split inside each outer training block picks a winner using that block
+alone, so no test fold informs the choice made for it. That procedure selected
+random forest in all five folds and scores **0.378**, so the selection is stable
+rather than noise-chasing and its premium over the descriptive table is zero.
+
+The margin is small and the difference against gradient boosting straddles zero,
+so the honest reading is not that this family is better. It is that the two are
+indistinguishable and this is what the leak-free procedure returned. It also won
+carrying a handicap: gradient boosting is the only family here that uses missing
+values natively, while the forest is handed median-imputed columns. See
 [`model_comparison_paired.csv`](evidence/real_run/model_comparison_paired.csv)
 and [`nested_selection.json`](evidence/real_run/nested_selection.json).
 
@@ -224,8 +241,8 @@ if they had been chosen by watching the out-of-sample metric that would be a
 selection leak spanning the whole project — the one kind no guard can catch,
 because every individual run is clean and the contamination lives in which run
 was kept. Rather than answer with a promise, the answer is a spread: perturbing
-each setting one at a time moves average precision across a range of **0.032**,
-narrower than the **0.060** bootstrap interval on the default configuration. The
+each setting one at a time moves average precision across a range of **0.018**,
+narrower than the **0.062** bootstrap interval on the default configuration. The
 defaults are also not the best cell in the grid. No achievable amount of tuning
 produced this headline. See
 [`hyperparameter_sensitivity.csv`](evidence/real_run/hyperparameter_sensitivity.csv).
@@ -313,7 +330,7 @@ embargo sweep, and writes a self-contained HTML report.
 
 ```bash
 make quick           # smaller, no leakage study, ~30s
-make test            # 371 tests
+make test            # 382 tests (~12 min; the nested model selection dominates)
 make audit           # the leakage checks as an exit code
 make llm-eval        # frozen English/Chinese grounded-output scorecard
 make llm-eval-openai-dry-run  # inspect 20-case paid benchmark scope; sends nothing
@@ -381,10 +398,22 @@ Full write-up in [docs/LEAKAGE.md](docs/LEAKAGE.md).
 
 | # | The bug | How it is caught | What fixing it costs |
 |---|---|---|---|
-| 1 | `filing_date` (a date) used instead of the accepted timestamp, so the naive entry uses an opening print before the filing was accepted. | `guards.causal` asserts the entry open postdates the acceptance time, on every row | 11,168 impossible entries (95.4%) reduced to zero |
-| 2 | `.rolling(20)` without `.shift(1)`, so a filing's "trailing" volatility contains the event day. Sharpest as relative volume, which unshifted is the reaction's own volume spike. | No guard is possible — one switch, one comment, and a test asserting the leaky config scores *better* | Average precision **0.594 → 0.424**, a 29% reduction |
+| 1 | `filing_date` (a date) used instead of the accepted timestamp, so the naive entry uses an opening print before the filing was accepted. | `guards.causal` asserts the entry open postdates the acceptance time, on every row | 11,224 impossible entries (95.8%) reduced to zero |
+| 2 | `.rolling(20)` without `.shift(1)`, so a filing's "trailing" volatility contains the event day. Sharpest as relative volume, which unshifted is the reaction's own volume spike. | No guard is possible — one switch, one comment, and a test asserting the leaky config scores *better* | Average precision **0.599 → 0.430**, a 28% reduction |
 | 3 | Screening on today's index constituents, which deletes every issuer dropped after a collapse — the ones whose 8-Ks moved most. | `guards.universe_pit` checks membership *as of the event date*; membership stored as intervals, never a list | Nothing on this universe, and that is the finding — see above |
-| 4 | `KFold(shuffle=True)` on time-ordered events: trains on the future, and overlapping outcome windows carry test-period returns into training labels. | `PurgedWalkForward` + `guards.purged_split` re-checking the gap every fold | **0.601 → 0.594** average precision, and a smaller sample |
+| 4 | `KFold(shuffle=True)` on time-ordered events: trains on the future, and overlapping outcome windows carry test-period returns into training labels. | `PurgedWalkForward` + `guards.purged_split` re-checking the gap every fold | **0.598 → 0.599** average precision on a sample a fifth smaller — see below |
+
+**Bug 4 costs nothing on this sample, and that is worth stating rather than
+hiding.** Fixing it moves average precision from 0.598 to 0.599 — up, fractionally.
+Two things are going on. Purging discards a fifth of the events, so the two rows
+are not computed on the same sample and their difference is not an estimate of
+anything; and the shuffled split's advantage here is small to begin with, because
+the label's outcome window is two sessions rather than the weeks that make
+overlap ruinous. Neither means the bug is harmless. It means *this metric cannot
+see it*, which is the general shape of the problem: a shuffled split trains on
+the future whether or not the score notices, and a reader who checks only the
+score would conclude there was nothing to fix. The earlier estimator showed a
+0.007 drop here — noise of the same size, pointing the other way.
 
 There is a second trap inside bug 1. EDGAR serves acceptance times as
 `2024-10-31T18:03:31.000Z` — but the clock is the SEC's, which runs on
@@ -497,7 +526,7 @@ src/filing_triage/
                    and hyperparameter sensitivity grid
   report.py        self-contained HTML
   synth.py         the offline corpus
-tests/             371 tests; test_guards, test_pipeline, test_uncertainty
+tests/             382 tests; test_guards, test_pipeline, test_uncertainty
                    and test_ingest_integration are the ones that matter
 docs/              METHODOLOGY.md, LEAKAGE.md, COMPANY_LENS.md
 ```

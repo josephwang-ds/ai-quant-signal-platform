@@ -2,7 +2,7 @@
 
 The shipped estimator is deliberately unremarkable, and the project's argument
 rests on that: swapping it moves the metric by a rounding error while swapping
-the validation scheme moves it by 0.235. A claim like that is worth checking
+the validation scheme moves it by 0.220. A claim like that is worth checking
 rather than asserting, which is what this registry is for.
 
 **Every candidate is a Pipeline, and that is a leakage decision.** Two of these
@@ -31,7 +31,14 @@ RANDOM_STATE = 7
 
 
 def _shipped() -> Pipeline:
-    """The estimator the pipeline actually uses, unchanged."""
+    """Gradient-boosted trees. The default until 2026-08-27, kept as a candidate.
+
+    It is the only family here that needs no imputer, because
+    HistGradientBoosting learns a direction for missing values from the training
+    split. That is a real advantage on these features, several of which are
+    missing for a reason -- and it still lost, narrowly, to a forest handed
+    median-imputed columns instead.
+    """
     return Pipeline([
         ("clf", HistGradientBoostingClassifier(
             max_depth=4, max_iter=200, learning_rate=0.06,
@@ -89,11 +96,40 @@ def _stratified_dummy() -> Pipeline:
 
 
 CANDIDATES = {
-    "hist_gbdt (shipped)": _shipped,
+    "hist_gbdt": _shipped,
     "logistic": _logistic,
     "random_forest": _random_forest,
     "stratified_dummy": _stratified_dummy,
 }
+
+# Which settings to perturb when asking whether a headline depends on the
+# estimator's constants. Per family, because the question is only meaningful in
+# that family's own parameter space -- a `learning_rate` sweep says nothing about
+# a forest, and leaving the grid pointed at the previous default is how a
+# sensitivity study silently stops testing anything.
+SENSITIVITY_GRIDS: dict[str, list[dict]] = {
+    "hist_gbdt": [
+        {}, {"max_depth": 3}, {"max_depth": 6}, {"max_iter": 100},
+        {"max_iter": 400}, {"learning_rate": 0.03}, {"learning_rate": 0.12},
+        {"min_samples_leaf": 10}, {"min_samples_leaf": 60},
+        {"l2_regularization": 0.0}, {"l2_regularization": 5.0},
+    ],
+    "random_forest": [
+        {}, {"n_estimators": 150}, {"n_estimators": 600},
+        {"max_depth": 8}, {"max_depth": 20}, {"max_depth": None},
+        {"min_samples_leaf": 5}, {"min_samples_leaf": 50},
+        {"max_features": "sqrt"}, {"max_features": 0.5},
+    ],
+    "logistic": [
+        {}, {"C": 0.01}, {"C": 0.1}, {"C": 10.0}, {"C": 100.0},
+    ],
+    "stratified_dummy": [{}],
+}
+
+
+def sensitivity_grid(name: str) -> list[dict]:
+    """A deliberately coarse grid around one family's defaults. Never a search."""
+    return SENSITIVITY_GRIDS.get(name, [{}])
 
 
 def build(name: str) -> Pipeline:
