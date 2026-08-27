@@ -187,6 +187,38 @@ That is not the ranker failing; it is a harder question. Both rows are in
 [`evidence/real_run/anchoring_study.csv`](evidence/real_run/anchoring_study.csv)
 and reproduced by `experiments.reaction_capture_profile`.
 
+**Whether the model family matters.** The estimator is deliberately
+unremarkable, and the project's argument rests on that being true rather than
+convenient — so it is measured. Four families on the same folds, the same
+events, the same purge:
+
+| Family | Average precision | vs shipped | 95% interval on the difference | Draws favouring the shipped one |
+|---|---|---|---|---|
+| random forest | 0.378 | +0.011 | [−0.003, +0.024] | 132 / 2000 |
+| **hist gradient boosting (shipped)** | **0.367** | — | — | — |
+| logistic regression | 0.351 | −0.016 | [−0.035, +0.001] | 1920 / 2000 |
+| stratified dummy | 0.129 | −0.239 | [−0.266, −0.212] | 2000 / 2000 |
+
+Differences are *paired* — the families saw the same events on the same days, so
+the difference is measured within a resample. It matters here: independently the
+intervals on random forest [0.347, 0.409] and the shipped estimator
+[0.338, 0.398] overlap almost entirely, while their paired difference is three
+times tighter. Even so it straddles zero. **The three real families are not
+distinguishable on this sample.**
+
+Which is the point. Swapping the family moves average precision across
+**0.027**; swapping the validation scheme moves it **0.235**, nearly nine times
+as far. The interesting code was never the estimator.
+
+Selecting between families is itself a selection leak, so the comparison above
+is descriptive and a *nested* score prices the procedure: an inner purged split
+inside each outer training block picks the winner, and no test fold informs the
+choice made for it. That scores **0.378**, and the same family wins every fold —
+so here the selection is stable rather than noise-chasing, and its premium over
+the descriptive table is zero. See
+[`model_comparison_paired.csv`](evidence/real_run/model_comparison_paired.csv)
+and [`nested_selection.json`](evidence/real_run/nested_selection.json).
+
 **Where the constants came from.** The estimator's settings are hard-coded, and
 if they had been chosen by watching the out-of-sample metric that would be a
 selection leak spanning the whole project — the one kind no guard can catch,
@@ -281,7 +313,7 @@ embargo sweep, and writes a self-contained HTML report.
 
 ```bash
 make quick           # smaller, no leakage study, ~30s
-make test            # 348 tests
+make test            # 371 tests
 make audit           # the leakage checks as an exit code
 make llm-eval        # frozen English/Chinese grounded-output scorecard
 make llm-eval-openai-dry-run  # inspect 20-case paid benchmark scope; sends nothing
@@ -465,7 +497,7 @@ src/filing_triage/
                    and hyperparameter sensitivity grid
   report.py        self-contained HTML
   synth.py         the offline corpus
-tests/             348 tests; test_guards, test_pipeline, test_uncertainty
+tests/             371 tests; test_guards, test_pipeline, test_uncertainty
                    and test_ingest_integration are the ones that matter
 docs/              METHODOLOGY.md, LEAKAGE.md, COMPANY_LENS.md
 ```

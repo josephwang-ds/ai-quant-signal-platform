@@ -1,6 +1,6 @@
 {
   "schema_version": "1.1",
-  "exported_at": "2026-08-27T09:31:51.467249+00:00",
+  "exported_at": "2026-08-27T09:52:18.891385+00:00",
   "pipeline_config": {
     "reaction_threshold": 2.0,
     "event_window_sessions": 2,
@@ -85,7 +85,10 @@
     "anchoring_study.csv",
     "hyperparameter_sensitivity.csv",
     "capacity_profile.csv",
-    "session_material_counts.csv"
+    "session_material_counts.csv",
+    "model_comparison.csv",
+    "model_comparison_paired.csv",
+    "nested_selection.json"
   ],
   "raw_data_committed": false,
   "note": "Metrics are real-data results; the convenience universe has survivorship bias."

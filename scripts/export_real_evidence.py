@@ -24,6 +24,8 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--build", type=Path, default=Path("data/build"))
     parser.add_argument("--out", type=Path, default=Path("evidence/real_run"))
+    parser.add_argument("--skip-model-comparison", action="store_true",
+                        help="skip the candidate sweep, which dominates runtime")
     args = parser.parse_args()
 
     provenance = json.loads((args.build / "provenance.json").read_text())
@@ -67,6 +69,16 @@ def main() -> int:
     experiments.session_material_counts(result.predictions, result.events).to_csv(
         args.out / "session_material_counts.csv", index=False)
 
+    # Whether the model family matters, answered rather than asserted. The
+    # project's argument rests on it mattering far less than the validation
+    # scheme; a comparison is how that stops being a claim.
+    if not args.skip_model_comparison:
+        table, paired, nested = experiments.model_comparison(
+            events, prices, membership)
+        table.to_csv(args.out / "model_comparison.csv", index=False)
+        paired.to_csv(args.out / "model_comparison_paired.csv", index=False)
+        _write_json(args.out / "nested_selection.json", nested)
+
     leakage_path = args.build / "leakage_study.csv"
     if not leakage_path.exists():
         raise ValueError("data/build/leakage_study.csv is missing; run `make run` first")
@@ -109,6 +121,9 @@ def main() -> int:
             "hyperparameter_sensitivity.csv",
             "capacity_profile.csv",
             "session_material_counts.csv",
+            "model_comparison.csv",
+            "model_comparison_paired.csv",
+            "nested_selection.json",
         ],
         "raw_data_committed": False,
         "note": "Metrics are real-data results; the convenience universe has survivorship bias.",

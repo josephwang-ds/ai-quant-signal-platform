@@ -165,6 +165,42 @@ promise: perturbing each setting one at a time moves average precision across
 0.032, narrower than the 0.060 bootstrap interval on the default, and the
 defaults are not the best cell in the grid.
 
+## Does the model family matter
+
+The estimator is deliberately unremarkable, and a good deal rests on that being
+true rather than merely convenient, so it is measured against three alternatives
+on the same folds and the same events: a regularised linear model, a random
+forest, and a stratified dummy that scores at the base rate by construction.
+
+**The comparison is paired**, for the same reason the operational baselines are.
+The families saw the same events on the same days, so their difference is
+measured within a resample; two overlapping *independent* intervals do not
+settle which is better. It matters here — independently, random forest
+[0.347, 0.409] and the shipped estimator [0.338, 0.398] overlap almost entirely,
+while their paired difference is about three times tighter at
+[−0.003, +0.024]. It still straddles zero: **the three real families are not
+distinguishable on this sample.**
+
+Family is worth a spread of 0.027 in average precision. The validation scheme is
+worth 0.235. That ratio is the argument for where the attention went.
+
+**Every candidate is a Pipeline, and that is a leakage decision.** Two of the
+families cannot take a NaN, and the obvious remedy — impute the feature frame
+once, before splitting — fits the median partly on the test period and carries it
+into training. It is the same shape as a TF-IDF fitted over the whole corpus, and
+it is easy to miss because imputation does not feel like fitting. A Pipeline fits
+its steps inside each fold, so the leak cannot happen by construction.
+
+**Selecting between families is itself a selection leak**, the kind no per-row
+guard can see. So the table above is descriptive only, and a *nested* score
+prices the procedure: an inner purged, embargoed split inside each outer training
+block chooses the winner, the winner is refit on the full outer training block,
+and no test fold ever informs the choice made for it. The number that produces is
+what "try these and keep the best" is actually worth. Here it is 0.378 and the
+same family wins in every fold, so the selection is stable and its premium over
+the descriptive table is zero — which is not the general case, and is why the
+per-fold choices are reported alongside the score.
+
 ## Reproducibility
 
 Randomness is pinned -- one `random_state` through the model, the permutation

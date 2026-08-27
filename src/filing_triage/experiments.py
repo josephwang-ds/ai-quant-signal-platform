@@ -17,7 +17,7 @@ from dataclasses import replace
 import numpy as np
 import pandas as pd
 
-from filing_triage import pipeline
+from filing_triage import pipeline, selection
 from filing_triage.config import PipelineConfig
 from filing_triage.evaluate import daily_baseline_table
 from filing_triage.ingest.prices import to_returns
@@ -354,3 +354,52 @@ def session_material_counts(predictions: pd.DataFrame, events: pd.DataFrame,
         "share": counts.to_numpy() / len(eligible),
         "ceiling_at_k": [min(int(n), k) / k for n in counts.index],
     })
+
+
+SHIPPED_CANDIDATE = "hist_gbdt (shipped)"
+
+
+def model_comparison(events: pd.DataFrame, prices: pd.DataFrame,
+                     membership: pd.DataFrame,
+                     base: PipelineConfig | None = None) -> tuple[pd.DataFrame, dict]:
+    """Model families side by side, plus what selecting between them is worth.
+
+    Returns the descriptive table, the paired differences against the shipped
+    estimator, and the nested-selection result together,
+    because quoting either alone is misleading in a different direction. The
+    table's top row is the best a family scored *after* being chosen by looking
+    at that very score; the nested number is what the choosing procedure is worth
+    when no test fold informs the choice made for it. Their difference is the
+    selection premium.
+
+    One pipeline run supplies the features and labels for every candidate: the
+    label, the purge and the embargo are properties of the data and the split,
+    not of the estimator, so recomputing them per model would burn time to
+    produce identical frames -- and would risk them drifting apart, which is the
+    one thing that would make the comparison meaningless.
+    """
+    base = base or PipelineConfig()
+    result = pipeline.run(events, prices, membership, base,
+                          compute_importance=False, compute_uncertainty=False)
+
+    features = result.features
+    aligned = result.labels.set_index("event_id").loc[features.index]
+    indexed = result.events.set_index("event_id")
+    event_time = indexed.loc[features.index, "acceptance_time"]
+    label_end_time = pd.to_datetime(aligned["label_end_session"]).dt.tz_localize(
+        result.events["acceptance_time"].dt.tz)
+
+    table = selection.compare_candidates(
+        features, aligned["label"], event_time, label_end_time,
+        sessions=indexed["entry_session"])
+    # Paired, for the same reason the operational baselines are: the families saw
+    # the same events on the same days, and two overlapping independent intervals
+    # do not settle which is better. On the real sample the independent intervals
+    # overlap almost entirely while the paired difference is three times tighter.
+    scored = selection.candidate_predictions(
+        features, aligned["label"], event_time, label_end_time)
+    paired = selection.paired_candidate_differences(
+        scored, indexed["entry_session"], reference=SHIPPED_CANDIDATE)
+    nested = selection.nested_selection_score(
+        features, aligned["label"], event_time, label_end_time)
+    return table, paired, nested
