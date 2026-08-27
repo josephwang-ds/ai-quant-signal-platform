@@ -141,6 +141,41 @@ promise: perturbing each setting one at a time moves average precision across
 0.033, narrower than the 0.059 bootstrap interval on the default, and the
 defaults are not the best cell in the grid.
 
+## Reproducibility
+
+Randomness is pinned -- one `random_state` through the model, the permutation
+importance and the bootstrap -- so the synthetic path is deterministic. That is
+the easy half. The real-data path has three ways to drift, and naming them is
+more useful than claiming it does not.
+
+**The dependency floors are `>=`**, which is right for a library and wrong for a
+result: two installs a year apart run the same code on different numerics, and
+`HistGradientBoostingClassifier` makes no promise of identical splits across
+scikit-learn versions. `requirements.lock` pins one resolution known to
+reproduce; `make install-locked` installs it, and CI runs the suite against both
+the lock and the floors, because those answer different questions -- *can anyone
+get these numbers back*, and *does this still work on current libraries*.
+
+**EDGAR grows.** One rebuild from the ingest cache turned 11,702 filings into
+11,716. A run is a snapshot of a moving source, not a fixed dataset.
+
+**Vendor prices are adjusted as of the pull date.** A later split rewrites the
+whole history retroactively: same rows, same date range, different values. This
+does not bias the study -- event and benchmark come from the same adjusted
+series and the adjustment is multiplicative -- but it does mean a rerun after a
+corporate action will not reproduce the numbers, and the row count will not say
+so.
+
+**So each result records what it was computed from.** `manifest.json` carries a
+content fingerprint of every input frame plus the interpreter and library
+versions behind it. The digest is over canonicalised content -- columns sorted,
+rows sorted, floats at fixed precision -- rather than file bytes, because pandas
+and pyarrow rewrite their encodings between versions and a fingerprint that
+fires on a library upgrade is a false alarm that gets removed. Row counts sit
+beside the hashes on purpose: a changed count is the source growing, an
+unchanged count with a changed digest is values moving underneath, and those are
+different problems.
+
 ## What this does not claim
 
 - **No return prediction.** Direction is never modelled, and no strategy return,

@@ -15,6 +15,7 @@ import pandas as pd
 
 from filing_triage import experiments, pipeline
 from filing_triage.config import PipelineConfig
+from filing_triage.fingerprint import environment, input_fingerprints
 from filing_triage.ingest.prices import load_prices
 from filing_triage.ingest.universe import load_membership
 
@@ -63,7 +64,7 @@ def main() -> int:
     pd.read_csv(leakage_path).to_csv(args.out / "leakage_study.csv", index=False)
 
     _write_json(args.out / "manifest.json", {
-        "schema_version": "1.0",
+        "schema_version": "1.1",
         "exported_at": datetime.now(UTC).isoformat(),
         "pipeline_config": {
             "reaction_threshold": result.config.reaction_threshold,
@@ -79,6 +80,12 @@ def main() -> int:
             "draws": result.metrics.get("bootstrap_draws"),
             "sessions": result.metrics.get("bootstrap_sessions"),
         },
+        # What the numbers were computed from, and on what. Without these a
+        # rerun that disagrees cannot be diagnosed: EDGAR grows, vendor prices
+        # are re-adjusted retroactively, and the dependency floors are `>=`, so
+        # "the code changed" and "the inputs changed" look identical.
+        "inputs": input_fingerprints(events, prices, membership),
+        "environment": environment(),
         "files": [
             "metrics.json",
             "integrity.json",

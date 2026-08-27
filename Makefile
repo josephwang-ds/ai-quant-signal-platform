@@ -16,10 +16,12 @@ PYTHON ?= $(shell   test -x .venv/bin/python && echo .venv/bin/python ||   comma
 # the project.
 export PYTHONPATH := $(CURDIR)/src$(if $(PYTHONPATH),:$(PYTHONPATH))
 
-.PHONY: help install demo quick audit doctor test lint ingest refresh-filings refresh-fundamentals refresh-headlines refresh-all vercel-bundle vercel-deploy run site company company-featured company-pages evidence nlp-eval llm-eval llm-eval-provider-dry-run llm-eval-openai-dry-run clean
+.PHONY: help install lock install-locked demo quick audit doctor test lint ingest refresh-filings refresh-fundamentals refresh-headlines refresh-all vercel-bundle vercel-deploy run site company company-featured company-pages evidence nlp-eval llm-eval llm-eval-provider-dry-run llm-eval-openai-dry-run clean
 
 help:
 	@echo "make install   install the package and dev dependencies"
+	@echo "make lock      pin the current environment into requirements.lock"
+	@echo "make install-locked  install the pinned environment instead of resolving"
 	@echo "make demo      synthetic world -> pipeline -> data/build/report.html"
 	@echo "make quick     the same, smaller and without the leakage study"
 	@echo "make universe  resolve the demo ticker list to CIKs (needs network)"
@@ -71,6 +73,34 @@ install: check-python
 	@# which sends you looking for the wrong problem entirely. Upgrade first.
 	$(PYTHON) -m pip install --upgrade pip setuptools wheel
 	$(PYTHON) -m pip install -e ".[dev]"
+
+# Reproduce the environment a committed result was produced on, rather than
+# resolving `>=` floors to whatever is newest today. Use this before comparing
+# your numbers with the ones in evidence/real_run.
+install-locked: check-python
+	$(PYTHON) -m pip install --upgrade pip setuptools wheel
+	$(PYTHON) -m pip install -r requirements.lock
+	$(PYTHON) -m pip install -e . --no-deps
+
+# Run after deliberately upgrading something. Re-export the evidence in the same
+# commit: manifest.json records the environment each result came from, so a lock
+# bump without a re-export leaves the two disagreeing.
+lock: check-python
+	@# Built into a temporary file and moved into place. Redirecting straight to
+	@# requirements.lock truncates it before the header is read back out of it,
+	@# which silently loses everything above the generated line.
+	@$(PYTHON) -m pip freeze --exclude-editable \
+	  | grep -v '^filing-triage==' | sort > .lock.body
+	@sed -n '/^# Python /q;p' requirements.lock > .lock.head
+	@{ \
+	  cat .lock.head; \
+	  echo "# Python $$($(PYTHON) -c 'import sys;print(".".join(map(str,sys.version_info[:3])))') · generated $$(date -u +%Y-%m-%d)"; \
+	  echo; \
+	  cat .lock.body; \
+	} > .lock.new
+	@mv .lock.new requirements.lock
+	@rm -f .lock.body .lock.head
+	@echo "requirements.lock updated ($$(grep -c '==' requirements.lock) packages)"
 
 # FORCE=1 reaches the CLI's --force, which is the only way past the guard that
 # stops a synthetic world overwriting a real EDGAR build in data/build.

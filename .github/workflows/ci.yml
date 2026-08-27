@@ -22,6 +22,24 @@ jobs:
       - run: make lint
       - run: make test
 
+  # The floors in pyproject.toml are `>=`, so the job above tests against
+  # whatever is newest today -- which is what catches an upstream break early.
+  # This one tests against the pins that produced the committed evidence, which
+  # is what makes that evidence reproducible. Both matter, and they answer
+  # different questions: the first is "does it still work", the second is "can
+  # anyone get these numbers back".
+  locked-environment:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install -r requirements.lock
+      - run: pip install -e . --no-deps
+      - run: python -m pytest -q
+
   leakage-audit:
     # The point of the project as an exit code. If the honest pipeline ever
     # starts leaking, this fails before anything reaches main.
