@@ -253,7 +253,7 @@ embargo sweep, and writes a self-contained HTML report.
 
 ```bash
 make quick           # smaller, no leakage study, ~30s
-make test            # 300 tests
+make test            # 313 tests
 make audit           # the leakage checks as an exit code
 make llm-eval        # frozen English/Chinese grounded-output scorecard
 make llm-eval-openai-dry-run  # inspect 20-case paid benchmark scope; sends nothing
@@ -341,6 +341,20 @@ A check that can be ignored is a comment. So:
 - The correct configuration is the **default**. A safe default you have to opt into
   is not a safe default.
 
+The same rule applies outside the pipeline, and for a while it was not applied
+there. Three operational steps could each produce a plausible artefact and report
+success while being wrong — the leakage failure mode moved into the build. Two of
+the three happened here before they were guarded:
+
+| The step | What it did quietly | The guard |
+|---|---|---|
+| `make demo` after a real pull | wrote its synthetic world over the ingested panel — same three files — after which the pipeline runs fine on a simulation | refuses when `provenance.json` reads `edgar`; `FORCE=1` overrides |
+| `make vercel-deploy` | the packager copies HTML rather than rendering it, so a deploy after a renderer change shipped the previous build | refuses when the pages predate the renderer; `--allow-stale` overrides |
+| a stale `VERCEL_PROJECT_ID` | published to a different project than the bundle was linked to, successfully | names the target on every deploy, refuses on a mismatch |
+
+Each override is a flag, so the safe path stays the default and the unsafe one is
+typed on purpose.
+
 ---
 
 ## How it works
@@ -423,7 +437,7 @@ src/filing_triage/
                    and hyperparameter sensitivity grid
   report.py        self-contained HTML
   synth.py         the offline corpus
-tests/             300 tests; test_guards, test_pipeline, test_uncertainty
+tests/             313 tests; test_guards, test_pipeline, test_uncertainty
                    and test_ingest_integration are the ones that matter
 docs/              METHODOLOGY.md, LEAKAGE.md, COMPANY_LENS.md
 ```

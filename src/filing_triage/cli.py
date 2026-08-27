@@ -43,6 +43,8 @@ def main(argv: list[str] | None = None) -> int:
     demo.add_argument("--out", default=str(BUILD / "report.html"))
     demo.add_argument("--quick", action="store_true",
                       help="skip the leakage study and the embargo sweep")
+    demo.add_argument("--force", action="store_true",
+                      help="overwrite a real EDGAR build in data/build")
 
     ingest = sub.add_parser("ingest", help="pull real EDGAR filings and prices")
     ingest.add_argument("--universe", default=str(BUILD / "universe.csv"))
@@ -142,8 +144,49 @@ def _doctor(args) -> int:
 
 
 # --------------------------------------------------------------------------- #
+def _guard_real_build(force: bool) -> int | None:
+    """Refuse to overwrite a real EDGAR build with a synthetic one.
+
+    `demo` and `ingest` write their frames to the same three files, so running
+    the demo after a real pull silently replaces tens of thousands of filings
+    with a simulation. Nothing about the result looks wrong afterwards -- the
+    pipeline runs, the report renders, the numbers are plausible -- which puts
+    this in the same category as the leaks the project is about: a failure that
+    produces an answer instead of an error.
+
+    The README hands a reader the sequence that triggers it, `make demo` first
+    and `make ingest` later, so this is the expected order of operations rather
+    than an unlikely mistake.
+    """
+    provenance = _read_provenance()
+    if provenance.get("source") != "edgar" or force:
+        return None
+    print(
+        f"data/build holds a real EDGAR build "
+        f"({provenance.get('filings', '?'):,} filings from "
+        f"{provenance.get('issuers', '?')} issuers, written "
+        f"{provenance.get('written_at', 'at an unrecorded time')}).\n"
+        "\n"
+        "The demo writes its synthetic world to the same files and would "
+        "replace it.\n"
+        "The ingest cache in data/cache can rebuild it, but that is a rerun of "
+        "`make ingest`,\n"
+        "not an undo.\n"
+        "\n"
+        "  make ingest            rebuild the real frames from cache\n"
+        "  make demo FORCE=1      overwrite anyway (also make quick FORCE=1)\n"
+        "  triage demo --force    the same, without make",
+        file=sys.stderr,
+    )
+    return 1
+
+
 def _demo(args) -> int:
     from filing_triage.synth import generate
+
+    refused = _guard_real_build(args.force)
+    if refused is not None:
+        return refused
 
     print(f"generating a synthetic world ({args.issuers} issuers)...", flush=True)
     world = generate(n_issuers=args.issuers, seed=args.seed)

@@ -72,11 +72,13 @@ install: check-python
 	$(PYTHON) -m pip install --upgrade pip setuptools wheel
 	$(PYTHON) -m pip install -e ".[dev]"
 
+# FORCE=1 reaches the CLI's --force, which is the only way past the guard that
+# stops a synthetic world overwriting a real EDGAR build in data/build.
 demo: check-python
-	$(PYTHON) -m filing_triage.cli demo --issuers 300
+	$(PYTHON) -m filing_triage.cli demo --issuers 300 $(if $(FORCE),--force)
 
 quick: check-python
-	$(PYTHON) -m filing_triage.cli demo --issuers 80 --quick
+	$(PYTHON) -m filing_triage.cli demo --issuers 80 --quick $(if $(FORCE),--force)
 
 doctor: check-python
 	$(PYTHON) -m filing_triage.cli doctor
