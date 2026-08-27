@@ -7,6 +7,15 @@
 # python (some Linux images are the other way round). PYTHON=... overrides all of it.
 PYTHON ?= $(shell   test -x .venv/bin/python && echo .venv/bin/python ||   command -v python3 2>/dev/null ||   command -v python 2>/dev/null)
 
+# Put src/ on the path for every target, rather than trusting the editable
+# install. `pip install -e .` writes a .pth file, and on macOS an iCloud-synced
+# checkout gets UF_HIDDEN re-applied to everything under .venv/ -- CPython
+# skips hidden .pth files *silently*, so the install reports success and every
+# target then fails with ModuleNotFoundError. Exporting the path costs nothing
+# when the install is fine and removes a failure mode that looks like a bug in
+# the project.
+export PYTHONPATH := $(CURDIR)/src$(if $(PYTHONPATH),:$(PYTHONPATH))
+
 .PHONY: help install demo quick audit doctor test lint ingest refresh-filings refresh-fundamentals refresh-headlines refresh-all vercel-bundle vercel-deploy run site company company-featured company-pages evidence nlp-eval llm-eval llm-eval-provider-dry-run llm-eval-openai-dry-run clean
 
 help:
@@ -29,7 +38,7 @@ help:
 	@echo "make company   build an AAPL Company Lens snapshot from local data"
 	@echo "make company-featured  quickly build AAPL/MSFT/NVDA pages"
 	@echo "make company-pages  build all locally available company pages"
-	@echo "make evidence  export reviewable real-run metrics without raw data"
+	@echo "make evidence  export real-run metrics, intervals and studies (no raw data)"
 	@echo "make nlp-eval  evaluate prior-filing change detection on labeled spans"
 	@echo "make llm-eval  score frozen bilingual grounded-explanation fixtures"
 	@echo "make llm-eval-provider-dry-run PROVIDER=qwen  inspect a provider run"

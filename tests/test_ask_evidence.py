@@ -1,6 +1,16 @@
 from __future__ import annotations
 
-from company_lens.web.ask import ASK_EVIDENCE_VERSION, build_ask_evidence
+from company_lens.web.ask import (
+    ASK_EVIDENCE_VERSION,
+    SCOPE_SECTIONS,
+    build_ask_evidence,
+    evidence_scopes,
+)
+
+
+def _scope(snapshot: dict, name: str = "all") -> dict:
+    """One scope's packet, in the shape the Q&A function consumes."""
+    return build_ask_evidence(snapshot)["scopes"][name]
 
 
 def _snapshot() -> dict:
@@ -63,8 +73,10 @@ def _snapshot() -> dict:
                 "source_type": "company_news",
                 "citation": "news:abc#headline",
             },
+        ],
+        "market_headlines": [
             {
-                "headline": "Rates are unchanged",
+                "headline": "Rates are unchanged at 4.25%",
                 "publisher": "Market Wire",
                 "published_at": "2026-08-24T09:00:00+00:00",
                 "url": "https://example.com/market",
@@ -76,7 +88,7 @@ def _snapshot() -> dict:
 
 
 def test_ask_evidence_is_compact_company_specific_and_citation_bounded() -> None:
-    packet = build_ask_evidence(_snapshot())
+    packet = _scope(_snapshot(), "company")
 
     assert packet["evidence"]["schema_version"] == ASK_EVIDENCE_VERSION
     assert "growth" not in packet["evidence"]
@@ -172,7 +184,7 @@ def test_ask_evidence_includes_bounded_fundamentals_when_available() -> None:
             }
         ],
     }
-    packet = build_ask_evidence(snapshot)
+    packet = _scope(snapshot, "core")
     fundamentals = packet["evidence"]["fundamentals"]
     assert fundamentals["series_basis"] == "latest_restated"
     assert fundamentals["annual_trends"]
@@ -206,3 +218,95 @@ def test_ask_evidence_includes_bounded_fundamentals_when_available() -> None:
     )
     assert "$416.2B" in packet["allowed_number_literals"]
     assert "46.0%" in packet["allowed_number_literals"]
+
+
+def test_every_scope_is_offered_with_a_bilingual_label() -> None:
+    offered = evidence_scopes()
+    assert [scope["id"] for scope in offered] == list(SCOPE_SECTIONS)
+    for scope in offered:
+        assert scope["label"] and scope["label_zh"]
+        assert scope["description"] and scope["description_zh"]
+
+
+def test_scopes_carry_exactly_the_sections_they_promise() -> None:
+    scopes = build_ask_evidence(_snapshot())["scopes"]
+
+    assert "company_headlines" not in scopes["core"]["evidence"]
+    assert "market_headlines" not in scopes["core"]["evidence"]
+    assert "company_headlines" in scopes["company"]["evidence"]
+    assert "market_headlines" not in scopes["company"]["evidence"]
+    assert "market_headlines" in scopes["market"]["evidence"]
+    assert "company_headlines" not in scopes["market"]["evidence"]
+    assert "company_headlines" in scopes["all"]["evidence"]
+    assert "market_headlines" in scopes["all"]["evidence"]
+
+    # Core survives in every scope: the point of the selector is what gets
+    # added, never what gets taken away from the source-backed foundation.
+    for scope in scopes.values():
+        assert scope["evidence"]["latest_filing"]["accession"] == "0001"
+        assert scope["evidence"]["historical_performance"]["asset"] == "ABC"
+
+
+def test_a_narrow_scope_cannot_validate_a_wider_scopes_evidence() -> None:
+    """The property the whole mechanism exists for.
+
+    The validator accepts a claim only if its citations and numbers appear in
+    the allow-lists. Those lists are built per scope from the sections that
+    scope actually contains, so a model answering in `core` cannot cite a
+    headline it was never shown, even though the headline exists in the build.
+    """
+    scopes = build_ask_evidence(_snapshot())["scopes"]
+
+    assert "news:market#headline" in scopes["market"]["allowed_citations"]
+    assert "news:market#headline" not in scopes["core"]["allowed_citations"]
+    assert "news:market#headline" not in scopes["company"]["allowed_citations"]
+
+    assert "news:abc#headline" in scopes["company"]["allowed_citations"]
+    assert "news:abc#headline" not in scopes["core"]["allowed_citations"]
+    assert "news:abc#headline" not in scopes["market"]["allowed_citations"]
+
+    # A number reachable only through the market headline is allowed only where
+    # that headline was actually sent.
+    assert "4.25%" in scopes["market"]["allowed_number_literals"]
+    assert "4.25%" in scopes["all"]["allowed_number_literals"]
+    assert "4.25%" not in scopes["core"]["allowed_number_literals"]
+    assert "4.25%" not in scopes["company"]["allowed_number_literals"]
+
+
+def test_core_allow_lists_are_a_subset_of_every_wider_scope() -> None:
+    scopes = build_ask_evidence(_snapshot())["scopes"]
+    core = set(scopes["core"]["allowed_citations"])
+    for name in ("company", "market", "all"):
+        assert core <= set(scopes[name]["allowed_citations"])
+
+
+def test_a_narrowed_scope_tells_the_model_it_is_narrowed() -> None:
+    scopes = build_ask_evidence(_snapshot())["scopes"]
+    for name in ("core", "company", "market"):
+        limits = " ".join(scopes[name]["evidence"]["interpretation_limits"])
+        assert "narrowed evidence scope" in limits
+    assert "narrowed evidence scope" not in " ".join(
+        scopes["all"]["evidence"]["interpretation_limits"])
+
+
+def test_market_headlines_carry_a_do_not_attribute_limit() -> None:
+    limits = " ".join(
+        build_ask_evidence(_snapshot())["scopes"]["market"]
+        ["evidence"]["interpretation_limits"])
+    assert "not this company" in limits
+
+
+def test_an_empty_optional_section_still_declares_itself() -> None:
+    """Silence invites the model to fall back on memory.
+
+    A scope with no headlines available must still say so, rather than omitting
+    the key and leaving the absence indistinguishable from an oversight.
+    """
+    snapshot = _snapshot()
+    snapshot["headlines"] = []
+    snapshot["market_headlines"] = []
+    scopes = build_ask_evidence(snapshot)["scopes"]
+
+    assert scopes["company"]["evidence"]["company_headlines"] == []
+    limits = " ".join(scopes["company"]["evidence"]["interpretation_limits"])
+    assert "No company headlines are available" in limits

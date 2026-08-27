@@ -32,6 +32,12 @@ where = ["src"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-q"
+# src-layout on the path explicitly, rather than relying on the editable
+# install's .pth file resolving. On macOS an iCloud-synced checkout gets
+# UF_HIDDEN re-applied to everything under .venv/, and CPython *silently*
+# skips hidden .pth files -- so `pip install -e .` reports success and the
+# package is still unimportable. This makes `make test` independent of that.
+pythonpath = ["src"]
 
 [tool.ruff]
 line-length = 100

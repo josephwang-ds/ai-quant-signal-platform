@@ -106,6 +106,52 @@ def mean_daily_random_precision_at_k(predictions: pd.DataFrame, sessions: pd.Ser
     return float(np.mean(daily)), len(daily), available
 
 
+BASELINES = ("model", "random", "arrival", "item_202")
+
+
+def daily_baseline_table(predictions: pd.DataFrame, events: pd.DataFrame,
+                         k: int = 5) -> pd.DataFrame:
+    """One row per eligible session: what each selection rule scored that day.
+
+    The session is the unit of analysis everywhere downstream -- the aggregate
+    below averages these rows, and the bootstrap resamples them. Both read the
+    same table rather than each rebuilding it, because the day one of them
+    silently counts a different set of sessions than the other is the day the
+    comparison stops meaning anything.
+    """
+    metadata = events.set_index("event_id")[["entry_session", "acceptance_time", "items"]]
+    frame = predictions.join(metadata, how="left")
+    if frame[["entry_session", "acceptance_time"]].isna().any().any():
+        raise ValueError("predictions contain event IDs missing from the event metadata")
+
+    rows = []
+    for session, group in frame.groupby("entry_session"):
+        if len(group) <= k:
+            continue
+        labels = group["label"].to_numpy()
+
+        arrival = group.sort_values("acceptance_time", kind="stable").head(k)
+        item = group.assign(
+            is_item_202=group["items"].fillna("").astype(str).str.contains(
+                r"(?:^|,)\s*2\.02(?:,|$)", regex=True
+            )
+        ).sort_values(
+            ["is_item_202", "acceptance_time"], ascending=[False, True], kind="stable"
+        ).head(k)
+
+        rows.append({
+            "session": session,
+            "filings": len(group),
+            "model": precision_at_k(labels, group["score"].to_numpy(), k),
+            # Within a session the expected precision of a random draw is that
+            # session's own material rate -- exact, so no simulated draw needed.
+            "random": float(group["label"].mean()),
+            "arrival": float(arrival["label"].mean()),
+            "item_202": float(item["label"].mean()),
+        })
+    return pd.DataFrame(rows, columns=["session", "filings", *BASELINES])
+
+
 def operational_baselines(predictions: pd.DataFrame, events: pd.DataFrame,
                           k: int = 5) -> dict[str, float | int]:
     """Compare the model with workflows an analyst could actually use.
@@ -115,39 +161,15 @@ def operational_baselines(predictions: pd.DataFrame, events: pd.DataFrame,
     earnings filings first, then falls back to arrival order. Random is the exact
     expected precision within each eligible session rather than a simulated draw.
     """
-    metadata = events.set_index("event_id")[["entry_session", "acceptance_time", "items"]]
-    frame = predictions.join(metadata, how="left")
-    if frame[["entry_session", "acceptance_time"]].isna().any().any():
-        raise ValueError("predictions contain event IDs missing from the event metadata")
-
-    model_daily, random_daily, arrival_daily, item_daily = [], [], [], []
-    for _, group in frame.groupby("entry_session"):
-        if len(group) <= k:
-            continue
-        labels = group["label"].to_numpy()
-        model_daily.append(precision_at_k(labels, group["score"].to_numpy(), k))
-        random_daily.append(float(group["label"].mean()))
-
-        arrival = group.sort_values("acceptance_time", kind="stable").head(k)
-        arrival_daily.append(float(arrival["label"].mean()))
-
-        item = group.assign(
-            is_item_202=group["items"].fillna("").astype(str).str.contains(
-                r"(?:^|,)\s*2\.02(?:,|$)", regex=True
-            )
-        ).sort_values(
-            ["is_item_202", "acceptance_time"], ascending=[False, True], kind="stable"
-        ).head(k)
-        item_daily.append(float(item["label"].mean()))
-
-    sessions = len(model_daily)
+    table = daily_baseline_table(predictions, events, k)
+    sessions = len(table)
     if not sessions:
         return {f"operational_sessions_at_{k}": 0}
 
-    model_precision = float(np.mean(model_daily))
-    random_precision = float(np.mean(random_daily))
-    arrival_precision = float(np.mean(arrival_daily))
-    item_precision = float(np.mean(item_daily))
+    model_precision = float(table["model"].mean())
+    random_precision = float(table["random"].mean())
+    arrival_precision = float(table["arrival"].mean())
+    item_precision = float(table["item_202"].mean())
     return {
         f"operational_sessions_at_{k}": sessions,
         f"daily_model_precision_at_{k}": model_precision,

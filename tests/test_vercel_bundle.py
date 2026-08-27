@@ -56,7 +56,16 @@ def test_vercel_bundle_packages_private_grounded_ask_function(tmp_path) -> None:
     assert (function / "index.js").is_file()
     assert (function / ".vc-config.json").is_file()
     evidence = json.loads((function / "evidence.json").read_text())
-    assert evidence["companies"]["ABC"]["evidence"]["ticker"] == "ABC"
+    assert evidence["default_scope"] == "core"
+    assert [scope["id"] for scope in evidence["scopes"]] == [
+        "core", "company", "market", "all"]
+    company = evidence["companies"]["ABC"]
+    assert set(company["scopes"]) == {"core", "company", "market", "all"}
+    for scope in company["scopes"].values():
+        assert scope["evidence"]["ticker"] == "ABC"
+        # Every scope ships its own allow-lists; the validator never reaches
+        # for a list built from evidence this scope did not send.
+        assert set(scope["allowed_citations"]) == set(scope["citations"])
     assert not list((output / "static").glob("*.json"))
     function_config = json.loads((function / ".vc-config.json").read_text())
     assert function_config["runtime"] == "nodejs22.x"

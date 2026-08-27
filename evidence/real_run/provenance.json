@@ -22,5 +22,18 @@
     ],
     "start_date": "2022-01-03"
   },
-  "note": "SEC EDGAR submissions + daily bars"
+  "note": "SEC EDGAR submissions + daily bars",
+  "fundamentals_refresh": {
+    "status": "current",
+    "checked_at": "2026-08-26T14:20:36.494083+00:00",
+    "companies_checked": 1,
+    "refreshed_tickers": [
+      "AAPL"
+    ],
+    "failed_tickers": [],
+    "artifact_paths": [
+      "data/build/fundamentals/aapl.json"
+    ],
+    "failures": []
+  }
 }

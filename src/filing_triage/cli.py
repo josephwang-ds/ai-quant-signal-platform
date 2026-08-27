@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 import sys
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
@@ -203,7 +204,7 @@ def _pipeline_and_report(events, prices, membership, out: Path,
     print("running the honest pipeline...", flush=True)
     result = pipeline.run(events, prices, membership, PipelineConfig())
     print(f"  {result.audit.summary()}")
-    for name, value in _headline(result.metrics):
+    for name, value in _headline(result.metrics, result.baseline_comparisons):
         print(f"  {name:<34} {value}")
 
     _print_attrition(result.integrity, len(events))
@@ -263,27 +264,73 @@ def _print_attrition(integrity: dict, ingested: int) -> None:
         print(f"    {count:>6,}  {reason}")
 
 
-def _headline(metrics: dict) -> list[tuple[str, str]]:
+def _interval(metrics: dict, key: str, fmt: str = "{:.3f}") -> str:
+    """The 95% range beside a point estimate, or nothing if it was not computed.
+
+    Blank rather than a placeholder. The leakage and embargo studies run the
+    pipeline a dozen times with the bootstrap switched off, and printing
+    `[nan, nan]` on those rows would read as a computation that failed rather
+    than one deliberately skipped.
+    """
+    low, high = metrics.get(f"{key}_ci_low"), metrics.get(f"{key}_ci_high")
+    if low is None or high is None:
+        return ""
+    if not (math.isfinite(low) and math.isfinite(high)):
+        return ""
+    return f"  [{fmt.format(low)}, {fmt.format(high)}]"
+
+
+def _suffix(lift: str) -> str:
+    """Parenthesise a lift beside a baseline's own precision, or print nothing."""
+    return f"  (model {lift})" if lift else ""
+
+
+def _paired_lift(comparisons: pd.DataFrame, name: str) -> str:
+    """The model's lift over one baseline, with its paired interval.
+
+    Paired: model and baseline are rescored on one shared resample of sessions,
+    so this is the interval on their *difference*. Bootstrapping the two means
+    separately would throw that pairing away and widen the range for no reason.
+    """
+    if comparisons is None or comparisons.empty:
+        return ""
+    row = comparisons[comparisons["baseline"] == name]
+    if row.empty:
+        return ""
+    lift, low, high = (float(row.iloc[0]["lift"]), float(row.iloc[0]["lift_ci_low"]),
+                       float(row.iloc[0]["lift_ci_high"]))
+    if not all(math.isfinite(v) for v in (lift, low, high)):
+        return ""
+    return f"{lift:.2f}x [{low:.2f}, {high:.2f}]"
+
+
+def _headline(metrics: dict,
+              comparisons: pd.DataFrame | None = None) -> list[tuple[str, str]]:
     if not metrics:
         return []
     rows = [
         ("events scored", f"{metrics['n_events']:,}"),
         ("base rate", f"{metrics['base_rate']:.1%}"),
-        ("average precision", f"{metrics['average_precision']:.3f}"),
-        ("ROC AUC", f"{metrics['roc_auc']:.3f}"),
+        ("average precision",
+         f"{metrics['average_precision']:.3f}{_interval(metrics, 'average_precision')}"),
+        ("ROC AUC", f"{metrics['roc_auc']:.3f}{_interval(metrics, 'roc_auc')}"),
         ("filings per session (median)",
          f"{metrics.get('filings_per_session_median', float('nan')):.0f}"),
     ]
     counted = metrics.get("daily_sessions_at_5", 0)
     if metrics.get("daily_usable_at_5"):
+        random_lift = _paired_lift(comparisons, "random")
         rows += [
             ("daily precision @5", (f"{metrics['daily_precision_at_5']:.1%} "
                                     f"({counted} sessions)")),
-            ("lift vs matched random @5", f"{metrics['daily_lift_at_5']:.2f}x"),
+            ("lift vs matched random @5",
+             random_lift or f"{metrics['daily_lift_at_5']:.2f}x"),
             ("arrival-order precision @5",
-             f"{metrics.get('daily_arrival_precision_at_5', float('nan')):.1%}"),
+             f"{metrics.get('daily_arrival_precision_at_5', float('nan')):.1%}"
+             + _suffix(_paired_lift(comparisons, "arrival"))),
             ("Item 2.02 heuristic precision @5",
-             f"{metrics.get('daily_item_202_precision_at_5', float('nan')):.1%}"),
+             f"{metrics.get('daily_item_202_precision_at_5', float('nan')):.1%}"
+             + _suffix(_paired_lift(comparisons, "item_202"))),
         ]
     else:
         rows.append(("daily precision @5",

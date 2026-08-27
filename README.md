@@ -1,73 +1,52 @@
-# Company Lens / Filing Triage
+# Filing Triage — and Company Lens
 
-> The repository is being expanded into **Company Lens**: a source-backed company
-> overview for ordinary investors. The original Filing Triage pipeline remains the
-> point-in-time event and data-quality foundation; it is not being replaced by a
-> generic research agent. See [the frozen portfolio scope](docs/SCOPE.md),
-> [product definition](docs/PRODUCT.md), [architecture](docs/ARCHITECTURE.md), and
-> [roadmap](docs/ROADMAP.md), [grounded LLM strategy](docs/LLM.md), and
-> [deployment guide](docs/DEPLOYMENT.md).
+**Which of today's SEC filings deserve a human read?**
+
+A pipeline written the obvious way reports an **average precision of 0.601** on
+real SEC filings. The version that survives its own audit reports **0.366**.
+
+That gap is not model improvement. It is four common pipeline bugs, none of which
+announced itself — every one produced a result the author would have preferred.
+
+| Stage | Avg precision | ROC AUC | Guards failing |
+|---|---|---|---|
+| Naive pipeline | **0.601** | **0.843** | 1 |
+| + purged, embargoed CV | 0.594 | 0.839 | 1 |
+| + trailing windows shifted | 0.424 | 0.775 | 1 |
+| + point-in-time universe | 0.424 | 0.775 | 1 |
+| + point-in-time entry | **0.366** | **0.739** | **0** |
+
+The audited numbers carry intervals, because a point estimate is a claim with its
+error bar deleted: average precision **0.366 [0.337, 0.396]**, ROC AUC
+**0.739 [0.720, 0.756]**, 95% cluster bootstrap over 959 sessions.
+
+Full story, method and diagrams: **[the write-up](web/showcase.html)**.
+Details below, and in [docs/LEAKAGE.md](docs/LEAKAGE.md) and
+[docs/METHODOLOGY.md](docs/METHODOLOGY.md).
+
+---
+
+## Two things live here
+
+**Filing Triage** is the point-in-time event dataset, the leakage-audit library
+that fails the build rather than logging, and the ranker that triages a daily
+filing queue. It is the part with a measured result, and most of this README.
+
+**Company Lens** is a source-backed company overview for ordinary investors,
+built on that same foundation — a live page per issuer with performance history,
+filing changes, cited evidence, and a controlled grounded-LLM Q&A. It is a
+product surface over the pipeline, not a generic research agent.
+
+Its grounded Q&A lets a reader choose the **evidence scope** — core financials
+(SEC filings and long-term fundamentals), plus company news, plus market
+context, or all of it. Each scope carries its own citation and number
+allow-lists, so a model answering from the narrow scope cannot cite a headline it
+was never shown; the validator rejects it and the answer is withheld.
 
 Live Company Lens: <https://company-lens-demo.vercel.app>
-
-The first vertical slice is runnable against the existing local real-data build:
-
-```bash
-make company        # -> one AAPL JSON snapshot + self-contained HTML page
-make company-featured # -> quick AAPL/MSFT/NVDA showcase build
-make company-pages  # -> all 193 locally available company pages + index
-make refresh-filings # -> check SEC heads, append unseen 8-Ks, rebuild pages
-make refresh-fundamentals # -> refresh the AAPL annual Company Facts pilot
-make refresh-all    # -> locked SEC + market refresh for scheduled operation
-make vercel-bundle  # -> static pages + private-evidence Q&A function
-make vercel-deploy  # -> publish that bundle to Vercel production
-make nlp-eval       # -> labeled prior-filing change-detection metrics
-```
-
-It produces a versioned company snapshot containing a growth-of-$10,000 series,
-same-period SPY comparison, return, CAGR, volatility, beta, correlation, drawdown,
-worst day, a bounded business profile, latest 8-Ks, SEC source links, deterministic
-passage ranking, causal novelty, prior-comparable-filing changes, typed cited entities
-with source spans, retrospective benchmark-adjusted filing reactions compared only
-with earlier issuer filings, and a no-LLM explanation fallback. An optional local
-JSON/CSV headline index can add an Evidence Scope section with at most three
-source-linked company or market headlines; normal builds use the honest
-not-configured state and make no live-news request. The production worker refreshes
-that bounded index from Finnhub on weekdays, keeps the last good cache on upstream
-failure, and then rebuilds all 193 pages. Opt-in grounded retrieval runs
-persist their documents, selected chunks, safe reader rules, and run provenance to
-local versioned JSON by default; no database is required. A backend worker can
-explicitly select the optional PostgREST adapter without changing the snapshot:
-
-```bash
-company-lens AAPL --llm --storage-backend local
-company-lens AAPL --llm --storage-backend dual  # requires backend-only Supabase env vars
-```
-
-Use `SUPABASE_SECRET_KEY` for the current `sb_secret_...` backend key;
-`SUPABASE_SERVICE_ROLE_KEY` remains a legacy JWT fallback. Neither may enter
-frontend/browser configuration or a public build, and publishable keys are rejected.
-The versioned migration and current Secret-key path have completed a controlled live
-PostgREST write/read/cleanup smoke test. The repository still defaults to local storage
-and contains no Supabase project identifier or credential.
-The entry searches all 193 companies in the current local evidence universe while
-keeping AAPL/MSFT/NVDA as featured examples. It states when a company is genuinely
-outside that universe. It makes no forecast or recommendation.
-
-Each company page also includes a controlled **Ask the evidence** experience. A
-visitor can choose GPT, DeepSeek, Qwen, Claude, or Gemini and ask a company-specific
-question in English or Chinese. The server sends only that ticker's frozen snapshot
-evidence, requires structured claims with citation IDs, and withholds any response
-that introduces an unsupported citation or number, investment advice, or a price
-forecast. Answers show their evidence links, limitations, selected model, latency,
-and validator result. Provider keys stay in Vercel sensitive environment variables;
-they are never shipped to the browser or included in the public static bundle.
-
-The production Q&A endpoint is intentionally a portfolio-demo boundary: a strict
-model allowlist, 280-character questions, short outputs, same-origin requests, and
-a best-effort 8-requests-per-hour/IP limit. A plain local static preview remains fully usable. If the Ask function returns no
-models, the page says live Q&A is not configured and keeps the evidence readable.
-A failed model check is a separate retryable error.
+Build and operations: **[docs/COMPANY_LENS.md](docs/COMPANY_LENS.md)** ·
+[scope](docs/SCOPE.md) · [architecture](docs/ARCHITECTURE.md) ·
+[deployment](docs/DEPLOYMENT.md)
 
 ---
 
@@ -102,26 +81,12 @@ is answerable.
 
 ---
 
-## The result
+## Reading the ladder
 
-A pipeline written the obvious way reports an **average precision of 0.603** and
-**ROC AUC of 0.842** on real SEC filings. The version that survives its own audit
-reports **0.366** and **0.740** respectively.
+Two rows in the table at the top deserve their explanation, because both look
+wrong.
 
-That gap is not model improvement. It is four common pipeline bugs, none of which
-announced itself — every one produced a result the author would have preferred.
-
-| Stage | Avg precision | ROC AUC | Guards failing |
-|---|---|---|---|
-| Naive pipeline | **0.603** | **0.842** | 1 |
-| + purged, embargoed CV | 0.596 | 0.839 | 1 |
-| + trailing windows shifted | 0.425 | 0.774 | 1 |
-| + point-in-time universe | 0.425 | 0.774 | 1 |
-| + point-in-time entry | **0.366** | **0.740** | **0** |
-
-Two rows deserve their explanation up front, because both look wrong.
-
-**The universe row does not move at all** — 0.425033 before and after, to six
+**The universe row does not move at all** — 0.423916 before and after, to six
 decimals. That is the survivor sample confessing: when every issuer in the file
 still exists, switching on a point-in-time membership filter has nothing to
 remove. The pipeline is reporting its own blind spot rather than hiding it.
@@ -139,11 +104,71 @@ The real sample has 63.5% of acceptances outside regular market hours. The large
 that day's opening print still predates a filing accepted at 10 a.m.
 
 **What the audited model is worth.** Filings arrive at a median of 9 a session.
-Reading the model's top five surfaces material post-queue reactions at **18.6%**
-precision over the 769 sessions crowded enough for ranking to matter. On those
-same sessions, expected random selection scores **11.7%**, arrival order **9.4%**,
-and a simple “Item 2.02 earnings first” rule **13.6%**. The model is therefore
-1.59×, 1.98×, and 1.38× better respectively. Useful triage, not a trading strategy.
+Reading the model's top five surfaces material post-queue reactions at **19.0%**
+precision over the 769 sessions crowded enough for ranking to matter. Every
+comparison below is a *paired* bootstrap over those same sessions — model and
+baseline are rescored on one shared resample, because they see the same days and
+treating them as separate experiments would widen the interval on their
+difference for no reason.
+
+| Read the top five by | Precision | Model lift | 95% interval | Draws favouring the baseline |
+|---|---|---|---|---|
+| the model | 19.0% | — | — | — |
+| random selection | 11.7% | 1.63× | [1.56, 1.71] | 0 / 2000 |
+| arrival order | 9.4% | 2.02× | [1.82, 2.26] | 0 / 2000 |
+| “Item 2.02 earnings first” | 13.5% | 1.41× | [1.31, 1.52] | 0 / 2000 |
+
+The last column is the one worth reading first, and it is the one the earlier
+version of this README could not answer. A lift of 1.41× over an item heuristic
+that a reader could implement in an afternoon is only a result if it survives
+resampling; here it does, in every draw. Useful triage, not a trading strategy —
+and the next section says exactly how much that caveat is worth.
+
+**How much of it was already gone.** "Useful triage, not a trading strategy" was
+a disclaimer in earlier versions of this README. It is now a measurement, and it
+is the most uncomfortable number here.
+
+The label is a market-model event study, so the reaction is measured
+close-to-close — which means the entry session's return is anchored at the
+*previous* close. For the 63.5% of filings accepted outside market hours, that
+price was printed before the filing existed. None of the leakage guards can see
+this: `causal(acceptance_time <= entry_open)` passes on every row precisely
+because the label never touches `entry_open`.
+
+Measuring the same filings both ways says what the difference is worth:
+
+| Filings | Median share of the reaction already in the opening print |
+|---|---|
+| all | 6.4% |
+| not material | 3.0% |
+| **material (≥ 2.0σ)** | **27.7%** |
+| material, accepted after the close | **45.7%** |
+
+The decomposition is the finding. Across all 8-Ks the gap barely matters, because
+most filings move nothing and a ratio of two small numbers is noise. Restrict to
+the ones that cleared the materiality cutoff and it jumps; restrict to those
+accepted after the close and nearly half the move is gone before the bell. The
+reaction concentrates in the overnight gap *exactly where the ranker is trying to
+look*.
+
+Close-to-close stays the label, because the question is which disclosures
+mattered and the overnight gap is part of the answer, not contamination of it.
+But the same pipeline scored against an open-anchored label — asking what was
+still on the table at the open — drops from 0.366 average precision to 0.143.
+That is not the ranker failing; it is a harder question. Both rows are in
+[`evidence/real_run/anchoring_study.csv`](evidence/real_run/anchoring_study.csv)
+and reproduced by `experiments.reaction_capture_profile`.
+
+**Where the constants came from.** The estimator's settings are hard-coded, and
+if they had been chosen by watching the out-of-sample metric that would be a
+selection leak spanning the whole project — the one kind no guard can catch,
+because every individual run is clean and the contamination lives in which run
+was kept. Rather than answer with a promise, the answer is a spread: perturbing
+each setting one at a time moves average precision across a range of **0.033**,
+narrower than the **0.059** bootstrap interval on the default configuration. The
+defaults are also not the best cell in the grid. No achievable amount of tuning
+produced this headline. See
+[`hyperparameter_sensitivity.csv`](evidence/real_run/hyperparameter_sensitivity.csv).
 
 **How long it lasts.** Holding the model fixed and delaying the decision, the
 ranking decays within a session. Whatever is being measured is mostly over by the
@@ -173,6 +198,12 @@ test asserts this ledger balances.
 **Is:** a point-in-time event dataset built from EDGAR acceptance timestamps, a
 reusable leakage-audit library that fails the build rather than logging, and a
 ranker that triages a daily filing queue.
+
+**Is:** also a set of intervals. Every headline number carries a 95% bootstrap
+range, every baseline comparison is paired on the same resample of sessions, and
+the estimator's constants come with a sensitivity grid — because a project whose
+argument is "the flattering number is usually wrong" cannot make that argument
+with bare point estimates.
 
 **Is not:** a return predictor. Direction is never modelled. No strategy return,
 Sharpe ratio, or P&L appears anywhere in this repository, because a project that
@@ -222,7 +253,7 @@ embargo sweep, and writes a self-contained HTML report.
 
 ```bash
 make quick           # smaller, no leakage study, ~30s
-make test            # 256 tests
+make test            # 300 tests
 make audit           # the leakage checks as an exit code
 make llm-eval        # frozen English/Chinese grounded-output scorecard
 make llm-eval-openai-dry-run  # inspect 20-case paid benchmark scope; sends nothing
@@ -291,9 +322,9 @@ Full write-up in [docs/LEAKAGE.md](docs/LEAKAGE.md).
 | # | The bug | How it is caught | What fixing it costs |
 |---|---|---|---|
 | 1 | `filing_date` (a date) used instead of the accepted timestamp, so the naive entry uses an opening print before the filing was accepted. | `guards.causal` asserts the entry open postdates the acceptance time, on every row | 11,168 impossible entries (95.4%) reduced to zero |
-| 2 | `.rolling(20)` without `.shift(1)`, so a filing's "trailing" volatility contains the event day. Sharpest as relative volume, which unshifted is the reaction's own volume spike. | No guard is possible — one switch, one comment, and a test asserting the leaky config scores *better* | Average precision **0.596 → 0.425**, a 29% reduction |
+| 2 | `.rolling(20)` without `.shift(1)`, so a filing's "trailing" volatility contains the event day. Sharpest as relative volume, which unshifted is the reaction's own volume spike. | No guard is possible — one switch, one comment, and a test asserting the leaky config scores *better* | Average precision **0.594 → 0.424**, a 29% reduction |
 | 3 | Screening on today's index constituents, which deletes every issuer dropped after a collapse — the ones whose 8-Ks moved most. | `guards.universe_pit` checks membership *as of the event date*; membership stored as intervals, never a list | Nothing on this universe, and that is the finding — see above |
-| 4 | `KFold(shuffle=True)` on time-ordered events: trains on the future, and overlapping outcome windows carry test-period returns into training labels. | `PurgedWalkForward` + `guards.purged_split` re-checking the gap every fold | **0.603 → 0.596** average precision, and a smaller sample |
+| 4 | `KFold(shuffle=True)` on time-ordered events: trains on the future, and overlapping outcome windows carry test-period returns into training labels. | `PurgedWalkForward` + `guards.purged_split` re-checking the gap every fold | **0.601 → 0.594** average precision, and a smaller sample |
 
 There is a second trap inside bug 1. EDGAR serves acceptance times as
 `2024-10-31T18:03:31.000Z` — but the clock is the SEC's, which runs on
@@ -381,21 +412,23 @@ src/company_lens/
 src/filing_triage/
   pit.py           rule-generated NYSE calendar; acceptance time -> tradable session
   guards.py        the leakage checks, and purged/embargoed walk-forward CV
+  uncertainty.py   cluster bootstrap; paired baseline intervals
   config.py        one config, four correctness switches
   ingest/          EDGAR client, multi-source prices, interval-based membership
   features.py      features, each computable at decision time
   labels.py        market-model event study on a numpy session grid
   model.py         the ranker
   evaluate.py      ranking metrics
-  experiments.py   the leakage study and the embargo sweep
+  experiments.py   the leakage study, embargo sweep, reaction-capture profile
+                   and hyperparameter sensitivity grid
   report.py        self-contained HTML
   synth.py         the offline corpus
-tests/             256 tests; test_guards, test_pipeline and
-                   test_ingest_integration are the ones that matter
-docs/              METHODOLOGY.md, LEAKAGE.md
+tests/             300 tests; test_guards, test_pipeline, test_uncertainty
+                   and test_ingest_integration are the ones that matter
+docs/              METHODOLOGY.md, LEAKAGE.md, COMPANY_LENS.md
 ```
 
-About 12,507 lines under `src/`, plus 5,071 of tests. It is meant to be read
+About 14,141 lines under `src/`, plus 6,076 of tests. It is meant to be read
 end to end, and a test asserts these figures have not drifted from the code.
 
 ---

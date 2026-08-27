@@ -376,7 +376,10 @@ def _ask_section() -> str:
           <label><span data-i18n="ask.answer_language">Answer language</span><select id="ask-language" name="language">
           <option value="English">English</option><option value="Chinese">中文</option>
           </select></label>
+          <label><span data-i18n="ask.evidence_scope">Evidence scope</span><select id="ask-scope" name="scope" disabled>
+          <option data-i18n="ask.loading_scopes">Loading scopes…</option></select></label>
         </div>
+        <p class="ask-scope-note" id="ask-scope-note" data-i18n="ask.scope_note_core">SEC filings and long-term fundamentals only.</p>
         <div class="ask-step-heading"><span>1</span><div>
         <strong data-i18n="ask.choose_task">Choose what to investigate</strong>
         <small data-i18n="ask.choose_task_copy">Selecting a tab drafts a bounded question. Nothing is sent automatically.</small>
@@ -416,6 +419,7 @@ def _ask_section() -> str:
         data-i18n-placeholder="ask.placeholder" required></textarea></label>
         <div class="ask-submit-row"><button id="ask-submit" type="submit" disabled
         data-i18n="ask.submit">3 · Ask selected model</button>
+        <button id="ask-stop" type="button" hidden data-i18n="ask.stop">Stop</button>
         <button id="ask-retry" type="button" hidden data-i18n="ask.retry">Retry model check</button>
         <span id="ask-status" aria-live="polite"
         data-status-key="ask.checking_models">Checking available models…</span></div>
@@ -1247,6 +1251,16 @@ def _script(default_period: str, ticker: str, benchmark: str) -> str:
                     "evidence."
                 ),
                 "ask.model": "Model",
+                "ask.evidence_scope": "Evidence scope",
+                "ask.loading_scopes": "Loading scopes…",
+                "ask.scope_core": "Core financials",
+                "ask.scope_company": "Company news",
+                "ask.scope_market": "Market context",
+                "ask.scope_all": "All evidence",
+                "ask.scope_note_core": "SEC filings and long-term fundamentals only.",
+                "ask.scope_note_company": "Core financials plus recent headlines about this company.",
+                "ask.scope_note_market": "Core financials plus broad market and sector headlines.",
+                "ask.scope_note_all": "Core financials, company news and market context together.",
                 "ask.loading_models": "Loading live models…",
                 "ask.answer_language": "Answer language",
                 "ask.question": "Question",
@@ -1440,7 +1454,14 @@ def _script(default_period: str, ticker: str, benchmark: str) -> str:
                 "ask.answer_failed": "The answer could not be generated.",
                 "ask.selected_unavailable": "The selected model is unavailable.",
                 "ask.withheld": "No unvalidated answer was shown.",
+                "ask.stop": "Stop",
+                "ask.stopped": (
+                    "Stopped waiting. The request may still finish on the server, "
+                    "but no answer will be shown."
+                ),
+                "ask.stopped_status": "Stopped before an answer returned.",
                 "ask.validated_answer": "VALIDATED ANSWER",
+                "ask.answered_at": "answered {time}",
                 "ask.evidence_through": "evidence through {date}",
                 "ask.limitations": "What this answer cannot establish",
             },
@@ -1574,6 +1595,16 @@ def _script(default_period: str, ticker: str, benchmark: str) -> str:
                     "模型只能使用本页冻结的证据。"
                 ),
                 "ask.model": "模型",
+                "ask.evidence_scope": "证据范围",
+                "ask.loading_scopes": "正在载入范围…",
+                "ask.scope_core": "核心财务",
+                "ask.scope_company": "公司动态",
+                "ask.scope_market": "市场背景",
+                "ask.scope_all": "全部证据",
+                "ask.scope_note_core": "仅 SEC 备案与长期基本面。",
+                "ask.scope_note_company": "核心财务,加上该公司的近期新闻。",
+                "ask.scope_note_market": "核心财务,加上行业与宏观新闻。",
+                "ask.scope_note_all": "核心财务、公司动态与市场背景的组合。",
                 "ask.loading_models": "正在读取可用模型…",
                 "ask.answer_language": "回答语言",
                 "ask.question": "问题",
@@ -1716,7 +1747,11 @@ def _script(default_period: str, ticker: str, benchmark: str) -> str:
                 "ask.answer_failed": "暂时无法生成答案。",
                 "ask.selected_unavailable": "所选模型暂不可用。",
                 "ask.withheld": "未展示任何未经校验的答案。",
+                "ask.stop": "停止",
+                "ask.stopped": "已停止等待。该请求可能仍在服务端完成，但不会展示任何答案。",
+                "ask.stopped_status": "已在返回答案前停止。",
                 "ask.validated_answer": "已验证答案",
+                "ask.answered_at": "{time} 生成",
                 "ask.evidence_through": "证据截至 {date}",
                 "ask.limitations": "这个答案无法证明什么",
             },
@@ -1797,6 +1832,7 @@ function applyLanguage(language, persist=true) {{
     'performance.benchmark_ending', {{benchmark}},
   );
   refreshAskStatus();
+  refreshAskAnswerMeta();
   if (askModel.options.length && (askModel.dataset.state === 'unavailable' || askModel.dataset.state === 'not_configured')) {{
     askModel.options[0].textContent = tr(
       askModel.dataset.state === 'not_configured' ? 'ask.not_configured' : 'ask.models_unavailable',
@@ -1896,9 +1932,18 @@ setPeriod({json.dumps(default_period)});
 const askForm = document.getElementById('ask-form');
 const askModel = document.getElementById('ask-model');
 const askLanguage = document.getElementById('ask-language');
+const askScope = document.getElementById('ask-scope');
+const askScopeNote = document.getElementById('ask-scope-note');
 const askQuestion = document.getElementById('ask-question');
 const askSubmit = document.getElementById('ask-submit');
+const askStop = document.getElementById('ask-stop');
 const askRetry = document.getElementById('ask-retry');
+// The in-flight request, so the visitor can stop waiting on it. Aborting is
+// honest about what it does and does not do: it drops the browser's side of the
+// call and guarantees no answer is rendered, but the provider request is
+// already away and may still complete and still be billed. The stopped message
+// says so rather than implying a refund.
+let askController = null;
 const askStatus = document.getElementById('ask-status');
 const askResult = document.getElementById('ask-result');
 const askTaskTitle = document.getElementById('ask-task-title');
@@ -2002,6 +2047,42 @@ function refreshAskStatus() {{
   askStatus.textContent = tr(key, values);
 }}
 
+// The server is the authority on which scopes exist -- the page renders what it
+// is told rather than hard-coding a list that could drift out of step with the
+// evidence actually bundled. Labels are looked up in the page dictionary so the
+// selector follows the language toggle; the server's own label is the fallback.
+function populateAskScopes(scopes, defaultScope) {{
+  const available = Array.isArray(scopes) ? scopes : [];
+  askScope.replaceChildren();
+  if (!available.length) {{
+    askScope.disabled = true;
+    askScopeNote.hidden = true;
+    return;
+  }}
+  available.forEach(scope => {{
+    const option = document.createElement('option');
+    option.value = scope.id;
+    option.dataset.i18n = `ask.scope_${{scope.id}}`;
+    option.textContent = tr(`ask.scope_${{scope.id}}`) || scope.label || scope.id;
+    askScope.append(option);
+  }});
+  const preferred = defaultScope || available[0].id;
+  askScope.value = available.some(scope => scope.id === preferred)
+    ? preferred : available[0].id;
+  askScope.disabled = false;
+  askScopeNote.hidden = false;
+  refreshAskScopeNote();
+}}
+
+function refreshAskScopeNote() {{
+  if (!askScope.value) return;
+  const key = `ask.scope_note_${{askScope.value}}`;
+  askScopeNote.dataset.i18n = key;
+  askScopeNote.textContent = tr(key);
+}}
+
+askScope.addEventListener('change', refreshAskScopeNote);
+
 async function loadAskModels() {{
   askRetry.hidden = true;
   try {{
@@ -2009,6 +2090,7 @@ async function loadAskModels() {{
     if (!response.ok) throw new Error('network');
     const payload = await response.json();
     const models = Array.isArray(payload.models) ? payload.models : [];
+    populateAskScopes(payload.scopes, payload.default_scope);
     askModel.replaceChildren();
     if (!models.length) {{
       const option = document.createElement('option');
@@ -2042,6 +2124,10 @@ async function loadAskModels() {{
     askModel.disabled = true;
     askSubmit.disabled = true;
     askRetry.hidden = false;
+    // A static preview has no function to ask, so the scope picker has nothing
+    // to offer. Empty it rather than leaving "Loading scopes…" on screen
+    // forever, which reads as a hang rather than as an absent backend.
+    populateAskScopes([], null);
     setTranslatedAskStatus('ask.offline', {{}}, 'error');
   }}
 }}
@@ -2060,11 +2146,17 @@ askTaskTabs.forEach((tab, index) => {{
   }});
 }});
 
+askStop.addEventListener('click', () => {{
+  if (askController) askController.abort();
+}});
+
 askForm.addEventListener('submit', async event => {{
   event.preventDefault();
   const question = askQuestion.value.trim();
   if (!question || askModel.disabled) return;
   askSubmit.disabled = true;
+  askStop.hidden = false;
+  askController = new AbortController();
   askResult.className = 'ask-result loading';
   askResult.textContent = tr('ask.reading');
   setTranslatedAskStatus('ask.waiting');
@@ -2072,11 +2164,13 @@ askForm.addEventListener('submit', async event => {{
     const response = await fetch('/api/ask', {{
       method: 'POST',
       headers: {{'Content-Type': 'application/json', Accept: 'application/json'}},
+      signal: askController.signal,
       body: JSON.stringify({{
         ticker,
         provider: askModel.value,
         language: askLanguage.value,
         depth: 'beginner',
+        scope: askScope.value || 'core',
         question,
       }}),
     }});
@@ -2085,10 +2179,18 @@ askForm.addEventListener('submit', async event => {{
     renderAskAnswer(payload);
     setAskStatus(`${{payload.meta.model}} · ${{payload.meta.latency_ms}} ms · validator passed`, 'ready');
   }} catch (error) {{
-    askResult.className = 'ask-result error';
-    askResult.textContent = error.message || tr('ask.selected_unavailable');
-    setTranslatedAskStatus('ask.withheld', {{}}, 'error');
+    // A stop is the visitor getting what they asked for, not a failure, so it
+    // does not get the error colour or the withheld-answer wording.
+    const stopped = error.name === 'AbortError';
+    askResult.className = stopped ? 'ask-result' : 'ask-result error';
+    askResult.textContent = stopped
+      ? tr('ask.stopped')
+      : (error.message || tr('ask.selected_unavailable'));
+    setTranslatedAskStatus(stopped ? 'ask.stopped_status' : 'ask.withheld', {{}},
+                           stopped ? 'notice' : 'error');
   }} finally {{
+    askController = null;
+    askStop.hidden = true;
     askSubmit.disabled = askModel.disabled;
   }}
 }});
@@ -2101,7 +2203,16 @@ function renderAskAnswer(payload) {{
   const label = document.createElement('span');
   label.textContent = tr('ask.validated_answer');
   const model = document.createElement('small');
-  model.textContent = `${{payload.meta.provider}} · ${{tr('ask.evidence_through', {{date: payload.meta.evidence_as_of}})}}`;
+  model.className = 'ask-answer-meta';
+  model.dataset.provider = payload.meta.provider;
+  model.dataset.evidenceAsOf = payload.meta.evidence_as_of;
+  // Two different times, and conflating them is what made the heading
+  // misleading: the evidence date says how current the filings and prices are,
+  // and says nothing about when this answer was produced. The server stamps its
+  // own; a page served by an older build of the function falls back to the
+  // moment the response arrived, which differs from it by one network hop.
+  model.dataset.answeredAt = payload.meta.answered_at || new Date().toISOString();
+  model.textContent = askAnswerMetaText(model);
   heading.append(label, model);
   askResult.append(heading);
   payload.answer.forEach(claim => askResult.append(renderAskClaim(claim)));
@@ -2112,6 +2223,33 @@ function renderAskAnswer(payload) {{
   details.append(summary);
   payload.boundaries.forEach(claim => details.append(renderAskClaim(claim)));
   askResult.append(details);
+}}
+
+function formatAskTime(iso) {{
+  const when = new Date(iso);
+  if (Number.isNaN(when.getTime())) return iso;
+  // The viewer's own clock and locale. The answer was produced at one instant;
+  // which wall clock that lands on is the reader's business, not the server's.
+  return when.toLocaleString(uiLanguage === 'zh' ? 'zh-CN' : 'en-GB', {{
+    month: 'short', day: 'numeric',
+    hour: '2-digit', minute: '2-digit', second: '2-digit',
+  }});
+}}
+
+function askAnswerMetaText(element) {{
+  return [
+    element.dataset.provider,
+    tr('ask.answered_at', {{time: formatAskTime(element.dataset.answeredAt)}}),
+    tr('ask.evidence_through', {{date: element.dataset.evidenceAsOf}}),
+  ].filter(Boolean).join(' · ');
+}}
+
+// Rebuilt on the language toggle rather than left in whichever language the
+// answer happened to arrive in -- it is built in script, so nothing in
+// applyLanguage's `[data-i18n]` sweep would otherwise reach it.
+function refreshAskAnswerMeta() {{
+  const meta = askResult.querySelector('.ask-answer-meta');
+  if (meta) meta.textContent = askAnswerMetaText(meta);
 }}
 
 function renderAskClaim(claim) {{
@@ -2390,13 +2528,13 @@ def _css() -> str:
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*{transition:none!important}}
 @media(max-width:620px){.profile-meta{flex-direction:column;align-items:flex-start;gap:3px}.timeline-heading,.reaction-heading,.comparison-heading{flex-direction:column;gap:6px}.reaction-grid,.change-list{grid-template-columns:1fr}.timeline-track{grid-auto-columns:minmax(145px,72vw)}.topbar .section-nav,.company-search-link{display:none}.topbar .company-nav{margin-left:auto}.company-hero{padding:24px 0 18px;gap:13px}.hero-copy{font-size:15px;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}.profile-meta>span{display:none}.profile-meta{margin-top:8px}.evidence-flow{display:none}.market-observation{width:100%;padding:11px 14px;border:1px solid var(--line);border-radius:12px;background:var(--panel);align-items:flex-start}.market-observation strong{font-size:29px}.brief-card{padding:19px}.brief-card h3{font-size:22px}.brief-card p,.brief-lead>p{font-size:16px}.brief-card-heading{flex-direction:column;gap:5px}.brief-metrics{grid-template-columns:1fr 1fr}.authority-row{gap:8px}.authority-row>em{display:none}.diagnostic-heading{align-items:start;flex-direction:column;gap:2px}.metric-grid{grid-template-columns:1fr 1fr}.metric-card{padding:13px}.trust-grid{gap:8px}}
 body{font-family:"Avenir Next","Segoe UI",sans-serif}.company-hero{border:0;border-radius:0;background:transparent;box-shadow:none;margin-bottom:0}.brief-section{border-radius:8px}.brief-grid{grid-template-columns:repeat(12,minmax(0,1fr));gap:0;border-top:1px solid #365166;border-bottom:1px solid #365166}.brief-card{border:0;border-radius:0;background:transparent}.brief-lead{border-right:1px solid #365166}.brief-metrics>div{padding:10px 0;border:0;border-radius:0;background:transparent}.brief-metrics>div+div{padding-left:18px;border-left:1px solid #28514e}.brief-boundary{grid-column:1/-1;margin:0;padding:17px 24px;color:#aebfca;font-size:12px}.brief-boundary strong{color:#e9b66d}.performance-section,.filings-section,.context-section{padding:58px 0;border:0;border-top:1px solid var(--line);border-radius:0;background:transparent;box-shadow:none}.diagnostics-disclosure{margin-top:20px;border-top:1px solid var(--line)}.diagnostics-disclosure>summary,.source-details>summary{padding:14px 0;color:var(--blue);font-size:12px;font-weight:750;cursor:pointer}.metric-card{border-radius:3px;background:rgba(255,255,255,.55)}.filing-card{border-radius:4px;background:#fff}.filing-card summary{min-height:76px}.reaction-panel,.comparison-panel{border-width:0 0 0 3px;border-radius:0}.reaction-grid>div{border:0;border-left:1px solid #dbe8e1;border-radius:0;background:transparent}.reaction-grid>div:first-child{border-left:0}.comparison-clear{display:flex;flex-direction:column;margin-top:14px;color:var(--muted);font-size:12px}.comparison-clear strong{margin-bottom:3px;color:var(--ink)}.source-details{margin-top:8px;border-top:1px solid var(--line)}.filing-columns aside{border-radius:3px}.context-freshness{margin:-14px 0 20px;color:var(--muted);font-size:10px}.headline-list{grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:0;border-top:1px solid var(--line)}.headline-card{padding:20px 22px;border:0;border-right:1px solid var(--line);border-radius:0;background:transparent}.headline-card:last-child{border-right:0}.headline-card h3{margin:10px 0 14px}.headline-meta{display:flex;flex-direction:row;flex-wrap:wrap;gap:5px 12px}.headline-meta span:first-child{color:var(--ink);font-weight:750}.headline-card>a{padding-top:2px}footer a{margin-top:5px;color:var(--blue);text-decoration:none}#brief,#ask,#performance,#filings,#context{scroll-margin-top:150px}
-.ask-section{padding:58px 0;border:0;border-top:1px solid var(--line);border-radius:0;background:transparent;box-shadow:none}.ask-validation{padding:7px 10px;border:1px solid #b9d8ca;border-radius:999px;color:var(--green);font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.07em}.ask-layout{display:grid;grid-template-columns:minmax(0,5fr) minmax(320px,4fr);border:1px solid var(--line);background:var(--panel)}.ask-form{padding:28px;border-right:1px solid var(--line)}.ask-controls{display:grid;grid-template-columns:1fr 150px;gap:12px}.ask-form label{display:flex;flex-direction:column;gap:7px;color:var(--muted);font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.08em}.ask-form select,.ask-form textarea{width:100%;border:1px solid var(--line);border-radius:4px;background:#fff;color:var(--ink);font:500 14px/1.5 "Avenir Next","Segoe UI",sans-serif}.ask-form select{height:43px;padding:0 11px}.ask-form textarea{resize:vertical;min-height:90px;padding:12px}.ask-form select:focus,.ask-form textarea:focus{outline:3px solid rgba(40,100,220,.14);border-color:var(--blue)}.ask-question{margin-top:17px}.ask-suggestions{display:flex;flex-wrap:wrap;gap:7px;margin-top:10px}.ask-suggestions button{padding:6px 9px;border:1px solid var(--line);border-radius:999px;background:transparent;color:var(--blue);font-size:10px;cursor:pointer}.ask-suggestions button:hover{background:var(--blue-soft)}.ask-submit-row{display:flex;align-items:center;gap:13px;margin-top:20px}.ask-submit-row>button{min-width:120px;padding:11px 16px;border:0;border-radius:4px;background:var(--navy);color:#fff;font-weight:800;cursor:pointer}.ask-submit-row>button:disabled{opacity:.45;cursor:not-allowed}.ask-submit-row>span{color:var(--muted);font-size:10px}.ask-submit-row>span.ready{color:var(--green)}.ask-submit-row>span.error{color:#98473e}.ask-result{min-height:330px;padding:28px;background:#f8faf8;color:var(--muted);font-size:13px}.ask-result-kicker,.ask-answer-heading>span{margin:0;color:var(--green);font-size:10px;font-weight:850;letter-spacing:.1em}.ask-result>ol{margin:18px 0 0;padding:0;list-style:none}.ask-result>ol li{display:grid;grid-template-columns:25px 1fr;gap:10px;padding:12px 0;border-top:1px solid var(--line)}.ask-result>ol li span{color:var(--green);font-weight:850}.ask-result.loading{display:grid;place-items:center}.ask-result.error{display:grid;place-items:center;color:#98473e}.ask-answer-heading{display:flex;justify-content:space-between;gap:15px;padding-bottom:12px;border-bottom:1px solid var(--line)}.ask-answer-heading small{color:var(--muted)}.ask-result article{padding:15px 0;border-bottom:1px solid var(--line)}.ask-result article p{margin:0;color:var(--ink);font:500 17px/1.45 Georgia,serif}.ask-citations{display:flex;flex-wrap:wrap;gap:7px;margin-top:9px}.ask-citations a{color:var(--blue);font-size:10px;text-decoration:none;border-bottom:1px solid #aec2e9}.ask-limitations{margin-top:15px}.ask-limitations>summary{color:var(--amber);font-size:11px;font-weight:800;cursor:pointer}.ask-limitations article p{font:inherit;color:var(--muted)}.ask-boundary{margin:14px 0 0;color:var(--muted);font-size:10px}.ask-boundary strong{color:var(--ink)}
-.ask-controls{margin-bottom:24px}.ask-step-heading{display:grid;grid-template-columns:26px 1fr;gap:10px;align-items:start}.ask-step-heading>span{display:grid;place-items:center;width:24px;height:24px;border:1px solid #b8c8df;border-radius:50%;color:var(--blue);font-size:10px;font-weight:850}.ask-step-heading>div{display:flex;flex-direction:column}.ask-step-heading strong{font-size:12px}.ask-step-heading small{color:var(--muted);font-size:10px}.ask-task-tabs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));margin-top:13px;border:1px solid var(--line)}.ask-task-tabs button{min-height:48px;padding:8px;border:0;border-left:1px solid var(--line);border-top:1px solid var(--line);background:#fff;color:var(--muted);font-size:10px;font-weight:750;cursor:pointer}.ask-task-tabs button:nth-child(-n+3){border-top:0}.ask-task-tabs button:nth-child(3n+1){border-left:0}.ask-task-tabs button:hover{background:var(--blue-soft);color:var(--blue)}.ask-task-tabs button.active{background:var(--navy);color:#fff}.ask-task-tabs button:focus-visible{position:relative;z-index:1;outline:3px solid rgba(40,100,220,.25);outline-offset:1px}.ask-task-preview{padding:15px 17px;border-width:0 1px 1px;border-style:solid;border-color:var(--line);background:#f8fafc;display:grid;grid-template-columns:1fr;gap:3px}.ask-task-preview>span{color:var(--blue);font-size:8px;font-weight:850;letter-spacing:.1em}.ask-task-preview>strong{font:500 18px/1.3 Georgia,serif}.ask-task-preview>p{margin:2px 0 0;color:var(--muted);font-size:11px}.ask-review-step{margin-top:23px}.ask-question{margin-top:10px}.ask-scope-groups{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:20px}.ask-scope-group{padding-top:12px;border-top:2px solid var(--green)}.ask-scope-group.out-scope{border-color:#b76a4f}.ask-scope-group>strong{color:var(--ink);font-size:11px}.ask-scope-group ul{margin:10px 0 0;padding-left:17px}.ask-scope-group li{margin:0 0 9px;font-size:11px;line-height:1.45}.ask-scope-group.in-scope li::marker{color:var(--green)}.ask-scope-group.out-scope li::marker{color:#b76a4f}.ask-control-flow{margin-top:18px;padding:12px;border:1px solid #cfe0d8;background:#fff;color:var(--green);font-size:9px;font-weight:800;text-align:center;text-transform:uppercase;letter-spacing:.05em}
+.ask-section{padding:58px 0;border:0;border-top:1px solid var(--line);border-radius:0;background:transparent;box-shadow:none}.ask-validation{padding:7px 10px;border:1px solid #b9d8ca;border-radius:999px;color:var(--green);font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.07em}.ask-layout{display:grid;grid-template-columns:minmax(0,5fr) minmax(320px,4fr);border:1px solid var(--line);background:var(--panel)}.ask-form{padding:28px;border-right:1px solid var(--line)}.ask-controls{display:grid;grid-template-columns:minmax(0,1fr) 128px minmax(0,150px);gap:12px}.ask-form label{display:flex;flex-direction:column;gap:7px;color:var(--muted);font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.08em}.ask-form select,.ask-form textarea{width:100%;border:1px solid var(--line);border-radius:4px;background:#fff;color:var(--ink);font:500 14px/1.5 "Avenir Next","Segoe UI",sans-serif}.ask-form select{height:43px;padding:0 11px}.ask-form textarea{resize:vertical;min-height:90px;padding:12px}.ask-form select:focus,.ask-form textarea:focus{outline:3px solid rgba(40,100,220,.14);border-color:var(--blue)}.ask-question{margin-top:17px}.ask-suggestions{display:flex;flex-wrap:wrap;gap:7px;margin-top:10px}.ask-suggestions button{padding:6px 9px;border:1px solid var(--line);border-radius:999px;background:transparent;color:var(--blue);font-size:10px;cursor:pointer}.ask-suggestions button:hover{background:var(--blue-soft)}.ask-submit-row{display:flex;align-items:center;gap:13px;margin-top:20px}.ask-submit-row>button{min-width:120px;padding:11px 16px;border:0;border-radius:4px;background:var(--navy);color:#fff;font-weight:800;cursor:pointer}.ask-submit-row>button:disabled{opacity:.45;cursor:not-allowed}.ask-submit-row>span{color:var(--muted);font-size:10px}.ask-submit-row>span.ready{color:var(--green)}.ask-submit-row>span.error{color:#98473e}.ask-result{min-height:330px;padding:28px;background:#f8faf8;color:var(--muted);font-size:13px}.ask-result-kicker,.ask-answer-heading>span{margin:0;color:var(--green);font-size:10px;font-weight:850;letter-spacing:.1em}.ask-result>ol{margin:18px 0 0;padding:0;list-style:none}.ask-result>ol li{display:grid;grid-template-columns:25px 1fr;gap:10px;padding:12px 0;border-top:1px solid var(--line)}.ask-result>ol li span{color:var(--green);font-weight:850}.ask-result.loading{display:grid;place-items:center}.ask-result.error{display:grid;place-items:center;color:#98473e}.ask-answer-heading{display:flex;justify-content:space-between;gap:15px;padding-bottom:12px;border-bottom:1px solid var(--line)}.ask-answer-heading small{color:var(--muted)}.ask-result article{padding:15px 0;border-bottom:1px solid var(--line)}.ask-result article p{margin:0;color:var(--ink);font:500 17px/1.45 Georgia,serif}.ask-citations{display:flex;flex-wrap:wrap;gap:7px;margin-top:9px}.ask-citations a{color:var(--blue);font-size:10px;text-decoration:none;border-bottom:1px solid #aec2e9}.ask-limitations{margin-top:15px}.ask-limitations>summary{color:var(--amber);font-size:11px;font-weight:800;cursor:pointer}.ask-limitations article p{font:inherit;color:var(--muted)}.ask-boundary{margin:14px 0 0;color:var(--muted);font-size:10px}.ask-boundary strong{color:var(--ink)}
+.ask-controls{margin-bottom:8px}.ask-scope-note{margin:0 0 22px;color:var(--muted);font-size:10px;line-height:1.5}.ask-scope-note[hidden]{display:none}.ask-step-heading{display:grid;grid-template-columns:26px 1fr;gap:10px;align-items:start}.ask-step-heading>span{display:grid;place-items:center;width:24px;height:24px;border:1px solid #b8c8df;border-radius:50%;color:var(--blue);font-size:10px;font-weight:850}.ask-step-heading>div{display:flex;flex-direction:column}.ask-step-heading strong{font-size:12px}.ask-step-heading small{color:var(--muted);font-size:10px}.ask-task-tabs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));margin-top:13px;border:1px solid var(--line)}.ask-task-tabs button{min-height:48px;padding:8px;border:0;border-left:1px solid var(--line);border-top:1px solid var(--line);background:#fff;color:var(--muted);font-size:10px;font-weight:750;cursor:pointer}.ask-task-tabs button:nth-child(-n+3){border-top:0}.ask-task-tabs button:nth-child(3n+1){border-left:0}.ask-task-tabs button:hover{background:var(--blue-soft);color:var(--blue)}.ask-task-tabs button.active{background:var(--navy);color:#fff}.ask-task-tabs button:focus-visible{position:relative;z-index:1;outline:3px solid rgba(40,100,220,.25);outline-offset:1px}.ask-task-preview{padding:15px 17px;border-width:0 1px 1px;border-style:solid;border-color:var(--line);background:#f8fafc;display:grid;grid-template-columns:1fr;gap:3px}.ask-task-preview>span{color:var(--blue);font-size:8px;font-weight:850;letter-spacing:.1em}.ask-task-preview>strong{font:500 18px/1.3 Georgia,serif}.ask-task-preview>p{margin:2px 0 0;color:var(--muted);font-size:11px}.ask-review-step{margin-top:23px}.ask-question{margin-top:10px}.ask-scope-groups{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:20px}.ask-scope-group{padding-top:12px;border-top:2px solid var(--green)}.ask-scope-group.out-scope{border-color:#b76a4f}.ask-scope-group>strong{color:var(--ink);font-size:11px}.ask-scope-group ul{margin:10px 0 0;padding-left:17px}.ask-scope-group li{margin:0 0 9px;font-size:11px;line-height:1.45}.ask-scope-group.in-scope li::marker{color:var(--green)}.ask-scope-group.out-scope li::marker{color:#b76a4f}.ask-control-flow{margin-top:18px;padding:12px;border:1px solid #cfe0d8;background:#fff;color:var(--green);font-size:9px;font-weight:800;text-align:center;text-transform:uppercase;letter-spacing:.05em}
 @media(max-width:900px){.brief-lead{border-right:0;border-bottom:1px solid #365166}.headline-card{border-right:0;border-bottom:1px solid var(--line)}}
 @media(max-width:900px){.ask-layout{grid-template-columns:1fr}.ask-form{border-right:0;border-bottom:1px solid var(--line)}}
 @media(max-width:620px){.ask-section,.performance-section,.filings-section,.context-section{padding:40px 0}.ask-controls{grid-template-columns:1fr}.ask-form,.ask-result{padding:20px}.ask-submit-row{align-items:flex-start;flex-direction:column}.ask-task-tabs{grid-template-columns:1fr 1fr}.ask-task-tabs button:nth-child(3){border-left:0}.ask-task-tabs button:nth-child(n+3){border-top:1px solid var(--line)}.ask-scope-groups{grid-template-columns:1fr}.brief-section{border-radius:4px}.reaction-grid>div{padding-left:0;border-left:0;border-top:1px solid #dbe8e1}.reaction-grid>div:first-child{border-top:0}.filing-summary-meta span:first-child{display:block}.filing-summary-meta span:nth-child(2){display:none}}
 @media(max-width:760px){.page-nav{top:70px;display:block;margin-left:-14px;margin-right:-14px;padding:10px 14px;border-left:0;border-right:0}.page-nav>div:first-child{display:none}.page-nav-links{grid-auto-columns:minmax(95px,1fr)}.page-nav-links a{padding:9px}.page-nav-links a span{display:none}}
-.brief-reading,.brief-limit,.brief-missing,.brief-quality{grid-column:span 6}.brief-limit{background:#2a3338}.brief-missing,.brief-quality{background:#1d2a38}.brief-trends{margin:16px 0 10px;padding:0;list-style:none;display:flex;flex-direction:column;gap:10px}.brief-trends li{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1.4fr) auto;gap:8px;align-items:end}.brief-trends .trend-values{display:flex;flex-direction:column;gap:2px}.brief-trends strong{font:500 22px/1 Georgia,serif;color:#d9e6ee}.brief-trends .trend-values span{color:#9bb0bd;font-size:10px}.brief-trends small{color:#9bb0bd;font-size:10px;text-transform:uppercase;letter-spacing:.06em}.brief-trends a{color:#d9e6ee;font-size:10px;text-decoration:none;border-bottom:1px solid #6e8290}.brief-valuation-note{margin:12px 0 0;color:#aebfca;font-family:inherit;font-size:12px}.brief-lead a,.brief-numbers>a,.brief-lead .brief-card-heading+a{display:inline-block;margin-top:10px;color:#d9e6ee;font-size:10px;text-decoration:none;border-bottom:1px solid #6e8290}#brief,#ask,#performance,#filings,#context,#page-nav{scroll-margin-top:150px}.filing-lead-header{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:12px 16px;align-items:center;padding:18px 20px;border-bottom:1px solid var(--line)}.filing-lead-header .eyebrow{margin:0 0 4px}.filing-lead-header h3{margin:0;font-size:18px;line-height:1.25}.filing-lead-header small{color:var(--muted)}.filing-lead-header a{color:var(--blue);font-size:11px;font-weight:750;text-decoration:none}.filing-lead .filing-body{border-top:0}#ask-retry{min-width:0;border:1px solid var(--line);background:#fff;color:var(--ink)}.ask-submit-row>span.notice{color:var(--muted)}@media(max-width:900px){.filing-lead-header{grid-template-columns:auto 1fr;align-items:start}.filing-lead-header a{grid-column:1/-1}}
+.brief-reading,.brief-limit,.brief-missing,.brief-quality{grid-column:span 6}.brief-limit{background:#2a3338}.brief-missing,.brief-quality{background:#1d2a38}.brief-trends{margin:16px 0 10px;padding:0;list-style:none;display:flex;flex-direction:column;gap:10px}.brief-trends li{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1.4fr) auto;gap:8px;align-items:end}.brief-trends .trend-values{display:flex;flex-direction:column;gap:2px}.brief-trends strong{font:500 22px/1 Georgia,serif;color:#d9e6ee}.brief-trends .trend-values span{color:#9bb0bd;font-size:10px}.brief-trends small{color:#9bb0bd;font-size:10px;text-transform:uppercase;letter-spacing:.06em}.brief-trends a{color:#d9e6ee;font-size:10px;text-decoration:none;border-bottom:1px solid #6e8290}.brief-valuation-note{margin:12px 0 0;color:#aebfca;font-family:inherit;font-size:12px}.brief-lead a,.brief-numbers>a,.brief-lead .brief-card-heading+a{display:inline-block;margin-top:10px;color:#d9e6ee;font-size:10px;text-decoration:none;border-bottom:1px solid #6e8290}#brief,#ask,#performance,#filings,#context,#page-nav{scroll-margin-top:150px}.filing-lead-header{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:12px 16px;align-items:center;padding:18px 20px;border-bottom:1px solid var(--line)}.filing-lead-header .eyebrow{margin:0 0 4px}.filing-lead-header h3{margin:0;font-size:18px;line-height:1.25}.filing-lead-header small{color:var(--muted)}.filing-lead-header a{color:var(--blue);font-size:11px;font-weight:750;text-decoration:none}.filing-lead .filing-body{border-top:0}#ask-retry,#ask-stop{min-width:0;border:1px solid var(--line);background:#fff;color:var(--ink)}.ask-submit-row>span.notice{color:var(--muted)}@media(max-width:900px){.filing-lead-header{grid-template-columns:auto 1fr;align-items:start}.filing-lead-header a{grid-column:1/-1}}
 @media(max-width:900px){.brief-grid{grid-template-columns:1fr}.brief-lead,.brief-numbers,.brief-reading,.brief-limit,.brief-missing,.brief-quality{grid-column:1/-1}}
 """
 

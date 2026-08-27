@@ -3,7 +3,8 @@
 Each switch below is a bug that this project deliberately keeps implementable, so
 that `experiments/leakage.py` can turn them on one at a time and measure what
 each is worth. All four True is the honest pipeline; that is the default, and CI
-asserts it.
+asserts it. `open_anchored_returns` below is a fifth switch but not a fifth
+bug -- see its docstring.
 """
 
 from __future__ import annotations
@@ -52,6 +53,33 @@ class PipelineConfig:
     purged_cv: bool = True
     """Purged, embargoed walk-forward instead of shuffled K-fold."""
 
+    # -- measurement basis (not a correctness switch) ---------------------- #
+    open_anchored_returns: bool = False
+    """Measure the entry session from its OPEN rather than the previous close.
+
+    Off by default, and that default is a deliberate answer to a real question
+    rather than an oversight.
+
+    A close-to-close series anchors the entry session's return at the *previous*
+    close, which for an after-hours filing was printed before the filing
+    existed. So the measured reaction contains the overnight gap in which the
+    news was priced -- and `causal(acceptance_time <= entry_open)` passes on
+    every row anyway, because the label never touches `entry_open`. That looked
+    like a fifth leak, and `experiments.anchoring_study` was written to price it.
+
+    It is not one. The label answers *was this filing material*, and the standard
+    market-model event study answers that close-to-close: the overnight gap is
+    part of the reaction, not contamination of it. Switching the label to an open
+    anchor does not remove hindsight, it changes the question to *how much of the
+    reaction was still on the table at the open* -- a harder and different one.
+    On the synthetic corpus that collapses the label: three quarters of the move
+    is already in the opening print, so the base rate falls from 18% to 2% and
+    the association with the ground-truth item all but disappears.
+
+    Both numbers are worth having, which is why the switch stays. What it must
+    not do is silently redefine the product's label, so it does not participate
+    in `is_honest` and it is not a rung on the leakage ladder."""
+
     @property
     def is_honest(self) -> bool:
         return all([self.shift_trailing_features, self.pit_entry,
@@ -63,5 +91,6 @@ class PipelineConfig:
             "point-in-time entry": self.pit_entry,
             "point-in-time universe": self.pit_universe,
             "purged CV": self.purged_cv,
+            "open-anchored returns": self.open_anchored_returns,
         }
         return ", ".join(f"{k}={'yes' if v else 'NO'}" for k, v in flags.items())

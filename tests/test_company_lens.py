@@ -274,7 +274,7 @@ def test_headline_context_caps_rows_and_never_leaks_company_tickers(tmp_path) ->
         encoding="utf-8",
     )
 
-    scope, headlines = _headline_context(
+    scope, headlines, _market = _headline_context(
         import_headline_index(path),
         "AAPL",
         now=datetime(2026, 8, 25, 12, tzinfo=UTC),
@@ -282,7 +282,10 @@ def test_headline_context_caps_rows_and_never_leaks_company_tickers(tmp_path) ->
 
     assert scope is not None
     assert scope.status == "available"
-    assert scope.source_types == ["company_news"]
+    # Both kinds are now carried, so the scope summary names both. `status`
+    # still keys off company matches: a page with only market rows has no
+    # company context to offer, whatever the market cache happens to hold.
+    assert scope.source_types == ["company_news", "market_news"]
     assert len(headlines) == 2
     assert {headline.headline for headline in headlines} == {
         "Apple filing context",
@@ -324,11 +327,17 @@ def test_company_headlines_are_not_displaced_by_newer_market_rows(tmp_path) -> N
         encoding="utf-8",
     )
 
-    _, headlines = _headline_context(import_headline_index(path), "AAPL")
+    _, headlines, market_headlines = _headline_context(
+        import_headline_index(path), "AAPL")
 
     assert len(headlines) == 1
     assert headlines[0].headline == "Exact company context"
     assert [headline.source_type for headline in headlines] == ["company_news"]
+    # Market rows are now kept, in their own list. The property that mattered --
+    # a newer generic headline never displacing exact-company context -- is
+    # preserved by the separation rather than by discarding them.
+    assert {headline.source_type for headline in market_headlines} == {"market_news"}
+    assert len(market_headlines) == 3
 
 
 def test_company_profile_separates_curated_summary_from_observed_coverage() -> None:

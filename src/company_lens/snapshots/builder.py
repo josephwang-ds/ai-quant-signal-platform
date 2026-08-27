@@ -143,7 +143,8 @@ def _assemble_snapshot(
     warnings = []
     if not filings:
         warnings.append("No 8-K filing was available in the local event dataset.")
-    evidence_scope, headlines = _headline_context(headline_documents, ticker)
+    evidence_scope, headlines, market_headlines = _headline_context(
+        headline_documents, ticker)
     fundamentals = try_load_fundamentals(root, ticker, requested_years=10)
 
     provenance = _provenance(root / "provenance.json")
@@ -194,6 +195,7 @@ def _assemble_snapshot(
         filing_timeline=filing_timeline,
         evidence_scope=evidence_scope,
         headlines=headlines,
+        market_headlines=market_headlines,
         fundamentals=fundamentals,
     )
 
@@ -207,9 +209,9 @@ def _headline_context(
     ticker: str,
     *,
     now: datetime | None = None,
-) -> tuple[EvidenceScopeSummary | None, list[HeadlineBrief]]:
+) -> tuple[EvidenceScopeSummary | None, list[HeadlineBrief], list[HeadlineBrief]]:
     if documents is None:
-        return None, []
+        return None, [], []
     ticker = ticker.upper()
     company_matches = [
         document
@@ -227,25 +229,27 @@ def _headline_context(
             document.document_id,
         ),
     )
-    # A company page must not repeat the same generic market headlines for every
-    # ticker. Keep only exact-company context here; broad market rows remain in
-    # the shared cache for a future market/explainer surface.
+    market_matches = [
+        document for document in documents if document.source_type == "market_news"
+    ]
+    market_ranked = sorted(
+        market_matches,
+        key=lambda document: (
+            -_timestamp(document.published_at).timestamp(),
+            document.document_id,
+        ),
+    )
+
+    # Company and market rows stay in separate lists. They used to be merged and
+    # then filtered down to company-only, on the reasoning that a company page
+    # must not repeat the same generic market headlines for every ticker -- which
+    # is right, and is a reason to *label* them rather than to drop them. The
+    # market context selector is what consumes the second list, and a reader can
+    # always see which of the two a cited headline came from.
     selected = company_ranked[:3]
     matching = company_matches
-    headlines = [
-        HeadlineBrief(
-            headline=document.title,
-            publisher=document.source_name,
-            published_at=document.published_at or "",
-            fetched_at=document.fetched_at,
-            url=document.source_url,
-            source_type=document.source_type,
-            ticker=document.ticker,
-            topic=document.topic,
-            citation=f"news:{document.document_id}#headline",
-        )
-        for document in selected
-    ]
+    headlines = [_brief(document) for document in selected]
+    market_headlines = [_brief(document) for document in market_ranked[:3]]
     fetched_times = [
         _timestamp(document.fetched_at)
         for document in matching
@@ -257,7 +261,8 @@ def _headline_context(
     return (
         EvidenceScopeSummary(
             status=status,
-            source_types=sorted({document.source_type for document in matching}),
+            source_types=sorted(
+                {document.source_type for document in (*matching, *market_matches)}),
             query=None,
             max_chunks=0,
             selected_chunks=0,
@@ -265,6 +270,21 @@ def _headline_context(
             generated_at=current.isoformat(),
         ),
         headlines,
+        market_headlines,
+    )
+
+
+def _brief(document: ImportedDocument) -> HeadlineBrief:
+    return HeadlineBrief(
+        headline=document.title,
+        publisher=document.source_name,
+        published_at=document.published_at or "",
+        fetched_at=document.fetched_at,
+        url=document.source_url,
+        source_type=document.source_type,
+        ticker=document.ticker,
+        topic=document.topic,
+        citation=f"news:{document.document_id}#headline",
     )
 
 

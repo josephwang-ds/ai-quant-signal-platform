@@ -154,7 +154,37 @@ JavaScript:
 OPENAI_API_KEY="replace-with-openai-key"
 COMPANY_LENS_OPENAI_MODEL="replace-with-a-currently-valid-openai-model"
 COMPANY_LENS_ASK_ORIGIN="https://lens.josephjwang.com"
+COMPANY_LENS_ASK_DAILY_BUDGET="300"
+COMPANY_LENS_ASK_KV_REST_URL="replace-with-a-redis-rest-endpoint"
+COMPANY_LENS_ASK_KV_REST_TOKEN="replace-with-that-endpoint-s-token"
 ```
+
+### What actually bounds the spend
+
+The endpoint is unauthenticated and five paid provider keys sit behind it, so it
+is worth being precise about which control does what.
+
+`COMPANY_LENS_ASK_ORIGIN` compares the `Origin` header to a string. A browser
+sets that header honestly; `curl` sets it to whatever you like. It keeps the
+demo from being embedded in someone else's page and it is not a spending control.
+
+`COMPANY_LENS_ASK_DAILY_BUDGET` is the ceiling that matters: a count of paid
+calls per UTC day for the whole function, checked before the per-IP window and
+before any provider is contacted. Exhausting it returns
+`429 daily_budget_exhausted` and the static evidence on the page stays readable.
+
+**Both counters are only global if the KV variables are set.** Without them the
+counts live in one serverless instance's memory: they reset on every cold start,
+and concurrent instances each keep their own, so the effective allowance is the
+configured limit multiplied by however many instances are live. That is a speed
+bump for one visitor clicking repeatedly, not a bound on what the endpoint can
+spend. Any Redis-compatible REST endpoint works and the function reaches it with
+plain `fetch`, so no dependency is added. If the store is unreachable the
+function degrades to the per-instance counters rather than failing open -- a bad
+minute at the counter store must not become an unmetered spend window.
+
+`GET /api/ask` reports `daily_budget` and `shared_counters`, so the deployed
+configuration can be checked without a paid call.
 
 Use an explicit `COMPANY_LENS_OPENAI_MODEL`. Do not rely on the function's default
 model name. Environment-variable changes do not repair an already-running

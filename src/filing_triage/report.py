@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import html
 from datetime import UTC, datetime
+from math import isfinite
 from pathlib import Path
 
 import pandas as pd
@@ -66,9 +67,10 @@ def _document(result, study: pd.DataFrame, sweep: pd.DataFrame,
       At each market open, an analyst faces the 8-Ks accepted since the prior queue
       and has time for five. This ranks them by the abnormal-reaction magnitude
       after that decision point &mdash; <em>magnitude, not direction</em>. It is a
-      filing-priority tool, not a return forecast.
+      filing-priority tool, not a return forecast. Every headline figure carries a
+      95% interval, because a point estimate is a claim with its error bar deleted.
     </p>
-    {_stat_row(metrics, naive["average_precision"])}
+    {_stat_row(metrics, naive["average_precision"], result.baseline_comparisons)}
   </header>
 
   <section>
@@ -79,7 +81,7 @@ def _document(result, study: pd.DataFrame, sweep: pd.DataFrame,
       Arrival order reads the first five accepted; the simple structured-field
       heuristic reads Item 2.02 earnings filings first, then arrival order.
     </p>
-    {_baseline_table(metrics)}
+    {_baseline_table(metrics, result.baseline_comparisons)}
   </section>
 
   <section>
@@ -250,15 +252,38 @@ def _provenance_footnote(provenance: dict) -> str:
 
 
 
-def _stat_row(metrics: dict, naive_ap: float) -> str:
+def _interval(metrics: dict, key: str, fmt: str = "{:.3f}") -> str:
+    """The 95% range for one metric, ready to sit in a tile's note.
+
+    Empty when the bootstrap did not run, rather than a placeholder: the leakage
+    ladder and the embargo sweep score the pipeline with it switched off, and a
+    rendered `[nan, nan]` would read as a computation that failed instead of one
+    deliberately skipped.
+    """
+    low, high = metrics.get(f"{key}_ci_low"), metrics.get(f"{key}_ci_high")
+    if low is None or high is None or not (isfinite(low) and isfinite(high)):
+        return ""
+    return f"95% [{fmt.format(low)}, {fmt.format(high)}]"
+
+
+def _joined(*parts: str) -> str:
+    """Note fragments separated by a middot, skipping the ones that are absent."""
+    return " &middot; ".join(part for part in parts if part)
+
+
+def _stat_row(metrics: dict, naive_ap: float,
+              comparisons: pd.DataFrame | None = None) -> str:
     tiles = [
         (f"{metrics.get('n_events', 0):,}", "filings ranked", "out of sample"),
         (f"{metrics.get('average_precision', float('nan')):.3f}",
          "average precision, audited",
-         f"the naive pipeline claimed {naive_ap:.3f}"),
+         _joined(_interval(metrics, "average_precision"),
+                 f"the naive pipeline claimed {naive_ap:.3f}")),
         (f"{metrics.get('roc_auc', float('nan')):.3f}", "ROC AUC",
-         f"base rate {metrics.get('base_rate', 0):.0%} &middot; purged walk-forward"),
-        _queue_tile(metrics),
+         _joined(_interval(metrics, "roc_auc"),
+                 f"base rate {metrics.get('base_rate', 0):.0%}",
+                 "purged walk-forward")),
+        _queue_tile(metrics, comparisons),
     ]
     cells = "".join(
         f'<div class="stat"><div class="stat-value">{value}</div>'
@@ -268,7 +293,8 @@ def _stat_row(metrics: dict, naive_ap: float) -> str:
     return f'<div class="stats">{cells}</div>'
 
 
-def _queue_tile(metrics: dict) -> tuple[str, str, str]:
+def _queue_tile(metrics: dict,
+                comparisons: pd.DataFrame | None = None) -> tuple[str, str, str]:
     """The product metric, or an explanation of why there isn't one.
 
     Ranking the top five of a session that only had two filings is not triage,
@@ -278,34 +304,79 @@ def _queue_tile(metrics: dict) -> tuple[str, str, str]:
     """
     counted = metrics.get("daily_sessions_at_5", 0)
     if metrics.get("daily_usable_at_5"):
+        row = _comparison_row(comparisons, "random")
+        interval = ("" if row is None else
+                    f"95% [{row['lift_ci_low']:.2f}, {row['lift_ci_high']:.2f}]")
         return (f"{metrics.get('daily_lift_at_5', float('nan')):.1f}&times;",
                 "better than reading five at random",
-                (f"top 5 of each session &middot; {counted} sessions with more "
-                 f"than five filings"))
+                _joined(interval, "top 5 of each session",
+                        f"{counted} sessions with more than five filings"))
     return (f"{metrics.get('filings_per_session_median', float('nan')):.0f}",
             "filings per session (median)",
             (f"too few to triage &mdash; only {counted} sessions carried more than "
              f"five, so the queue metric is not reported"))
 
 
-def _baseline_table(metrics: dict) -> str:
+def _comparison_row(comparisons: pd.DataFrame | None, name: str) -> pd.Series | None:
+    """One baseline's paired bootstrap row, or None when it was not computed."""
+    if comparisons is None or comparisons.empty:
+        return None
+    match = comparisons[comparisons["baseline"] == name]
+    return None if match.empty else match.iloc[0]
+
+
+def _baseline_table(metrics: dict, comparisons: pd.DataFrame | None = None) -> str:
+    """Every reading rule, with the model's lift over it and that lift's interval.
+
+    The last column is the one worth reading first, and it is the one a table of
+    bare precisions could not answer: a lift of 1.41x whose draws favour the
+    baseline one time in eight is a different claim from the same 1.41x at zero.
+    Model and baseline are rescored on one shared resample of sessions, so the
+    interval is on their difference rather than on two independent means -- they
+    see the same days, and treating them as separate experiments would widen it
+    for no reason.
+    """
     counted = metrics.get("operational_sessions_at_5", 0)
     if not counted:
         return '<p class="note">Not enough crowded sessions for an operational comparison.</p>'
     rows = [
-        ("Model rank", metrics.get("daily_model_precision_at_5")),
-        ("Item 2.02, then arrival", metrics.get("daily_item_202_precision_at_5")),
-        ("Arrival order", metrics.get("daily_arrival_precision_at_5")),
-        ("Random within session (expected)", metrics.get("daily_random_precision_at_5")),
+        ("Model rank", None, metrics.get("daily_model_precision_at_5")),
+        ("Item 2.02, then arrival", "item_202",
+         metrics.get("daily_item_202_precision_at_5")),
+        ("Arrival order", "arrival", metrics.get("daily_arrival_precision_at_5")),
+        ("Random within session (expected)", "random",
+         metrics.get("daily_random_precision_at_5")),
     ]
-    body = "".join(
-        f"<tr><td>{label}</td><td class='num'>{_number(value, '{:.1%}')}</td></tr>"
-        for label, value in rows
-    )
+    draws = metrics.get("bootstrap_draws")
+
+    body = ""
+    for label, name, precision in rows:
+        row = _comparison_row(comparisons, name) if name else None
+        if row is None:
+            lift = interval = against = "&mdash;"
+        else:
+            lift = f"{row['lift']:.2f}&times;"
+            interval = f"[{row['lift_ci_low']:.2f}, {row['lift_ci_high']:.2f}]"
+            share = float(row["draws_not_beating_baseline"])
+            against = (f"{round(share * draws):,} / {draws:,}" if draws
+                       else f"{share:.1%}")
+        body += (f"<tr><td>{label}</td>"
+                 f"<td class='num'>{_number(precision, '{:.1%}')}</td>"
+                 f"<td class='num'>{lift}</td>"
+                 f"<td class='num'>{interval}</td>"
+                 f"<td class='num'>{against}</td></tr>")
+
+    method = ("Lift intervals are a paired 95% bootstrap: sessions are resampled "
+              "once and every rule is rescored on that same draw."
+              if _comparison_row(comparisons, "random") is not None else
+              "Intervals were not computed for this run.")
     return (
-        f'<p class="summary">Mean precision@5 over {counted:,} eligible sessions.</p>'
+        f'<p class="summary">Mean precision@5 over {counted:,} eligible sessions. '
+        f'{method}</p>'
         '<table class="data"><thead><tr><th>Reading rule</th>'
-        '<th class="num">Material filings in top five</th></tr></thead>'
+        '<th class="num">Material filings in top five</th>'
+        '<th class="num">Model lift</th><th class="num">95% interval</th>'
+        '<th class="num">Draws favouring it</th></tr></thead>'
         f"<tbody>{body}</tbody></table>"
     )
 

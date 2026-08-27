@@ -37,11 +37,19 @@ class TriageModel:
     config: PipelineConfig
     n_splits: int = N_SPLITS
     random_state: int = 7
+    estimator_overrides: dict | None = None
+    """Perturbations for `experiments.hyperparameter_sensitivity` only.
+
+    The settings below are constants, and a reader is entitled to ask where they
+    came from -- picking them by watching the out-of-sample metric would be a
+    selection leak across the whole project, and the one kind no guard can see.
+    This hook exists so that question is answered by rescoring a grid rather than
+    by a promise. Nothing in the shipped pipeline sets it."""
     oos_importance_: pd.DataFrame = field(default_factory=pd.DataFrame, init=False,
                                           repr=False)
 
     def _estimator(self) -> HistGradientBoostingClassifier:
-        return HistGradientBoostingClassifier(
+        estimator = HistGradientBoostingClassifier(
             max_depth=4,
             max_iter=200,
             learning_rate=0.06,
@@ -49,6 +57,9 @@ class TriageModel:
             l2_regularization=1.0,
             random_state=self.random_state,
         )
+        if self.estimator_overrides:
+            estimator.set_params(**self.estimator_overrides)
+        return estimator
 
     def fit_predict_oos(self, features: pd.DataFrame, labels: pd.Series,
                         event_time: pd.Series, label_end_time: pd.Series,

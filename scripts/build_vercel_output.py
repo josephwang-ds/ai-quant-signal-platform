@@ -7,7 +7,12 @@ import json
 import shutil
 from pathlib import Path
 
-from company_lens.web.ask import ASK_EVIDENCE_VERSION, build_ask_evidence
+from company_lens.web.ask import (
+    ASK_EVIDENCE_VERSION,
+    DEFAULT_SCOPE,
+    build_ask_evidence,
+    evidence_scopes,
+)
 
 DEFAULT_ASK_FUNCTION = Path("ops/vercel/ask/index.js")
 
@@ -82,6 +87,8 @@ def _build_ask_function(
         json.dumps(
             {
                 "schema_version": ASK_EVIDENCE_VERSION,
+                "default_scope": DEFAULT_SCOPE,
+                "scopes": evidence_scopes(),
                 "companies": companies,
             },
             ensure_ascii=False,

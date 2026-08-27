@@ -19,8 +19,16 @@ Files:
 - `fold_metrics.csv` — chronological out-of-sample stability;
 - `oos_importance.csv` — permutation importance on held-out fold rows;
 - `audit.csv` — leakage invariants from the honest pipeline;
-- `leakage_study.csv` — cumulative correction ladder; and
-- `integrity.json` — impossible entries and measurement attrition.
+- `leakage_study.csv` — cumulative correction ladder;
+- `integrity.json` — impossible entries and measurement attrition;
+- `baseline_intervals.csv` — paired session bootstrap of the model against each
+  operational baseline, with the share of draws favouring the baseline;
+- `reaction_capture.csv` — how much of each filing's reaction was already in the
+  opening print, by materiality and acceptance window;
+- `anchoring_study.csv` — the same pipeline scored against a close-anchored and
+  an open-anchored label; and
+- `hyperparameter_sensitivity.csv` — the headline rescored across a coarse grid
+  around the estimator's defaults.
 
 The filings are real, but the 193-issuer convenience universe is a survivor sample.
 These results must not be presented as point-in-time index-universe evidence.

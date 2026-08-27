@@ -1,4 +1,22 @@
-"""Build the compact, immutable evidence map used by the public Q&A function."""
+"""Build the compact, immutable evidence maps used by the public Q&A function.
+
+One map per **evidence scope**. A visitor chooses how wide the model is allowed
+to look -- filings and fundamentals only, plus company news, plus market context,
+or everything -- and the server sends exactly that subset.
+
+The scopes are not a display filter. Each one carries its own
+`allowed_citations` and `allowed_number_literals`, computed from the sections it
+actually contains, because those two lists are what the response validator
+enforces. Sending the narrow evidence while validating against the wide lists
+would let a model cite a headline it was never shown and have the citation pass
+-- which is the one failure this whole mechanism exists to prevent.
+
+Each scope is therefore materialised in full rather than assembled from shared
+parts at request time. It costs about four megabytes across the whole universe
+and one JSON parse per cold start, and it buys the guarantee that the evidence
+the model reads and the lists it is judged against were built together, in one
+language, from one function.
+"""
 
 from __future__ import annotations
 
@@ -7,64 +25,201 @@ from typing import Any
 
 from company_lens.llm.grounded import NUMBER_LITERAL, localized_month_number_literals
 
-ASK_EVIDENCE_VERSION = "company-lens.ask-evidence.v2"
+ASK_EVIDENCE_VERSION = "company-lens.ask-evidence.v3"
+
+DEFAULT_SCOPE = "core"
+
+# Which optional news sections each scope adds to the always-present core of
+# profile, performance, fundamentals and latest filing.
+#
+# "market" deliberately does not include company news. Read cumulatively the
+# four scopes would collapse to three -- the widest would be identical to the
+# one below it -- so each is a distinct question a visitor might actually have:
+# the company's own numbers, what is being written about the company, what is
+# happening around it, or all of that at once.
+SCOPE_SECTIONS: dict[str, tuple[str, ...]] = {
+    "core": (),
+    "company": ("company_headlines",),
+    "market": ("market_headlines",),
+    "all": ("company_headlines", "market_headlines"),
+}
+
+SCOPE_LABELS: dict[str, dict[str, str]] = {
+    "core": {"en": "Core financials", "zh": "核心财务"},
+    "company": {"en": "Company news", "zh": "公司动态"},
+    "market": {"en": "Market context", "zh": "市场背景"},
+    "all": {"en": "All evidence", "zh": "全部证据"},
+}
+
+SCOPE_DESCRIPTIONS: dict[str, dict[str, str]] = {
+    "core": {
+        "en": "SEC filings and long-term fundamentals only.",
+        "zh": "仅 SEC 备案与长期基本面。",
+    },
+    "company": {
+        "en": "Core financials plus recent headlines about this company.",
+        "zh": "核心财务,加上该公司的近期新闻。",
+    },
+    "market": {
+        "en": "Core financials plus broad market and sector headlines.",
+        "zh": "核心财务,加上行业与宏观新闻。",
+    },
+    "all": {
+        "en": "Core financials, company news and market context together.",
+        "zh": "核心财务、公司动态与市场背景的组合。",
+    },
+}
+
+BASE_LIMITS = [
+    "Use only this evidence map; do not browse or rely on general model knowledge.",
+    "Historical returns and filing reactions are observations, not forecasts.",
+    "Do not provide a recommendation, price target, or directional prediction.",
+    "If the evidence does not answer the question, say so explicitly.",
+]
+
+FUNDAMENTALS_LIMIT = (
+    "Annual fundamentals are latest-restated research values, not a valuation model."
+)
+COMPANY_NEWS_LIMIT = (
+    "Headlines are titles and publication dates only. They are not verified facts "
+    "about the company and no article body was read."
+)
+MARKET_NEWS_LIMIT = (
+    "Market headlines describe the broad market, not this company. Do not attribute "
+    "a market development to this issuer or infer an effect on it."
+)
+SCOPE_BOUNDARY_LIMIT = (
+    "This is a narrowed evidence scope chosen by the reader. If the question needs "
+    "evidence outside it, say which scope would be required rather than guessing."
+)
+
+
+def evidence_scopes() -> list[dict[str, Any]]:
+    """The selectable scopes, for the page's picker and the function's GET."""
+    return [
+        {
+            "id": name,
+            "label": SCOPE_LABELS[name]["en"],
+            "label_zh": SCOPE_LABELS[name]["zh"],
+            "description": SCOPE_DESCRIPTIONS[name]["en"],
+            "description_zh": SCOPE_DESCRIPTIONS[name]["zh"],
+            "sections": list(SCOPE_SECTIONS[name]),
+        }
+        for name in SCOPE_SECTIONS
+    ]
 
 
 def build_ask_evidence(snapshot: dict[str, Any]) -> dict[str, Any]:
-    """Reduce one public snapshot to the facts a live model may read."""
+    """Reduce one public snapshot to a live-readable evidence map per scope."""
     ticker = str(snapshot["ticker"]).upper()
     benchmark = str(snapshot["benchmark"]).upper()
     profile = snapshot.get("profile") or {}
     performance = snapshot["performance"]
     filing = next(iter(snapshot.get("latest_filings") or []), None)
-    citations: dict[str, dict[str, str]] = {}
 
+    # Each builder collects into its own citation map so a section can be left
+    # out of a scope without its citations lingering in that scope's allow-list.
+    profile_citations: dict[str, dict[str, str]] = {}
     profile_citation = "source:company-profile"
-    citations[profile_citation] = {
+    profile_citations[profile_citation] = {
         "label": "SEC company record",
         "url": str(profile.get("source_url") or f"/{ticker.lower()}.html"),
         "section": "overview",
     }
-    evidence: dict[str, Any] = {
+    company_section = {
+        "name": profile.get("display_name") or snapshot.get("company_name") or ticker,
+        "category": profile.get("category"),
+        "summary": profile.get("summary"),
+        "citation": profile_citation,
+    }
+
+    performance_citations: dict[str, dict[str, str]] = {}
+    performance_section = _performance_packet(
+        ticker, benchmark, performance, performance_citations
+    )
+
+    filing_citations: dict[str, dict[str, str]] = {}
+    filing_section = _filing_packet(filing, filing_citations)
+
+    fundamentals_citations: dict[str, dict[str, str]] = {}
+    fundamentals_section = _fundamentals_packet(
+        snapshot.get("fundamentals"), ticker, fundamentals_citations
+    )
+
+    company_news_citations: dict[str, dict[str, str]] = {}
+    company_news = _headline_packet(
+        snapshot.get("headlines") or [], company_news_citations,
+        source_type="company_news", section="company_news",
+    )
+
+    market_news_citations: dict[str, dict[str, str]] = {}
+    market_news = _headline_packet(
+        snapshot.get("market_headlines") or [], market_news_citations,
+        source_type="market_news", section="market_news",
+    )
+
+    optional = {
+        "company_headlines": (company_news, company_news_citations,
+                              COMPANY_NEWS_LIMIT),
+        "market_headlines": (market_news, market_news_citations,
+                             MARKET_NEWS_LIMIT),
+    }
+
+    scopes: dict[str, Any] = {}
+    for name, section_names in SCOPE_SECTIONS.items():
+        citations: dict[str, dict[str, str]] = {
+            **profile_citations, **performance_citations, **filing_citations,
+        }
+        evidence: dict[str, Any] = {
+            "schema_version": ASK_EVIDENCE_VERSION,
+            "ticker": ticker,
+            "as_of": snapshot["as_of"],
+            "evidence_scope": name,
+            "evidence_scope_label": SCOPE_LABELS[name]["en"],
+            "company": company_section,
+            "historical_performance": performance_section,
+            "latest_filing": filing_section,
+        }
+        limits = list(BASE_LIMITS)
+        if fundamentals_section is not None:
+            evidence["fundamentals"] = fundamentals_section
+            citations.update(fundamentals_citations)
+            limits.append(FUNDAMENTALS_LIMIT)
+
+        for section_name in section_names:
+            payload, section_citations, limit = optional[section_name]
+            evidence[section_name] = payload
+            # An empty section still declares itself. "No company headlines are
+            # available" is a fact the model should state; silently omitting the
+            # key invites it to answer from memory instead.
+            citations.update(section_citations)
+            if payload:
+                limits.append(limit)
+            else:
+                limits.append(
+                    f"No {section_name.replace('_', ' ')} are available in this "
+                    "scope; say so rather than substituting general knowledge."
+                )
+        if name != "all":
+            limits.append(SCOPE_BOUNDARY_LIMIT)
+        evidence["interpretation_limits"] = limits
+
+        canonical = json.dumps(evidence, sort_keys=True, ensure_ascii=False)
+        scopes[name] = {
+            "evidence": evidence,
+            "citations": citations,
+            "allowed_citations": sorted(citations),
+            "allowed_number_literals": sorted({
+                *NUMBER_LITERAL.findall(canonical),
+                *localized_month_number_literals(evidence),
+            }),
+        }
+
+    return {
         "schema_version": ASK_EVIDENCE_VERSION,
         "ticker": ticker,
-        "as_of": snapshot["as_of"],
-        "company": {
-            "name": profile.get("display_name") or snapshot.get("company_name") or ticker,
-            "category": profile.get("category"),
-            "summary": profile.get("summary"),
-            "citation": profile_citation,
-        },
-        "historical_performance": _performance_packet(
-            ticker, benchmark, performance, citations
-        ),
-        "latest_filing": _filing_packet(filing, citations),
-        "company_headlines": _headline_packet(snapshot.get("headlines") or [], citations),
-        "interpretation_limits": [
-            "Use only this evidence map; do not browse or rely on general model knowledge.",
-            "Historical returns and filing reactions are observations, not forecasts.",
-            "Do not provide a recommendation, price target, or directional prediction.",
-            "If the evidence does not answer the question, say so explicitly.",
-        ],
-    }
-    fundamentals = _fundamentals_packet(snapshot.get("fundamentals"), ticker, citations)
-    if fundamentals is not None:
-        evidence["fundamentals"] = fundamentals
-        evidence["interpretation_limits"].append(
-            "Annual fundamentals are latest-restated research values, not a valuation model."
-        )
-    canonical = json.dumps(evidence, sort_keys=True, ensure_ascii=False)
-    allowed_numbers = sorted(
-        {
-            *NUMBER_LITERAL.findall(canonical),
-            *localized_month_number_literals(evidence),
-        }
-    )
-    return {
-        "evidence": evidence,
-        "citations": citations,
-        "allowed_citations": sorted(citations),
-        "allowed_number_literals": allowed_numbers,
+        "default_scope": DEFAULT_SCOPE,
+        "scopes": scopes,
     }
 
 
@@ -196,19 +351,22 @@ def _filing_packet(
 def _headline_packet(
     headlines: list[dict[str, Any]],
     citations: dict[str, dict[str, str]],
+    *,
+    source_type: str,
+    section: str,
 ) -> list[dict[str, Any]]:
     packet = []
-    company_rows = [
+    rows = [
         headline
         for headline in headlines
-        if headline.get("source_type") == "company_news"
+        if headline.get("source_type") == source_type
     ][:3]
-    for headline in company_rows:
+    for headline in rows:
         citation = str(headline["citation"])
         citations[citation] = {
             "label": str(headline["publisher"]),
             "url": str(headline["url"]),
-            "section": "company_news",
+            "section": section,
         }
         packet.append(
             {

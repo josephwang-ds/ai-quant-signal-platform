@@ -207,6 +207,14 @@ class CompanySnapshot:
     filing_timeline: list[FilingTimelinePoint] = field(default_factory=list)
     evidence_scope: EvidenceScopeSummary | None = None
     headlines: list[HeadlineBrief] = field(default_factory=list)
+    """Headlines about this issuer specifically."""
+    market_headlines: list[HeadlineBrief] = field(default_factory=list)
+    """Broad market and sector headlines, shared across issuers.
+
+    Kept apart from `headlines` rather than merged, because the two answer
+    different questions and a reader must be able to tell which one a claim came
+    from. Repeating the same general-market rows on every company page as if
+    they were company evidence is exactly the confusion the split prevents."""
     fundamentals: FundamentalsSection | None = None
 
     def to_dict(self) -> dict[str, Any]:
@@ -214,6 +222,7 @@ class CompanySnapshot:
         if self.evidence_scope is None:
             payload.pop("evidence_scope")
             payload.pop("headlines")
+            payload.pop("market_headlines")
         if self.fundamentals is None:
             payload.pop("fundamentals")
         return payload

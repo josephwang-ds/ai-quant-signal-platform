@@ -14,10 +14,14 @@ from __future__ import annotations
 
 from dataclasses import replace
 
+import numpy as np
 import pandas as pd
 
 from filing_triage import pipeline
 from filing_triage.config import PipelineConfig
+from filing_triage.ingest.prices import to_returns
+from filing_triage.labels import build_labels
+from filing_triage.pit import TradingClock
 
 # Fixes applied cumulatively, cheapest-to-spot first. Each stage differs from the
 # previous one by exactly one switch.
@@ -64,7 +68,8 @@ def run_leakage_study(events: pd.DataFrame, prices: pd.DataFrame,
     rows = []
     for name, switches, note in STAGES:
         result = pipeline.run(events, prices, membership, replace(base, **switches),
-                              compute_importance=False)
+                              compute_importance=False,
+                              compute_uncertainty=False)
         rows.append({
             "stage": name,
             "note": note,
@@ -74,6 +79,10 @@ def run_leakage_study(events: pd.DataFrame, prices: pd.DataFrame,
             "impossible_entries": result.integrity["impossible_entries"],
             "impossible_share": result.integrity["impossible_share"],
             "median_hindsight_hours": result.integrity["median_hindsight_hours"],
+            "pre_acceptance_label_anchors":
+                result.integrity["pre_acceptance_label_anchors"],
+            "pre_acceptance_label_share":
+                result.integrity["pre_acceptance_label_share"],
             "checks_failed": len(result.audit.failures),
             "switches": result.config.describe_switches(),
         })
@@ -93,10 +102,169 @@ def embargo_sweep(events: pd.DataFrame, prices: pd.DataFrame,
     rows = []
     for embargo in embargoes:
         result = pipeline.run(events, prices, membership, replace(base, embargo=embargo),
-                              compute_importance=False)
+                              compute_importance=False,
+                              compute_uncertainty=False)
         rows.append({
             "embargo": str(embargo),
             "embargo_hours": embargo.total_seconds() / 3600.0,
+            **{k: result.metrics.get(k, float("nan")) for k in HEADLINE},
+        })
+    return pd.DataFrame(rows)
+
+
+def anchoring_study(events: pd.DataFrame, prices: pd.DataFrame,
+                    membership: pd.DataFrame,
+                    base: PipelineConfig | None = None) -> pd.DataFrame:
+    """What the reaction looks like measured from the prior close, and from the open.
+
+    Not a leakage ladder rung, because neither row is a bug. The default
+    close-to-close window is the standard market-model event study and it is the
+    right basis for a materiality label. But it opens at a price printed before
+    most of these filings were accepted, which means the label is not a return
+    anyone could have earned -- and the README's "useful triage, not a trading
+    strategy" deserves a measurement rather than a promise.
+
+    The open-anchored row is that measurement. It asks how much of the reaction
+    was still on the table once the market opened, and the honest answer is: much
+    less than the headline label implies. Read the two rows together, never the
+    second one alone -- a collapsed base rate here is the question changing, not
+    the ranker failing.
+    """
+    base = base or PipelineConfig()
+    rows = []
+    for label, open_anchored in (("prior close (label basis)", False),
+                                 ("entry open", True)):
+        result = pipeline.run(events, prices, membership,
+                              replace(base, open_anchored_returns=open_anchored),
+                              compute_importance=False,
+                              compute_uncertainty=False)
+        rows.append({
+            "reaction measured from": label,
+            "n_events": result.metrics.get("n_events", 0),
+            "base_rate": result.metrics.get("base_rate", float("nan")),
+            **{k: result.metrics.get(k, float("nan")) for k in HEADLINE},
+            "pre_acceptance_label_anchors":
+                result.integrity["pre_acceptance_label_anchors"],
+            "pre_acceptance_label_share":
+                result.integrity["pre_acceptance_label_share"],
+            "median_label_anchor_staleness_hours":
+                result.integrity["median_label_anchor_staleness_hours"],
+        })
+    return pd.DataFrame(rows)
+
+
+def reaction_capture_profile(events: pd.DataFrame, prices: pd.DataFrame,
+                             base: PipelineConfig | None = None) -> pd.DataFrame:
+    """How much of each filing's reaction was already in the opening print.
+
+    `anchoring_study` shows the ranking metrics collapsing when the label is
+    measured from the open, which invites the wrong reading -- that the ranker
+    stopped working. This says what actually happened, by measuring the same
+    filings both ways and taking the ratio.
+
+    The decomposition is the finding. Across all filings the median share sitting
+    in the overnight gap is small, because most 8-Ks move nothing and a ratio of
+    two small numbers is noise. Restrict to the filings that cleared the
+    materiality cutoff and the share jumps; restrict further to the ones accepted
+    after the close and it jumps again. The reaction concentrates in the gap
+    exactly where the ranker is trying to look, which is why an open-anchored
+    label is so much harder to predict -- and why "useful triage, not a trading
+    strategy" is a measurement here rather than a disclaimer.
+    """
+    base = base or PipelineConfig()
+    clock = TradingClock(embargo=base.embargo)
+    frame = events.copy()
+    frame["entry_session"] = frame["acceptance_time"].map(clock.entry_session)
+    frame["session_state"] = frame["acceptance_time"].map(clock.session_state)
+    returns = to_returns(prices)
+
+    closed = build_labels(frame, returns, replace(base, open_anchored_returns=False))
+    opened = build_labels(frame, returns, replace(base, open_anchored_returns=True))
+    paired = (closed.set_index("event_id")[["car", "reaction", "label"]]
+              .join(opened.set_index("event_id")[["car", "reaction"]],
+                    lsuffix="_close", rsuffix="_open", how="inner")
+              .dropna(subset=["car_close", "car_open"]))
+    if paired.empty:
+        return pd.DataFrame(columns=["population", "filings", "median_share_in_open",
+                                     "median_reaction_retained"])
+
+    paired = paired.join(frame.set_index("event_id")["session_state"])
+    # A ratio of two near-zero moves is noise, not a share, so the denominator
+    # guards against it rather than producing a spectacular meaningless number.
+    denominator = paired["car_close"].abs().replace(0.0, np.nan)
+    paired["share_in_open"] = 1.0 - paired["car_open"].abs() / denominator
+    paired["reaction_retained"] = (
+        paired["reaction_open"] / paired["reaction_close"].replace(0.0, np.nan))
+
+    material = paired[paired["label"] == 1]
+    populations: list[tuple[str, pd.DataFrame]] = [
+        ("all filings", paired),
+        ("not material", paired[paired["label"] == 0]),
+        ("material (>= threshold)", material),
+    ]
+    populations += [
+        (f"material, accepted {state}", material[material["session_state"] == state])
+        for state in ("pre", "open", "post", "closed")
+    ]
+
+    return pd.DataFrame([
+        {
+            "population": name,
+            "filings": len(group),
+            "median_share_in_open": float(group["share_in_open"].median())
+                                    if len(group) else float("nan"),
+            "median_reaction_retained": float(group["reaction_retained"].median())
+                                        if len(group) else float("nan"),
+        }
+        for name, group in populations
+    ])
+
+
+# A deliberately coarse grid around the defaults. Wide enough that a result which
+# only exists at one setting would show up as a spread; not a search, and never
+# used to pick anything.
+SENSITIVITY_GRID: list[dict] = [
+    {},                                              # the shipped defaults
+    {"max_depth": 3},
+    {"max_depth": 6},
+    {"max_iter": 100},
+    {"max_iter": 400},
+    {"learning_rate": 0.03},
+    {"learning_rate": 0.12},
+    {"min_samples_leaf": 10},
+    {"min_samples_leaf": 60},
+    {"l2_regularization": 0.0},
+    {"l2_regularization": 5.0},
+]
+
+
+def hyperparameter_sensitivity(events: pd.DataFrame, prices: pd.DataFrame,
+                               membership: pd.DataFrame,
+                               base: PipelineConfig | None = None,
+                               grid: list[dict] | None = None) -> pd.DataFrame:
+    """Whether the headline number depends on the estimator settings.
+
+    The estimator's constants are hard-coded, and a reader is entitled to ask
+    where they came from -- because if they were chosen by watching the
+    out-of-sample metric, that is a selection leak spanning the whole project and
+    the one class of leakage the audit cannot see. No guard can catch it: every
+    individual run is clean, and the contamination lives in which run got kept.
+
+    Rather than answer with a promise, answer with a spread. Each row perturbs
+    one setting and rescores; if the spread across the grid is small relative to
+    the bootstrap interval on the default, then no achievable amount of tuning
+    could have produced the headline, and the provenance question stops mattering.
+    """
+    base = base or PipelineConfig()
+    grid = grid if grid is not None else SENSITIVITY_GRID
+    rows = []
+    for overrides in grid:
+        result = pipeline.run(events, prices, membership, base,
+                              compute_importance=False,
+                              compute_uncertainty=False,
+                              estimator_overrides=overrides or None)
+        rows.append({
+            "setting": ", ".join(f"{k}={v}" for k, v in overrides.items()) or "defaults",
             **{k: result.metrics.get(k, float("nan")) for k in HEADLINE},
         })
     return pd.DataFrame(rows)
