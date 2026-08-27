@@ -20,9 +20,19 @@ The measured cost of each is in the report (`make demo`) and in
 | `filing_date` | the calendar date EDGAR stamped | No — a *date*, no time |
 | `acceptanceDateTime` | when EDGAR accepted the submission | **Yes** |
 
-About four out of five 8-Ks are accepted outside market hours. For those, treating
-`filing_date` as tradable at that day's open buys the position several hours
-before the information existed.
+**63.5%** of 8-Ks in the real sample are accepted outside regular market hours.
+For those, treating `filing_date` as tradable at that day's open buys the
+position hours before the information existed. (The synthetic corpus is
+generated at 80%, deliberately harsher than reality; the two figures are
+sometimes confused because an earlier version of this page quoted the generator's
+setting as though it were a measurement.)
+
+Under the naive rule the real sample carries **11,168 impossible entries**, 95.4%
+of measurable filings, at a median of 10.6 hours of hindsight. That is larger
+than the after-hours share because it also catches intraday filings: the opening
+print still predates a document accepted at 10 a.m. The corrected rule reduces
+the count to zero, and that zero — not a metric movement — is the auditable
+result.
 
 There is a second trap inside the right field. `acceptanceDateTime` is served as
 `2024-10-31T18:03:31.000Z` — but the clock is the SEC's, which runs on
@@ -120,6 +130,67 @@ plus an embargo on top for serial correlation across the boundary.
 purging discards events it cannot honestly train on. A walk-forward split also
 tells you something a shuffled one cannot: whether the ranking still works in the
 *latest* fold, or has decayed.
+
+---
+
+## The one that looks like a fifth leak, and is not
+
+Everything above is a bug. This one is a measurement decision that wears a bug's
+clothes, and it is on this page because a reader who has understood the four
+above will find it and ask.
+
+**The observation.** The label is a market-model event study measured
+close-to-close, so the entry session's return is anchored at the *previous*
+close. For the 63.5% of filings accepted outside market hours, that price was
+printed before the filing existed. The measured reaction therefore contains the
+overnight gap in which the news was priced, while `pit_entry` maintains that
+entry happens at the open.
+
+**No guard catches it, and cannot.** `guards.causal` asserts
+`acceptance_time <= entry_open` and passes on every row — precisely because the
+label never touches `entry_open`. The check is looking at the entry rule; the
+staleness is in the outcome window. A guard cannot notice a quantity it was not
+pointed at.
+
+**Why it is not a bug anyway.** The label answers *was this filing material*, and
+the standard event-study convention answers that close-to-close. The overnight
+gap is part of the reaction, not contamination of it. Switching to an open
+anchor does not remove hindsight; it changes the question to *how much of the
+reaction was still on the table at the open*, which is different and harder. So
+`open_anchored_returns` exists, is **off by default**, does not participate in
+`is_honest`, and is not a rung on the ladder.
+
+**What it is worth, measured rather than asserted.** `experiments.anchoring_study`
+scores the same pipeline both ways and `reaction_capture_profile` takes the ratio
+filing by filing:
+
+| Filings | Median share of the reaction already in the opening print |
+|---|---|
+| all | 6.4% |
+| not material | 3.0% |
+| **material (≥ 2.0σ)** | **27.7%** |
+| material, accepted after the close | **45.7%** |
+
+Across all 8-Ks the gap barely matters, because most filings move nothing and a
+ratio of two small numbers is noise. Restrict to the ones that cleared the
+materiality cutoff and it jumps; restrict to those accepted after the close and
+nearly half the move is gone before the bell — concentrated exactly where the
+ranker is trying to look. Scored against an open-anchored label the pipeline
+falls from 0.366 average precision to 0.143. That is the question getting harder,
+not the ranker failing, and the two rows are only meaningful read together.
+
+This is why "useful triage, not a trading strategy" is a number in this
+repository rather than a disclaimer.
+
+**The fifth leak no guard can see.** There is one more, and it has no measurement
+at the row level because it does not live in a row: choosing the estimator's
+constants by watching the out-of-sample metric would contaminate the whole
+project, and every individual run would still be clean. The contamination lives
+in *which run was kept*. The answer is a spread rather than a promise —
+`experiments.hyperparameter_sensitivity` perturbs each setting in turn and moves
+average precision across a range of 0.033, narrower than the 0.059 bootstrap
+interval on the default configuration, and the defaults are not the best cell in
+the grid.
 
 ---
 

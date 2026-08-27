@@ -39,6 +39,27 @@ issuer-specific residual standard deviations. The cutoff is declared before the
 sample is observed. A full-sample percentile would let future test-fold outcomes
 help define what "material" means, even if the model never trained on those rows.
 
+**Where the event window starts** is a decision, not a detail. A close-to-close
+series anchors the entry session's return at the *previous* close, which for the
+63.5% of 8-Ks accepted outside market hours was printed before the filing
+existed. No leakage guard sees this: `causal(acceptance_time <= entry_open)`
+passes on every row precisely because the label never touches `entry_open`.
+
+It stays close-to-close anyway. The question is *was this filing material*, and
+the overnight gap is part of that reaction rather than contamination of it. The
+alternative — `open_anchored_returns`, off by default — asks how much was still
+on the table at the open, which is a different and harder question, and
+`experiments.anchoring_study` reports both. What the difference is worth is
+measured rather than asserted: 27.7% of a material filing's reaction is already
+in the opening print, 45.7% for those accepted after the close. See
+[LEAKAGE.md](LEAKAGE.md) for the full decomposition.
+
+**Residual standard deviation uses `ddof=2`**, not 1. Alpha and beta were both
+estimated on the same window, so two degrees of freedom are already spent. On 120
+sessions the correction is under 1%, but it biases the denominator of every
+reaction score downward — the direction that quietly moves filings across the
+2.0σ threshold.
+
 ## Features
 
 Every feature must be computable by someone standing at `decision_time`.
@@ -79,14 +100,58 @@ ROC AUC is reported as a familiar cross-check, not as the headline. It averages
 over the whole ranking including the tail nobody reads, and it is blunt about
 leaks that concentrate on the positives.
 
+## Uncertainty
+
+A project whose argument is "the flattering number is usually wrong" cannot make
+that argument with bare point estimates. A reader cannot tell 1.63× ± 0.05 from
+1.63× ± 0.6, and only one of those is a result.
+
+**Resampled by session, not by row.** Filings on the same morning share a market
+and a macro tape, so treating 9,729 events as 9,729 independent draws would
+understate the interval. Measured, the correction is worth about 4% of the width
+— far less than it sounds, because the label is already a market-model residual,
+so the common factor that would have driven same-day correlation was subtracted
+before the metric saw it. The cluster bootstrap stays regardless: it is correct
+whether or not clustering is present, the row bootstrap only if it is absent, and
+the safe one costs a rounding error.
+
+**Baselines are paired, not a separate experiment.** Model and baseline see the
+same sessions, so sessions are resampled once and every rule is rescored on that
+same draw. Bootstrapping two means independently throws the pairing away and
+overstates the uncertainty of their difference. The reported column is the share
+of draws in which the baseline matched or beat the model — a lift of 1.41× whose
+draws favour the baseline one time in eight is a different claim from the same
+1.41× at zero.
+
+**Ladder rungs carry no interval, deliberately.** Consecutive rungs are the same
+pipeline on overlapping event populations — fixing the entry rule changes which
+filings are measurable at all — so a resample of one is not exchangeable with a
+resample of the next. A paired bootstrap over them would look rigorous and mean
+nothing. What is comparable across rungs is the invariant counts, which is why
+those lead the table.
+
+Percentile intervals throughout; BCa would be defensible and is not worth the
+machinery at these sample sizes, where the distributions are close to symmetric.
+
+**Where the estimator's constants came from.** Picking them by watching the
+out-of-sample metric would be a selection leak spanning the whole project, and
+the one class no guard can catch — every individual run is clean and the
+contamination lives in which run was kept. Answered with a spread rather than a
+promise: perturbing each setting one at a time moves average precision across
+0.033, narrower than the 0.059 bootstrap interval on the default, and the
+defaults are not the best cell in the grid.
+
 ## What this does not claim
 
 - **No return prediction.** Direction is never modelled, and no strategy return,
   Sharpe ratio or P&L appears anywhere. Reaction *magnitude* is a different and
   more tractable quantity.
-- **No claim of tradability.** Ranking which filings the market reacted to is not
-  the same as being able to profit from it, and the embargo sweep exists partly to
-  show how little is left after any realistic delay.
+- **No claim of tradability**, and this is now a measurement rather than a
+  disclaimer. The label is anchored at the previous close, so for a material
+  filing accepted after the bell a median **45.7%** of the reaction is already in
+  the opening print — gone before any entry rule could act. Scored against an
+  open-anchored label the pipeline falls from 0.366 average precision to 0.143.
+  The embargo sweep says the rest decays within the session.
 - **Daily bars only.** The entry convention — the first *open* at or after the
   decision time — is the most conservative one available at daily resolution.
   Intraday data would allow a tighter and more interesting measurement.
