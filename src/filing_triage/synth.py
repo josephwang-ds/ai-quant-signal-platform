@@ -9,6 +9,11 @@ world -- and generates it with the specific properties the project is about:
   * the price reaction happens on the first session that OPENS after the
     acceptance time, never before -- so any pipeline that enters earlier is
     reaching for a move that had not happened yet
+  * most of that reaction arrives as an overnight gap rather than intraday,
+    because the filing is public before the session opens. A close-to-close
+    label collects that gap; an open-anchored one cannot. Without this the
+    synthetic world cannot express the difference at all, and the two
+    conventions score identically on it
   * materiality is driven by the item code and by how unusual the language is,
     buried under enough noise that the achievable ranking performance is modest,
     which is the honest outcome
@@ -199,6 +204,18 @@ def _make_text(item: str, novelty: float, rng: np.random.Generator) -> str:
     return " ".join(parts)
 
 
+# What share of a day's move has already happened by the time the market opens.
+#
+# ORDINARY_GAP_SHARE is roughly right for large-cap US equities. EVENT_GAP_SHARE
+# is higher on purpose and is the honest consequence of the entry rule: the
+# filing is public before the entry session opens, so the market prices most of
+# it into the opening print. That is precisely the part a reader who enters at
+# the open cannot capture -- and precisely the part a close-to-close event
+# window hands back to them for free.
+ORDINARY_GAP_SHARE = 0.35
+EVENT_GAP_SHARE = 0.75
+
+
 def _make_prices(issuers: pd.DataFrame, sessions: list[date], events: pd.DataFrame,
                  rng: np.random.Generator) -> pd.DataFrame:
     index = {day: i for i, day in enumerate(sessions)}
@@ -225,13 +242,16 @@ def _make_prices(issuers: pd.DataFrame, sessions: list[date], events: pd.DataFra
         idio = rng.normal(0, issuer.idio_vol, n_days)
         returns = 0.0002 + issuer.beta * market + idio
         volume = rng.lognormal(np.log(1.4e6), 0.42, n_days)
+        shock_component = np.zeros(n_days)
         for day_index in range(n_days):
             shock = shocks.get((issuer.ticker, day_index))
             if shock is not None:
-                returns[day_index] += shock * issuer.idio_vol
+                shock_component[day_index] = shock * issuer.idio_vol
+                returns[day_index] += shock_component[day_index]
                 volume[day_index] *= 1.0 + volume_shocks[(issuer.ticker, day_index)]
         close = issuer.price0 * np.cumprod(1.0 + returns)
-        frames.append(_price_frame(issuer.ticker, sessions, close, volume, rng))
+        frames.append(_price_frame(issuer.ticker, sessions, close, volume, rng,
+                                   returns=returns, shock=shock_component))
 
     return pd.concat(frames, ignore_index=True)
 
@@ -250,12 +270,40 @@ def _market_frame(sessions: list[date], market: np.ndarray,
                   rng: np.random.Generator) -> pd.DataFrame:
     close = 450.0 * np.cumprod(1.0 + market)
     volume = rng.lognormal(np.log(7.5e7), 0.28, len(sessions))
-    return _price_frame("SPY", sessions, close, volume, rng)
+    return _price_frame("SPY", sessions, close, volume, rng,
+                        returns=market, shock=np.zeros(len(sessions)))
 
 
 def _price_frame(ticker: str, sessions: list[date], close: np.ndarray,
-                 volume: np.ndarray, rng: np.random.Generator) -> pd.DataFrame:
-    open_ = close * (1.0 + rng.normal(0, 0.002, len(close)))
+                 volume: np.ndarray, rng: np.random.Generator, *,
+                 returns: np.ndarray, shock: np.ndarray) -> pd.DataFrame:
+    """Build the OHLC frame, splitting each day's move across the opening bell.
+
+    The open used to be the day's close plus a rounding wobble, which made
+    open-to-close returns pure noise and left the corpus unable to distinguish
+    the two event-window conventions. Here the open is the *previous* close
+    carried forward by that day's overnight share, so the remaining move is
+    genuinely intraday and `close / open - 1` carries real information.
+
+    The filing's shock and the day's ordinary return are split *separately*, and
+    that separation is load-bearing rather than fussy. Give the whole event-day
+    return the high event share and the issuer's systematic move gets split
+    differently from the benchmark's on exactly those days -- so the market model
+    subtracts a beta fitted on close-to-close returns from an intraday market
+    return on a different scale, and the residual picks up a large spurious
+    market term. The measured "reaction" then tracks whatever the index did that
+    morning instead of the filing. Only the shock is unusually front-loaded.
+    """
+    ordinary = returns - shock
+    open_ = np.empty(len(close))
+    overnight = (ORDINARY_GAP_SHARE * ordinary + EVENT_GAP_SHARE * shock
+                 + rng.normal(0, 0.0015, len(close)))
+    open_[1:] = close[:-1] * (1.0 + overnight[1:])
+    # No prior close for the first session; there is no gap to model.
+    open_[0] = close[0] * (1.0 - (1.0 - ORDINARY_GAP_SHARE) * ordinary[0])
+    # A synthetic price must stay a price. Magnitudes here never approach zero,
+    # but a non-positive open would silently become a NaN return downstream.
+    open_ = np.maximum(open_, 0.01)
     spread = np.abs(rng.normal(0, 0.004, len(close)))
     return pd.DataFrame({
         "ticker": ticker,

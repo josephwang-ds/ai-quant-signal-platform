@@ -13,7 +13,8 @@ the awkward ones. Every case here is something the real feed does:
 
 from __future__ import annotations
 
-from datetime import date
+import os
+from datetime import date, timedelta
 
 import pandas as pd
 import pytest
@@ -21,6 +22,7 @@ import pytest
 from filing_triage.ingest.edgar import (
     ACCEPTANCE_TZ,
     ITEM_LABELS,
+    EdgarClient,
     parse_submissions,
     strip_markup,
 )
@@ -155,3 +157,25 @@ class TestStripMarkup:
     @pytest.mark.parametrize("raw", ["", "   ", "<p></p>"])
     def test_empty_documents_do_not_crash(self, raw):
         assert strip_markup(raw) == ""
+
+
+class TestCacheFreshness:
+    def test_mutable_cache_refreshes_when_stale(self, tmp_path, monkeypatch):
+        client = EdgarClient(user_agent="Test test@example.com", cache_dir=tmp_path)
+        path = tmp_path / "submissions" / "CIK0000320193.json"
+        path.parent.mkdir(parents=True)
+        path.write_bytes(b"old")
+        os.utime(path, (0, 0))
+        monkeypatch.setattr(client, "_get", lambda _: b"new")
+
+        assert client._cached("submissions/CIK0000320193.json", "https://example.test",
+                              max_age=timedelta(hours=6)) == b"new"
+
+    def test_immutable_cache_remains_reusable(self, tmp_path, monkeypatch):
+        client = EdgarClient(user_agent="Test test@example.com", cache_dir=tmp_path)
+        path = tmp_path / "docs" / "accession.txt"
+        path.parent.mkdir(parents=True)
+        path.write_bytes(b"cached")
+        monkeypatch.setattr(client, "_get", lambda _: pytest.fail("network not expected"))
+
+        assert client._cached("docs/accession.txt", "https://example.test") == b"cached"

@@ -3,7 +3,8 @@
 Each switch below is a bug that this project deliberately keeps implementable, so
 that `experiments/leakage.py` can turn them on one at a time and measure what
 each is worth. All four True is the honest pipeline; that is the default, and CI
-asserts it.
+asserts it. `open_anchored_returns` below is a fifth switch but not a fifth
+bug -- see its docstring.
 """
 
 from __future__ import annotations
@@ -16,7 +17,7 @@ from datetime import timedelta
 class PipelineConfig:
     # -- measurement design ------------------------------------------------ #
     embargo: timedelta = timedelta(0)
-    """Delay between the filing becoming public and being allowed to act.
+    """Delay between EDGAR acceptance and being allowed to act.
     Sweeping this is how we measure how fast the reaction is over."""
 
     event_window_sessions: int = 2
@@ -29,8 +30,11 @@ class PipelineConfig:
     """Sessions left between the estimation window and the event, so that
     pre-announcement drift does not contaminate the baseline."""
 
-    label_quantile: float = 0.90
-    """A filing is 'worth reading' if its reaction lands in this top slice."""
+    reaction_threshold: float = 2.0
+    """A filing is 'worth reading' if its absolute abnormal reaction is at least
+    this many issuer-specific residual standard deviations. This cutoff is fixed
+    before any fold is observed; a full-sample quantile would let future outcomes
+    define the meaning of a test-fold label."""
 
     # -- correctness switches (True = correct) ----------------------------- #
     shift_trailing_features: bool = True
@@ -40,14 +44,41 @@ class PipelineConfig:
 
     pit_entry: bool = True
     """Enter at the first open after the acceptance time, not on the filing date.
-    ~80% of 8-Ks land outside market hours; the naive version buys before the
-    news exists."""
+    The naive filing-date version can use an opening print that predates the
+    accepted timestamp."""
 
     pit_universe: bool = True
     """Resolve index membership as of the event date, not as of today."""
 
     purged_cv: bool = True
     """Purged, embargoed walk-forward instead of shuffled K-fold."""
+
+    # -- measurement basis (not a correctness switch) ---------------------- #
+    open_anchored_returns: bool = False
+    """Measure the entry session from its OPEN rather than the previous close.
+
+    Off by default, and that default is a deliberate answer to a real question
+    rather than an oversight.
+
+    A close-to-close series anchors the entry session's return at the *previous*
+    close, which for an after-hours filing was printed before the filing
+    existed. So the measured reaction contains the overnight gap in which the
+    news was priced -- and `causal(acceptance_time <= entry_open)` passes on
+    every row anyway, because the label never touches `entry_open`. That looked
+    like a fifth leak, and `experiments.anchoring_study` was written to price it.
+
+    It is not one. The label answers *was this filing material*, and the standard
+    market-model event study answers that close-to-close: the overnight gap is
+    part of the reaction, not contamination of it. Switching the label to an open
+    anchor does not remove hindsight, it changes the question to *how much of the
+    reaction was still on the table at the open* -- a harder and different one.
+    On the synthetic corpus that collapses the label: three quarters of the move
+    is already in the opening print, so the base rate falls from 18% to 2% and
+    the association with the ground-truth item all but disappears.
+
+    Both numbers are worth having, which is why the switch stays. What it must
+    not do is silently redefine the product's label, so it does not participate
+    in `is_honest` and it is not a rung on the leakage ladder."""
 
     @property
     def is_honest(self) -> bool:
@@ -60,5 +91,6 @@ class PipelineConfig:
             "point-in-time entry": self.pit_entry,
             "point-in-time universe": self.pit_universe,
             "purged CV": self.purged_cv,
+            "open-anchored returns": self.open_anchored_returns,
         }
         return ", ".join(f"{k}={'yes' if v else 'NO'}" for k, v in flags.items())

@@ -1,0 +1,39 @@
+{
+  "source": "edgar",
+  "written_at": "2026-08-21T02:22:46.438138+00:00",
+  "issuers": 193,
+  "filings": 11702,
+  "failed_issuers": [],
+  "unresolved_ciks": 0,
+  "universe": {
+    "universe_quality": "convenience-sample",
+    "survivorship_controlled": false,
+    "note": "Hand-picked large caps that still exist today. Not an index and not point-in-time; issuers that failed, were acquired or were delisted are absent by construction.",
+    "tickers_requested": 200,
+    "tickers_resolved": 193,
+    "unresolved": [
+      "EA",
+      "K",
+      "HOLX",
+      "BK",
+      "MMC",
+      "HES",
+      "AEP"
+    ],
+    "start_date": "2022-01-03"
+  },
+  "note": "SEC EDGAR submissions + daily bars",
+  "fundamentals_refresh": {
+    "status": "current",
+    "checked_at": "2026-08-26T14:20:36.494083+00:00",
+    "companies_checked": 1,
+    "refreshed_tickers": [
+      "AAPL"
+    ],
+    "failed_tickers": [],
+    "artifact_paths": [
+      "data/build/fundamentals/aapl.json"
+    ],
+    "failures": []
+  }
+}

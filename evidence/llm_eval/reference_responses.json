@@ -1,0 +1,180 @@
+{
+  "schema_version": "company-lens.llm-provider-run.v1",
+  "provider": "reference_fixture",
+  "model": "hand_authored_contract_examples",
+  "note": "Valid examples for testing the evaluator; not a measured model result.",
+  "responses": {
+    "aapl-results-en": {
+      "output": {
+        "mode": "grounded_llm",
+        "what_changed": [{"text": "Apple disclosed a financial-results release for its third fiscal quarter ended June 27, 2026.", "citations": ["0000320193-26-000018#sentence-5"]}],
+        "why_it_matters": [{"text": "The benchmark-adjusted move was +1.0%, at the 68% historical magnitude percentile across 38 earlier measurable filings.", "citations": ["metric:filing.benchmark_adjusted_move", "metric:filing.magnitude_percentile", "metric:filing.prior_sample_size"]}],
+        "uncertainties": [{"text": "The supplied passage does not contain the underlying revenue or earnings figures, and the historical reaction is not a forecast.", "citations": ["0000320193-26-000018#sentence-5"]}]
+      }
+    },
+    "aapl-results-zh": {
+      "output": {
+        "mode": "grounded_llm",
+        "what_changed": [{"text": "Apple 披露了一份截至 June 27, 2026 的第三财季财务业绩新闻稿。", "citations": ["0000320193-26-000018#sentence-5"]}],
+        "why_it_matters": [{"text": "相对基准调整后的当日变动为 +1.0%，处于历史幅度的 68% 分位；样本为此前 38 份可测 filing。", "citations": ["metric:filing.benchmark_adjusted_move", "metric:filing.magnitude_percentile", "metric:filing.prior_sample_size"]}],
+        "uncertainties": [{"text": "现有段落没有给出具体营收或盈利数字，历史反应也不能预测未来表现。", "citations": ["0000320193-26-000018#sentence-5"]}]
+      }
+    },
+    "nvda-agreement-en": {
+      "output": {
+        "mode": "grounded_llm",
+        "what_changed": [
+          {"text": "NVIDIA announced a multi-year partnership involving leases for approximately 4.25 gigawatts of IT load.", "citations": ["0001045810-26-000069#sentence-3", "0001045810-26-000069#sentence-7"]},
+          {"text": "Its initial aggregate payment obligation is capped at $105 billion.", "citations": ["0001045810-26-000069#sentence-10"]}
+        ],
+        "why_it_matters": [{"text": "The benchmark-adjusted move was -0.2%, at the 4% historical magnitude percentile across 45 earlier measurable filings.", "citations": ["metric:filing.benchmark_adjusted_move", "metric:filing.magnitude_percentile", "metric:filing.prior_sample_size"]}],
+        "uncertainties": [{"text": "These excerpts do not establish the timing of payments, project economics, or future returns.", "citations": ["0001045810-26-000069#sentence-7", "0001045810-26-000069#sentence-10"]}]
+      }
+    },
+    "nvda-agreement-zh": {
+      "output": {
+        "mode": "grounded_llm",
+        "what_changed": [
+          {"text": "NVIDIA 宣布多年合作，相关租赁覆盖约 4.25 吉瓦 IT 负载。", "citations": ["0001045810-26-000069#sentence-3", "0001045810-26-000069#sentence-7"]},
+          {"text": "其初始承诺下的累计付款义务上限为 $105 billion。", "citations": ["0001045810-26-000069#sentence-10"]}
+        ],
+        "why_it_matters": [{"text": "相对基准调整后的变动为 -0.2%，处于历史幅度的 4% 分位；样本为此前 45 份可测 filing。", "citations": ["metric:filing.benchmark_adjusted_move", "metric:filing.magnitude_percentile", "metric:filing.prior_sample_size"]}],
+        "uncertainties": [{"text": "这些段落不能确定付款时点、项目经济性或未来回报。", "citations": ["0001045810-26-000069#sentence-7", "0001045810-26-000069#sentence-10"]}]
+      }
+    },
+    "jpm-bylaw-en": {
+      "output": {
+        "mode": "grounded_llm",
+        "what_changed": [{"text": "The company adopted a by-law amendment under which a Lead Independent Director, if any, is appointed by the non-management directors.", "citations": ["0000019617-26-000288#sentence-4"]}],
+        "why_it_matters": [{"text": "The benchmark-adjusted move was +0.7%, at the 50% historical magnitude percentile across 125 earlier measurable filings.", "citations": ["metric:filing.benchmark_adjusted_move", "metric:filing.magnitude_percentile", "metric:filing.prior_sample_size"]}],
+        "uncertainties": [{"text": "The filing does not say that a Lead Independent Director must always be appointed, and the historical reaction is not a forecast.", "citations": ["0000019617-26-000288#sentence-4"]}]
+      }
+    },
+    "jpm-bylaw-zh": {
+      "output": {
+        "mode": "grounded_llm",
+        "what_changed": [{"text": "公司通过了章程修订：如设置首席独立董事，将由非管理层董事任命。", "citations": ["0000019617-26-000288#sentence-4"]}],
+        "why_it_matters": [{"text": "相对基准调整后的变动为 +0.7%，处于历史幅度的 50% 分位；样本为此前 125 份可测 filing。", "citations": ["metric:filing.benchmark_adjusted_move", "metric:filing.magnitude_percentile", "metric:filing.prior_sample_size"]}],
+        "uncertainties": [{"text": "文件没有说明公司必须始终设置该职位，历史反应也不能预测未来表现。", "citations": ["0000019617-26-000288#sentence-4"]}]
+      }
+    }
+  },
+  "paired_responses": {
+    "adsk-acquisition": {
+      "en": {
+        "mode": "grounded_llm",
+        "what_changed": [{"text": "The company completed its previously announced acquisition of MaintainX.", "citations": ["0001213900-26-084276#sentence-5"]}],
+        "why_it_matters": [{"text": "The benchmark-adjusted move was +1.2%, at the 48% historical magnitude percentile across 40 earlier measurable filings.", "citations": ["metric:filing.benchmark_adjusted_move", "metric:filing.magnitude_percentile", "metric:filing.prior_sample_size"]}],
+        "uncertainties": [{"text": "The supplied passage does not state the purchase price or integration plan.", "citations": ["0001213900-26-084276#sentence-5"]}]
+      },
+      "zh": {
+        "mode": "grounded_llm",
+        "what_changed": [{"text": "公司完成了此前宣布的 MaintainX 收购。", "citations": ["0001213900-26-084276#sentence-5"]}],
+        "why_it_matters": [{"text": "相对基准调整后的变动为 +1.2%，处于历史幅度的 48% 分位；样本为此前 40 份可测 filing。", "citations": ["metric:filing.benchmark_adjusted_move", "metric:filing.magnitude_percentile", "metric:filing.prior_sample_size"]}],
+        "uncertainties": [{"text": "现有段落没有给出收购价格或整合计划。", "citations": ["0001213900-26-084276#sentence-5"]}]
+      }
+    },
+    "bac-dividend": {
+      "en": {
+        "mode": "grounded_llm",
+        "what_changed": [{"text": "The board declared a quarterly cash dividend of $0.32 per share, up $0.04 or 14% from the prior quarter.", "citations": ["0000070858-26-000364#sentence-3"]}],
+        "why_it_matters": [{"text": "The benchmark-adjusted move was +0.2%, at the 12% historical magnitude percentile across 57 earlier measurable filings.", "citations": ["metric:filing.benchmark_adjusted_move", "metric:filing.magnitude_percentile", "metric:filing.prior_sample_size"]}],
+        "uncertainties": [{"text": "A declared dividend does not establish future dividend policy.", "citations": ["0000070858-26-000364#sentence-3"]}]
+      },
+      "zh": {
+        "mode": "grounded_llm",
+        "what_changed": [{"text": "董事会宣布每股 $0.32 的季度现金股息，较上一季度增加 $0.04，即 14%。", "citations": ["0000070858-26-000364#sentence-3"]}],
+        "why_it_matters": [{"text": "相对基准调整后的变动为 +0.2%，处于历史幅度的 12% 分位；样本为此前 57 份可测 filing。", "citations": ["metric:filing.benchmark_adjusted_move", "metric:filing.magnitude_percentile", "metric:filing.prior_sample_size"]}],
+        "uncertainties": [{"text": "本次已宣布的股息不能确定未来股息政策。", "citations": ["0000070858-26-000364#sentence-3"]}]
+      }
+    },
+    "cvs-board": {
+      "en": {
+        "mode": "grounded_llm",
+        "what_changed": [
+          {"text": "Robbins' resignation was not the result of any disagreement over operations, policies or practices.", "citations": ["0001193125-26-354096#sentence-5"]},
+          {"text": "The board appointed Teresa Heitsenrether as a director.", "citations": ["0001193125-26-354096#sentence-6"]}
+        ],
+        "why_it_matters": [{"text": "The benchmark-adjusted move was +0.7%, at the 33% historical magnitude percentile across 78 earlier measurable filings.", "citations": ["metric:filing.benchmark_adjusted_move", "metric:filing.magnitude_percentile", "metric:filing.prior_sample_size"]}],
+        "uncertainties": [{"text": "The supplied passages do not explain the broader board succession process.", "citations": ["0001193125-26-354096#sentence-5", "0001193125-26-354096#sentence-6"]}]
+      },
+      "zh": {
+        "mode": "grounded_llm",
+        "what_changed": [
+          {"text": "Robbins 辞任并非源于对公司运营、政策或实践的分歧。", "citations": ["0001193125-26-354096#sentence-5"]},
+          {"text": "董事会任命 Teresa Heitsenrether 为董事。", "citations": ["0001193125-26-354096#sentence-6"]}
+        ],
+        "why_it_matters": [{"text": "相对基准调整后的变动为 +0.7%，处于历史幅度的 33% 分位；样本为此前 78 份可测 filing。", "citations": ["metric:filing.benchmark_adjusted_move", "metric:filing.magnitude_percentile", "metric:filing.prior_sample_size"]}],
+        "uncertainties": [{"text": "现有段落没有解释更完整的董事会继任安排。", "citations": ["0001193125-26-354096#sentence-5", "0001193125-26-354096#sentence-6"]}]
+      }
+    },
+    "ph-acquisition-financing": {
+      "en": {
+        "mode": "grounded_llm",
+        "what_changed": [
+          {"text": "Parker agreed to acquire Filtration Group for $9.25 billion, subject to a working-capital adjustment.", "citations": ["0001193125-26-349148#sentence-5"]},
+          {"text": "It borrowed $5.25 billion and $2.50 billion under two facilities to fund part of the transaction and related costs.", "citations": ["0001193125-26-349148#sentence-11"]}
+        ],
+        "why_it_matters": [{"text": "The benchmark-adjusted move was +0.1%, at the 2% historical magnitude percentile across 41 earlier measurable filings.", "citations": ["metric:filing.benchmark_adjusted_move", "metric:filing.magnitude_percentile", "metric:filing.prior_sample_size"]}],
+        "uncertainties": [{"text": "The excerpts do not establish post-closing synergies or the final working-capital adjustment.", "citations": ["0001193125-26-349148#sentence-5", "0001193125-26-349148#sentence-11"]}]
+      },
+      "zh": {
+        "mode": "grounded_llm",
+        "what_changed": [
+          {"text": "Parker 同意以 $9.25 billion 收购 Filtration Group，价格仍受营运资本调整影响。", "citations": ["0001193125-26-349148#sentence-5"]},
+          {"text": "公司通过两项融资分别借入 $5.25 billion 和 $2.50 billion，用于支付部分交易价款和相关费用。", "citations": ["0001193125-26-349148#sentence-11"]}
+        ],
+        "why_it_matters": [{"text": "相对基准调整后的变动为 +0.1%，处于历史幅度的 2% 分位；样本为此前 41 份可测 filing。", "citations": ["metric:filing.benchmark_adjusted_move", "metric:filing.magnitude_percentile", "metric:filing.prior_sample_size"]}],
+        "uncertainties": [{"text": "现有段落不能确定交易后的协同效应或最终营运资本调整。", "citations": ["0001193125-26-349148#sentence-5", "0001193125-26-349148#sentence-11"]}]
+      }
+    },
+    "wec-ppa": {
+      "en": {
+        "mode": "grounded_llm",
+        "what_changed": [{"text": "WEPCO entered a power purchase agreement covering 86% of specified Point Beach capacity and related attributes, subject to PSCW approval.", "citations": ["0000783325-26-000095#sentence-4", "0000783325-26-000095#sentence-8"]}],
+        "why_it_matters": [{"text": "The benchmark-adjusted move was -1.9%, at the 87% historical magnitude percentile across 110 earlier measurable filings.", "citations": ["metric:filing.benchmark_adjusted_move", "metric:filing.magnitude_percentile", "metric:filing.prior_sample_size"]}],
+        "uncertainties": [{"text": "The customer-savings statement is conditional on regulatory approval.", "citations": ["0000783325-26-000095#sentence-8"]}]
+      },
+      "zh": {
+        "mode": "grounded_llm",
+        "what_changed": [{"text": "WEPCO 签订购电协议，覆盖 Point Beach 指定容量及相关权益的 86%，但仍需 PSCW 批准。", "citations": ["0000783325-26-000095#sentence-4", "0000783325-26-000095#sentence-8"]}],
+        "why_it_matters": [{"text": "相对基准调整后的变动为 -1.9%，处于历史幅度的 87% 分位；样本为此前 110 份可测 filing。", "citations": ["metric:filing.benchmark_adjusted_move", "metric:filing.magnitude_percentile", "metric:filing.prior_sample_size"]}],
+        "uncertainties": [{"text": "客户节省的表述以监管批准为前提。", "citations": ["0000783325-26-000095#sentence-8"]}]
+      }
+    },
+    "ccl-redemption": {
+      "en": {
+        "mode": "grounded_llm",
+        "what_changed": [{"text": "The company gave notice to redeem all $500,000,000 of its 7.000% senior secured notes due 2029 at 103.50% of principal.", "citations": ["0000950142-26-002267#sentence-3"]}],
+        "why_it_matters": [{"text": "The benchmark-adjusted move was -1.9%, at the 60% historical magnitude percentile across 75 earlier measurable filings.", "citations": ["metric:filing.benchmark_adjusted_move", "metric:filing.magnitude_percentile", "metric:filing.prior_sample_size"]}],
+        "uncertainties": [{"text": "The excerpt does not state how the redemption is funded or quantify any interest savings.", "citations": ["0000950142-26-002267#sentence-3"]}]
+      },
+      "zh": {
+        "mode": "grounded_llm",
+        "what_changed": [{"text": "公司通知按本金的 103.50% 赎回全部 $500,000,000、票息 7.000%、2029 年到期的优先担保票据。", "citations": ["0000950142-26-002267#sentence-3"]}],
+        "why_it_matters": [{"text": "相对基准调整后的变动为 -1.9%，处于历史幅度的 60% 分位；样本为此前 75 份可测 filing。", "citations": ["metric:filing.benchmark_adjusted_move", "metric:filing.magnitude_percentile", "metric:filing.prior_sample_size"]}],
+        "uncertainties": [{"text": "现有段落没有说明赎回资金来源或量化利息节省。", "citations": ["0000950142-26-002267#sentence-3"]}]
+      }
+    },
+    "xel-settlement": {
+      "en": {
+        "mode": "grounded_llm",
+        "what_changed": [
+          {"text": "The approved settlement terms are expected to include a $157 million revenue increase, a 9.3% ROE and a 54.5% equity ratio.", "citations": ["0000072903-26-000160#sentence-8"]},
+          {"text": "Xcel reaffirmed earnings-per-share guidance of $4.04 to $4.16.", "citations": ["0000072903-26-000160#sentence-10"]}
+        ],
+        "why_it_matters": [{"text": "The filing puts the regulatory settlement and the reaffirmed guidance in the same current disclosure.", "citations": ["0000072903-26-000160#sentence-8", "0000072903-26-000160#sentence-10"]}],
+        "uncertainties": [{"text": "Expected settlement terms and reaffirmed guidance are not realized results.", "citations": ["0000072903-26-000160#sentence-8", "0000072903-26-000160#sentence-10"]}]
+      },
+      "zh": {
+        "mode": "grounded_llm",
+        "what_changed": [
+          {"text": "获批和解条款预计包括 $157 million 的收入增加、9.3% ROE 和 54.5% 权益比率。", "citations": ["0000072903-26-000160#sentence-8"]},
+          {"text": "Xcel 重申每股收益指引为 $4.04 至 $4.16。", "citations": ["0000072903-26-000160#sentence-10"]}
+        ],
+        "why_it_matters": [{"text": "本次披露同时呈现监管和解与重申后的业绩指引。", "citations": ["0000072903-26-000160#sentence-8", "0000072903-26-000160#sentence-10"]}],
+        "uncertainties": [{"text": "预期和解条款和重申后的指引都不是已经实现的结果。", "citations": ["0000072903-26-000160#sentence-8", "0000072903-26-000160#sentence-10"]}]
+      }
+    }
+  }
+}

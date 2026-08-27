@@ -58,8 +58,11 @@ class TestHonestPipeline:
         near 0.95 does not mean the model got good -- it means something leaked."""
         assert honest.metrics["roc_auc"] < 0.90
 
-    def test_label_rate_matches_the_configured_quantile(self, honest):
-        assert honest.metrics["base_rate"] == pytest.approx(0.10, abs=0.03)
+    def test_labels_use_the_fixed_ex_ante_threshold(self, honest):
+        threshold = PipelineConfig().reaction_threshold
+        assert honest.labels.attrs.get("reaction_threshold", threshold) == threshold
+        assert (honest.labels["label"] ==
+                (honest.labels["reaction"] >= threshold).astype(int)).all()
 
 
 class TestAttritionIsAccountedFor:

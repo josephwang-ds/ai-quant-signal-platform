@@ -64,7 +64,7 @@ class TestReadWikipedia:
                             lambda *a, **k: FakeResponse(WIKI_PAGE))
 
     def test_parses_a_literal_document(self):
-        current, _ = _read_wikipedia({})
+        current, _changes = _read_wikipedia({})
         assert len(current) == 2
         assert set(current["ticker"]) == {"AAPL", "MSFT"}
 

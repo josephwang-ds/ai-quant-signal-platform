@@ -1,0 +1,527 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Filing Triage — a leakage audit on 11,702 SEC filings</title>
+<meta name="description" content="A pipeline written the obvious way reports AUC 0.888 on real SEC filings. The version that survives its own leakage audit reports 0.768. Every one of the four bugs produced a better number.">
+<style>
+:root{color-scheme:light;
+--surface:#fcfcfb;--panel:#ffffff;--sunken:#f5f4f1;--ink:#0b0b0b;--ink2:#52514e;
+--muted:#8a8984;--grid:#e6e5e1;--rule:#dedcd7;
+--accent:#2a78d6;--alarm:#e34948;--good:#1baf7a;--warn:#eda100;}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){color-scheme:dark;
+--surface:#1a1a19;--panel:#222221;--sunken:#141413;--ink:#ffffff;--ink2:#c3c2b7;
+--muted:#8a8984;--grid:#33322f;--rule:#3b3a36;
+--accent:#3987e5;--alarm:#e66767;--good:#199e70;--warn:#c98500;}}
+:root[data-theme="dark"]{color-scheme:dark;
+--surface:#1a1a19;--panel:#222221;--sunken:#141413;--ink:#ffffff;--ink2:#c3c2b7;
+--muted:#8a8984;--grid:#33322f;--rule:#3b3a36;
+--accent:#3987e5;--alarm:#e66767;--good:#199e70;--warn:#c98500;}
+
+*{box-sizing:border-box}
+body{margin:0;background:var(--surface);color:var(--ink);
+font:16px/1.65 ui-sans-serif,-apple-system,"Segoe UI",Inter,system-ui,sans-serif;
+-webkit-text-size-adjust:100%;-webkit-font-smoothing:antialiased}
+.wrap{max-width:900px;margin:0 auto;padding:56px 24px 88px}
+h1{font-size:clamp(30px,5.2vw,46px);line-height:1.11;margin:0 0 18px;letter-spacing:-0.028em}
+h2{font-size:clamp(20px,2.6vw,25px);margin:0 0 14px;letter-spacing:-0.015em;
+display:flex;align-items:center;gap:10px}
+h3{font-size:16px;margin:28px 0 8px;letter-spacing:-0.005em}
+p{max-width:68ch;color:var(--ink2);margin:0 0 16px}
+.lede{font-size:19px;margin-bottom:0;max-width:62ch}
+em{color:var(--ink);font-style:normal;font-weight:640}
+a{color:var(--accent);text-decoration-thickness:1px;text-underline-offset:2px}
+code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.88em;
+background:var(--sunken);padding:2px 6px;border-radius:4px}
+section{margin-top:64px;scroll-margin-top:20px}
+.eyebrow{text-transform:uppercase;letter-spacing:.11em;font-size:11.5px;color:var(--muted);
+margin:0 0 14px;font-weight:660}
+.ico{width:19px;height:19px;flex:0 0 19px;stroke:var(--accent);fill:none;
+stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+
+/* ---- stat tiles ---- */
+.stats{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(178px,1fr));margin:26px 0}
+.stat{background:var(--panel);border:1px solid var(--grid);border-radius:11px;padding:18px 17px 15px}
+.stat .v{font-size:31px;font-weight:660;letter-spacing:-0.03em;line-height:1.04;
+font-variant-numeric:tabular-nums}
+.stat .v.bad{color:var(--alarm)}
+.stat .v.ok{color:var(--accent)}
+.stat .l{font-size:13px;color:var(--ink2);margin-top:8px;line-height:1.4}
+.stat .n{font-size:11.5px;color:var(--muted);margin-top:6px;line-height:1.4}
+
+/* ---- figure ---- */
+figure{margin:26px 0 8px}
+.chart{width:100%;height:auto;display:block}
+figcaption{font-size:12.5px;color:var(--muted);margin-top:10px;max-width:66ch}
+.legend{display:flex;gap:16px;flex-wrap:wrap;font-size:12.5px;color:var(--ink2);margin-bottom:12px}
+.key{display:inline-flex;align-items:center;gap:7px}
+.dot{width:10px;height:10px;border-radius:3px;display:inline-block}
+.bar-alarm{fill:var(--alarm)}.bar-accent{fill:var(--accent)}
+.dot-alarm{background:var(--alarm)}.dot-accent{background:var(--accent)}
+.axis{stroke:var(--rule);stroke-width:1}
+.gridline{stroke:var(--grid);stroke-width:1;stroke-dasharray:2 3}
+.tick{fill:var(--ink2);font-size:12.5px}
+.val{fill:var(--ink);font-size:12.5px;font-weight:640;font-variant-numeric:tabular-nums}
+.cap{fill:var(--muted);font-size:11.5px}
+.svg-ink{fill:var(--ink)}.svg-ink2{fill:var(--ink2)}.svg-muted{fill:var(--muted)}
+
+/* ---- tables ---- */
+.scroll{overflow-x:auto;margin:20px 0;-webkit-overflow-scrolling:touch}
+table{border-collapse:collapse;width:100%;font-size:13.5px;min-width:460px}
+th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--grid)}
+th{color:var(--muted);font-weight:640;font-size:11.5px;text-transform:uppercase;
+letter-spacing:.05em;white-space:nowrap}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+tr.final td{font-weight:660;color:var(--ink)}
+td.bad{color:var(--alarm);font-weight:640}
+td.ok{color:var(--accent);font-weight:640}
+.muted{color:var(--muted)}
+
+/* ---- callouts ---- */
+.note{border-left:3px solid var(--rule);padding:2px 0 2px 16px;margin:22px 0}
+.note.alarm{border-color:var(--alarm)}
+.note.accent{border-color:var(--accent)}
+.note p:last-child{margin-bottom:0}
+.pill{display:inline-block;font-size:11.5px;font-weight:640;letter-spacing:.03em;
+padding:3px 9px;border-radius:20px;background:var(--sunken);color:var(--ink2);
+border:1px solid var(--grid);margin-bottom:14px}
+ul{color:var(--ink2);max-width:68ch;padding-left:20px;margin:0 0 16px}
+li{margin:7px 0}
+li::marker{color:var(--muted)}
+pre{background:var(--sunken);border:1px solid var(--grid);border-radius:9px;
+padding:15px 16px;overflow-x:auto;font-size:12.5px;line-height:1.6;margin:16px 0}
+pre code{background:none;padding:0;font-size:inherit}
+.actions{display:flex;gap:11px;flex-wrap:wrap;margin:30px 0 0}
+.btn{display:inline-flex;align-items:center;gap:8px;padding:10px 18px;border-radius:8px;
+font-size:14.5px;font-weight:620;text-decoration:none;border:1px solid var(--grid)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.btn.ghost{background:var(--panel);color:var(--ink)}
+.btn:hover{opacity:.87}
+.btn .ico{width:16px;height:16px;flex-basis:16px;stroke:currentColor}
+footer{margin-top:80px;padding-top:22px;border-top:1px solid var(--grid);
+font-size:13px;color:var(--muted)}
+footer p{color:var(--muted);font-size:13px}
+.cols{display:grid;gap:22px;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));margin:22px 0}
+.card{background:var(--panel);border:1px solid var(--grid);border-radius:11px;padding:18px}
+.card h3{margin:0 0 7px;font-size:14.5px;display:flex;align-items:center;gap:8px}
+.card p{font-size:13.5px;margin:0;color:var(--ink2)}
+.card .ico{width:16px;height:16px;flex-basis:16px}
+</style>
+</head>
+<body>
+<main class="wrap">
+
+<!-- ============ HERO ============ -->
+<p class="eyebrow">SEC 8-K disclosures · point-in-time study</p>
+<h1>An AUC of 0.888 that was<br>entirely bugs</h1>
+<p class="lede">
+  Forty 8-K filings land before breakfast and an analyst has time for five. This
+  ranks them by how hard the market is about to react — <em>magnitude, not
+  direction</em>. The first version worked beautifully. That was the problem.
+</p>
+
+<div class="stats">
+  <div class="stat"><div class="v bad">0.888</div>
+    <div class="l">ROC AUC, naive pipeline</div>
+    <div class="n">written the obvious way</div></div>
+  <div class="stat"><div class="v ok">0.768</div>
+    <div class="l">ROC AUC, after its own audit</div>
+    <div class="n">four bugs removed</div></div>
+  <div class="stat"><div class="v">11,702</div>
+    <div class="l">real 8-K filings</div>
+    <div class="n">193 issuers · 2022–2026</div></div>
+  <div class="stat"><div class="v">123</div>
+    <div class="l">tests, leakage audit in CI</div>
+    <div class="n">a leak fails the build</div></div>
+</div>
+
+<div class="actions">
+  <a class="btn primary" href="https://github.com/josephwang-ds/ai-quant-signal-platform">
+    <svg class="ico" viewBox="0 0 24 24"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.9a3.4 3.4 0 0 0-.9-2.6c3-.3 6.2-1.5 6.2-6.7A5.2 5.2 0 0 0 20 5.1a4.9 4.9 0 0 0-.1-3.6s-1.1-.3-3.7 1.4a12.7 12.7 0 0 0-6.6 0C7 1.2 5.9 1.5 5.9 1.5A4.9 4.9 0 0 0 5.8 5a5.2 5.2 0 0 0-1.4 3.7c0 5.2 3.2 6.4 6.2 6.7a3.4 3.4 0 0 0-.9 2.6V22"/></svg>
+    Source
+  </a>
+  <a class="btn ghost" href="./report.html">
+    <svg class="ico" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/></svg>
+    Full report
+  </a>
+</div>
+
+<!-- ============ THE SETUP ============ -->
+<section>
+  <h2><svg class="ico" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+  The question, and the one it replaces</h2>
+  <p>
+    The obvious question is which filings move a stock <em>up</em>. It is also the
+    wrong one: direction is a bet against desks with faster data, better models and
+    more capital, and losing that bet quietly is the normal outcome.
+  </p>
+  <p>
+    So the question here is narrower and answerable. An analyst covering two hundred
+    issuers cannot read every 8-K. <em>Which ones deserve a human read?</em> That is
+    a ranking over reaction <em>size</em>, not sign — and unlike direction, it is
+    something a model can actually learn.
+  </p>
+  <div class="note accent">
+    <p>
+      The distinction changes what counts as success. A direction model is only
+      useful if it beats the market. A triage model is useful if it beats reading
+      the filings in the order they arrive.
+    </p>
+  </div>
+</section>
+
+<!-- ============ THE TURN ============ -->
+<section>
+  <h2><svg class="ico" viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg>
+  Every bug made the number better</h2>
+  <p>
+    An AUC near 0.9 on public disclosures would be a remarkable finding. It was
+    instead four separate defects, and not one of them announced itself — because
+    the failure mode of leakage is not a crash. It is a result you are pleased with.
+  </p>
+
+  <figure>
+    <div class="legend">
+      <span class="key"><span class="dot dot-alarm"></span>still leaking</span>
+      <span class="key"><span class="dot dot-accent"></span>audited clean</span>
+    </div>
+    <svg class="chart" viewBox="0 0 760 250" role="img"
+         aria-label="Average precision by stage, falling from 0.518 in the naive pipeline to 0.345 once every leakage guard passes.">
+      <line class="gridline" x1="240" y1="8" x2="240" y2="212"/>
+      <line class="gridline" x1="400" y1="8" x2="400" y2="212"/>
+      <line class="gridline" x1="560" y1="8" x2="560" y2="212"/>
+      <line class="gridline" x1="720" y1="8" x2="720" y2="212"/>
+
+      <text class="tick" x="228" y="26" text-anchor="end">Naive pipeline</text>
+      <rect class="bar bar-alarm" x="240" y="14" width="313" height="18" rx="4">
+        <title>Naive pipeline: average precision 0.518</title></rect>
+      <text class="val" x="561" y="28">0.518</text>
+
+      <text class="tick" x="228" y="66" text-anchor="end">+ purged CV</text>
+      <rect class="bar bar-alarm" x="240" y="54" width="291" height="18" rx="4">
+        <title>+ purged, embargoed cross-validation: 0.482</title></rect>
+      <text class="val" x="539" y="68">0.482</text>
+
+      <text class="tick" x="228" y="106" text-anchor="end">+ windows shifted</text>
+      <rect class="bar bar-alarm" x="240" y="94" width="159" height="18" rx="4">
+        <title>+ trailing windows shifted: 0.263</title></rect>
+      <text class="val" x="407" y="108">0.263</text>
+
+      <text class="tick" x="228" y="146" text-anchor="end">+ PIT universe</text>
+      <rect class="bar bar-alarm" x="240" y="134" width="159" height="18" rx="4">
+        <title>+ point-in-time universe: 0.263 — unchanged</title></rect>
+      <text class="val" x="407" y="148">0.263</text>
+
+      <text class="tick" x="228" y="186" text-anchor="end">+ PIT entry</text>
+      <rect class="bar bar-accent" x="240" y="174" width="208" height="18" rx="4">
+        <title>+ point-in-time entry: 0.345, every guard passing</title></rect>
+      <text class="val" x="456" y="188">0.345</text>
+
+      <line class="axis" x1="240" y1="8" x2="240" y2="212"/>
+      <text class="cap" x="240" y="234">Average precision. Each bar removes exactly one privilege the pipeline should never have had.</text>
+    </svg>
+  </figure>
+
+  <div class="scroll">
+  <table>
+    <thead><tr><th>Stage</th><th class="num">Avg precision</th><th class="num">ROC AUC</th><th class="num">Guards failing</th></tr></thead>
+    <tbody>
+      <tr><td>Naive pipeline</td><td class="num">0.518</td><td class="num">0.888</td><td class="num bad">1</td></tr>
+      <tr><td>+ purged, embargoed CV</td><td class="num">0.482</td><td class="num">0.871</td><td class="num bad">1</td></tr>
+      <tr><td>+ trailing windows shifted</td><td class="num">0.263</td><td class="num">0.791</td><td class="num bad">1</td></tr>
+      <tr><td>+ point-in-time universe</td><td class="num">0.263</td><td class="num">0.791</td><td class="num bad">1</td></tr>
+      <tr class="final"><td>+ point-in-time entry</td><td class="num">0.345</td><td class="num">0.768</td><td class="num ok">0</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <p>
+    Two rows look wrong, and both are findings rather than defects.
+  </p>
+  <p>
+    <em>The universe row does not move at all</em> — 0.262916 before and after, to
+    six decimals. That is the survivor sample confessing: when every issuer in the
+    file still exists, a point-in-time membership filter has nothing to remove. The
+    pipeline reports its own blind spot instead of hiding it.
+  </p>
+  <p>
+    <em>The entry row moves up.</em> Correcting the entry also corrects the window
+    the outcome is measured over, so it sharpens the label as well as removing the
+    impossible trade. Which is exactly why that stage's real result is not its
+    effect on the score.
+  </p>
+</section>
+
+<!-- ============ THE MECHANISM ============ -->
+<section>
+  <h2><svg class="ico" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+  The bug no metric catches</h2>
+  <p>
+    EDGAR gives you three timestamps and only one of them is a knowledge time. Use
+    the filing <em>date</em> instead of the acceptance <em>timestamp</em> and the
+    score barely twitches — while the pipeline buys at an opening print that had
+    already happened.
+  </p>
+
+  <figure>
+    <svg class="chart" viewBox="0 0 790 262" role="img"
+         aria-label="Timeline. A filing accepted at 8pm on day one is entered at day one's 9:30am open under the naive rule — 10.5 hours before the news existed — versus day two's open under the point-in-time rule.">
+      <rect x="96" y="42" width="150" height="34" rx="4" fill="var(--sunken)"/>
+      <rect x="650" y="42" width="46" height="34" rx="4" fill="var(--sunken)"/>
+      <text class="cap" x="171" y="63" text-anchor="middle">day 1 session</text>
+      <text class="cap" x="673" y="63" text-anchor="middle">day 2</text>
+
+      <line class="axis" x1="60" y1="94" x2="710" y2="94"/>
+      <g class="cap">
+        <text x="96" y="112" text-anchor="middle">09:30</text>
+        <text x="246" y="112" text-anchor="middle">16:00</text>
+        <text x="338" y="112" text-anchor="middle">20:00</text>
+        <text x="650" y="112" text-anchor="middle">09:30</text>
+      </g>
+      <g class="axis">
+        <line x1="96" y1="90" x2="96" y2="98"/><line x1="246" y1="90" x2="246" y2="98"/>
+        <line x1="338" y1="90" x2="338" y2="98"/><line x1="650" y1="90" x2="650" y2="98"/>
+      </g>
+
+      <line x1="338" y1="34" x2="338" y2="94" stroke="var(--ink)" stroke-width="2"/>
+      <circle cx="338" cy="34" r="5" fill="var(--ink)"/>
+      <text class="svg-ink" x="350" y="30" font-size="13" font-weight="640">8-K accepted, 20:00</text>
+      <text class="svg-muted" x="350" y="46" font-size="11.5">after the close — 4 in 5 filings land outside market hours</text>
+
+      <path d="M332 142 L102 142" stroke="var(--alarm)" stroke-width="2" fill="none"
+            marker-end="url(#arrowbad)"/>
+      <circle cx="96" cy="142" r="5" fill="var(--alarm)"/>
+      <text x="346" y="147" font-size="12.5" font-weight="640" fill="var(--alarm)">naive: enter at the filing date&#39;s open</text>
+      <text class="svg-muted" x="346" y="163" font-size="11.5">10.5 hours before the filing existed</text>
+
+      <path d="M344 208 L644 208" stroke="var(--accent)" stroke-width="2" fill="none"
+            marker-end="url(#arrowok)"/>
+      <circle cx="650" cy="208" r="5" fill="var(--accent)"/>
+      <text x="346" y="198" font-size="12.5" font-weight="640" fill="var(--accent)">point-in-time: the first open after acceptance</text>
+
+      <defs>
+        <marker id="arrowbad" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6"
+                markerHeight="6" orient="auto-start-reverse">
+          <path d="M0 0 10 5 0 10z" fill="var(--alarm)"/></marker>
+        <marker id="arrowok" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6"
+                markerHeight="6" orient="auto-start-reverse">
+          <path d="M0 0 10 5 0 10z" fill="var(--accent)"/></marker>
+      </defs>
+      <text class="cap" x="60" y="246">The red arrow points backwards in time. That is the whole bug.</text>
+    </svg>
+  </figure>
+
+  <div class="stats">
+    <div class="stat"><div class="v bad">95.6%</div>
+      <div class="l">of entries were priced before the filing was public</div>
+      <div class="n">11,168 of 11,681, under the naive rule</div></div>
+    <div class="stat"><div class="v bad">10.6 h</div>
+      <div class="l">median hindsight granted</div>
+      <div class="n">between the opening print and the filing</div></div>
+    <div class="stat"><div class="v ok">0</div>
+      <div class="l">after point-in-time entry</div>
+      <div class="n">an invariant the test suite pins</div></div>
+  </div>
+
+  <div class="note alarm">
+    <p>
+      There is a second trap inside the right field. EDGAR serves acceptance times
+      as <code>2024-10-31T18:03:31.000Z</code> — but the clock is the SEC's, which
+      runs on America/New_York. Parsing that <code>Z</code> as UTC shifts every
+      filing five hours earlier and silently reclassifies the after-hours
+      population as intraday.
+    </p>
+  </div>
+</section>
+
+<!-- ============ METHOD ============ -->
+<section>
+  <h2><svg class="ico" viewBox="0 0 24 24"><path d="M9 3H5a2 2 0 0 0-2 2v4m6-6h10a2 2 0 0 1 2 2v4M9 3v18m0 0H5a2 2 0 0 1-2-2v-4m6 6h10a2 2 0 0 0 2-2v-4"/></svg>
+  How the reaction is measured</h2>
+  <p>
+    A standard market-model event study, with one deliberate gap in it.
+  </p>
+
+  <figure>
+    <svg class="chart" viewBox="0 0 760 150" role="img"
+         aria-label="The measurement windows: a 120-session estimation window, a 20-session gap, then the two-session event window beginning at the entry session.">
+      <rect x="60" y="44" width="330" height="30" rx="4" fill="var(--sunken)" stroke="var(--grid)"/>
+      <text class="svg-ink2" x="225" y="64" text-anchor="middle" font-size="12.5">estimation window · 120 sessions</text>
+
+      <rect x="398" y="44" width="132" height="30" rx="4" fill="none" stroke="var(--warn)"
+            stroke-width="1.5" stroke-dasharray="4 3"/>
+      <text x="464" y="64" text-anchor="middle" font-size="12.5" font-weight="620" fill="var(--warn)">gap · 20</text>
+
+      <rect x="538" y="44" width="106" height="30" rx="4" fill="var(--accent)"/>
+      <text x="591" y="64" text-anchor="middle" font-size="12.5" font-weight="620" fill="#fff">event · 2</text>
+
+      <line class="axis" x1="60" y1="88" x2="700" y2="88"/>
+      <line x1="538" y1="30" x2="538" y2="94" stroke="var(--ink)" stroke-width="2"/>
+      <circle cx="538" cy="30" r="4.5" fill="var(--ink)"/>
+      <text class="svg-ink" x="548" y="26" font-size="12.5" font-weight="640">entry session</text>
+      <text class="cap" x="60" y="118">Not to scale — a two-session event window drawn against 120 would be nine pixels wide.</text>
+      <text class="cap" x="60" y="136">Without the gap, pre-announcement drift contaminates the baseline and shrinks the abnormality being measured.</text>
+    </svg>
+  </figure>
+
+  <p>
+    The reaction is <code>|CAR| / residual sd</code> — expressed in standard
+    deviations of that issuer's <em>own</em> noise, so a sleepy utility and a
+    biotech land on the same scale. A filing is "worth reading" if that lands in the
+    top decile, a threshold computed once over the whole sample and never
+    re-estimated inside a fold.
+  </p>
+
+  <h3>Features, and one leakage decision inside them</h3>
+  <div class="cols">
+    <div class="card">
+      <h3><svg class="ico" viewBox="0 0 24 24"><path d="M4 4h16v16H4z"/><path d="M4 9h16M9 9v11"/></svg>What kind of news</h3>
+      <p>8-K item codes — assigned by the registrant, available the instant the filing lands.</p>
+    </div>
+    <div class="card">
+      <h3><svg class="ico" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>When it landed</h3>
+      <p>Pre-market, intraday, after the close, or a non-trading day. Release timing is a choice the issuer makes.</p>
+    </div>
+    <div class="card">
+      <h3><svg class="ico" viewBox="0 0 24 24"><path d="M4 19.5V6a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2z"/><path d="M8 8h7M8 12h7"/></svg>How unusual</h3>
+      <p>Cosine distance from the issuer's own previous filings. Boilerplate scores near zero.</p>
+    </div>
+    <div class="card">
+      <h3><svg class="ico" viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="m7 14 4-4 3 3 5-6"/></svg>Issuer state</h3>
+      <p>Trailing volatility, relative volume, filing cadence — all ending the session <em>before</em> entry.</p>
+    </div>
+  </div>
+
+  <div class="note accent">
+    <p>
+      Novelty uses a stateless <code>HashingVectorizer</code>, not TF-IDF — and that
+      is a leakage decision, not a performance one. TF-IDF has to be fitted, and a
+      vectorizer fitted over the whole corpus carries document frequencies computed
+      from filings that had not been written yet.
+    </p>
+  </div>
+</section>
+
+<!-- ============ WHAT IT IS WORTH ============ -->
+<section>
+  <h2><svg class="ico" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg>
+  What the audited model is worth</h2>
+  <div class="stats">
+    <div class="stat"><div class="v">1.56×</div>
+      <div class="l">better than reading five at random</div>
+      <div class="n">15.6% against a 10% base rate</div></div>
+    <div class="stat"><div class="v">9</div>
+      <div class="l">filings per session, median</div>
+      <div class="n">769 sessions crowded enough to rank</div></div>
+    <div class="stat"><div class="v">9,729</div>
+      <div class="l">filings scored out of sample</div>
+      <div class="n">purged walk-forward, 5 folds</div></div>
+  </div>
+  <p>
+    Useful. Not a trading strategy, and not claimed as one. The gap between those
+    two sentences is most of what this project is about.
+  </p>
+
+  <h3>Where the other filings went</h3>
+  <p>
+    11,702 were ingested and 9,729 were scored. The difference is itemised rather
+    than left as arithmetic for the reader, because an unexplained drop is
+    indistinguishable from a bug — and a test asserts the ledger balances.
+  </p>
+  <div class="scroll">
+  <table>
+    <thead><tr><th>Outcome</th><th class="num">Filings</th></tr></thead>
+    <tbody>
+      <tr class="final"><td>Scored out of sample</td><td class="num">9,729</td></tr>
+      <tr><td>Held out by walk-forward as training-only</td><td class="num">1,945</td></tr>
+      <tr><td>Event window ran past the end of the price data</td><td class="num">15</td></tr>
+      <tr><td>Missing price bars inside the event window</td><td class="num">7</td></tr>
+      <tr><td>Entry session had no price bar</td><td class="num">6</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p class="muted" style="font-size:13.5px">
+    The large line is the honest cost of the split: walk-forward tests folds 1…n, so
+    the earliest block is only ever training data. Shuffled K-fold scores all 11,681
+    — by training on the future to do it.
+  </p>
+</section>
+
+<!-- ============ HONESTY ============ -->
+<section>
+  <h2><svg class="ico" viewBox="0 0 24 24"><path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg>
+  What this does not claim</h2>
+  <div class="note alarm">
+    <p><em>No return prediction.</em> Direction is never modelled. No strategy
+    return, Sharpe ratio or P&amp;L appears anywhere in the repository.</p>
+    <p><em>Survivorship is not controlled on the real-data path.</em> The universe is
+    200 hand-picked large caps that still exist — which is why the point-in-time row
+    above does not move. That leak is measured on the synthetic corpus instead,
+    where membership is generated with issuers that join and leave. The universe
+    file records the limitation in a sidecar, the ingest carries it into the run's
+    provenance, and the report states it in a banner.</p>
+    <p><em>Daily bars only.</em> The entry rule — first open at or after the decision
+    time — is the most conservative convention available at that resolution.</p>
+  </div>
+</section>
+
+<!-- ============ ENGINEERING ============ -->
+<section>
+  <h2><svg class="ico" viewBox="0 0 24 24"><path d="m8 18-6-6 6-6M16 6l6 6-6 6"/></svg>
+  Guards that raise, not warn</h2>
+  <p>
+    A check that can be ignored is a comment. Three of the four bugs are invisible
+    in the code and visible only in the metric; the fourth is invisible in the
+    metric and visible only in the data. That asymmetry is the argument for
+    checking mechanically rather than carefully.
+  </p>
+  <ul>
+    <li><code>LeakageAudit</code> raises, it does not log — and it runs on every
+        pipeline execution, not in a notebook someone ran once.</li>
+    <li><code>cli audit</code> is a CI job, so a regression fails a build rather
+        than a quarterly review.</li>
+    <li>The correct configuration is the <em>default</em>. A safe default you have
+        to opt into is not a safe default, and a test asserts it.</li>
+    <li>The real-data path runs end to end in the suite with the network faked —
+        which is how three crashes that would have hit the first live pull were
+        found.</li>
+  </ul>
+
+  <h3>Reproducing it</h3>
+<pre><code>git clone https://github.com/josephwang-ds/ai-quant-signal-platform
+python3 -m venv .venv &amp;&amp; source .venv/bin/activate
+make install
+make demo        # synthetic corpus · ~4 min · no credentials, no network
+
+export EDGAR_USER_AGENT="Your Name you@example.com"
+make universe &amp;&amp; make doctor &amp;&amp; make ingest &amp;&amp; make run</code></pre>
+  <p>
+    Every report states in its own banner which of the two paths produced it, so a
+    synthetic run cannot be mistaken for a real one at a glance.
+  </p>
+</section>
+
+<footer>
+  <p>
+    Figures from a real EDGAR pull: 11,702 8-K filings, 193 issuers, 2022–2026,
+    prices from yfinance. Source, methodology and the leakage write-up on
+    <a href="https://github.com/josephwang-ds/ai-quant-signal-platform">GitHub</a>.
+  </p>
+</footer>
+
+</main>
+<script>
+// Embedded in an iframe, the page follows the *browser's* colour scheme, not the
+// host application's -- so a dark Streamlit app on a light OS gets a light panel
+// inside it. ?theme=dark|light overrides. Progressive enhancement: with no script
+// the CSS still resolves through prefers-color-scheme.
+(function () {
+  try {
+    var t = new URLSearchParams(location.search).get("theme");
+    if (t === "dark" || t === "light") document.documentElement.dataset.theme = t;
+  } catch (e) { /* a sandboxed iframe may refuse location; the default stands */ }
+})();
+</script>
+</body>
+</html>

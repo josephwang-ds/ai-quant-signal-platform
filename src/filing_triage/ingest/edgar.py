@@ -24,6 +24,7 @@ import json
 import os
 import time
 from dataclasses import dataclass
+from datetime import timedelta
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
@@ -32,6 +33,7 @@ import requests
 
 SEC_TICKERS_URL = "https://www.sec.gov/files/company_tickers.json"
 SEC_SUBMISSIONS_URL = "https://data.sec.gov/submissions/CIK{cik:010d}.json"
+SEC_COMPANY_FACTS_URL = "https://data.sec.gov/api/xbrl/companyfacts/CIK{cik:010d}.json"
 SEC_ARCHIVE_URL = "https://www.sec.gov/Archives/edgar/data/{cik}/{accession}/{document}"
 
 # See docstring. Override only if you have verified otherwise against live data.
@@ -40,6 +42,8 @@ ACCEPTANCE_TZ = ZoneInfo(os.environ.get("EDGAR_ACCEPTANCE_TZ", "America/New_York
 MAX_REQUESTS_PER_SECOND = 8      # SEC's ceiling is 10; leave headroom.
 MAX_RETRIES = 5
 BACKOFF_BASE = 2.0
+SUBMISSIONS_CACHE_MAX_AGE = timedelta(hours=6)
+TICKER_MAP_CACHE_MAX_AGE = timedelta(days=1)
 
 
 class EdgarAccessError(RuntimeError):
@@ -117,10 +121,21 @@ class EdgarClient:
         raise RuntimeError(
             f"gave up on {url} after {MAX_RETRIES} attempts: {last_error}")
 
-    def _cached(self, key: str, url: str) -> bytes:
+    def _cached(
+        self,
+        key: str,
+        url: str,
+        *,
+        max_age: timedelta | None = None,
+        refresh: bool = False,
+    ) -> bytes:
         path = self.cache_dir / key
         path.parent.mkdir(parents=True, exist_ok=True)
-        if path.exists():
+        fresh_enough = (
+            max_age is None
+            or time.time() - path.stat().st_mtime <= max_age.total_seconds()
+        ) if path.exists() else False
+        if path.exists() and not refresh and fresh_enough:
             return path.read_bytes()
         payload = self._get(url)
         # Write via a temporary file: a run interrupted mid-write must not leave a
@@ -139,22 +154,51 @@ class EdgarClient:
     # -- endpoints --------------------------------------------------------- #
     def ticker_map(self) -> pd.DataFrame:
         """ticker -> CIK, straight from the SEC's own mapping."""
-        raw = json.loads(self._cached("company_tickers.json", SEC_TICKERS_URL))
+        raw = json.loads(
+            self._cached(
+                "company_tickers.json",
+                SEC_TICKERS_URL,
+                max_age=TICKER_MAP_CACHE_MAX_AGE,
+            )
+        )
         return pd.DataFrame([
             {"ticker": v["ticker"].upper(), "cik": int(v["cik_str"]), "name": v["title"]}
             for v in raw.values()
         ])
 
-    def submissions(self, cik: int) -> dict:
-        """Full submission history, following the SEC's pagination shards."""
+    def submissions(self, cik: int, *, refresh: bool = False) -> dict:
+        """Full submission history, refreshing the mutable recent-filing head.
+
+        Historical pagination shards are immutable and remain cached by filename.
+        The head changes whenever a company files, so treating it as a permanent
+        cache silently makes every later ingest stale.
+        """
         head = json.loads(self._cached(
-            f"submissions/CIK{cik:010d}.json", SEC_SUBMISSIONS_URL.format(cik=cik)))
+            f"submissions/CIK{cik:010d}.json",
+            SEC_SUBMISSIONS_URL.format(cik=cik),
+            max_age=SUBMISSIONS_CACHE_MAX_AGE,
+            refresh=refresh,
+        ))
         shards = []
         for extra in head.get("filings", {}).get("files", []):
             url = f"https://data.sec.gov/submissions/{extra['name']}"
             shards.append(json.loads(self._cached(f"submissions/{extra['name']}", url)))
         head["_shards"] = shards
         return head
+
+    def company_facts(self, cik: int, *, refresh: bool = False) -> dict:
+        """XBRL company facts JSON. Treated as immutable-enough (no max_age).
+
+        Company Facts updates when new filings arrive, but for this workbench the
+        cache is refreshed explicitly via refresh=True rather than a TTL.
+        """
+        return json.loads(
+            self._cached(
+                f"companyfacts/CIK{cik:010d}.json",
+                SEC_COMPANY_FACTS_URL.format(cik=cik),
+                refresh=refresh,
+            )
+        )
 
     def document_text(self, cik: int, accession: str, document: str) -> str:
         """Primary document, tags stripped. Enough for a bag-of-words novelty score."""
@@ -267,4 +311,28 @@ ITEM_LABELS = {
     "7.01": "Regulation FD disclosure",
     "8.01": "Other events",
     "9.01": "Financial statements and exhibits",
+}
+
+ITEM_LABELS_ZH = {
+    "1.01": "签署重大协议",
+    "1.02": "终止重大协议",
+    "1.03": "破产或接管",
+    "2.01": "资产收购或处置",
+    "2.02": "经营业绩(财报)",
+    "2.03": "产生直接财务义务",
+    "2.04": "触发义务加速事件",
+    "2.05": "退出或处置成本",
+    "2.06": "重大减值",
+    "3.01": "退市或上市规则问题",
+    "3.02": "未注册股权出售",
+    "3.03": "重大修改证券持有人权利",
+    "4.01": "更换审计师",
+    "4.02": "此前财务报表不可靠",
+    "5.01": "控制权变更",
+    "5.02": "董事或主要高管变更",
+    "5.03": "财年或章程修订",
+    "5.07": "股东投票结果",
+    "7.01": "Regulation FD 披露",
+    "8.01": "其他事项",
+    "9.01": "财务报表与附件",
 }

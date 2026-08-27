@@ -6,11 +6,18 @@ venv/
 .pytest_cache/
 .ruff_cache/
 .ipynb_checkpoints/
+.DS_Store
+
+# Local provider secrets. Commit only the empty example template.
+.env
+.env.*
+!.env.example
 
 # Data: cache and derived artifacts are reproducible, never committed.
 # data/sample/ IS committed — it is what makes `make demo` work offline.
 data/cache/
 data/build/
+data/vercel-cli/
 build/
 dist/
 *.parquet

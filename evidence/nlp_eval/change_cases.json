@@ -1,0 +1,54 @@
+[
+  {
+    "id": "changed_amount",
+    "prior_text": "The company reported quarterly revenue of $100 million.",
+    "current_text": "The company reported quarterly revenue of $120 million.",
+    "expected": [
+      {
+        "kind": "changed",
+        "current_contains": "revenue of $120 million",
+        "prior_contains": "revenue of $100 million"
+      }
+    ]
+  },
+  {
+    "id": "added_dividend",
+    "prior_text": "The company reported quarterly revenue of $100 million.",
+    "current_text": "The company reported quarterly revenue of $100 million. The board declared a quarterly dividend of $0.25 per share.",
+    "expected": [
+      {
+        "kind": "added",
+        "current_contains": "quarterly dividend of $0.25"
+      }
+    ]
+  },
+  {
+    "id": "removed_impairment",
+    "prior_text": "The company reported quarterly revenue of $100 million. The company recorded an impairment charge of $40 million.",
+    "current_text": "The company reported quarterly revenue of $100 million.",
+    "expected": [
+      {
+        "kind": "removed",
+        "prior_contains": "impairment charge of $40 million"
+      }
+    ]
+  },
+  {
+    "id": "unchanged_statement",
+    "prior_text": "The company reported quarterly revenue of $100 million.",
+    "current_text": "The company reported quarterly revenue of $100 million.",
+    "expected": []
+  },
+  {
+    "id": "routine_quarter_rollforward",
+    "prior_text": "Apple issued a press release regarding financial results for its second fiscal quarter ended March 28, 2026.",
+    "current_text": "Apple issued a press release regarding financial results for its third fiscal quarter ended June 27, 2026.",
+    "expected": []
+  },
+  {
+    "id": "routine_filing_date_rollforward",
+    "prior_text": "On April 30, 2026, Apple Inc. issued its quarterly report.",
+    "current_text": "On July 30, 2026, Apple Inc. issued its quarterly report.",
+    "expected": []
+  }
+]

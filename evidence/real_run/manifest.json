@@ -1,0 +1,32 @@
+{
+  "schema_version": "1.0",
+  "exported_at": "2026-08-27T01:43:41.740667+00:00",
+  "pipeline_config": {
+    "reaction_threshold": 2.0,
+    "event_window_sessions": 2,
+    "estimation_sessions": 120,
+    "estimation_gap_sessions": 20,
+    "validation": "purged_embargoed_walk_forward",
+    "reaction_measured_from": "prior close (market-model event study convention); see reaction_capture.csv"
+  },
+  "uncertainty": {
+    "method": "cluster bootstrap over sessions; paired for baselines",
+    "draws": 2000,
+    "sessions": 959
+  },
+  "files": [
+    "metrics.json",
+    "integrity.json",
+    "provenance.json",
+    "fold_metrics.csv",
+    "oos_importance.csv",
+    "audit.csv",
+    "leakage_study.csv",
+    "baseline_intervals.csv",
+    "reaction_capture.csv",
+    "anchoring_study.csv",
+    "hyperparameter_sensitivity.csv"
+  ],
+  "raw_data_committed": false,
+  "note": "Metrics are real-data results; the convenience universe has survivorship bias."
+}

@@ -18,8 +18,9 @@ from filing_triage.guards import LeakageAudit
 from filing_triage.ingest.prices import to_returns
 from filing_triage.ingest.universe import restrict_to_membership
 from filing_triage.labels import build_labels
-from filing_triage.model import TriageModel, permutation_importance
+from filing_triage.model import TriageModel
 from filing_triage.pit import CALENDAR, TradingClock, naive_entry_session_from_filing_date
+from filing_triage.uncertainty import bootstrap_daily_comparisons, bootstrap_ranking_metrics
 
 
 @dataclass
@@ -35,16 +36,21 @@ class PipelineResult:
     queue: pd.DataFrame
     importance: pd.DataFrame = field(default_factory=pd.DataFrame)
     integrity: dict = field(default_factory=dict)
+    baseline_comparisons: pd.DataFrame = field(default_factory=pd.DataFrame)
+    """Paired session bootstrap of the model against each operational baseline."""
 
 
 def run(events: pd.DataFrame, prices: pd.DataFrame, membership: pd.DataFrame,
         config: PipelineConfig | None = None, *,
-        compute_importance: bool = True) -> PipelineResult:
+        compute_importance: bool = True,
+        compute_uncertainty: bool = True,
+        estimator_overrides: dict | None = None) -> PipelineResult:
     config = config or PipelineConfig()
     clock = TradingClock(embargo=config.embargo)
 
     events = _resolve_timing(events.copy(), clock, config)
     integrity = _entry_integrity(events, clock)
+    integrity.update(_label_anchor_integrity(events, config))
 
     n_before = len(events)
     if config.pit_universe:
@@ -65,7 +71,7 @@ def run(events: pd.DataFrame, prices: pd.DataFrame, membership: pd.DataFrame,
 
     audit = _audit(events, features, membership, aligned, config)
 
-    model = TriageModel(config)
+    model = TriageModel(config, estimator_overrides=estimator_overrides)
     predictions = model.fit_predict_oos(
         features=features,
         labels=aligned["label"],
@@ -73,10 +79,9 @@ def run(events: pd.DataFrame, prices: pd.DataFrame, membership: pd.DataFrame,
         label_end_time=pd.to_datetime(aligned["label_end_session"]).dt.tz_localize(
             events["acceptance_time"].dt.tz),
         audit=audit,
+        compute_importance=compute_importance,
     )
 
-    # Permutation importance costs more than the rest of the pipeline combined,
-    # and the leakage study runs that pipeline five times over. It wants metrics.
     # Walk-forward tests folds 1..n, so the earliest block is only ever training
     # data and those events never receive an out-of-sample score. That is correct
     # and it is also the last place the count silently drops -- without this line
@@ -88,12 +93,22 @@ def run(events: pd.DataFrame, prices: pd.DataFrame, membership: pd.DataFrame,
         integrity["attrition"] = dict(integrity.get("attrition") or {})
         integrity["attrition"]["held out by walk-forward as training-only"] = held_back
 
-    importance = pd.DataFrame()
-    if compute_importance and len(predictions) and aligned["label"].nunique() > 1:
-        fitted = model.fit_full(features, aligned["label"])
-        importance = permutation_importance(fitted, features, aligned["label"])
+    # Importance is calculated on each fold's held-out rows, never on the data
+    # used to fit that fold. Leakage/embargo studies disable it for runtime.
+    importance = model.oos_importance_
 
     integrity["events_scored"] = len(predictions)
+
+    sessions = events.set_index("event_id")["entry_session"]
+    metrics = evaluate(predictions, sessions=sessions, events=events) if len(
+        predictions) else {}
+    # Off for the leakage and embargo studies, which run the pipeline a dozen
+    # times over and do not quote a single headline number -- the interval
+    # belongs on the numbers a reader is asked to believe.
+    baseline_comparisons = pd.DataFrame()
+    if compute_uncertainty and len(predictions):
+        metrics.update(bootstrap_ranking_metrics(predictions, sessions))
+        baseline_comparisons = bootstrap_daily_comparisons(predictions, events)
 
     return PipelineResult(
         config=config,
@@ -101,15 +116,13 @@ def run(events: pd.DataFrame, prices: pd.DataFrame, membership: pd.DataFrame,
         features=features,
         labels=aligned.reset_index(),
         predictions=predictions,
-        metrics=evaluate(
-            predictions,
-            sessions=events.set_index("event_id")["entry_session"],
-        ) if len(predictions) else {},
+        metrics=metrics,
         by_fold=evaluate_by_fold(predictions) if len(predictions) else pd.DataFrame(),
         audit=audit,
         queue=daily_queue(predictions, events) if len(predictions) else pd.DataFrame(),
         importance=importance,
         integrity=integrity,
+        baseline_comparisons=baseline_comparisons,
     )
 
 
@@ -151,6 +164,43 @@ def _entry_integrity(events: pd.DataFrame, clock: TradingClock) -> dict:
     }
 
 
+def _label_anchor_price_time(events: pd.DataFrame, config: PipelineConfig) -> pd.Series:
+    """When the first price the *label* uses was printed.
+
+    Not the same question as the entry rule's, which is the whole point. A
+    close-to-close event window opens at the previous session's close; an
+    open-anchored one opens at the entry session's own opening print.
+    """
+    tz = events["acceptance_time"].dt.tz
+    if config.open_anchored_returns:
+        return events["entry_session"].map(
+            lambda d: CALENDAR.open_at(d).astimezone(tz))
+    return events["entry_session"].map(
+        lambda d: CALENDAR.close_at(CALENDAR.shift(d, -1)).astimezone(tz))
+
+
+def _label_anchor_integrity(events: pd.DataFrame, config: PipelineConfig) -> dict:
+    """How much of the reaction window predates the filing it is measuring.
+
+    The sibling of `_entry_integrity`, and deliberately *not* a guard. A
+    close-to-close window on an after-hours filing opens at a price printed
+    hours before EDGAR accepted the document, so the measured reaction includes
+    the overnight gap. For a materiality label that is the correct event-study
+    convention rather than a bug -- but it is also the reason this label must
+    never be read as a tradable return, and a number a reader can see beats a
+    caveat they can skip. `experiments.anchoring_study` prices what it means.
+    """
+    anchor = _label_anchor_price_time(events, config)
+    stale_hours = (events["acceptance_time"] - anchor).dt.total_seconds() / 3600.0
+    stale = stale_hours > 0
+    return {
+        "pre_acceptance_label_anchors": int(stale.sum()),
+        "pre_acceptance_label_share": float(stale.mean()) if len(events) else 0.0,
+        "median_label_anchor_staleness_hours": (
+            float(stale_hours[stale].median()) if stale.any() else 0.0),
+    }
+
+
 def _audit(events: pd.DataFrame, features: pd.DataFrame, membership: pd.DataFrame,
            labels: pd.DataFrame, config: PipelineConfig) -> LeakageAudit:
     audit = LeakageAudit()
@@ -167,8 +217,9 @@ def _audit(events: pd.DataFrame, features: pd.DataFrame, membership: pd.DataFram
         "entry_open": entry_open,
     })
     audit.causal(tradability, fact="acceptance_time", decision="entry_open",
-                 label="entry opens after the filing was public",
-                 holds="no position is entered at a price printed before the filing")
+                 label="entry opens after the EDGAR accepted timestamp",
+                 holds="no entry uses a price printed before EDGAR acceptance")
+
 
     est = pd.DataFrame({
         "estimation_end": pd.to_datetime(labels["estimation_end"]),

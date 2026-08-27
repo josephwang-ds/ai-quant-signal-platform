@@ -1,0 +1,19 @@
+{
+  "impossible_entries": 0,
+  "impossible_share": 0.0,
+  "median_hindsight_hours": 0.0,
+  "max_hindsight_hours": -0.05611111111111111,
+  "pre_acceptance_label_anchors": 7429,
+  "pre_acceptance_label_share": 0.6348487438044779,
+  "median_label_anchor_staleness_hours": 4.6425,
+  "events_dropped_by_universe": 0,
+  "events_total": 11702,
+  "events_measured": 11674,
+  "events_scored": 9729,
+  "attrition": {
+    "missing price bars inside the event window": 7,
+    "event window runs past the end of the price data": 15,
+    "entry session has no price bar": 6,
+    "held out by walk-forward as training-only": 1945
+  }
+}

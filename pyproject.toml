@@ -16,9 +16,11 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = ["pytest>=8.0", "ruff>=0.6"]
+rag = ["langchain-text-splitters>=1.0,<2.0", "pypdf>=5.0,<7.0"]
 
 [project.scripts]
 triage = "filing_triage.cli:main"
+company-lens = "company_lens.cli:main"
 
 [build-system]
 requires = ["setuptools>=68"]
@@ -30,6 +32,12 @@ where = ["src"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-q"
+# src-layout on the path explicitly, rather than relying on the editable
+# install's .pth file resolving. On macOS an iCloud-synced checkout gets
+# UF_HIDDEN re-applied to everything under .venv/, and CPython *silently*
+# skips hidden .pth files -- so `pip install -e .` reports success and the
+# package is still unimportable. This makes `make test` independent of that.
+pythonpath = ["src"]
 
 [tool.ruff]
 line-length = 100
@@ -58,3 +66,7 @@ select = [
 "tests/test_pit.py" = ["DTZ001"]
 # scripts/ is imported after a sys.path insert, which has to come first.
 "tests/test_build_universe.py" = ["E402"]
+# Self-contained HTML and minified CSS/JS are intentionally embedded as long literals.
+"src/company_lens/web/page.py" = ["E501"]
+# Full-width Chinese punctuation is an intentional document-splitting boundary.
+"src/company_lens/llm/retrieval.py" = ["RUF001"]
