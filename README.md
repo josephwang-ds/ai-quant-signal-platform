@@ -502,8 +502,15 @@ Then commit `web/report.html`. Reports carry their own provenance banner, so a
 synthetic run published by accident says so on its own face rather than passing
 as a real one.
 
-Enable it once under **Settings → Pages → Source: GitHub Actions**. The workflow
-runs on any push to `main` that touches `web/`.
+**Pages is not currently enabled**, so `web/` is committed but not served. The
+workflow is manual-only for that reason: `configure-pages` cannot find a Pages
+site and fails, and a job that goes red on every push trains everyone to ignore
+red. To publish, enable it under **Settings → Pages → Source: GitHub Actions**,
+run the Pages workflow once from the Actions tab, then restore the push trigger
+commented at the top of [`pages.yml`](.github/workflows/pages.yml).
+
+The live Company Lens site is a separate Vercel deployment and is unaffected by
+any of this.
 
 ## Layout
 
