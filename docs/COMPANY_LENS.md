@@ -35,20 +35,19 @@ not-configured state and make no live-news request. The production worker refres
 that bounded index from Finnhub on weekdays, keeps the last good cache on upstream
 failure, and then rebuilds all 193 pages. Opt-in grounded retrieval runs
 persist their documents, selected chunks, safe reader rules, and run provenance to
-local versioned JSON by default; no database is required. A backend worker can
-explicitly select the optional PostgREST adapter without changing the snapshot:
+local versioned JSON. No database is required, and none is supported:
 
 ```bash
 company-lens AAPL --llm --storage-backend local
-company-lens AAPL --llm --storage-backend dual  # requires backend-only Supabase env vars
 ```
 
-Use `SUPABASE_SECRET_KEY` for the current `sb_secret_...` backend key;
-`SUPABASE_SERVICE_ROLE_KEY` remains a legacy JWT fallback. Neither may enter
-frontend/browser configuration or a public build, and publishable keys are rejected.
-The versioned migration and current Secret-key path have completed a controlled live
-PostgREST write/read/cleanup smoke test. The repository still defaults to local storage
-and contains no Supabase project identifier or credential.
+A PostgREST adapter and a dual-write mode lived here until 2026-08-28. Both were
+removed rather than kept, and the reasoning is worth recording because the code
+worked: it had passed a controlled live write/read/cleanup test. What it never
+had was a caller. Nothing in the repository selected it, so it was carrying four
+environment variables, a SQL migration, a page of operating documentation and a
+credential class that must never reach a browser — all for a path no run took.
+Unused code with a security surface is not free.
 The entry searches all 193 companies in the current local evidence universe while
 keeping AAPL/MSFT/NVDA as featured examples. It states when a company is genuinely
 outside that universe. It makes no forecast or recommendation.

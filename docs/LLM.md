@@ -199,7 +199,7 @@ Finnhub's company-news and market-news endpoints. It stores only provider-suppli
 metadata and short summaries—never article bodies or vendor sentiment—and retains the
 last good rows through an upstream failure.
 
-See [STORAGE.md](STORAGE.md) for the recommended Vercel/Vultr/Supabase deployment split.
+Evidence persists to local versioned JSON; there is no remote storage backend.
 
 ## Selection by evaluation, not reputation
 

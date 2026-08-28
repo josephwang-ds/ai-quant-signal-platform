@@ -1,9 +1,5 @@
 from __future__ import annotations
 
-import re
-from dataclasses import fields
-from pathlib import Path
-
 import pytest
 
 from company_lens.llm.grounded import GroundedExplanationRequest
@@ -213,56 +209,20 @@ def test_retrieval_and_fallback_provenance_persist_end_to_end_without_cloud(
     assert "/Users/" not in stored_text
 
 
-def test_supabase_migration_has_rls_and_no_premature_vector_dimension() -> None:
-    migration = (
-        Path(__file__).parents[1] / "ops/supabase/0001_evidence_storage.sql"
-    ).read_text(encoding="utf-8")
+def test_only_the_local_backend_exists() -> None:
+    """A PostgREST adapter and a dual-write mode lived here until 2026-08-28.
 
-    for table in (
-        "documents",
-        "document_chunks",
-        "headlines",
-        "rulesets",
-        "retrieval_runs",
-        "llm_runs",
-    ):
-        assert f"alter table public.{table} enable row level security" in migration
-    assert "auth.uid()" in migration
-    assert "service-role" not in migration
-    assert "supabase.co" not in migration
-    assert 'create policy "public source chunks are readable"' not in migration
-    assert 'drop policy if exists "owners manage documents"' in migration
-    assert "documents.owner_id = document_chunks.owner_id" not in migration
-    assert "grant usage on schema public to anon, authenticated, service_role" in migration
-    assert re.search(
-        r"grant select on table\s+public\.documents,\s+public\.headlines\s+to anon;",
-        migration,
-    )
-    assert re.search(
-        r"grant select, insert, update, delete on table\s+"
-        r"public\.documents,\s+public\.document_chunks,\s+public\.headlines,\s+"
-        r"public\.rulesets,\s+public\.retrieval_runs,\s+public\.llm_runs\s+"
-        r"to authenticated, service_role;",
-        migration,
-    )
-    assert "grant all" not in migration.lower()
-    assert re.search(r"(?<![a-z])vector\s*\(", migration) is None
-    assert "embedding vector" not in migration
+    They were removed rather than kept, and the code worked -- it had passed a
+    controlled live write/read/cleanup test. What it never had was a caller.
+    It was carrying four environment variables, a SQL migration, a page of
+    operating documentation and a credential class that must never reach a
+    browser, all for a path no run took. This asserts they stay gone: an
+    unselected backend with a security surface is not free.
+    """
+    from company_lens.storage import StorageConfigurationError, create_storage
 
-    records_by_table = {
-        "documents": StoredDocument,
-        "document_chunks": StoredChunk,
-        "headlines": StoredHeadline,
-        "rulesets": StoredRuleset,
-        "retrieval_runs": StoredRetrievalRun,
-        "llm_runs": StoredLlmRun,
-    }
-    for table, record_type in records_by_table.items():
-        match = re.search(
-            rf"create table if not exists public\.{table} \((.*?)\n\);",
-            migration,
-            re.DOTALL,
-        )
-        assert match is not None
-        for field in fields(record_type):
-            assert re.search(rf"\n\s+{field.name}\s", match.group(1))
+    for removed in ("supabase", "dual"):
+        with pytest.raises(StorageConfigurationError, match="only 'local' remains"):
+            create_storage(removed)
+
+

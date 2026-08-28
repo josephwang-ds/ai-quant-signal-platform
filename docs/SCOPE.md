@@ -144,7 +144,7 @@ latency are outside the user problem.
 - a user-entered historical portfolio picture.
 
 Stretch work must not delay source anchors, filing comparison, evaluation, or the
-single company page. Supabase is optional deployment infrastructure when dynamic
+single company page. Evidence persists to local JSON when dynamic
 uploads or retrieval history require persistence; it is not an MVP user feature.
 
 ## Explicitly out of scope

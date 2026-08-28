@@ -19,10 +19,147 @@ import json
 from datetime import UTC, datetime
 from pathlib import Path
 
+# Plain-language names for what the model reads. Semantics, not measurements:
+# the importances beside them come from the evidence, these do not, because a
+# feature's meaning does not change when the sample does.
+FEATURE_WORDS = {
+    "item_2_02": (
+        "Is this an earnings release?",
+        (
+        "8-K item 2.02 is the code a company uses when it reports results. Registrants"
+        " label their own filings, so the model knows what kind of news it is before"
+        " reading a word."
+    ),
+    ),
+    "hour_et": (
+        "What time of day was it filed?",
+        "New York time. Companies choose when to release news, and the choice is informative.",
+    ),
+    "days_since_last_earnings": (
+        "How long since this company last reported?",
+        "Where the filing sits in the quarterly cycle.",
+    ),
+    "rel_volume": (
+        "Was the stock unusually busy beforehand?",
+        (
+        "Yesterday's volume against this company's own 60-day median. Yesterday's, never"
+        " today's — today's would be the reaction the model is trying to predict."
+    ),
+    ),
+    "days_to_expected_earnings": (
+        "How close is the next expected report?",
+        "Estimated from this company's own filing history, never from a published calendar.",
+    ),
+    "issuer_prior_material_rate": (
+        "How often has this company moved markets before?",
+        "Counting only filings whose outcome was already known by the time this one arrived.",
+    ),
+    "released_post": (
+        "Was it filed after the close?",
+        "Roughly two thirds of 8-Ks arrive outside market hours.",
+    ),
+    "released_open": (
+        "Was it filed during trading hours?",
+        "",
+    ),
+    "log_doc_chars": (
+        "How long is the document?",
+        "Length, on a log scale.",
+    ),
+    "novelty": (
+        "How different is it from this company's recent filings?",
+        "Cosine distance from its own previous eight 8-Ks.",
+    ),
+    "days_to_fiscal_year_end": (
+        "Where in the fiscal year does it land?",
+        "A published calendar that almost never changes.",
+    ),
+    "days_since_prev_filing": (
+        "How long since this company filed anything?",
+        "",
+    ),
+    "filings_trailing_year": (
+        "How talkative is this company?",
+        "Filings in the previous 365 days, counting only earlier ones.",
+    ),
+    "vol_20": (
+        "How volatile has the stock been?",
+        "20-session standard deviation, ending the day before.",
+    ),
+}
+
+# Terms the page uses that a reader outside this field has no reason to know.
+GLOSSARY = [
+    (
+        "8-K",
+        (
+        "The form a US public company files to disclose something material between"
+        " quarterly reports — anything from an earnings release to a chief executive"
+        " leaving."
+    ),
+    ),
+    (
+        "Material",
+        (
+        "Here it means the stock moved at least twice its own normal daily noise after"
+        " the filing, up or down. Magnitude, never direction: this project does not"
+        " predict which way."
+    ),
+    ),
+    (
+        "Average precision",
+        (
+        "One number for how good a ranking is, from 0 to 1. It rewards putting the"
+        " filings that mattered near the top. Chance on this sample is about 0.13."
+    ),
+    ),
+    (
+        "ROC AUC",
+        (
+        "The chance that a filing that mattered is ranked above one that did not. 0.5 is"
+        " a coin flip. Reported as a cross-check rather than the headline, because it"
+        " averages over the whole ranking including the tail nobody reads."
+    ),
+    ),
+    (
+        "precision@5",
+        "Of the five filings surfaced on a given morning, the share that turned out to matter.",
+    ),
+    (
+        "Leakage",
+        (
+        "The model seeing something it could not have known at the time. It does not"
+        " crash — it quietly produces a better score, which is what makes it dangerous."
+    ),
+    ),
+    (
+        "Purged, embargoed validation",
+        (
+        "Testing only on filings that came after the ones trained on, and discarding any"
+        " training filing whose outcome window overlaps the test period."
+    ),
+    ),
+    (
+        "Bootstrap interval",
+        (
+        "Re-running the measurement on 2,000 resamples to see how much the answer moves."
+        " A number without one is a claim with its error bar deleted."
+    ),
+    ),
+    (
+        "Paired comparison",
+        (
+        "Scoring two methods on the same resampled days, so their difference is measured"
+        " directly instead of comparing two separate estimates."
+    ),
+    ),
+]
+
 REQUIRED = ("metrics.json", "integrity.json", "leakage_study.csv",
             "capacity_profile.csv", "baseline_intervals.csv",
             "model_comparison_paired.csv", "reaction_capture.csv",
-            "anchoring_study.csv", "session_material_counts.csv", "manifest.json")
+            "anchoring_study.csv", "session_material_counts.csv",
+            "oos_importance.csv", "manifest.json")
 
 
 def load(evidence: Path) -> dict:
@@ -48,6 +185,7 @@ def load(evidence: Path) -> dict:
         "capture": {r["population"]: r for r in rows("reaction_capture.csv")},
         "anchoring": rows("anchoring_study.csv"),
         "material_counts": rows("session_material_counts.csv"),
+        "importance": rows("oos_importance.csv"),
     }
 
 
@@ -155,6 +293,33 @@ def _capture(capture) -> str:
     return "".join(out)
 
 
+def _features(importance, limit=10) -> str:
+    """What the model reads, ordered by how much it actually leans on each.
+
+    Order and numbers come from the out-of-sample permutation importance in the
+    evidence; only the plain-language names are written here. A feature the
+    evidence does not rank is not shown, so the list cannot describe a column
+    that has been removed.
+    """
+    out = []
+    for row in importance[:limit]:
+        words = FEATURE_WORDS.get(row["feature"])
+        if not words:
+            continue
+        title, detail = words
+        out.append(
+            f"<li><b>{title}</b>"
+            f"<span class='drop'>{float(row['importance']):+.3f}</span>"
+            f"{f'<small>{detail}</small>' if detail else ''}"
+            f"<code>{row['feature']}</code></li>"
+        )
+    return "".join(out)
+
+
+def _glossary() -> str:
+    return "".join(f"<dt>{term}</dt><dd>{meaning}</dd>" for term, meaning in GLOSSARY)
+
+
 def render(data: dict) -> str:
     m, integ, manifest = data["metrics"], data["integrity"], data["manifest"]
     ladder = data["ladder"]
@@ -217,6 +382,21 @@ tr.clean td,tr.pick td{{background:#eef3fb}}
 .note{{margin-top:18px;padding:15px 18px;background:var(--panel);
 border-left:3px solid var(--blue);font-size:14px;color:var(--muted)}}
 .note strong{{color:var(--ink)}}
+.features{{margin:24px 0 0;padding:0;list-style:none;counter-reset:f}}
+.features li{{position:relative;padding:16px 0 16px 44px;border-bottom:1px solid var(--line);
+counter-increment:f}}
+.features li::before{{content:counter(f);position:absolute;left:0;top:17px;
+color:var(--blue);font-size:12px;font-weight:800}}
+.features b{{font:500 17px/1.35 Georgia,serif;font-weight:500}}
+.features .drop{{margin-left:10px;color:var(--muted);font-size:12px;
+font-variant-numeric:tabular-nums}}
+.features small{{display:block;margin-top:5px;color:var(--muted);font-size:13.5px;
+line-height:1.55;max-width:60ch}}
+.features code{{display:inline-block;margin-top:7px;color:var(--muted);font-size:11px;
+font-family:ui-monospace,Menlo,monospace}}
+.glossary{{margin:22px 0 0}}
+.glossary dt{{margin-top:16px;font-weight:750;font-size:14px}}
+.glossary dd{{margin:5px 0 0;color:var(--muted);font-size:14px;max-width:64ch}}
 .env{{font-family:ui-monospace,Menlo,monospace;font-size:12px;color:var(--muted);
 word-break:break-all}}
 footer{{padding:34px 0 0;color:var(--muted);font-size:13px}}
@@ -341,6 +521,24 @@ days, so the difference is measured within a resample.</p>
 the shipped family was chosen by a nested procedure that prices the selection
 rather than performing it &mdash; because picking the top row of a table you just
 read is the one leak no per-row guard can catch.</div>
+</section>
+
+<section>
+<h2>What the model actually reads</h2>
+<p>Every input has to be computable at the moment the filing lands &mdash; nothing
+about what happened next. The ten it leans on most, ordered by how much the score
+falls when that column is shuffled:</p>
+<ol class="features">{_features(data['importance'])}</ol>
+<div class="note">There are {len(data['importance'])} inputs in total; the rest are
+the remaining 8-K item codes and slower-moving market state. Notice what is
+<em>not</em> here: no price target, no analyst estimate, no sentiment score. A
+sentiment model trained today has read what happened afterwards, which is the
+same leak in a friendlier costume.</div>
+</section>
+
+<section>
+<h2>Terms used above</h2>
+<dl class="glossary">{_glossary()}</dl>
 </section>
 
 <section>

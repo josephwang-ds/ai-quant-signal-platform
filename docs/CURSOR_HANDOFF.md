@@ -15,7 +15,7 @@ The user likes three additions and wants all three preserved in a controlled for
 
 1. bounded RAG / optional LangChain document import and reader rules;
 2. source-linked company and market headline context; and
-3. Supabase-ready persistence.
+3. Local versioned persistence.
 
 These are stretch capabilities inside Company Lens. They must not turn the project
 into a generic chatbot, a live news feed, or an investment platform.
@@ -46,10 +46,9 @@ Read these files in order:
 3. `docs/ARCHITECTURE.md`
 4. `docs/ROADMAP.md`
 5. `docs/LLM.md`
-6. `docs/STORAGE.md`
-7. `src/company_lens/contracts.py`
-8. `src/company_lens/snapshots/builder.py`
-9. `src/company_lens/web/page.py`
+6. `src/company_lens/contracts.py`
+7. `src/company_lens/snapshots/builder.py`
+8. `src/company_lens/web/page.py`
 10. `src/company_lens/llm/retrieval.py`
 11. `src/company_lens/llm/headlines.py`
 12. `src/company_lens/cli.py`
@@ -73,7 +72,7 @@ Rules:
 - Do not commit `.env`, API keys, raw provider responses containing secrets, or local
   user documents.
 - Do not read or print populated secrets merely to verify configuration.
-- Do not make paid LLM calls, provision Supabase, deploy Vercel/Vultr, or contact a
+- Do not make paid LLM calls, provision infrastructure, deploy Vercel/Vultr, or contact a
   live news API without explicit user approval.
 - Use `apply_patch`-style minimal edits and inspect overlapping changes first.
 
@@ -165,15 +164,19 @@ fixtures. Never display them as real public-company news.
 
 ### Storage decision
 
-`docs/STORAGE.md` defines the desired eventual split:
+Evidence persists to local versioned JSON, and that is the only backend. A
+PostgREST adapter, a dual-write mode and `docs/STORAGE.md` describing a
+three-tier split were removed on 2026-08-28: the code worked and had passed a
+live write/read/cleanup test, but nothing selected it. It was carrying four
+environment variables, a SQL migration, a page of operating documentation and a
+credential class that must never reach a browser, for a path no run took.
 
 ```text
-Vercel: static/read UI
-Vultr: SEC/news ingestion, parsing, embeddings, LLM, scheduled worker/API
-Supabase: Postgres metadata/chunks/runs + Storage uploads + optional pgvector
+Vercel: static UI + the bounded Q&A function
+Local:  SEC ingestion, parsing, scoring, evidence JSON
 ```
 
-Local file-backed operation must remain the default and must work without Supabase.
+Local file-backed operation is the only mode; there is no remote backend to fall back from.
 
 ## Next milestone — implement this now
 
@@ -288,7 +291,7 @@ silently expanding the product into a feed:
 - keep social feeds, infinite news streams, real-time news infrastructure, sentiment
   trading signals, and general web research agents out of scope;
 - describe bounded document import/rules as a demonstration of controllable RAG;
-- describe Supabase as deployment infrastructure triggered by dynamic uploads/history,
+- describe a database as deployment infrastructure that dynamic uploads/history would need,
   not an MVP user feature.
 
 Update `docs/ROADMAP.md`, `docs/LLM.md`, and README only where the implemented behavior
@@ -297,18 +300,18 @@ until it exists.
 
 ## Following milestone — prepare, do not provision
 
-Only after the UI milestone and tests pass, prepare a Supabase-ready boundary without
+Only after the UI milestone and tests pass, prepare a storage boundary without
 requiring network access:
 
 1. Define a small storage protocol for documents, chunks, headlines, rulesets,
    retrieval runs, and LLM-run provenance.
 2. Keep a local JSON/file implementation as the default.
-3. Add reviewed SQL migrations under `ops/supabase/` for metadata/chunks/runs and RLS
+3. Add reviewed SQL migrations for metadata/chunks/runs and row-level security
    policy comments or tests.
 4. Do not choose a vector dimension until an embedding model is selected and evaluated.
 5. Do not add authentication, watchlists, alerts, social features, realtime
    subscriptions, or user-profile scope.
-6. Do not create or connect a real Supabase project without explicit user approval.
+6. Do not create or connect a real database without explicit user approval.
 
 Stop and report after preparing this boundary. Actual cloud credentials and deployment
 belong to a later user-guided step.
@@ -360,7 +363,7 @@ Do not say the milestone is complete until all are true:
 - headline count is capped at three;
 - all source links and imported strings are safe;
 - no provider/database secrets or local absolute paths appear in page output;
-- the page remains fully useful without LangChain, an LLM key, Supabase, or a news
+- the page remains fully useful without LangChain, an LLM key, a database, or a news
   index;
 - product documentation describes only what is implemented;
 - no unrelated user work was reverted.
@@ -374,5 +377,5 @@ When finished, report:
 3. exact tests/lint/smoke commands and results;
 4. screenshots or local page paths used for visual verification;
 5. remaining limitations;
-6. any action that still requires user approval, especially paid API calls, Supabase,
+6. any action that still requires user approval, especially paid API calls, databases,
    news-vendor credentials, Vercel, or Vultr deployment.

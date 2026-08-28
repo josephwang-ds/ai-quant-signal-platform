@@ -37,7 +37,7 @@ links back to its evidence.
 `provenance.json` from `data/build`. It writes a versioned JSON payload and a
 self-contained HTML page that remain useful without network access or an LLM key.
 Evidence persistence stays behind `EvidenceStorage`: local JSON is the default,
-Supabase is explicit and backend-only, and dual-write degradation cannot prevent the
+Persistence is local JSON only; the remote adapter was removed. Nothing can prevent the
 deterministic snapshot or page from being written.
 
 The snapshot contains:

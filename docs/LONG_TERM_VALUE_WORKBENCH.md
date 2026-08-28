@@ -125,7 +125,7 @@ The highest personal-use return after fundamentals is a small private journal:
 - watchlist status and last-reviewed timestamp;
 - machine-generated diff between the saved thesis and new evidence.
 
-Supabase is appropriate here because this data is private and user-authored. Public
+A database would be appropriate here because this data is private and user-authored. Public
 company facts can remain cacheable build artifacts; private thesis state should not be
 embedded in static HTML.
 

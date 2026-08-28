@@ -72,9 +72,9 @@ def main(argv: list[str] | None = None) -> int:
     )
     parser.add_argument(
         "--storage-backend",
-        choices=("local", "supabase", "dual"),
+        choices=("local",),
         default="local",
-        help="evidence persistence backend; remote modes require backend-only Supabase env vars",
+        help="evidence persistence backend; local JSON is the only one",
     )
     parser.add_argument(
         "--llm-document",

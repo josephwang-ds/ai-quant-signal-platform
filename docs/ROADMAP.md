@@ -176,7 +176,7 @@ packets rather than selected by reputation. See `docs/LLM.md`.
 - read-only `Ask this company` API/UI over the implemented bounded retrieval contract;
 - source-linked headline ingestion from Finnhub is implemented behind an explicit API
   key and bounded daily cache; production activation and vendor-terms review remain;
-- configure the live-tested Supabase adapter only on the future Vultr backend worker;
+- keep evidence persistence local; the remote adapter was removed as unused;
 - run the same frozen scorecard against Terra and Luna with current explicit prices;
 - review failed concepts and extend cases only when they add a distinct event pattern;
 - scheduled generation for only new/changed accessions after the evaluation gate.
