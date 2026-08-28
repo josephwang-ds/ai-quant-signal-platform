@@ -53,6 +53,46 @@ class PipelineConfig:
     purged_cv: bool = True
     """Purged, embargoed walk-forward instead of shuffled K-fold."""
 
+    resolved_issuer_history: bool = True
+    """Count only the issuer's filings whose labels had already resolved.
+
+    The issuer-history features are built from *past labels*, which is the most
+    dangerous kind of feature here and the reason this switch exists beside the
+    four canonical bugs rather than being assumed.
+
+    A filing's label is not known until its outcome window closes. So at the
+    decision time for filing N, the only prior filings of that issuer whose
+    materiality is knowable are the ones whose window closed first. The obvious
+    implementation -- `expanding()` over every earlier row -- silently includes
+    filings still in flight, and for an issuer that files in clusters that is a
+    filing being told the answer by its own neighbours. It is the same shape as
+    `.rolling()` without `.shift()`, one level up: not the event's own outcome,
+    but its immediate siblings'.
+
+    Off, the features expand over every prior filing regardless of resolution,
+    which is what the leak looks like and what `experiments` measures.
+    """
+
+    # -- estimator family (not a correctness switch) ----------------------- #
+    estimator: str = "random_forest"
+    """Which model family fits the ranker. Names come from `candidates`.
+
+    Changed from `hist_gbdt` on 2026-08-27, and the reason it changed matters
+    more than which one won. It was **not** chosen by reading the out-of-sample
+    table and keeping the top row -- that is the selection leak the project
+    refuses everywhere else, and it stays a leak when the thing selected is a
+    model rather than a threshold. It was chosen by
+    `selection.nested_selection_score`, which picks a winner inside each outer
+    training block using a purged split of that block alone, so no test fold ever
+    informs the choice made for it. That procedure selected this family in all
+    five folds, and the score quoted for it is the procedure's, not the winner's.
+
+    The margin is small and the paired difference straddles zero, so the honest
+    reading is not that this family is better but that the families are
+    indistinguishable and this is what the leak-free procedure returned. Family
+    is worth 0.041 in average precision; the validation scheme is worth 0.199.
+    """
+
     # -- measurement basis (not a correctness switch) ---------------------- #
     open_anchored_returns: bool = False
     """Measure the entry session from its OPEN rather than the previous close.
@@ -83,7 +123,8 @@ class PipelineConfig:
     @property
     def is_honest(self) -> bool:
         return all([self.shift_trailing_features, self.pit_entry,
-                    self.pit_universe, self.purged_cv])
+                    self.pit_universe, self.purged_cv,
+                    self.resolved_issuer_history])
 
     def describe_switches(self) -> str:
         flags = {
@@ -91,6 +132,8 @@ class PipelineConfig:
             "point-in-time entry": self.pit_entry,
             "point-in-time universe": self.pit_universe,
             "purged CV": self.purged_cv,
+            "resolved-only issuer history": self.resolved_issuer_history,
             "open-anchored returns": self.open_anchored_returns,
         }
-        return ", ".join(f"{k}={'yes' if v else 'NO'}" for k, v in flags.items())
+        switches = ", ".join(f"{k}={'yes' if v else 'NO'}" for k, v in flags.items())
+        return f"{switches}, estimator={self.estimator}"

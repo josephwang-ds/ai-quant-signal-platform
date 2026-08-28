@@ -2,15 +2,15 @@
 
 This project's whole argument is that a number you are pleased with deserves
 more suspicion than one you are not. It spent a while making that argument with
-bare point estimates -- 0.366 average precision, 1.59x daily lift -- which is the
+bare point estimates -- 0.397 average precision, 1.70x daily lift -- which is the
 same failure one level up: a reader cannot tell 1.59x-plus-or-minus-0.05 from
 1.59x-plus-or-minus-0.6, and only one of those is a result.
 
 Two design choices, one of which turned out to matter much less than expected:
 
 **Events are resampled by session, not by row.** Filings on the same morning
-share a market and a macro tape, so a row-wise bootstrap that treats 9,729
-events as 9,729 independent draws would understate the interval. That was the
+share a market and a macro tape, so a row-wise bootstrap that treats 9,721
+events as 9,721 independent draws would understate the interval. That was the
 reasoning. Measured, the correction is worth about 4% of the interval width on
 the real sample -- far less than it sounds like it should be, and the reason is
 worth stating: the label is already a *market-model residual*, so the common

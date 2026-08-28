@@ -1,10 +1,13 @@
 """The ranker.
 
-A gradient-boosted classifier over the features, scored strictly out-of-sample.
-The model is deliberately unremarkable -- swapping it for something fancier moves
-the metric by a rounding error, while the validation scheme moves it by a lot.
-That asymmetry is the point of the project, so the interesting code is the split,
-not the estimator.
+A classifier over the features, scored strictly out-of-sample. Which family it
+is comes from `config.estimator` and the families live in `candidates`; this
+module owns the *splitting*, which is the part that matters.
+
+The estimator is deliberately unremarkable, and that is measured rather than
+asserted: across four families average precision spans 0.041, while the
+validation scheme moves it 0.199 -- five times as far. That asymmetry is the
+point of the project, so the interesting code is below, not in the estimator.
 
 `config.purged_cv` selects between the two schemes:
 
@@ -22,9 +25,9 @@ from datetime import timedelta
 
 import numpy as np
 import pandas as pd
-from sklearn.ensemble import HistGradientBoostingClassifier
 from sklearn.model_selection import KFold
 
+from filing_triage.candidates import build
 from filing_triage.config import PipelineConfig
 from filing_triage.guards import LeakageAudit, PurgedWalkForward
 
@@ -48,17 +51,18 @@ class TriageModel:
     oos_importance_: pd.DataFrame = field(default_factory=pd.DataFrame, init=False,
                                           repr=False)
 
-    def _estimator(self) -> HistGradientBoostingClassifier:
-        estimator = HistGradientBoostingClassifier(
-            max_depth=4,
-            max_iter=200,
-            learning_rate=0.06,
-            min_samples_leaf=30,
-            l2_regularization=1.0,
-            random_state=self.random_state,
-        )
+    def _estimator(self):
+        """A fresh pipeline for the configured family.
+
+        Overrides are named without a step prefix -- `max_depth`, not
+        `clf__max_depth` -- because the caller is perturbing the estimator, and
+        making every grid entry carry the pipeline's internal layout would leak
+        that layout into `experiments`.
+        """
+        estimator = build(self.config.estimator)
         if self.estimator_overrides:
-            estimator.set_params(**self.estimator_overrides)
+            estimator.set_params(**{f"clf__{k}": v
+                                    for k, v in self.estimator_overrides.items()})
         return estimator
 
     def fit_predict_oos(self, features: pd.DataFrame, labels: pd.Series,

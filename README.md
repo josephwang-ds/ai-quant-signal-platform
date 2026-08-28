@@ -2,23 +2,30 @@
 
 **Which of today's SEC filings deserve a human read?**
 
-A pipeline written the obvious way reports an **average precision of 0.601** on
-real SEC filings. The version that survives its own audit reports **0.366**.
+A pipeline written the obvious way reports an **average precision of 0.597** on
+real SEC filings. The version that survives its own audit reports **0.397**.
 
 That gap is not model improvement. It is four common pipeline bugs, none of which
 announced itself — every one produced a result the author would have preferred.
 
-| Stage | Avg precision | ROC AUC | Guards failing |
-|---|---|---|---|
-| Naive pipeline | **0.601** | **0.843** | 1 |
-| + purged, embargoed CV | 0.594 | 0.839 | 1 |
-| + trailing windows shifted | 0.424 | 0.775 | 1 |
-| + point-in-time universe | 0.424 | 0.775 | 1 |
-| + point-in-time entry | **0.366** | **0.739** | **0** |
+| Stage | Avg precision | ROC AUC | Impossible entries | Guards failing |
+|---|---|---|---|---|
+| Naive pipeline | **0.597** | **0.841** | 11,224 | 1 |
+| + purged, embargoed CV | 0.590 | 0.838 | 11,224 | 1 |
+| + trailing windows shifted | 0.439 | 0.782 | 11,224 | 1 |
+| + point-in-time universe | 0.439 | 0.782 | 11,224 | 1 |
+| + point-in-time entry | **0.397** | **0.764** | **0** | **0** |
 
 The audited numbers carry intervals, because a point estimate is a claim with its
-error bar deleted: average precision **0.366 [0.337, 0.396]**, ROC AUC
-**0.739 [0.720, 0.756]**, 95% cluster bootstrap over 959 sessions.
+error bar deleted: average precision **0.397 [0.365, 0.430]**, ROC AUC
+**0.764 [0.745, 0.781]**, 95% cluster bootstrap over 957 sessions.
+
+Two rows move the wrong way or not at all, and the impossible-entry column is why
+that is not a contradiction. Purged CV *raises* the score slightly here, and the
+universe row does not move at all — a metric is not the thing being fixed. The
+count is: 11,224 entries that used a price printed before the filing existed,
+reduced to zero. That column is an invariant, comparable across rows in a way the
+metric is not, because each fix also changes which filings are measurable.
 
 Full story, method and diagrams: **[the write-up](web/showcase.html)**.
 Details below, and in [docs/LEAKAGE.md](docs/LEAKAGE.md) and
@@ -43,7 +50,7 @@ context, or all of it. Each scope carries its own citation and number
 allow-lists, so a model answering from the narrow scope cannot cite a headline it
 was never shown; the validator rejects it and the answer is withheld.
 
-Live Company Lens: <https://company-lens-demo.vercel.app>
+Live Company Lens: <https://lens.josephjwang.com>
 Build and operations: **[docs/COMPANY_LENS.md](docs/COMPANY_LENS.md)** ·
 [scope](docs/SCOPE.md) · [architecture](docs/ARCHITECTURE.md) ·
 [deployment](docs/DEPLOYMENT.md)
@@ -65,7 +72,7 @@ is answerable.
 ---
 
 > [!NOTE]
-> **The figures below come from a real EDGAR pull**: 11,702 8-K filings from 193
+> **The figures below come from a real EDGAR pull**: 11,716 8-K filings from 193
 > issuers, 2022 to 2026, with prices from yfinance. Reproduce them with
 > `make universe && make ingest && make run` (about 40 minutes).
 >
@@ -93,33 +100,62 @@ remove. The pipeline is reporting its own blind spot rather than hiding it.
 
 **The entry row also changes the measured population.** The filing-date rule uses
 that date's opening print even when acceptance came hours later. In this sample it
-creates 11,168 impossible entries—95.4% of measurable filings—with a median 10.6
+creates 11,224 impossible entries—95.8% of measurable filings—with a median 10.6
 hours of hindsight. The corrected rule places every filing in the first market-open
 queue after its acceptance time and reduces that count to zero. Because it also
 changes the outcome window and class balance, its metric movement is not a clean
 estimate of one leak's cost; the zero impossible-entry count is the invariant.
 
-The real sample has 63.5% of acceptances outside regular market hours. The larger
-95.4% impossible-entry share under the naive rule also includes intraday filings:
+The real sample has 63.2% of acceptances outside regular market hours. The larger
+95.8% impossible-entry share under the naive rule also includes intraday filings:
 that day's opening print still predates a filing accepted at 10 a.m.
 
-**What the audited model is worth.** Filings arrive at a median of 9 a session.
-Reading the model's top five surfaces material post-queue reactions at **19.0%**
-precision over the 769 sessions crowded enough for ranking to matter. Every
-comparison below is a *paired* bootstrap over those same sessions — model and
-baseline are rescored on one shared resample, because they see the same days and
-treating them as separate experiments would widen the interval on their
-difference for no reason.
+**What the audited model is worth.** Filings arrive at a median of 9 a session,
+and reading the model's top five surfaces material reactions at **19.8%**
+precision over the 766 sessions crowded enough for ranking to matter. That number
+needs two things attached before it means anything.
+
+**It cannot be read against 100%.** A session holding one material filing caps
+precision@5 at 20% however good the ranking is, and on this sample **37% of
+eligible sessions hold none at all** — on those days a perfect ranker scores
+zero. The achievable ceiling is **28.3%**, the floor is 11.6%, and the model
+captures **49% of the gap between them**.
+
+**And `k = 5` was assumed, not derived.** It came from a reader's supposed
+capacity, which is a product constraint; quoting one `k` as *the* metric promotes
+it to a scientific one. The lift is precisely the reading that does not survive
+that promotion:
+
+| Read k | Sessions | Random | Model | Ceiling | Lift | Span captured |
+|---|---|---|---|---|---|---|
+| 1 | 942 | 11.7% | 31.6% | 58.3% | 2.71× | 43% |
+| 2 | 920 | 11.7% | 26.5% | 45.9% | 2.26× | 43% |
+| 3 | 887 | 11.8% | 23.5% | 37.8% | 1.99× | 45% |
+| **5** | **766** | **11.6%** | **19.8%** | **28.3%** | **1.70×** | **49%** |
+| 10 | 365 | 13.6% | 18.7% | 22.7% | 1.38× | 56% |
+| 20 | 60 | 16.0% | 18.5% | 19.7% | 1.16× | 68% |
+
+The lift runs from 2.71× to 1.16× on an unchanged model; the share of achievable
+span barely moves. Sessions fall away with `k` because a capacity above the day's
+filing count is not triage, it is reading everything — which is the real limit on
+how far this can be pushed, and why `k = 20` covers 6% of days and is reported
+anyway. Full sweep in
+[`capacity_profile.csv`](evidence/real_run/capacity_profile.csv).
+
+The baseline comparison below fixes `k = 5` to stay comparable. Every one is a
+*paired* bootstrap over the same sessions — model and baseline are rescored on
+one shared resample, because they see the same days and treating them as separate
+experiments would widen the interval on their difference for no reason.
 
 | Read the top five by | Precision | Model lift | 95% interval | Draws favouring the baseline |
 |---|---|---|---|---|
-| the model | 19.0% | — | — | — |
-| random selection | 11.7% | 1.63× | [1.56, 1.71] | 0 / 2000 |
-| arrival order | 9.4% | 2.02× | [1.82, 2.26] | 0 / 2000 |
-| “Item 2.02 earnings first” | 13.5% | 1.41× | [1.31, 1.52] | 0 / 2000 |
+| the model | 19.8% | — | — | — |
+| random selection | 11.6% | 1.70× | [1.62, 1.79] | 0 / 2000 |
+| arrival order | 9.3% | 2.12× | [1.91, 2.36] | 0 / 2000 |
+| “Item 2.02 earnings first” | 13.4% | 1.47× | [1.37, 1.59] | 0 / 2000 |
 
 The last column is the one worth reading first, and it is the one the earlier
-version of this README could not answer. A lift of 1.41× over an item heuristic
+version of this README could not answer. A lift of 1.47× over an item heuristic
 that a reader could implement in an afternoon is only a result if it survives
 resampling; here it does, in every draw. Useful triage, not a trading strategy —
 and the next section says exactly how much that caveat is worth.
@@ -130,7 +166,7 @@ is the most uncomfortable number here.
 
 The label is a market-model event study, so the reaction is measured
 close-to-close — which means the entry session's return is anchored at the
-*previous* close. For the 63.5% of filings accepted outside market hours, that
+*previous* close. For the 63.2% of filings accepted outside market hours, that
 price was printed before the filing existed. None of the leakage guards can see
 this: `causal(acceptance_time <= entry_open)` passes on every row precisely
 because the label never touches `entry_open`.
@@ -140,7 +176,7 @@ Measuring the same filings both ways says what the difference is worth:
 | Filings | Median share of the reaction already in the opening print |
 |---|---|
 | all | 6.4% |
-| not material | 3.0% |
+| not material | 3.1% |
 | **material (≥ 2.0σ)** | **27.7%** |
 | material, accepted after the close | **45.7%** |
 
@@ -154,18 +190,62 @@ look*.
 Close-to-close stays the label, because the question is which disclosures
 mattered and the overnight gap is part of the answer, not contamination of it.
 But the same pipeline scored against an open-anchored label — asking what was
-still on the table at the open — drops from 0.366 average precision to 0.143.
+still on the table at the open — drops from 0.397 average precision to 0.155.
 That is not the ranker failing; it is a harder question. Both rows are in
 [`evidence/real_run/anchoring_study.csv`](evidence/real_run/anchoring_study.csv)
 and reproduced by `experiments.reaction_capture_profile`.
+
+**Whether the model family matters.** The estimator is deliberately
+unremarkable, and the project's argument rests on that being true rather than
+convenient — so it is measured. Four families on the same folds, the same
+events, the same purge:
+
+| Family | Average precision | vs shipped | 95% interval on the difference | Draws favouring the shipped one |
+|---|---|---|---|---|
+| **random forest (shipped)** | **0.397** | — | — | — |
+| hist gradient boosting | 0.373 | −0.024 | [−0.038, −0.009] | 1999 / 2000 |
+| logistic regression | 0.356 | −0.041 | [−0.058, −0.024] | 2000 / 2000 |
+| stratified dummy | 0.129 | −0.269 | [−0.298, −0.240] | 2000 / 2000 |
+
+Differences are *paired* — the families saw the same events on the same days, so
+the difference is measured within a resample, which is far better determined than
+either level. Independently the intervals on random forest [0.365, 0.430] and
+gradient boosting overlap substantially; paired, every difference clears zero.
+
+**That was not true a commit earlier.** Before the reporting-cycle features the
+same comparison put random forest 0.011 ahead of gradient boosting with an
+interval of [−0.003, +0.024] — indistinguishable. Adding two features separated
+two model families that the data could not previously tell apart, which is worth
+more attention than the ranking itself: the families were never far apart, and
+what moved them was the input, not the estimator.
+
+Which is the point. Swapping the family moves average precision across
+**0.041**; swapping the validation scheme moves it **0.199**, five times as far.
+The interesting code was never the estimator.
+
+**How the shipped family was chosen.** Not by reading the table and keeping the
+top row — that is the selection leak the project refuses everywhere else, and it
+stays a leak when the thing selected is a model. It was chosen by a *nested*
+procedure that prices selection rather than performing it: an inner purged,
+embargoed split inside each outer training block picks a winner using that block
+alone, so no test fold informs the choice made for it. That procedure selected
+random forest in all five folds and scores **0.397**, so the selection is stable
+rather than noise-chasing and its premium over the descriptive table is zero.
+
+It won carrying a handicap worth naming: gradient boosting is the only family
+here that uses missing values natively, while the forest is handed
+median-imputed columns — and several of these features are missing for a reason
+the estimator could have used. See
+[`model_comparison_paired.csv`](evidence/real_run/model_comparison_paired.csv)
+and [`nested_selection.json`](evidence/real_run/nested_selection.json).
 
 **Where the constants came from.** The estimator's settings are hard-coded, and
 if they had been chosen by watching the out-of-sample metric that would be a
 selection leak spanning the whole project — the one kind no guard can catch,
 because every individual run is clean and the contamination lives in which run
 was kept. Rather than answer with a promise, the answer is a spread: perturbing
-each setting one at a time moves average precision across a range of **0.033**,
-narrower than the **0.059** bootstrap interval on the default configuration. The
+each setting one at a time moves average precision across a range of **0.008**,
+narrower than the **0.064** bootstrap interval on the default configuration. The
 defaults are also not the best cell in the grid. No achievable amount of tuning
 produced this headline. See
 [`hyperparameter_sensitivity.csv`](evidence/real_run/hyperparameter_sensitivity.csv).
@@ -174,17 +254,17 @@ produced this headline. See
 ranking decays within a session. Whatever is being measured is mostly over by the
 next open.
 
-**Where the other filings went.** 11,702 were ingested and 9,729 were scored. The
+**Where the other filings went.** 11,716 were ingested and 9,721 were scored. The
 gap is itemised rather than left as arithmetic for the reader, because an
 unexplained drop is indistinguishable from a bug:
 
 | | Filings |
 |---|---|
-| Scored out of sample | 9,729 |
-| Held out by walk-forward as training-only | 1,945 |
-| Event window ran past the end of the price data | 15 |
+| Scored out of sample | 9,721 |
+| Held out by walk-forward as training-only | 1,944 |
+| Event window ran past the end of the price data | 11 |
 | Missing price bars inside the event window | 7 |
-| Entry session had no price bar | 6 |
+| Entry session had no price bar | 33 |
 
 The large line is the honest cost of the split. Walk-forward tests folds 1..n, so
 the earliest block is only ever training data and never receives an out-of-sample
@@ -253,7 +333,7 @@ embargo sweep, and writes a self-contained HTML report.
 
 ```bash
 make quick           # smaller, no leakage study, ~30s
-make test            # 300 tests
+make test            # 407 tests (~12 min; the nested model selection dominates)
 make audit           # the leakage checks as an exit code
 make llm-eval        # frozen English/Chinese grounded-output scorecard
 make llm-eval-openai-dry-run  # inspect 20-case paid benchmark scope; sends nothing
@@ -321,10 +401,22 @@ Full write-up in [docs/LEAKAGE.md](docs/LEAKAGE.md).
 
 | # | The bug | How it is caught | What fixing it costs |
 |---|---|---|---|
-| 1 | `filing_date` (a date) used instead of the accepted timestamp, so the naive entry uses an opening print before the filing was accepted. | `guards.causal` asserts the entry open postdates the acceptance time, on every row | 11,168 impossible entries (95.4%) reduced to zero |
-| 2 | `.rolling(20)` without `.shift(1)`, so a filing's "trailing" volatility contains the event day. Sharpest as relative volume, which unshifted is the reaction's own volume spike. | No guard is possible — one switch, one comment, and a test asserting the leaky config scores *better* | Average precision **0.594 → 0.424**, a 29% reduction |
+| 1 | `filing_date` (a date) used instead of the accepted timestamp, so the naive entry uses an opening print before the filing was accepted. | `guards.causal` asserts the entry open postdates the acceptance time, on every row | 11,224 impossible entries (95.8%) reduced to zero |
+| 2 | `.rolling(20)` without `.shift(1)`, so a filing's "trailing" volatility contains the event day. Sharpest as relative volume, which unshifted is the reaction's own volume spike. | No guard is possible — one switch, one comment, and a test asserting the leaky config scores *better* | Average precision **0.599 → 0.430**, a 28% reduction |
 | 3 | Screening on today's index constituents, which deletes every issuer dropped after a collapse — the ones whose 8-Ks moved most. | `guards.universe_pit` checks membership *as of the event date*; membership stored as intervals, never a list | Nothing on this universe, and that is the finding — see above |
-| 4 | `KFold(shuffle=True)` on time-ordered events: trains on the future, and overlapping outcome windows carry test-period returns into training labels. | `PurgedWalkForward` + `guards.purged_split` re-checking the gap every fold | **0.601 → 0.594** average precision, and a smaller sample |
+| 4 | `KFold(shuffle=True)` on time-ordered events: trains on the future, and overlapping outcome windows carry test-period returns into training labels. | `PurgedWalkForward` + `guards.purged_split` re-checking the gap every fold | **0.598 → 0.599** average precision on a sample a fifth smaller — see below |
+
+**Bug 4 costs nothing on this sample, and that is worth stating rather than
+hiding.** Fixing it moves average precision from 0.598 to 0.599 — up, fractionally.
+Two things are going on. Purging discards a fifth of the events, so the two rows
+are not computed on the same sample and their difference is not an estimate of
+anything; and the shuffled split's advantage here is small to begin with, because
+the label's outcome window is two sessions rather than the weeks that make
+overlap ruinous. Neither means the bug is harmless. It means *this metric cannot
+see it*, which is the general shape of the problem: a shuffled split trains on
+the future whether or not the score notices, and a reader who checks only the
+score would conclude there was nothing to fix. The earlier estimator showed a
+0.007 drop here — noise of the same size, pointing the other way.
 
 There is a second trap inside bug 1. EDGAR serves acceptance times as
 `2024-10-31T18:03:31.000Z` — but the clock is the SEC's, which runs on
@@ -340,6 +432,20 @@ A check that can be ignored is a comment. So:
 - `python -m filing_triage.cli audit` is a CI job — a regression fails a build.
 - The correct configuration is the **default**. A safe default you have to opt into
   is not a safe default.
+
+The same rule applies outside the pipeline, and for a while it was not applied
+there. Three operational steps could each produce a plausible artefact and report
+success while being wrong — the leakage failure mode moved into the build. Two of
+the three happened here before they were guarded:
+
+| The step | What it did quietly | The guard |
+|---|---|---|
+| `make demo` after a real pull | wrote its synthetic world over the ingested panel — same three files — after which the pipeline runs fine on a simulation | refuses when `provenance.json` reads `edgar`; `FORCE=1` overrides |
+| `make vercel-deploy` | the packager copies HTML rather than rendering it, so a deploy after a renderer change shipped the previous build | refuses when the pages predate the renderer; `--allow-stale` overrides |
+| a stale `VERCEL_PROJECT_ID` | published to a different project than the bundle was linked to, successfully | names the target on every deploy, refuses on a mismatch |
+
+Each override is a flag, so the safe path stays the default and the unsafe one is
+typed on purpose.
 
 ---
 
@@ -423,12 +529,12 @@ src/filing_triage/
                    and hyperparameter sensitivity grid
   report.py        self-contained HTML
   synth.py         the offline corpus
-tests/             300 tests; test_guards, test_pipeline, test_uncertainty
+tests/             407 tests; test_guards, test_pipeline, test_uncertainty
                    and test_ingest_integration are the ones that matter
 docs/              METHODOLOGY.md, LEAKAGE.md, COMPANY_LENS.md
 ```
 
-About 14,141 lines under `src/`, plus 6,076 of tests. It is meant to be read
+About 15,584 lines under `src/`, plus 7,322 of tests. It is meant to be read
 end to end, and a test asserts these figures have not drifted from the code.
 
 ---

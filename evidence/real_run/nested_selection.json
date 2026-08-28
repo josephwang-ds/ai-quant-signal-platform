@@ -1,0 +1,13 @@
+{
+  "selected_per_fold": [
+    "random_forest",
+    "random_forest",
+    "random_forest",
+    "random_forest",
+    "random_forest"
+  ],
+  "distinct_selections": 1,
+  "events_scored": 9721,
+  "average_precision": 0.39716820384842194,
+  "roc_auc": 0.7637889441294652
+}

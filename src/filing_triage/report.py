@@ -32,17 +32,20 @@ PALETTE = {
 
 def render(result, study: pd.DataFrame, sweep: pd.DataFrame,
            output: str | Path = "data/build/report.html",
-           provenance: dict | None = None) -> Path:
+           provenance: dict | None = None,
+           capacity: pd.DataFrame | None = None) -> Path:
     output = Path(output)
     output.parent.mkdir(parents=True, exist_ok=True)
-    output.write_text(_document(result, study, sweep, provenance or {}),
-                      encoding="utf-8")
+    output.write_text(
+        _document(result, study, sweep, provenance or {},
+                  capacity if capacity is not None else pd.DataFrame()),
+        encoding="utf-8")
     return output
 
 
 # --------------------------------------------------------------------------- #
 def _document(result, study: pd.DataFrame, sweep: pd.DataFrame,
-              provenance: dict) -> str:
+              provenance: dict, capacity: pd.DataFrame) -> str:
     metrics = result.metrics
     honest = study.iloc[-1]
     naive = study.iloc[0]
@@ -82,6 +85,13 @@ def _document(result, study: pd.DataFrame, sweep: pd.DataFrame,
       heuristic reads Item 2.02 earnings filings first, then arrival order.
     </p>
     {_baseline_table(metrics, result.baseline_comparisons)}
+    <p class="note">
+      Precision@5 cannot be read against 100%. A session holding one material
+      filing caps it at 20% however good the ranking is, and on this sample a
+      third of eligible sessions hold none at all &mdash; on those days a perfect
+      ranker scores zero. The ceiling below is what was actually achievable.
+    </p>
+    {_capacity_table(capacity)}
   </section>
 
   <section>
@@ -304,13 +314,18 @@ def _queue_tile(metrics: dict,
     """
     counted = metrics.get("daily_sessions_at_5", 0)
     if metrics.get("daily_usable_at_5"):
-        row = _comparison_row(comparisons, "random")
-        interval = ("" if row is None else
-                    f"95% [{row['lift_ci_low']:.2f}, {row['lift_ci_high']:.2f}]")
-        return (f"{metrics.get('daily_lift_at_5', float('nan')):.1f}&times;",
-                "better than reading five at random",
-                _joined(interval, "top 5 of each session",
-                        f"{counted} sessions with more than five filings"))
+        # The span, not the lift. The lift depends on a reading capacity the
+        # project assumed rather than derived -- it runs from 2.6x at k=1 to
+        # 1.1x at k=20 on the same model -- while the share of achievable span
+        # captured barely moves. A tile shows one number, so it shows that one.
+        span = metrics.get("daily_span_captured_at_5", float("nan"))
+        ceiling = metrics.get("daily_oracle_precision_at_5", float("nan"))
+        return (f"{span:.0%}",
+                "of the achievable gap, captured",
+                _joined(
+                    f"{metrics.get('daily_precision_at_5', float('nan')):.1%} "
+                    f"against a {ceiling:.1%} ceiling",
+                    f"{counted} sessions with more than five filings"))
     return (f"{metrics.get('filings_per_session_median', float('nan')):.0f}",
             "filings per session (median)",
             (f"too few to triage &mdash; only {counted} sessions carried more than "
@@ -377,6 +392,42 @@ def _baseline_table(metrics: dict, comparisons: pd.DataFrame | None = None) -> s
         '<th class="num">Material filings in top five</th>'
         '<th class="num">Model lift</th><th class="num">95% interval</th>'
         '<th class="num">Draws favouring it</th></tr></thead>'
+        f"<tbody>{body}</tbody></table>"
+    )
+
+
+def _capacity_table(capacity: pd.DataFrame) -> str:
+    """How much of the result depends on the reading capacity that was assumed.
+
+    `k` was fixed at five because that was the assumed capacity of the reader the
+    project was written for -- a product constraint, not a finding. Quoting one
+    `k` as the headline promotes it to a scientific one, and the lift is exactly
+    the reading that does not survive: it runs from 2.6x to 1.1x across the sweep
+    on an unchanged model. The last column is what survives.
+    """
+    if capacity is None or capacity.empty:
+        return '<p class="note">Capacity profile not computed for this run.</p>'
+    body = "".join(
+        f"<tr><td class='num'>{int(row['capacity_k'])}</td>"
+        f"<td class='num'>{int(row['sessions']):,}</td>"
+        f"<td class='num'>{row['session_share']:.0%}</td>"
+        f"<td class='num'>{_number(row['random_floor'], '{:.1%}')}</td>"
+        f"<td class='num'>{_number(row['model'], '{:.1%}')}</td>"
+        f"<td class='num'>{_number(row['oracle_ceiling'], '{:.1%}')}</td>"
+        f"<td class='num'>{_number(row['lift_vs_random'], '{:.2f}&times;')}</td>"
+        f"<td class='num'>{_number(row['span_captured'], '{:.0%}')}</td></tr>"
+        for _, row in capacity.iterrows()
+    )
+    return (
+        '<p class="summary">Reading capacity as a variable, not a constant. '
+        'Sessions fall away as k grows because a capacity above the day&rsquo;s '
+        'filing count is not triage, it is reading everything.</p>'
+        '<table class="data"><thead><tr>'
+        '<th class="num">Read k</th><th class="num">Sessions</th>'
+        '<th class="num">Of all</th><th class="num">Random</th>'
+        '<th class="num">Model</th><th class="num">Ceiling</th>'
+        '<th class="num">Lift</th><th class="num">Span captured</th>'
+        '</tr></thead>'
         f"<tbody>{body}</tbody></table>"
     )
 

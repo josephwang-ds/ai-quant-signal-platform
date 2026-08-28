@@ -1,6 +1,6 @@
 # Scheduled deployment
 
-The public HTML bundle is deployed at <https://company-lens-demo.vercel.app>. Production
+The public HTML bundle is deployed at <https://lens.josephjwang.com>. Production
 deployments now run non-interactively from the Vultr worker with an explicitly
 project-scoped Vercel token.
 
@@ -135,9 +135,14 @@ For non-interactive CLI runs, Vercel recommends `VERCEL_ORG_ID` and
 The service stores any Vercel CLI state under `/opt/company-lens/data/vercel-cli`,
 because the hardened systemd unit does not expose the worker user's home directory.
 
-`VERCEL_PROJECT_ID` must be the project that currently serves the public domain
-(currently `company-lens-josephjwang` for `https://lens.josephjwang.com`). A stale
-ID will publish HTML to a different project.
+`VERCEL_PROJECT_ID` must be the project that serves the public site. That is
+**`company-lens-josephjwang`**, carrying `https://lens.josephjwang.com` and
+`https://company-lens-josephjwang.vercel.app`. It is the only one; a second
+project, `company-lens-demo`, existed until 2026-08-27 and was retired precisely
+because two of them is an unstable arrangement — deploying to one leaves the
+other serving whatever it last received, and both report success while the two
+public URLs drift apart. A stale ID reintroduces that failure, which is why the
+ID is worth re-checking rather than copied forward.
 
 ## Ask AI provider keys (Vercel, not Vultr)
 

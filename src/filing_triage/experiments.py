@@ -17,8 +17,10 @@ from dataclasses import replace
 import numpy as np
 import pandas as pd
 
-from filing_triage import pipeline
+from filing_triage import pipeline, selection
+from filing_triage.candidates import sensitivity_grid
 from filing_triage.config import PipelineConfig
+from filing_triage.evaluate import daily_baseline_table
 from filing_triage.ingest.prices import to_returns
 from filing_triage.labels import build_labels
 from filing_triage.pit import TradingClock
@@ -63,11 +65,13 @@ HEADLINE = ["average_precision", "roc_auc", "daily_precision_at_5", "daily_lift_
 
 def run_leakage_study(events: pd.DataFrame, prices: pd.DataFrame,
                       membership: pd.DataFrame,
-                      base: PipelineConfig | None = None) -> pd.DataFrame:
+                      base: PipelineConfig | None = None,
+                      issuer_profile: pd.DataFrame | None = None) -> pd.DataFrame:
     base = base or PipelineConfig()
     rows = []
     for name, switches, note in STAGES:
         result = pipeline.run(events, prices, membership, replace(base, **switches),
+                              issuer_profile=issuer_profile,
                               compute_importance=False,
                               compute_uncertainty=False)
         rows.append({
@@ -91,7 +95,8 @@ def run_leakage_study(events: pd.DataFrame, prices: pd.DataFrame,
 
 def embargo_sweep(events: pd.DataFrame, prices: pd.DataFrame,
                   membership: pd.DataFrame, embargoes: list,
-                  base: PipelineConfig | None = None) -> pd.DataFrame:
+                  base: PipelineConfig | None = None,
+                  issuer_profile: pd.DataFrame | None = None) -> pd.DataFrame:
     """How the ranking holds up as we wait longer before acting.
 
     An effect that survives only at zero delay is a measurement of the
@@ -102,6 +107,7 @@ def embargo_sweep(events: pd.DataFrame, prices: pd.DataFrame,
     rows = []
     for embargo in embargoes:
         result = pipeline.run(events, prices, membership, replace(base, embargo=embargo),
+                              issuer_profile=issuer_profile,
                               compute_importance=False,
                               compute_uncertainty=False)
         rows.append({
@@ -114,7 +120,8 @@ def embargo_sweep(events: pd.DataFrame, prices: pd.DataFrame,
 
 def anchoring_study(events: pd.DataFrame, prices: pd.DataFrame,
                     membership: pd.DataFrame,
-                    base: PipelineConfig | None = None) -> pd.DataFrame:
+                    base: PipelineConfig | None = None,
+                    issuer_profile: pd.DataFrame | None = None) -> pd.DataFrame:
     """What the reaction looks like measured from the prior close, and from the open.
 
     Not a leakage ladder rung, because neither row is a bug. The default
@@ -136,6 +143,7 @@ def anchoring_study(events: pd.DataFrame, prices: pd.DataFrame,
                                  ("entry open", True)):
         result = pipeline.run(events, prices, membership,
                               replace(base, open_anchored_returns=open_anchored),
+                              issuer_profile=issuer_profile,
                               compute_importance=False,
                               compute_uncertainty=False)
         rows.append({
@@ -220,28 +228,18 @@ def reaction_capture_profile(events: pd.DataFrame, prices: pd.DataFrame,
     ])
 
 
-# A deliberately coarse grid around the defaults. Wide enough that a result which
-# only exists at one setting would show up as a spread; not a search, and never
-# used to pick anything.
-SENSITIVITY_GRID: list[dict] = [
-    {},                                              # the shipped defaults
-    {"max_depth": 3},
-    {"max_depth": 6},
-    {"max_iter": 100},
-    {"max_iter": 400},
-    {"learning_rate": 0.03},
-    {"learning_rate": 0.12},
-    {"min_samples_leaf": 10},
-    {"min_samples_leaf": 60},
-    {"l2_regularization": 0.0},
-    {"l2_regularization": 5.0},
-]
+# The grid now lives with the families in `candidates`, because it has to follow
+# whichever one is configured. A grid hard-coded to the previous default would
+# still run, still print a reassuring spread, and be perturbing parameters the
+# current estimator does not have -- a sensitivity study that has silently
+# stopped testing anything is worse than none, because it reads as evidence.
 
 
 def hyperparameter_sensitivity(events: pd.DataFrame, prices: pd.DataFrame,
                                membership: pd.DataFrame,
                                base: PipelineConfig | None = None,
-                               grid: list[dict] | None = None) -> pd.DataFrame:
+                               grid: list[dict] | None = None,
+                               issuer_profile: pd.DataFrame | None = None) -> pd.DataFrame:
     """Whether the headline number depends on the estimator settings.
 
     The estimator's constants are hard-coded, and a reader is entitled to ask
@@ -256,10 +254,11 @@ def hyperparameter_sensitivity(events: pd.DataFrame, prices: pd.DataFrame,
     could have produced the headline, and the provenance question stops mattering.
     """
     base = base or PipelineConfig()
-    grid = grid if grid is not None else SENSITIVITY_GRID
+    grid = grid if grid is not None else sensitivity_grid(base.estimator)
     rows = []
     for overrides in grid:
         result = pipeline.run(events, prices, membership, base,
+                              issuer_profile=issuer_profile,
                               compute_importance=False,
                               compute_uncertainty=False,
                               estimator_overrides=overrides or None)
@@ -268,3 +267,142 @@ def hyperparameter_sensitivity(events: pd.DataFrame, prices: pd.DataFrame,
             **{k: result.metrics.get(k, float("nan")) for k in HEADLINE},
         })
     return pd.DataFrame(rows)
+
+
+# Reading capacities worth reporting. Not a search for the best one: the point
+# is that a reader can see how much the headline depends on a number the project
+# assumed rather than derived.
+CAPACITIES = (1, 2, 3, 5, 10, 20)
+
+
+def capacity_profile(predictions: pd.DataFrame, events: pd.DataFrame,
+                     capacities: tuple[int, ...] = CAPACITIES) -> pd.DataFrame:
+    """precision@k against its floor and its ceiling, across reading capacities.
+
+    `k` is how many filings someone reads, not how many arrive, and the project
+    fixed it at five because that was the assumed capacity of the reader it was
+    written for. That is a product constraint, and quoting one k as *the* metric
+    promotes it to a scientific one. This reports the whole tradeoff instead.
+
+    Three columns make it readable, and the third is the one that matters:
+
+      ``oracle``  what a perfect ranker scores. It is not 1.0 and is usually far
+                  from it -- a session holding one material filing caps
+                  precision@5 at 0.2 however good the ranking is -- so raw
+                  precision cannot be read without it.
+      ``random``  the floor: each session's own material rate, exactly, not a
+                  simulated draw.
+      ``span``    where the model sits between the two. Raw precision falls as k
+                  grows and so does the ceiling, largely cancelling; the span is
+                  what survives the choice of k.
+
+    ``sessions`` falls away sharply with k, and that is the real limit on how far
+    this can be pushed: a capacity above the day's filing count is not triage,
+    it is reading everything, so those sessions are excluded and at k=20 almost
+    nothing is left.
+    """
+    rows = []
+    total_sessions = predictions.join(
+        events.set_index("event_id")[["entry_session"]], how="left"
+    )["entry_session"].nunique()
+
+    for k in capacities:
+        table = daily_baseline_table(predictions, events, k)
+        if table.empty:
+            continue
+        model = float(table["model"].mean())
+        random = float(table["random"].mean())
+        oracle = float(table["oracle"].mean())
+        span = oracle - random
+        rows.append({
+            "capacity_k": k,
+            "sessions": len(table),
+            "session_share": len(table) / total_sessions if total_sessions else float("nan"),
+            "model": model,
+            "random_floor": random,
+            "oracle_ceiling": oracle,
+            "arrival": float(table["arrival"].mean()),
+            "item_202": float(table["item_202"].mean()),
+            "lift_vs_random": model / random if random > 0 else float("nan"),
+            "span_captured": (model - random) / span if span > 0 else float("nan"),
+        })
+    return pd.DataFrame(rows)
+
+
+def session_material_counts(predictions: pd.DataFrame, events: pd.DataFrame,
+                            k: int = 5) -> pd.DataFrame:
+    """How many material filings a session actually holds, which sets the ceiling.
+
+    The distribution is the explanation for why the ceiling is as low as it is,
+    and it is not something the model can do anything about. On the real sample
+    a third of eligible sessions contain no material filing at all: on those days
+    a perfect ranker scores zero, and so does everything else.
+    """
+    frame = predictions.join(
+        events.set_index("event_id")[["entry_session"]], how="left")
+    per_session = frame.groupby("entry_session")["label"].agg(["size", "sum"])
+    eligible = per_session[per_session["size"] > k]
+    if eligible.empty:
+        return pd.DataFrame(columns=["material_filings", "sessions", "share",
+                                     "ceiling_at_k"])
+    counts = eligible["sum"].astype(int).value_counts().sort_index()
+    return pd.DataFrame({
+        "material_filings": counts.index,
+        "sessions": counts.to_numpy(),
+        "share": counts.to_numpy() / len(eligible),
+        "ceiling_at_k": [min(int(n), k) / k for n in counts.index],
+    })
+
+
+# The reference the differences are measured against is whichever family is
+# actually configured, not a name frozen at the time this was written. Hard-coding
+# it would leave the table quietly comparing against a family the pipeline no
+# longer uses.
+
+
+def model_comparison(events: pd.DataFrame, prices: pd.DataFrame,
+                     membership: pd.DataFrame,
+                     base: PipelineConfig | None = None,
+                     issuer_profile: pd.DataFrame | None = None) -> tuple[pd.DataFrame, dict]:
+    """Model families side by side, plus what selecting between them is worth.
+
+    Returns the descriptive table, the paired differences against the shipped
+    estimator, and the nested-selection result together,
+    because quoting either alone is misleading in a different direction. The
+    table's top row is the best a family scored *after* being chosen by looking
+    at that very score; the nested number is what the choosing procedure is worth
+    when no test fold informs the choice made for it. Their difference is the
+    selection premium.
+
+    One pipeline run supplies the features and labels for every candidate: the
+    label, the purge and the embargo are properties of the data and the split,
+    not of the estimator, so recomputing them per model would burn time to
+    produce identical frames -- and would risk them drifting apart, which is the
+    one thing that would make the comparison meaningless.
+    """
+    base = base or PipelineConfig()
+    result = pipeline.run(events, prices, membership, base,
+                          issuer_profile=issuer_profile,
+                          compute_importance=False, compute_uncertainty=False)
+
+    features = result.features
+    aligned = result.labels.set_index("event_id").loc[features.index]
+    indexed = result.events.set_index("event_id")
+    event_time = indexed.loc[features.index, "acceptance_time"]
+    label_end_time = pd.to_datetime(aligned["label_end_session"]).dt.tz_localize(
+        result.events["acceptance_time"].dt.tz)
+
+    table = selection.compare_candidates(
+        features, aligned["label"], event_time, label_end_time,
+        sessions=indexed["entry_session"])
+    # Paired, for the same reason the operational baselines are: the families saw
+    # the same events on the same days, and two overlapping independent intervals
+    # do not settle which is better. On the real sample the independent intervals
+    # overlap almost entirely while the paired difference is three times tighter.
+    scored = selection.candidate_predictions(
+        features, aligned["label"], event_time, label_end_time)
+    paired = selection.paired_candidate_differences(
+        scored, indexed["entry_session"], reference=base.estimator)
+    nested = selection.nested_selection_score(
+        features, aligned["label"], event_time, label_end_time)
+    return table, paired, nested

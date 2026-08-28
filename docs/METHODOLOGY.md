@@ -39,6 +39,27 @@ issuer-specific residual standard deviations. The cutoff is declared before the
 sample is observed. A full-sample percentile would let future test-fold outcomes
 help define what "material" means, even if the model never trained on those rows.
 
+**Where the event window starts** is a decision, not a detail. A close-to-close
+series anchors the entry session's return at the *previous* close, which for the
+63.2% of 8-Ks accepted outside market hours was printed before the filing
+existed. No leakage guard sees this: `causal(acceptance_time <= entry_open)`
+passes on every row precisely because the label never touches `entry_open`.
+
+It stays close-to-close anyway. The question is *was this filing material*, and
+the overnight gap is part of that reaction rather than contamination of it. The
+alternative — `open_anchored_returns`, off by default — asks how much was still
+on the table at the open, which is a different and harder question, and
+`experiments.anchoring_study` reports both. What the difference is worth is
+measured rather than asserted: 27.7% of a material filing's reaction is already
+in the opening print, 45.7% for those accepted after the close. See
+[LEAKAGE.md](LEAKAGE.md) for the full decomposition.
+
+**Residual standard deviation uses `ddof=2`**, not 1. Alpha and beta were both
+estimated on the same window, so two degrees of freedom are already spent. On 120
+sessions the correction is under 1%, but it biases the denominator of every
+reaction score downward — the direction that quietly moves filings across the
+2.0σ threshold.
+
 ## Features
 
 Every feature must be computable by someone standing at `decision_time`.
@@ -49,6 +70,56 @@ Every feature must be computable by someone standing at `decision_time`.
 | When it landed | pre / open / post / closed, hour, weekday, days since last filing, filings in the trailing year |
 | How unusual | cosine distance from the issuer's own previous 8 filings, document length, length vs the issuer's running median |
 | Issuer state | 20-session volatility, 5-session mean absolute return, 20-session dollar volume, relative volume — all ending the session *before* entry |
+
+| Issuer | one-digit SIC group, days to fiscal year end, and the issuer's own prior material rate |
+
+| Reporting cycle | days since the last earnings filing, days to the next expected one |
+
+**The reporting-cycle pair is the one feature addition here that is
+statistically established.** Adding both moves average precision from 0.383 to
+0.397, a paired difference of +0.0147 with an interval of [+0.0070, +0.0232] and
+zero of 2,000 resamples favouring the model without them. They rank third and
+fifth of 44 on out-of-sample permutation importance. Every other family added
+alongside them has an interval straddling zero.
+
+The expected date is **last year's corresponding quarter plus 365 days**, not the
+median gap since the last report: issuers report on close to the same calendar
+week each year, and on 3,257 out-of-sample predictions the annual anchor misses
+by a median of 1 day against 4, landing within three days 60% of the time against
+48%.
+
+**No published earnings calendar is read, and that is a leakage decision.** A
+vendor calendar is the better source for a *display*, since it carries announced
+dates rather than estimates. It is the wrong source for a *feature*: the calendar
+downloaded today lists dates as known today, not as known then, and records
+nothing about when each was announced. A backtest using it would let a 2022
+filing know a date published weeks later, and no guard here could catch it
+because there is no column to check. Inferring the rhythm from the issuer's own
+filings is knowable by construction.
+
+**The issuer's prior material rate is built from past labels**, which makes it
+the most dangerous family here — everything else comes from prices and text that
+existed at decision time, while this comes from *outcomes*. An outcome is not
+knowable until its window closes, so only the issuer's prior filings whose
+windows had already closed may be counted. `expanding()` over every earlier row
+is the obvious implementation and lets a filing be told the answer by siblings
+whose reactions had not finished happening — `.rolling()` without `.shift()`,
+one level up. `resolved_issuer_history` is the switch, it participates in
+`is_honest`, and the rule changes 8.7% of rows on the real sample while barely
+moving the score: the count is the invariant, as with the universe guard.
+
+**SIC is kept at one digit, not two.** Two digits give 40 groups over 193
+issuers, about five companies each, and the same issuers appear in training and
+test folds — a categorical that thin is closer to an issuer identifier than to
+an industry. `filer_category` was dropped outright: all 194 issuers are large
+accelerated filers, which is the convenience sample confessing again.
+
+**Whether the issuer family earns its place is not established.** Adding all
+four columns moves average precision from 0.378 to 0.383, a paired difference of
++0.0045 with an interval of [−0.0022, +0.0106]. 92% of resamples favour keeping
+them, which is suggestive and is not a result. They stay because the point
+estimate is positive and two of them have a mechanism behind them, and this
+paragraph exists so nobody quotes the 0.383 as an improvement.
 
 **Novelty uses a `HashingVectorizer`, not TF-IDF.** This is a leakage decision, not
 a performance one. TF-IDF must be fitted, and a vectorizer fitted over the whole
@@ -63,11 +134,35 @@ entire outcome window closed before the test fold opened, plus a five-day embarg
 See [LEAKAGE.md](LEAKAGE.md) §4.
 
 Metrics are ranking metrics. With a rare outcome, accuracy is worthless —
-"nothing is material" can look strong while surfacing nothing. The headline is
-**average precision**, with
-**mean daily precision@5** as the product metric: of the five filings surfaced
-each morning, how many actually mattered. Averaging the daily figure is both what
-the product does and far more stable than one pooled top-5 over three years.
+"nothing is material" can look strong while surfacing nothing.
+
+**Average precision is the result.** It is threshold-free, uses the whole
+ranking, and imposes no capacity, which is what makes it comparable across
+pipeline versions and what makes the leakage ladder legible.
+
+**Daily precision@k is one operational reading of it**, and it is deliberately
+demoted here. Earlier versions called it the product metric and quoted `k = 5`
+beside average precision as an equal, which promoted a product constraint to a
+scientific one: `k` is how many filings someone reads, it was assumed from a
+reader's supposed capacity, and nothing in the data derives it. Two corrections
+follow.
+
+*It has a ceiling well below 1.* A session holding one material filing caps
+precision@5 at 0.2 however good the ranking is, and 37% of eligible sessions
+hold none at all. The achievable ceiling on the real sample is 28.3% against a
+11.6% floor, so the reading is not "19.8%" but "49% of the gap between them".
+
+*And the whole capacity curve is reported, not one point.* Across `k` from 1 to
+20 the lift moves 2.71× to 1.16× on an unchanged model while the span captured
+stays near 0.4. The lift is the reading that depends on the assumption; the span
+is the one that survives it. Sessions also fall away sharply with `k`, because a
+capacity above the day's filing count is reading everything rather than
+triaging — the real limit on how far the metric can be pushed.
+
+A pooled top-k over the whole sample is *not* reported as a headline anywhere,
+and the reason is worth stating because it is the most flattering number
+available: the whole-sample top five is five rows drawn from three years, which
+no reader could have acted on, since the queue arrives one morning at a time.
 
 Daily lift uses the expected random precision on the **same eligible sessions**,
 not the pooled sample base rate. The report also compares the model with arrival
@@ -79,14 +174,132 @@ ROC AUC is reported as a familiar cross-check, not as the headline. It averages
 over the whole ranking including the tail nobody reads, and it is blunt about
 leaks that concentrate on the positives.
 
+## Uncertainty
+
+A project whose argument is "the flattering number is usually wrong" cannot make
+that argument with bare point estimates. A reader cannot tell 1.63× ± 0.05 from
+1.63× ± 0.6, and only one of those is a result.
+
+**Resampled by session, not by row.** Filings on the same morning share a market
+and a macro tape, so treating 9,721 events as 9,721 independent draws would
+understate the interval. Measured, the correction is worth about 4% of the width
+— far less than it sounds, because the label is already a market-model residual,
+so the common factor that would have driven same-day correlation was subtracted
+before the metric saw it. The cluster bootstrap stays regardless: it is correct
+whether or not clustering is present, the row bootstrap only if it is absent, and
+the safe one costs a rounding error.
+
+**Baselines are paired, not a separate experiment.** Model and baseline see the
+same sessions, so sessions are resampled once and every rule is rescored on that
+same draw. Bootstrapping two means independently throws the pairing away and
+overstates the uncertainty of their difference. The reported column is the share
+of draws in which the baseline matched or beat the model — a lift of 1.41× whose
+draws favour the baseline one time in eight is a different claim from the same
+1.41× at zero.
+
+**Ladder rungs carry no interval, deliberately.** Consecutive rungs are the same
+pipeline on overlapping event populations — fixing the entry rule changes which
+filings are measurable at all — so a resample of one is not exchangeable with a
+resample of the next. A paired bootstrap over them would look rigorous and mean
+nothing. What is comparable across rungs is the invariant counts, which is why
+those lead the table.
+
+Percentile intervals throughout; BCa would be defensible and is not worth the
+machinery at these sample sizes, where the distributions are close to symmetric.
+
+**Where the estimator's constants came from.** Picking them by watching the
+out-of-sample metric would be a selection leak spanning the whole project, and
+the one class no guard can catch — every individual run is clean and the
+contamination lives in which run was kept. Answered with a spread rather than a
+promise: perturbing each setting one at a time moves average precision across
+0.008, narrower than the 0.064 bootstrap interval on the default, and the
+defaults are not the best cell in the grid.
+
+## Does the model family matter
+
+The estimator is deliberately unremarkable, and a good deal rests on that being
+true rather than merely convenient, so it is measured against three alternatives
+on the same folds and the same events: a regularised linear model, a random
+forest, and a stratified dummy that scores at the base rate by construction.
+
+**The comparison is paired**, for the same reason the operational baselines are.
+The families saw the same events on the same days, so their difference is
+measured within a resample; two overlapping *independent* intervals do not
+settle which is better. It matters here — independently, random forest
+[0.347, 0.409] and the shipped estimator [0.338, 0.398] overlap almost entirely,
+while their paired difference is far tighter at [−0.038, −0.009]. Every paired
+difference now clears zero, which was not true before the reporting-cycle
+features were added: the same comparison then put the two leading families
+0.011 apart with an interval of [−0.003, +0.024]. Two features separated model
+families the data could not previously distinguish, which says more about where
+the leverage is than the ranking does.
+
+Family is worth a spread of 0.041 in average precision. The validation scheme is
+worth 0.199. That ratio is the argument for where the attention went.
+
+**Every candidate is a Pipeline, and that is a leakage decision.** Two of the
+families cannot take a NaN, and the obvious remedy — impute the feature frame
+once, before splitting — fits the median partly on the test period and carries it
+into training. It is the same shape as a TF-IDF fitted over the whole corpus, and
+it is easy to miss because imputation does not feel like fitting. A Pipeline fits
+its steps inside each fold, so the leak cannot happen by construction.
+
+**Selecting between families is itself a selection leak**, the kind no per-row
+guard can see. So the table above is descriptive only, and a *nested* score
+prices the procedure: an inner purged, embargoed split inside each outer training
+block chooses the winner, the winner is refit on the full outer training block,
+and no test fold ever informs the choice made for it. The number that produces is
+what "try these and keep the best" is actually worth. Here it is 0.378 and the
+same family wins in every fold, so the selection is stable and its premium over
+the descriptive table is zero — which is not the general case, and is why the
+per-fold choices are reported alongside the score.
+
+## Reproducibility
+
+Randomness is pinned -- one `random_state` through the model, the permutation
+importance and the bootstrap -- so the synthetic path is deterministic. That is
+the easy half. The real-data path has three ways to drift, and naming them is
+more useful than claiming it does not.
+
+**The dependency floors are `>=`**, which is right for a library and wrong for a
+result: two installs a year apart run the same code on different numerics, and
+`HistGradientBoostingClassifier` makes no promise of identical splits across
+scikit-learn versions. `requirements.lock` pins one resolution known to
+reproduce; `make install-locked` installs it, and CI runs the suite against both
+the lock and the floors, because those answer different questions -- *can anyone
+get these numbers back*, and *does this still work on current libraries*.
+
+**EDGAR grows.** One rebuild from the ingest cache turned 11,702 filings into
+11,716. A run is a snapshot of a moving source, not a fixed dataset.
+
+**Vendor prices are adjusted as of the pull date.** A later split rewrites the
+whole history retroactively: same rows, same date range, different values. This
+does not bias the study -- event and benchmark come from the same adjusted
+series and the adjustment is multiplicative -- but it does mean a rerun after a
+corporate action will not reproduce the numbers, and the row count will not say
+so.
+
+**So each result records what it was computed from.** `manifest.json` carries a
+content fingerprint of every input frame plus the interpreter and library
+versions behind it. The digest is over canonicalised content -- columns sorted,
+rows sorted, floats at fixed precision -- rather than file bytes, because pandas
+and pyarrow rewrite their encodings between versions and a fingerprint that
+fires on a library upgrade is a false alarm that gets removed. Row counts sit
+beside the hashes on purpose: a changed count is the source growing, an
+unchanged count with a changed digest is values moving underneath, and those are
+different problems.
+
 ## What this does not claim
 
 - **No return prediction.** Direction is never modelled, and no strategy return,
   Sharpe ratio or P&L appears anywhere. Reaction *magnitude* is a different and
   more tractable quantity.
-- **No claim of tradability.** Ranking which filings the market reacted to is not
-  the same as being able to profit from it, and the embargo sweep exists partly to
-  show how little is left after any realistic delay.
+- **No claim of tradability**, and this is now a measurement rather than a
+  disclaimer. The label is anchored at the previous close, so for a material
+  filing accepted after the bell a median **45.7%** of the reaction is already in
+  the opening print — gone before any entry rule could act. Scored against an
+  open-anchored label the pipeline falls from 0.397 average precision to 0.155.
+  The embargo sweep says the rest decays within the session.
 - **Daily bars only.** The entry convention — the first *open* at or after the
   decision time — is the most conservative one available at daily resolution.
   Intraday data would allow a tighter and more interesting measurement.

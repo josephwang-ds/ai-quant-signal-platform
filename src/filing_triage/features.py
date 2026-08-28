@@ -28,6 +28,7 @@ import pandas as pd
 from sklearn.feature_extraction.text import HashingVectorizer
 
 from filing_triage.config import PipelineConfig
+from filing_triage.earnings import earnings_rhythm_features
 from filing_triage.ingest.edgar import ITEM_LABELS
 
 NOVELTY_LOOKBACK = 8      # how many of the issuer's own prior filings to compare against
@@ -45,8 +46,17 @@ SESSION_STATES = ("pre", "open", "post", "closed")
 
 
 def build_features(events: pd.DataFrame, returns: pd.DataFrame,
-                   config: PipelineConfig) -> pd.DataFrame:
-    """One row per event, indexed by `event_id`. No outcome-derived columns."""
+                   config: PipelineConfig,
+                   labels: pd.DataFrame | None = None,
+                   profile: pd.DataFrame | None = None) -> pd.DataFrame:
+    """One row per event, indexed by `event_id`.
+
+    `labels` is optional and is used for one family only: the issuer's own track
+    record, which is built from prior labels that had already resolved. Passing
+    the frame in is what makes that possible and is also the moment this becomes
+    dangerous, so the rule lives in `_issuer_history_features` with its reasoning
+    attached. Nothing else here may touch it.
+    """
     frame = events.sort_values(["ticker", "acceptance_time"]).reset_index(drop=True)
 
     parts = [
@@ -55,6 +65,9 @@ def build_features(events: pd.DataFrame, returns: pd.DataFrame,
         _timing_features(frame),
         _novelty_features(frame),
         _issuer_state_features(frame, returns, config),
+        _issuer_history_features(frame, labels, config),
+        _issuer_profile_features(frame, profile),
+        earnings_rhythm_features(frame).set_axis(frame.index),
     ]
     out = pd.concat(parts, axis=1)
     return out.set_index("event_id")
@@ -195,6 +208,137 @@ def _issuer_state_features(frame: pd.DataFrame, returns: pd.DataFrame,
     # full-sample median whose value would carry future market observations into
     # an earlier test fold.
     return out
+
+
+def _issuer_profile_features(frame: pd.DataFrame,
+                             profile: pd.DataFrame | None) -> pd.DataFrame:
+    """Static issuer attributes, and the two that were dropped for cause.
+
+    `filer_category` is gone because on this universe it has **zero variance**:
+    all 194 issuers are large accelerated filers. That is the convenience sample
+    confessing again -- hand-picked large caps are all in one size bucket -- and
+    a constant column is a feature that cannot inform anything while still
+    costing a line of explanation.
+
+    `sic_division` is kept at *one* digit, not two. Two digits give 40 groups
+    over 193 issuers, about five companies each, and a categorical that thin is
+    much closer to an issuer identifier than to an industry: the same issuers
+    appear in training and test folds, so a level holding five companies lets a
+    tree memorise which ones they are and recover their base rate directly.
+    One digit gives around ten groups and asks the intended question.
+
+    `days_to_fiscal_year_end` is the attribute worth having. It is genuinely
+    point-in-time -- a fiscal calendar is published in advance and changes almost
+    never -- and it says where in the reporting cycle a filing sits, which is
+    exactly the kind of thing that separates a routine quarterly release from an
+    unscheduled one.
+    """
+    # No profile table at all is a different fact from an issuer whose attributes
+    # EDGAR does not report, and the two must not share an encoding. NaN means
+    # "missing for this issuer" and the model may learn from it; a run with no
+    # profile source -- the synthetic path -- has nothing to learn, so it gets a
+    # constant sentinel. An all-NaN column would also make the imputer warn once
+    # per fold about a statistic it cannot compute.
+    if profile is None or profile.empty:
+        return pd.DataFrame({"sic_group": -1, "days_to_fiscal_year_end": -1.0},
+                            index=frame.index)
+
+    joined = frame[["cik", "acceptance_time"]].merge(
+        profile[["cik", "sic_division", "fiscal_year_end"]], on="cik", how="left")
+    joined.index = frame.index
+
+    group = (joined["sic_division"].fillna(-1).astype(int) // 10).astype(int)
+
+    # MMDD, and the leading zero is load-bearing: a September year-end is "0926"
+    # and survives a CSV round trip as the integer 926, which slices to month 92.
+    # Re-pad rather than trusting whatever dtype the frame arrived with.
+    stamp = (joined["fiscal_year_end"].fillna("").astype(str)
+             .str.replace(r"\.0$", "", regex=True).str.zfill(4))
+    month = pd.to_numeric(stamp.str[:2], errors="coerce")
+    day = pd.to_numeric(stamp.str[2:], errors="coerce")
+    accepted = joined["acceptance_time"].dt.tz_localize(None)
+    # Day of the fiscal year the filing lands on, as a signed distance to the
+    # next year-end. Wrapped rather than clipped so an issuer filing just after
+    # its year-end is near the far edge, not at an arbitrary boundary value.
+    year_end_doy = (month - 1) * 30.4 + day
+    filing_doy = accepted.dt.dayofyear
+    distance = (year_end_doy - filing_doy) % 365.0
+
+    return pd.DataFrame({
+        "sic_group": group,
+        # An issuer EDGAR has no fiscal calendar for keeps NaN: that is genuinely
+        # unknown, and the estimator is entitled to treat it as such.
+        "days_to_fiscal_year_end": distance.astype(float),
+    }, index=frame.index)
+
+
+def _issuer_history_features(frame: pd.DataFrame, labels: pd.DataFrame,
+                             config: PipelineConfig) -> pd.DataFrame:
+    """The issuer's own track record, counting only filings already resolved.
+
+    Built from *past labels*, which makes it the most dangerous family of
+    features in this project. A filing's label is not knowable until its outcome
+    window closes, so at filing N's decision time the only usable history is the
+    prior filings of that issuer whose windows closed first.
+
+    `expanding()` over every earlier row is the obvious implementation and it is
+    wrong: for an issuer that files in clusters, a filing would be told the
+    answer by siblings whose reactions had not finished happening. That is
+    `.rolling()` without `.shift()` moved one level up -- not the event's own
+    outcome, but the outcomes beside it.
+
+    The cutoff is `label_end_session < entry_session`. Conservative on purpose:
+    a label is fully observed at the close of its last window session, and the
+    entry it would inform is the *open* of a later one, so the strict inequality
+    leaves a whole session of slack rather than reasoning about intraday timing
+    the daily panel cannot support.
+
+    Two features, not three, and the third was removed by its own measurement.
+    A median of prior reaction magnitudes ranked 38th of 41 on out-of-sample
+    permutation importance with a negative mean -- redundant with the rate, which
+    ranks 6th. Keeping a feature that measures as noise costs a column of
+    explanation for nothing.
+
+    The count stays despite also measuring near zero, and the reason is the
+    project's own: a rate over two observations is not a rate, and quoting one
+    without its denominator is the same error as quoting a point estimate
+    without its interval. Filling an unknown rate with the sample mean instead
+    would carry the whole corpus into every issuer that had no history yet.
+    """
+    columns = ["issuer_prior_resolved", "issuer_prior_material_rate"]
+    if labels is None or "label_end_session" not in labels.columns:
+        return pd.DataFrame(
+            {"issuer_prior_resolved": 0, "issuer_prior_material_rate": np.nan},
+            index=frame.index)
+
+    joined = frame[["event_id", "ticker", "entry_session"]].merge(
+        labels[["event_id", "label", "label_end_session"]],
+        on="event_id", how="left")
+    joined.index = frame.index
+
+    resolved = np.zeros(len(joined), dtype=int)
+    rate = np.full(len(joined), np.nan)
+
+    entry = pd.to_datetime(joined["entry_session"]).to_numpy("datetime64[D]")
+    end = pd.to_datetime(joined["label_end_session"]).to_numpy("datetime64[D]")
+    label = joined["label"].to_numpy(dtype=float)
+
+    for _, positions in joined.groupby("ticker", sort=False).indices.items():
+        order = positions[np.argsort(entry[positions], kind="mergesort")]
+        ends = end[order]
+        # Windows close in the order the filings entered, so one pass of
+        # searchsorted gives every row its count of already-resolved priors.
+        cutoff = (np.searchsorted(ends, entry[order], side="left")
+                  if config.resolved_issuer_history
+                  else np.arange(len(order)))
+        for position, (row, n) in enumerate(zip(order, cutoff, strict=True)):
+            usable = order[:min(n, position)]
+            resolved[row] = len(usable)
+            if len(usable):
+                rate[row] = float(np.nanmean(label[usable]))
+
+    return pd.DataFrame(dict(zip(columns, (resolved, rate), strict=True)),
+                        index=frame.index)
 
 
 def feature_columns(features: pd.DataFrame) -> list[str]:

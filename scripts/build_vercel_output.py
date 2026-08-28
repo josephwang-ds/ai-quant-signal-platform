@@ -5,6 +5,8 @@ from __future__ import annotations
 import argparse
 import json
 import shutil
+import sys
+from datetime import UTC, datetime
 from pathlib import Path
 
 from company_lens.web.ask import (
@@ -15,6 +17,38 @@ from company_lens.web.ask import (
 )
 
 DEFAULT_ASK_FUNCTION = Path("ops/vercel/ask/index.js")
+
+# What the pages are generated *from*. If any of this is newer than the newest
+# generated page, the pages predate the code that renders them.
+RENDERER_SOURCES = (Path("src/company_lens/web"), Path("src/company_lens/snapshots"))
+
+
+def staleness(source: Path, renderer_sources=RENDERER_SOURCES) -> tuple[float, Path] | None:
+    """The newest renderer file that postdates every generated page, if any.
+
+    `build_vercel_output` copies HTML; it never renders it. So a bundle is only
+    as current as whenever `company-lens`/`build_company_pages.py` last ran, and
+    deploying after editing the renderer ships the previous build with nothing
+    saying so -- the deploy succeeds, the pages are valid, and the change is
+    simply absent. That is how this project's own site served an evidence-scope
+    build for days after the scopes were written.
+
+    Compared against the newest page rather than each page individually: pages
+    are written in one pass, and a per-file comparison would fire on an issuer
+    whose page happens to be rebuilt less often.
+    """
+    pages = sorted(Path(source).glob("*.html"))
+    if not pages:
+        return None
+    newest_page = max(path.stat().st_mtime for path in pages)
+    newer = [
+        (path.stat().st_mtime, path)
+        for root in renderer_sources
+        if root.exists()
+        for path in root.rglob("*.py")
+        if path.stat().st_mtime > newest_page
+    ]
+    return max(newer) if newer else None
 
 
 def build_vercel_output(
@@ -122,7 +156,30 @@ def main() -> int:
         type=Path,
         default=DEFAULT_ASK_FUNCTION,
     )
+    parser.add_argument(
+        "--allow-stale",
+        action="store_true",
+        help="bundle pages that predate the renderer that generates them",
+    )
     args = parser.parse_args()
+
+    stale = staleness(args.source)
+    if stale is not None and not args.allow_stale:
+        mtime, path = stale
+        print(
+            f"{args.source} was generated before {path} was last edited "
+            f"({datetime.fromtimestamp(mtime, UTC).astimezone():%Y-%m-%d %H:%M}).\n"
+            "\n"
+            "This packager copies HTML, it does not render it, so bundling now "
+            "ships the older pages\n"
+            "and the deploy reports success either way.\n"
+            "\n"
+            "  make company-pages      rebuild the pages, then bundle\n"
+            "  --allow-stale           bundle them as they are",
+            file=sys.stderr,
+        )
+        return 1
+
     output = build_vercel_output(
         args.source,
         args.out,

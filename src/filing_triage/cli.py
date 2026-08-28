@@ -43,6 +43,8 @@ def main(argv: list[str] | None = None) -> int:
     demo.add_argument("--out", default=str(BUILD / "report.html"))
     demo.add_argument("--quick", action="store_true",
                       help="skip the leakage study and the embargo sweep")
+    demo.add_argument("--force", action="store_true",
+                      help="overwrite a real EDGAR build in data/build")
 
     ingest = sub.add_parser("ingest", help="pull real EDGAR filings and prices")
     ingest.add_argument("--universe", default=str(BUILD / "universe.csv"))
@@ -142,8 +144,49 @@ def _doctor(args) -> int:
 
 
 # --------------------------------------------------------------------------- #
+def _guard_real_build(force: bool) -> int | None:
+    """Refuse to overwrite a real EDGAR build with a synthetic one.
+
+    `demo` and `ingest` write their frames to the same three files, so running
+    the demo after a real pull silently replaces tens of thousands of filings
+    with a simulation. Nothing about the result looks wrong afterwards -- the
+    pipeline runs, the report renders, the numbers are plausible -- which puts
+    this in the same category as the leaks the project is about: a failure that
+    produces an answer instead of an error.
+
+    The README hands a reader the sequence that triggers it, `make demo` first
+    and `make ingest` later, so this is the expected order of operations rather
+    than an unlikely mistake.
+    """
+    provenance = _read_provenance()
+    if provenance.get("source") != "edgar" or force:
+        return None
+    print(
+        f"data/build holds a real EDGAR build "
+        f"({provenance.get('filings', '?'):,} filings from "
+        f"{provenance.get('issuers', '?')} issuers, written "
+        f"{provenance.get('written_at', 'at an unrecorded time')}).\n"
+        "\n"
+        "The demo writes its synthetic world to the same files and would "
+        "replace it.\n"
+        "The ingest cache in data/cache can rebuild it, but that is a rerun of "
+        "`make ingest`,\n"
+        "not an undo.\n"
+        "\n"
+        "  make ingest            rebuild the real frames from cache\n"
+        "  make demo FORCE=1      overwrite anyway (also make quick FORCE=1)\n"
+        "  triage demo --force    the same, without make",
+        file=sys.stderr,
+    )
+    return 1
+
+
 def _demo(args) -> int:
     from filing_triage.synth import generate
+
+    refused = _guard_real_build(args.force)
+    if refused is not None:
+        return refused
 
     print(f"generating a synthetic world ({args.issuers} issuers)...", flush=True)
     world = generate(n_issuers=args.issuers, seed=args.seed)
@@ -171,13 +214,46 @@ def _run(args) -> int:
     events = pd.read_parquet(BUILD / "events.parquet")
     prices = load_prices(BUILD / "prices.parquet")
     membership = load_membership(BUILD / "membership.csv")
-    return _pipeline_and_report(events, prices, membership, Path(args.out))
+    profile = load_issuer_profile()
+    return _pipeline_and_report(events, prices, membership, Path(args.out),
+                                issuer_profile=profile)
 
 
 def _universe_meta(universe: Path) -> dict:
     """What the universe file says about its own limitations, if anything."""
     sidecar = universe.with_suffix(".meta.json")
     return json.loads(sidecar.read_text()) if sidecar.exists() else {}
+
+
+def _write_issuer_profile(client, events: pd.DataFrame) -> None:
+    """Static issuer attributes, from submissions already in the cache.
+
+    Written during ingest rather than fetched later because the payload it reads
+    is the same one the filings came from -- a second pass would re-request it,
+    and could get a different answer, since EDGAR reports these as of today.
+    """
+    from filing_triage.ingest.edgar import parse_issuer_profile
+
+    rows = []
+    for cik in sorted({int(c) for c in events["cik"].unique()}):
+        try:
+            rows.append(parse_issuer_profile(client.submissions(cik), cik))
+        except Exception:      # noqa: BLE001 - one bad issuer must not lose the rest
+            continue
+    if rows:
+        pd.DataFrame(rows).to_csv(BUILD / "issuer_profile.csv", index=False)
+        print(f"  issuer profile for {len(rows)} issuers")
+
+
+def load_issuer_profile() -> pd.DataFrame | None:
+    """The profile table, or None when there is not one.
+
+    Absent for a synthetic world, which has no EDGAR behind it, so the features
+    built from it degrade to a constant rather than raising -- the demo path must
+    keep working without pretending the attributes exist.
+    """
+    path = BUILD / "issuer_profile.csv"
+    return pd.read_csv(path) if path.exists() else None
 
 
 def _write_provenance(source: str, **fields) -> None:
@@ -200,9 +276,11 @@ def _read_provenance() -> dict:
 
 
 def _pipeline_and_report(events, prices, membership, out: Path,
-                         quick: bool = False) -> int:
+                         quick: bool = False,
+                         issuer_profile: pd.DataFrame | None = None) -> int:
     print("running the honest pipeline...", flush=True)
-    result = pipeline.run(events, prices, membership, PipelineConfig())
+    result = pipeline.run(events, prices, membership, PipelineConfig(),
+                          issuer_profile=issuer_profile)
     print(f"  {result.audit.summary()}")
     for name, value in _headline(result.metrics, result.baseline_comparisons):
         print(f"  {name:<34} {value}")
@@ -218,12 +296,14 @@ def _pipeline_and_report(events, prices, membership, out: Path,
         sweep = pd.DataFrame()
     else:
         print("running the leakage study (5 configurations)...", flush=True)
-        study = experiments.run_leakage_study(events, prices, membership)
+        study = experiments.run_leakage_study(events, prices, membership,
+                                              issuer_profile=issuer_profile)
         print(study[["stage", "n_events", "average_precision", "roc_auc",
                      "impossible_entries", "median_hindsight_hours",
                      "checks_failed"]].to_string(index=False))
         print("sweeping the embargo...", flush=True)
-        sweep = experiments.embargo_sweep(events, prices, membership, SWEEP)
+        sweep = experiments.embargo_sweep(events, prices, membership, SWEEP,
+                                          issuer_profile=issuer_profile)
 
     BUILD.mkdir(parents=True, exist_ok=True)
     result.queue.to_csv(BUILD / "queue.csv", index=False)
@@ -231,11 +311,30 @@ def _pipeline_and_report(events, prices, membership, out: Path,
     if not study.empty:
         study.to_csv(BUILD / "leakage_study.csv", index=False)
 
+    # The ladder's last rung is the honest pipeline, the same configuration the
+    # headline tiles came from. They disagreed once, because the ladder was not
+    # handed the issuer profile the headline run received -- two pipelines, one
+    # page, and nothing saying so. The export learned to refuse that; the report
+    # is the more public artefact and had no such check.
+    if not study.empty:
+        honest = float(study.iloc[-1]["average_precision"])
+        headline = result.metrics.get("average_precision")
+        if headline is not None and abs(honest - headline) > 1e-9:
+            print(
+                f"\nladder's honest rung scores {honest:.6f} but the headline says "
+                f"{headline:.6f}; the report would show two different runs as one",
+                file=sys.stderr,
+            )
+            return 1
+
     if study.empty:
         print("\nreport needs the leakage study; rerun without --quick")
     else:
-        path = report.render(result, study, sweep, out,
-                             provenance=_read_provenance())
+        path = report.render(
+            result, study, sweep, out,
+            provenance=_read_provenance(),
+            capacity=experiments.capacity_profile(result.predictions, result.events),
+        )
         print(f"\nreport written to {path}")
 
     if not result.audit.passed:
@@ -320,9 +419,15 @@ def _headline(metrics: dict,
     counted = metrics.get("daily_sessions_at_5", 0)
     if metrics.get("daily_usable_at_5"):
         random_lift = _paired_lift(comparisons, "random")
+        ceiling = metrics.get("daily_oracle_precision_at_5", float("nan"))
+        span = metrics.get("daily_span_captured_at_5", float("nan"))
         rows += [
             ("daily precision @5", (f"{metrics['daily_precision_at_5']:.1%} "
+                                    f"of a {ceiling:.1%} ceiling "
                                     f"({counted} sessions)")),
+            # The lift depends on a reading capacity the project assumed rather
+            # than derived; the span survives it. Both are printed, span first.
+            ("share of achievable span @5", f"{span:.0%}"),
             ("lift vs matched random @5",
              random_lift or f"{metrics['daily_lift_at_5']:.2f}x"),
             ("arrival-order precision @5",
@@ -411,6 +516,7 @@ def _ingest(args) -> int:
     events["event_id"] = events["accession"]
 
     BUILD.mkdir(parents=True, exist_ok=True)
+    _write_issuer_profile(client, events)
     events.to_parquet(BUILD / "events.parquet", index=False)
     pd.concat(prices, ignore_index=True).to_parquet(BUILD / "prices.parquet", index=False)
     membership.to_csv(BUILD / "membership.csv", index=False)

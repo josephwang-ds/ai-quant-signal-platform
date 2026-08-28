@@ -13,6 +13,7 @@ import pandas as pd
 import pytest
 
 from filing_triage import cli, experiments, pipeline, report
+from filing_triage.candidates import CANDIDATES, build, sensitivity_grid
 from filing_triage.config import PipelineConfig
 from filing_triage.uncertainty import (
     bootstrap_daily_comparisons,
@@ -163,9 +164,30 @@ class TestHyperparameterProvenance:
         from filing_triage.model import TriageModel
         assert TriageModel(PipelineConfig()).estimator_overrides is None
 
-    def test_the_grid_perturbs_one_setting_at_a_time(self):
-        for overrides in experiments.SENSITIVITY_GRID:
-            assert len(overrides) <= 1
+    @pytest.mark.parametrize("family", sorted(CANDIDATES))
+    def test_the_grid_perturbs_one_setting_at_a_time(self, family):
+        for overrides in sensitivity_grid(family):
+            assert len(overrides) <= 1, (
+                f"{family} grid entry {overrides} moves more than one setting, "
+                "so a movement in the metric cannot be attributed to either"
+            )
+
+    @pytest.mark.parametrize("family", sorted(CANDIDATES))
+    def test_every_family_grid_starts_from_its_own_defaults(self, family):
+        assert sensitivity_grid(family)[0] == {}
+
+    def test_the_grid_follows_the_configured_family(self):
+        """A grid frozen to a previous default still runs and still prints a
+        reassuring spread -- while perturbing parameters the current estimator
+        does not have. A sensitivity study that has silently stopped testing
+        anything is worse than none, because it reads as evidence."""
+        configured = PipelineConfig().estimator
+        settings = {k for entry in sensitivity_grid(configured) for k in entry}
+        valid = build(configured).named_steps["clf"].get_params()
+        assert settings, f"no grid defined for the configured family {configured!r}"
+        assert settings <= set(valid), (
+            f"{sorted(settings - set(valid))} are not parameters of {configured}"
+        )
 
     def test_sensitivity_reports_one_row_per_setting(self, world):
         grid = [{}, {"max_depth": 2}]
