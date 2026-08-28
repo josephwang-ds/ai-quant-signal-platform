@@ -73,6 +73,30 @@ Every feature must be computable by someone standing at `decision_time`.
 
 | Issuer | one-digit SIC group, days to fiscal year end, and the issuer's own prior material rate |
 
+| Reporting cycle | days since the last earnings filing, days to the next expected one |
+
+**The reporting-cycle pair is the one feature addition here that is
+statistically established.** Adding both moves average precision from 0.383 to
+0.397, a paired difference of +0.0147 with an interval of [+0.0070, +0.0232] and
+zero of 2,000 resamples favouring the model without them. They rank third and
+fifth of 44 on out-of-sample permutation importance. Every other family added
+alongside them has an interval straddling zero.
+
+The expected date is **last year's corresponding quarter plus 365 days**, not the
+median gap since the last report: issuers report on close to the same calendar
+week each year, and on 3,257 out-of-sample predictions the annual anchor misses
+by a median of 1 day against 4, landing within three days 60% of the time against
+48%.
+
+**No published earnings calendar is read, and that is a leakage decision.** A
+vendor calendar is the better source for a *display*, since it carries announced
+dates rather than estimates. It is the wrong source for a *feature*: the calendar
+downloaded today lists dates as known today, not as known then, and records
+nothing about when each was announced. A backtest using it would let a 2022
+filing know a date published weeks later, and no guard here could catch it
+because there is no column to check. Inferring the rhythm from the issuer's own
+filings is knowable by construction.
+
 **The issuer's prior material rate is built from past labels**, which makes it
 the most dangerous family here — everything else comes from prices and text that
 existed at decision time, while this comes from *outcomes*. An outcome is not

@@ -28,6 +28,7 @@ import pandas as pd
 from sklearn.feature_extraction.text import HashingVectorizer
 
 from filing_triage.config import PipelineConfig
+from filing_triage.earnings import earnings_rhythm_features
 from filing_triage.ingest.edgar import ITEM_LABELS
 
 NOVELTY_LOOKBACK = 8      # how many of the issuer's own prior filings to compare against
@@ -66,6 +67,7 @@ def build_features(events: pd.DataFrame, returns: pd.DataFrame,
         _issuer_state_features(frame, returns, config),
         _issuer_history_features(frame, labels, config),
         _issuer_profile_features(frame, profile),
+        earnings_rhythm_features(frame).set_axis(frame.index),
     ]
     out = pd.concat(parts, axis=1)
     return out.set_index("event_id")

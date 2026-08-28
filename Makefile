@@ -16,7 +16,7 @@ PYTHON ?= $(shell   test -x .venv/bin/python && echo .venv/bin/python ||   comma
 # the project.
 export PYTHONPATH := $(CURDIR)/src$(if $(PYTHONPATH),:$(PYTHONPATH))
 
-.PHONY: help install lock install-locked demo quick audit doctor test lint ingest refresh-filings refresh-fundamentals refresh-headlines refresh-all vercel-bundle vercel-deploy run site company company-featured company-pages evidence nlp-eval llm-eval llm-eval-provider-dry-run llm-eval-openai-dry-run clean
+.PHONY: help install lock install-locked demo earnings-calendar quick audit doctor test lint ingest refresh-filings refresh-fundamentals refresh-headlines refresh-all vercel-bundle vercel-deploy run site company company-featured company-pages evidence nlp-eval llm-eval llm-eval-provider-dry-run llm-eval-openai-dry-run clean
 
 help:
 	@echo "make install   install the package and dev dependencies"
@@ -40,6 +40,7 @@ help:
 	@echo "make company   build an AAPL Company Lens snapshot from local data"
 	@echo "make company-featured  quickly build AAPL/MSFT/NVDA pages"
 	@echo "make company-pages  build all locally available company pages"
+	@echo "make earnings-calendar  expected reporting dates for the universe"
 	@echo "make evidence  export real-run metrics, intervals and studies (no raw data)"
 	@echo "make nlp-eval  evaluate prior-filing change detection on labeled spans"
 	@echo "make llm-eval  score frozen bilingual grounded-explanation fixtures"
@@ -159,6 +160,12 @@ refresh-all: check-python
 	  echo 'EDGAR_USER_AGENT is not set. The SEC requires a real name and email.'; \
 	  echo '  export EDGAR_USER_AGENT="Your Name you@example.com"'; exit 1; }
 	scripts/run_scheduled_refresh.sh
+
+# Expected reporting dates for the whole universe, inferred from each issuer's
+# own Item 2.02 cadence. Written into company_pages so `make vercel-bundle`
+# carries it to the live site with everything else.
+earnings-calendar: check-python
+	PYTHONPATH=src $(PYTHON) scripts/build_earnings_calendar.py
 
 vercel-bundle: check-python
 	PYTHONPATH=src $(PYTHON) scripts/build_vercel_output.py

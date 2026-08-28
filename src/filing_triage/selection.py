@@ -39,10 +39,26 @@ INNER_SPLITS = 3
 
 
 def _score_fold(pipeline, X, y, train, test) -> np.ndarray | None:
-    """Fit on the training rows and score the test rows, or None if unlearnable."""
+    """Fit on the training rows and score the test rows, or None if unlearnable.
+
+    "Unlearnable" covers two cases. A fold with one class teaches nothing, which
+    is checked directly. And a fold can be too thin for a particular family: a
+    column with no observed values in that split leaves HistGradientBoosting
+    with nothing to bin, and the failure surfaces from inside joblib as a shape
+    error that names neither the column nor the model.
+
+    Returning None rather than raising is the correct behaviour for a comparison,
+    not a convenience: a family that cannot be fitted on a fold cannot be
+    *selected* on it either, so it drops out of that fold's contest while the
+    others are still scored. The alternative loses every family's result to one
+    family's thin split. If none can fit, the caller finds no winner and says so.
+    """
     if y[train].sum() == 0 or y[train].sum() == len(train):
         return None
-    return build_and_predict(pipeline, X, y, train, test)
+    try:
+        return build_and_predict(pipeline, X, y, train, test)
+    except ValueError:
+        return None
 
 
 def build_and_predict(pipeline, X, y, train, test) -> np.ndarray:
