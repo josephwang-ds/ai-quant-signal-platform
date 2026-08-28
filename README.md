@@ -333,7 +333,7 @@ embargo sweep, and writes a self-contained HTML report.
 
 ```bash
 make quick           # smaller, no leakage study, ~30s
-make test            # 407 tests (~12 min; the nested model selection dominates)
+make test            # 416 tests (~12 min; the nested model selection dominates)
 make audit           # the leakage checks as an exit code
 make llm-eval        # frozen English/Chinese grounded-output scorecard
 make llm-eval-openai-dry-run  # inspect 20-case paid benchmark scope; sends nothing
@@ -486,6 +486,8 @@ committed is what goes live, so there is nothing that can fail to build.
 | | |
 |---|---|
 | `web/showcase.html` | the full write-up: story, method, findings, diagrams |
+| `lens.josephjwang.com/research.html` | the audited findings, generated from `evidence/real_run` so they cannot drift |
+| `lens.josephjwang.com/earnings.html` | expected reporting dates, inferred from each issuer's own cadence |
 | `web/index.html` | a short landing page |
 | `web/report.html` | the generated report from a run |
 
@@ -536,12 +538,12 @@ src/filing_triage/
                    and hyperparameter sensitivity grid
   report.py        self-contained HTML
   synth.py         the offline corpus
-tests/             407 tests; test_guards, test_pipeline, test_uncertainty
+tests/             416 tests; test_guards, test_pipeline, test_uncertainty
                    and test_ingest_integration are the ones that matter
 docs/              METHODOLOGY.md, LEAKAGE.md, COMPANY_LENS.md
 ```
 
-About 15,584 lines under `src/`, plus 7,322 of tests. It is meant to be read
+About 15,610 lines under `src/`, plus 7,434 of tests. It is meant to be read
 end to end, and a test asserts these figures have not drifted from the code.
 
 ---
