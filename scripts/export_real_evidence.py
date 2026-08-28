@@ -35,8 +35,11 @@ def main() -> int:
     events = pd.read_parquet(args.build / "events.parquet")
     prices = load_prices(args.build / "prices.parquet")
     membership = load_membership(args.build / "membership.csv")
+    profile_path = args.build / "issuer_profile.csv"
+    profile = pd.read_csv(profile_path) if profile_path.exists() else None
     result = pipeline.run(
-        events, prices, membership, PipelineConfig(), compute_importance=True
+        events, prices, membership, PipelineConfig(),
+        issuer_profile=profile, compute_importance=True
     )
     result.audit.raise_if_failed()
 

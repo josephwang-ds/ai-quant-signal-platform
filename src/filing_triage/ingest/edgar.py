@@ -232,6 +232,50 @@ def strip_markup(html: str) -> str:
     return re.sub(r"\s+", " ", text).strip()
 
 
+# Two-digit SIC divisions. Coarse on purpose: the four-digit code splits 193
+# issuers into so many groups that most hold one company, and a feature with one
+# company per level is that company's name wearing a category's clothes.
+def sic_division(sic: str | int | None) -> int:
+    """The industry group, or -1 when EDGAR has no code for the issuer.
+
+    The blank case needs its own branch rather than falling through the parse:
+    `"".zfill(4)` is `"0000"`, whose first two digits are a perfectly valid `0`,
+    so an issuer with no code would silently join a real division instead of
+    being marked unknown.
+    """
+    text = str(sic if sic is not None else "").strip()
+    if not text:
+        return -1
+    try:
+        return int(text.zfill(4)[:2])
+    except ValueError:
+        return -1
+
+
+def parse_issuer_profile(payload: dict, cik: int) -> dict:
+    """Static issuer attributes EDGAR reports alongside the filing index.
+
+    `filer_category` is a size proxy and is **not point-in-time**: EDGAR reports
+    what the issuer is today, and a company promoted from accelerated to large
+    accelerated carries its current status back over its whole history here. It
+    is recorded rather than quietly used, so that a reader deciding whether to
+    trust a feature built on it can see the limitation instead of inferring it.
+
+    `fiscal_year_end` is the one attribute here that is genuinely point-in-time
+    and genuinely useful: it says where in the reporting cycle a filing sits,
+    which is knowable in advance and changes almost never.
+    """
+    return {
+        "cik": int(cik),
+        "sic": str(payload.get("sic") or ""),
+        "sic_description": str(payload.get("sicDescription") or ""),
+        "sic_division": sic_division(payload.get("sic")),
+        "filer_category": str(payload.get("category") or ""),
+        "fiscal_year_end": str(payload.get("fiscalYearEnd") or ""),
+        "state_of_incorporation": str(payload.get("stateOfIncorporation") or ""),
+    }
+
+
 def parse_submissions(payload: dict, cik: int, forms: tuple[str, ...] = ("8-K",)) -> pd.DataFrame:
     """Flatten a submissions payload into one row per filing.
 

@@ -71,6 +71,32 @@ Every feature must be computable by someone standing at `decision_time`.
 | How unusual | cosine distance from the issuer's own previous 8 filings, document length, length vs the issuer's running median |
 | Issuer state | 20-session volatility, 5-session mean absolute return, 20-session dollar volume, relative volume — all ending the session *before* entry |
 
+| Issuer | one-digit SIC group, days to fiscal year end, and the issuer's own prior material rate |
+
+**The issuer's prior material rate is built from past labels**, which makes it
+the most dangerous family here — everything else comes from prices and text that
+existed at decision time, while this comes from *outcomes*. An outcome is not
+knowable until its window closes, so only the issuer's prior filings whose
+windows had already closed may be counted. `expanding()` over every earlier row
+is the obvious implementation and lets a filing be told the answer by siblings
+whose reactions had not finished happening — `.rolling()` without `.shift()`,
+one level up. `resolved_issuer_history` is the switch, it participates in
+`is_honest`, and the rule changes 8.7% of rows on the real sample while barely
+moving the score: the count is the invariant, as with the universe guard.
+
+**SIC is kept at one digit, not two.** Two digits give 40 groups over 193
+issuers, about five companies each, and the same issuers appear in training and
+test folds — a categorical that thin is closer to an issuer identifier than to
+an industry. `filer_category` was dropped outright: all 194 issuers are large
+accelerated filers, which is the convenience sample confessing again.
+
+**Whether the issuer family earns its place is not established.** Adding all
+four columns moves average precision from 0.378 to 0.383, a paired difference of
++0.0045 with an interval of [−0.0022, +0.0106]. 92% of resamples favour keeping
+them, which is suggestive and is not a result. They stay because the point
+estimate is positive and two of them have a mechanism behind them, and this
+paragraph exists so nobody quotes the 0.383 as an improvement.
+
 **Novelty uses a `HashingVectorizer`, not TF-IDF.** This is a leakage decision, not
 a performance one. TF-IDF must be fitted, and a vectorizer fitted over the whole
 corpus carries document frequencies computed from filings that had not been

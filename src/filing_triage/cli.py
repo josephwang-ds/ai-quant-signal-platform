@@ -214,13 +214,46 @@ def _run(args) -> int:
     events = pd.read_parquet(BUILD / "events.parquet")
     prices = load_prices(BUILD / "prices.parquet")
     membership = load_membership(BUILD / "membership.csv")
-    return _pipeline_and_report(events, prices, membership, Path(args.out))
+    profile = load_issuer_profile()
+    return _pipeline_and_report(events, prices, membership, Path(args.out),
+                                issuer_profile=profile)
 
 
 def _universe_meta(universe: Path) -> dict:
     """What the universe file says about its own limitations, if anything."""
     sidecar = universe.with_suffix(".meta.json")
     return json.loads(sidecar.read_text()) if sidecar.exists() else {}
+
+
+def _write_issuer_profile(client, events: pd.DataFrame) -> None:
+    """Static issuer attributes, from submissions already in the cache.
+
+    Written during ingest rather than fetched later because the payload it reads
+    is the same one the filings came from -- a second pass would re-request it,
+    and could get a different answer, since EDGAR reports these as of today.
+    """
+    from filing_triage.ingest.edgar import parse_issuer_profile
+
+    rows = []
+    for cik in sorted({int(c) for c in events["cik"].unique()}):
+        try:
+            rows.append(parse_issuer_profile(client.submissions(cik), cik))
+        except Exception:      # noqa: BLE001 - one bad issuer must not lose the rest
+            continue
+    if rows:
+        pd.DataFrame(rows).to_csv(BUILD / "issuer_profile.csv", index=False)
+        print(f"  issuer profile for {len(rows)} issuers")
+
+
+def load_issuer_profile() -> pd.DataFrame | None:
+    """The profile table, or None when there is not one.
+
+    Absent for a synthetic world, which has no EDGAR behind it, so the features
+    built from it degrade to a constant rather than raising -- the demo path must
+    keep working without pretending the attributes exist.
+    """
+    path = BUILD / "issuer_profile.csv"
+    return pd.read_csv(path) if path.exists() else None
 
 
 def _write_provenance(source: str, **fields) -> None:
@@ -243,9 +276,11 @@ def _read_provenance() -> dict:
 
 
 def _pipeline_and_report(events, prices, membership, out: Path,
-                         quick: bool = False) -> int:
+                         quick: bool = False,
+                         issuer_profile: pd.DataFrame | None = None) -> int:
     print("running the honest pipeline...", flush=True)
-    result = pipeline.run(events, prices, membership, PipelineConfig())
+    result = pipeline.run(events, prices, membership, PipelineConfig(),
+                          issuer_profile=issuer_profile)
     print(f"  {result.audit.summary()}")
     for name, value in _headline(result.metrics, result.baseline_comparisons):
         print(f"  {name:<34} {value}")
@@ -463,6 +498,7 @@ def _ingest(args) -> int:
     events["event_id"] = events["accession"]
 
     BUILD.mkdir(parents=True, exist_ok=True)
+    _write_issuer_profile(client, events)
     events.to_parquet(BUILD / "events.parquet", index=False)
     pd.concat(prices, ignore_index=True).to_parquet(BUILD / "prices.parquet", index=False)
     membership.to_csv(BUILD / "membership.csv", index=False)

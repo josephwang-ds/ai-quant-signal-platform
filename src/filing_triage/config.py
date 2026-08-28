@@ -53,6 +53,26 @@ class PipelineConfig:
     purged_cv: bool = True
     """Purged, embargoed walk-forward instead of shuffled K-fold."""
 
+    resolved_issuer_history: bool = True
+    """Count only the issuer's filings whose labels had already resolved.
+
+    The issuer-history features are built from *past labels*, which is the most
+    dangerous kind of feature here and the reason this switch exists beside the
+    four canonical bugs rather than being assumed.
+
+    A filing's label is not known until its outcome window closes. So at the
+    decision time for filing N, the only prior filings of that issuer whose
+    materiality is knowable are the ones whose window closed first. The obvious
+    implementation -- `expanding()` over every earlier row -- silently includes
+    filings still in flight, and for an issuer that files in clusters that is a
+    filing being told the answer by its own neighbours. It is the same shape as
+    `.rolling()` without `.shift()`, one level up: not the event's own outcome,
+    but its immediate siblings'.
+
+    Off, the features expand over every prior filing regardless of resolution,
+    which is what the leak looks like and what `experiments` measures.
+    """
+
     # -- estimator family (not a correctness switch) ----------------------- #
     estimator: str = "random_forest"
     """Which model family fits the ranker. Names come from `candidates`.
@@ -103,7 +123,8 @@ class PipelineConfig:
     @property
     def is_honest(self) -> bool:
         return all([self.shift_trailing_features, self.pit_entry,
-                    self.pit_universe, self.purged_cv])
+                    self.pit_universe, self.purged_cv,
+                    self.resolved_issuer_history])
 
     def describe_switches(self) -> str:
         flags = {
@@ -111,6 +132,7 @@ class PipelineConfig:
             "point-in-time entry": self.pit_entry,
             "point-in-time universe": self.pit_universe,
             "purged CV": self.purged_cv,
+            "resolved-only issuer history": self.resolved_issuer_history,
             "open-anchored returns": self.open_anchored_returns,
         }
         switches = ", ".join(f"{k}={'yes' if v else 'NO'}" for k, v in flags.items())

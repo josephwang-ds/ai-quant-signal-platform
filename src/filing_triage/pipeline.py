@@ -42,6 +42,7 @@ class PipelineResult:
 
 def run(events: pd.DataFrame, prices: pd.DataFrame, membership: pd.DataFrame,
         config: PipelineConfig | None = None, *,
+        issuer_profile: pd.DataFrame | None = None,
         compute_importance: bool = True,
         compute_uncertainty: bool = True,
         estimator_overrides: dict | None = None) -> PipelineResult:
@@ -66,7 +67,8 @@ def run(events: pd.DataFrame, prices: pd.DataFrame, membership: pd.DataFrame,
     integrity["attrition"] = labels.attrs.get("attrition", {})
     events = events[events["event_id"].isin(labels["event_id"])].reset_index(drop=True)
 
-    features = build_features(events, returns, config)
+    features = build_features(events, returns, config, labels=labels,
+                              profile=issuer_profile)
     aligned = labels.set_index("event_id").loc[features.index]
 
     audit = _audit(events, features, membership, aligned, config)
