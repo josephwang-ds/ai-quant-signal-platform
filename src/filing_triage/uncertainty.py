@@ -2,7 +2,7 @@
 
 This project's whole argument is that a number you are pleased with deserves
 more suspicion than one you are not. It spent a while making that argument with
-bare point estimates -- 0.378 average precision, 1.67x daily lift -- which is the
+bare point estimates -- 0.397 average precision, 1.70x daily lift -- which is the
 same failure one level up: a reader cannot tell 1.59x-plus-or-minus-0.05 from
 1.59x-plus-or-minus-0.6, and only one of those is a result.
 

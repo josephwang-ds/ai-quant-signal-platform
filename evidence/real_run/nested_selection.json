@@ -8,6 +8,6 @@
   ],
   "distinct_selections": 1,
   "events_scored": 9721,
-  "average_precision": 0.37802171661574996,
-  "roc_auc": 0.7473495012138306
+  "average_precision": 0.39716820384842194,
+  "roc_auc": 0.7637889441294652
 }

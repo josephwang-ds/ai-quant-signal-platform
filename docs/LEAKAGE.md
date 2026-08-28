@@ -176,7 +176,7 @@ ratio of two small numbers is noise. Restrict to the ones that cleared the
 materiality cutoff and it jumps; restrict to those accepted after the close and
 nearly half the move is gone before the bell — concentrated exactly where the
 ranker is trying to look. Scored against an open-anchored label the pipeline
-falls from 0.378 average precision to 0.158. That is the question getting harder,
+falls from 0.397 average precision to 0.155. That is the question getting harder,
 not the ranker failing, and the two rows are only meaningful read together.
 
 This is why "useful triage, not a trading strategy" is a number in this
@@ -188,7 +188,7 @@ constants by watching the out-of-sample metric would contaminate the whole
 project, and every individual run would still be clean. The contamination lives
 in *which run was kept*. The answer is a spread rather than a promise —
 `experiments.hyperparameter_sensitivity` perturbs each setting in turn and moves
-average precision across a range of 0.018, narrower than the 0.062 bootstrap
+average precision across a range of 0.008, narrower than the 0.064 bootstrap
 interval on the default configuration, and the defaults are not the best cell in
 the grid.
 

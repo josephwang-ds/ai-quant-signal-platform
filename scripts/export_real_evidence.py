@@ -58,9 +58,10 @@ def main() -> int:
     # constants. All are reproducible from the same build.
     experiments.reaction_capture_profile(events, prices).to_csv(
         args.out / "reaction_capture.csv", index=False)
-    experiments.anchoring_study(events, prices, membership).to_csv(
+    experiments.anchoring_study(events, prices, membership, issuer_profile=profile).to_csv(
         args.out / "anchoring_study.csv", index=False)
-    experiments.hyperparameter_sensitivity(events, prices, membership).to_csv(
+    experiments.hyperparameter_sensitivity(
+        events, prices, membership, issuer_profile=profile).to_csv(
         args.out / "hyperparameter_sensitivity.csv", index=False)
 
     # k is how many filings someone reads, and the project assumed five rather
@@ -77,7 +78,7 @@ def main() -> int:
     # scheme; a comparison is how that stops being a claim.
     if not args.skip_model_comparison:
         table, paired, nested = experiments.model_comparison(
-            events, prices, membership)
+            events, prices, membership, issuer_profile=profile)
         table.to_csv(args.out / "model_comparison.csv", index=False)
         paired.to_csv(args.out / "model_comparison_paired.csv", index=False)
         _write_json(args.out / "nested_selection.json", nested)
@@ -87,7 +88,7 @@ def main() -> int:
     # package whose headline came from one model and whose ladder came from
     # another -- both plausible, disagreeing, and silent about it. The ladder is
     # five extra pipeline runs; a self-consistent evidence package is worth them.
-    study = experiments.run_leakage_study(events, prices, membership)
+    study = experiments.run_leakage_study(events, prices, membership, issuer_profile=profile)
     study.to_csv(args.out / "leakage_study.csv", index=False)
 
     # The ladder's last rung is the honest pipeline, which is the same

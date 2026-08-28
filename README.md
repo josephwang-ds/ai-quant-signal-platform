@@ -2,23 +2,23 @@
 
 **Which of today's SEC filings deserve a human read?**
 
-A pipeline written the obvious way reports an **average precision of 0.598** on
-real SEC filings. The version that survives its own audit reports **0.378**.
+A pipeline written the obvious way reports an **average precision of 0.597** on
+real SEC filings. The version that survives its own audit reports **0.397**.
 
 That gap is not model improvement. It is four common pipeline bugs, none of which
 announced itself — every one produced a result the author would have preferred.
 
 | Stage | Avg precision | ROC AUC | Impossible entries | Guards failing |
 |---|---|---|---|---|
-| Naive pipeline | **0.598** | **0.841** | 11,224 | 1 |
-| + purged, embargoed CV | 0.599 | 0.841 | 11,224 | 1 |
-| + trailing windows shifted | 0.430 | 0.780 | 11,224 | 1 |
-| + point-in-time universe | 0.430 | 0.780 | 11,224 | 1 |
-| + point-in-time entry | **0.378** | **0.747** | **0** | **0** |
+| Naive pipeline | **0.597** | **0.841** | 11,224 | 1 |
+| + purged, embargoed CV | 0.590 | 0.838 | 11,224 | 1 |
+| + trailing windows shifted | 0.439 | 0.782 | 11,224 | 1 |
+| + point-in-time universe | 0.439 | 0.782 | 11,224 | 1 |
+| + point-in-time entry | **0.397** | **0.764** | **0** | **0** |
 
 The audited numbers carry intervals, because a point estimate is a claim with its
-error bar deleted: average precision **0.378 [0.347, 0.409]**, ROC AUC
-**0.747 [0.729, 0.764]**, 95% cluster bootstrap over 957 sessions.
+error bar deleted: average precision **0.397 [0.365, 0.430]**, ROC AUC
+**0.764 [0.745, 0.781]**, 95% cluster bootstrap over 957 sessions.
 
 Two rows move the wrong way or not at all, and the impossible-entry column is why
 that is not a contradiction. Purged CV *raises* the score slightly here, and the
@@ -111,7 +111,7 @@ The real sample has 63.2% of acceptances outside regular market hours. The large
 that day's opening print still predates a filing accepted at 10 a.m.
 
 **What the audited model is worth.** Filings arrive at a median of 9 a session,
-and reading the model's top five surfaces material reactions at **19.4%**
+and reading the model's top five surfaces material reactions at **19.8%**
 precision over the 766 sessions crowded enough for ranking to matter. That number
 needs two things attached before it means anything.
 
@@ -119,7 +119,7 @@ needs two things attached before it means anything.
 precision@5 at 20% however good the ranking is, and on this sample **37% of
 eligible sessions hold none at all** — on those days a perfect ranker scores
 zero. The achievable ceiling is **28.3%**, the floor is 11.6%, and the model
-captures **47% of the gap between them**.
+captures **49% of the gap between them**.
 
 **And `k = 5` was assumed, not derived.** It came from a reader's supposed
 capacity, which is a product constraint; quoting one `k` as *the* metric promotes
@@ -128,14 +128,14 @@ that promotion:
 
 | Read k | Sessions | Random | Model | Ceiling | Lift | Span captured |
 |---|---|---|---|---|---|---|
-| 1 | 942 | 11.7% | 30.3% | 58.3% | 2.59× | 40% |
-| 2 | 920 | 11.7% | 25.5% | 45.9% | 2.17× | 40% |
-| 3 | 887 | 11.8% | 23.3% | 37.8% | 1.98× | 44% |
-| **5** | **766** | **11.6%** | **19.4%** | **28.3%** | **1.67×** | **47%** |
-| 10 | 365 | 13.6% | 18.3% | 22.7% | 1.35× | 52% |
-| 20 | 60 | 16.0% | 18.2% | 19.7% | 1.14× | 59% |
+| 1 | 942 | 11.7% | 31.6% | 58.3% | 2.71× | 43% |
+| 2 | 920 | 11.7% | 26.5% | 45.9% | 2.26× | 43% |
+| 3 | 887 | 11.8% | 23.5% | 37.8% | 1.99× | 45% |
+| **5** | **766** | **11.6%** | **19.8%** | **28.3%** | **1.70×** | **49%** |
+| 10 | 365 | 13.6% | 18.7% | 22.7% | 1.38× | 56% |
+| 20 | 60 | 16.0% | 18.5% | 19.7% | 1.16× | 68% |
 
-The lift runs from 2.59× to 1.14× on an unchanged model; the share of achievable
+The lift runs from 2.71× to 1.16× on an unchanged model; the share of achievable
 span barely moves. Sessions fall away with `k` because a capacity above the day's
 filing count is not triage, it is reading everything — which is the real limit on
 how far this can be pushed, and why `k = 20` covers 6% of days and is reported
@@ -149,13 +149,13 @@ experiments would widen the interval on their difference for no reason.
 
 | Read the top five by | Precision | Model lift | 95% interval | Draws favouring the baseline |
 |---|---|---|---|---|
-| the model | 19.4% | — | — | — |
-| random selection | 11.6% | 1.67× | [1.59, 1.75] | 0 / 2000 |
-| arrival order | 9.3% | 2.08× | [1.88, 2.31] | 0 / 2000 |
-| “Item 2.02 earnings first” | 13.4% | 1.44× | [1.34, 1.56] | 0 / 2000 |
+| the model | 19.8% | — | — | — |
+| random selection | 11.6% | 1.70× | [1.62, 1.79] | 0 / 2000 |
+| arrival order | 9.3% | 2.12× | [1.91, 2.36] | 0 / 2000 |
+| “Item 2.02 earnings first” | 13.4% | 1.47× | [1.37, 1.59] | 0 / 2000 |
 
 The last column is the one worth reading first, and it is the one the earlier
-version of this README could not answer. A lift of 1.44× over an item heuristic
+version of this README could not answer. A lift of 1.47× over an item heuristic
 that a reader could implement in an afternoon is only a result if it survives
 resampling; here it does, in every draw. Useful triage, not a trading strategy —
 and the next section says exactly how much that caveat is worth.
@@ -190,7 +190,7 @@ look*.
 Close-to-close stays the label, because the question is which disclosures
 mattered and the overnight gap is part of the answer, not contamination of it.
 But the same pipeline scored against an open-anchored label — asking what was
-still on the table at the open — drops from 0.378 average precision to 0.158.
+still on the table at the open — drops from 0.397 average precision to 0.155.
 That is not the ranker failing; it is a harder question. Both rows are in
 [`evidence/real_run/anchoring_study.csv`](evidence/real_run/anchoring_study.csv)
 and reproduced by `experiments.reaction_capture_profile`.
@@ -202,21 +202,25 @@ events, the same purge:
 
 | Family | Average precision | vs shipped | 95% interval on the difference | Draws favouring the shipped one |
 |---|---|---|---|---|
-| **random forest (shipped)** | **0.378** | — | — | — |
-| hist gradient boosting | 0.367 | −0.011 | [−0.024, +0.003] | 1868 / 2000 |
-| logistic regression | 0.351 | −0.027 | [−0.044, −0.009] | 1998 / 2000 |
-| stratified dummy | 0.129 | −0.249 | [−0.278, −0.222] | 2000 / 2000 |
+| **random forest (shipped)** | **0.397** | — | — | — |
+| hist gradient boosting | 0.373 | −0.024 | [−0.038, −0.009] | 1999 / 2000 |
+| logistic regression | 0.356 | −0.041 | [−0.058, −0.024] | 2000 / 2000 |
+| stratified dummy | 0.129 | −0.269 | [−0.298, −0.240] | 2000 / 2000 |
 
 Differences are *paired* — the families saw the same events on the same days, so
-the difference is measured within a resample. It matters here: independently the
-intervals on random forest [0.347, 0.409] and gradient boosting [0.338, 0.398]
-overlap almost entirely, while their paired difference is three times tighter.
-Even so it straddles zero: **those two are not distinguishable on this sample.**
-The linear model is, narrowly — its interval clears zero — which is the one
-ranking here the data actually supports.
+the difference is measured within a resample, which is far better determined than
+either level. Independently the intervals on random forest [0.365, 0.430] and
+gradient boosting overlap substantially; paired, every difference clears zero.
+
+**That was not true a commit earlier.** Before the reporting-cycle features the
+same comparison put random forest 0.011 ahead of gradient boosting with an
+interval of [−0.003, +0.024] — indistinguishable. Adding two features separated
+two model families that the data could not previously tell apart, which is worth
+more attention than the ranking itself: the families were never far apart, and
+what moved them was the input, not the estimator.
 
 Which is the point. Swapping the family moves average precision across
-**0.027**; swapping the validation scheme moves it **0.220**, eight times as far.
+**0.041**; swapping the validation scheme moves it **0.199**, five times as far.
 The interesting code was never the estimator.
 
 **How the shipped family was chosen.** Not by reading the table and keeping the
@@ -225,14 +229,13 @@ stays a leak when the thing selected is a model. It was chosen by a *nested*
 procedure that prices selection rather than performing it: an inner purged,
 embargoed split inside each outer training block picks a winner using that block
 alone, so no test fold informs the choice made for it. That procedure selected
-random forest in all five folds and scores **0.378**, so the selection is stable
+random forest in all five folds and scores **0.397**, so the selection is stable
 rather than noise-chasing and its premium over the descriptive table is zero.
 
-The margin is small and the difference against gradient boosting straddles zero,
-so the honest reading is not that this family is better. It is that the two are
-indistinguishable and this is what the leak-free procedure returned. It also won
-carrying a handicap: gradient boosting is the only family here that uses missing
-values natively, while the forest is handed median-imputed columns. See
+It won carrying a handicap worth naming: gradient boosting is the only family
+here that uses missing values natively, while the forest is handed
+median-imputed columns — and several of these features are missing for a reason
+the estimator could have used. See
 [`model_comparison_paired.csv`](evidence/real_run/model_comparison_paired.csv)
 and [`nested_selection.json`](evidence/real_run/nested_selection.json).
 
@@ -241,8 +244,8 @@ if they had been chosen by watching the out-of-sample metric that would be a
 selection leak spanning the whole project — the one kind no guard can catch,
 because every individual run is clean and the contamination lives in which run
 was kept. Rather than answer with a promise, the answer is a spread: perturbing
-each setting one at a time moves average precision across a range of **0.018**,
-narrower than the **0.062** bootstrap interval on the default configuration. The
+each setting one at a time moves average precision across a range of **0.008**,
+narrower than the **0.064** bootstrap interval on the default configuration. The
 defaults are also not the best cell in the grid. No achievable amount of tuning
 produced this headline. See
 [`hyperparameter_sensitivity.csv`](evidence/real_run/hyperparameter_sensitivity.csv).
@@ -330,7 +333,7 @@ embargo sweep, and writes a self-contained HTML report.
 
 ```bash
 make quick           # smaller, no leakage study, ~30s
-make test            # 405 tests (~12 min; the nested model selection dominates)
+make test            # 407 tests (~12 min; the nested model selection dominates)
 make audit           # the leakage checks as an exit code
 make llm-eval        # frozen English/Chinese grounded-output scorecard
 make llm-eval-openai-dry-run  # inspect 20-case paid benchmark scope; sends nothing
@@ -526,12 +529,12 @@ src/filing_triage/
                    and hyperparameter sensitivity grid
   report.py        self-contained HTML
   synth.py         the offline corpus
-tests/             405 tests; test_guards, test_pipeline, test_uncertainty
+tests/             407 tests; test_guards, test_pipeline, test_uncertainty
                    and test_ingest_integration are the ones that matter
 docs/              METHODOLOGY.md, LEAKAGE.md, COMPANY_LENS.md
 ```
 
-About 15,574 lines under `src/`, plus 7,274 of tests. It is meant to be read
+About 15,584 lines under `src/`, plus 7,322 of tests. It is meant to be read
 end to end, and a test asserts these figures have not drifted from the code.
 
 ---

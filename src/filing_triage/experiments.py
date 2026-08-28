@@ -65,11 +65,13 @@ HEADLINE = ["average_precision", "roc_auc", "daily_precision_at_5", "daily_lift_
 
 def run_leakage_study(events: pd.DataFrame, prices: pd.DataFrame,
                       membership: pd.DataFrame,
-                      base: PipelineConfig | None = None) -> pd.DataFrame:
+                      base: PipelineConfig | None = None,
+                      issuer_profile: pd.DataFrame | None = None) -> pd.DataFrame:
     base = base or PipelineConfig()
     rows = []
     for name, switches, note in STAGES:
         result = pipeline.run(events, prices, membership, replace(base, **switches),
+                              issuer_profile=issuer_profile,
                               compute_importance=False,
                               compute_uncertainty=False)
         rows.append({
@@ -93,7 +95,8 @@ def run_leakage_study(events: pd.DataFrame, prices: pd.DataFrame,
 
 def embargo_sweep(events: pd.DataFrame, prices: pd.DataFrame,
                   membership: pd.DataFrame, embargoes: list,
-                  base: PipelineConfig | None = None) -> pd.DataFrame:
+                  base: PipelineConfig | None = None,
+                  issuer_profile: pd.DataFrame | None = None) -> pd.DataFrame:
     """How the ranking holds up as we wait longer before acting.
 
     An effect that survives only at zero delay is a measurement of the
@@ -104,6 +107,7 @@ def embargo_sweep(events: pd.DataFrame, prices: pd.DataFrame,
     rows = []
     for embargo in embargoes:
         result = pipeline.run(events, prices, membership, replace(base, embargo=embargo),
+                              issuer_profile=issuer_profile,
                               compute_importance=False,
                               compute_uncertainty=False)
         rows.append({
@@ -116,7 +120,8 @@ def embargo_sweep(events: pd.DataFrame, prices: pd.DataFrame,
 
 def anchoring_study(events: pd.DataFrame, prices: pd.DataFrame,
                     membership: pd.DataFrame,
-                    base: PipelineConfig | None = None) -> pd.DataFrame:
+                    base: PipelineConfig | None = None,
+                    issuer_profile: pd.DataFrame | None = None) -> pd.DataFrame:
     """What the reaction looks like measured from the prior close, and from the open.
 
     Not a leakage ladder rung, because neither row is a bug. The default
@@ -138,6 +143,7 @@ def anchoring_study(events: pd.DataFrame, prices: pd.DataFrame,
                                  ("entry open", True)):
         result = pipeline.run(events, prices, membership,
                               replace(base, open_anchored_returns=open_anchored),
+                              issuer_profile=issuer_profile,
                               compute_importance=False,
                               compute_uncertainty=False)
         rows.append({
@@ -232,7 +238,8 @@ def reaction_capture_profile(events: pd.DataFrame, prices: pd.DataFrame,
 def hyperparameter_sensitivity(events: pd.DataFrame, prices: pd.DataFrame,
                                membership: pd.DataFrame,
                                base: PipelineConfig | None = None,
-                               grid: list[dict] | None = None) -> pd.DataFrame:
+                               grid: list[dict] | None = None,
+                               issuer_profile: pd.DataFrame | None = None) -> pd.DataFrame:
     """Whether the headline number depends on the estimator settings.
 
     The estimator's constants are hard-coded, and a reader is entitled to ask
@@ -251,6 +258,7 @@ def hyperparameter_sensitivity(events: pd.DataFrame, prices: pd.DataFrame,
     rows = []
     for overrides in grid:
         result = pipeline.run(events, prices, membership, base,
+                              issuer_profile=issuer_profile,
                               compute_importance=False,
                               compute_uncertainty=False,
                               estimator_overrides=overrides or None)
@@ -354,7 +362,8 @@ def session_material_counts(predictions: pd.DataFrame, events: pd.DataFrame,
 
 def model_comparison(events: pd.DataFrame, prices: pd.DataFrame,
                      membership: pd.DataFrame,
-                     base: PipelineConfig | None = None) -> tuple[pd.DataFrame, dict]:
+                     base: PipelineConfig | None = None,
+                     issuer_profile: pd.DataFrame | None = None) -> tuple[pd.DataFrame, dict]:
     """Model families side by side, plus what selecting between them is worth.
 
     Returns the descriptive table, the paired differences against the shipped
@@ -373,6 +382,7 @@ def model_comparison(events: pd.DataFrame, prices: pd.DataFrame,
     """
     base = base or PipelineConfig()
     result = pipeline.run(events, prices, membership, base,
+                          issuer_profile=issuer_profile,
                           compute_importance=False, compute_uncertainty=False)
 
     features = result.features

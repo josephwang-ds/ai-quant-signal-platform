@@ -178,3 +178,51 @@ class TestTheEvidencePackageIsSelfConsistent:
             metrics["daily_precision_at_5"], abs=1e-9)
         assert float(row["oracle_ceiling"]) == pytest.approx(
             metrics["daily_oracle_precision_at_5"], abs=1e-9)
+
+
+class TestExperimentsSeeTheSameFeaturesAsTheHeadline:
+    """Every experiment that runs the pipeline must be handed the same inputs.
+
+    They were not. The headline ran with the issuer profile and the leakage
+    ladder ran without it, so the ladder's honest rung scored 0.395 against a
+    headline of 0.397 -- two runs of different pipelines presented as one
+    package. The export's consistency check caught it, which is what it is for,
+    but nothing stopped it being introduced. This does.
+    """
+
+    @staticmethod
+    def _pipeline_running_experiments():
+        import inspect
+
+        from filing_triage import experiments
+
+        return [
+            (name, function)
+            for name, function in vars(experiments).items()
+            if callable(function) and getattr(function, "__module__", "")
+            == experiments.__name__
+            and "pipeline.run(" in inspect.getsource(function)
+        ]
+
+    def test_every_such_experiment_accepts_an_issuer_profile(self):
+        import inspect
+
+        for name, function in self._pipeline_running_experiments():
+            parameters = inspect.signature(function).parameters
+            assert "issuer_profile" in parameters, (
+                f"experiments.{name} runs the pipeline but cannot be handed the "
+                "issuer profile, so it would score a different feature set than "
+                "the headline"
+            )
+
+    def test_every_such_experiment_passes_it_through(self):
+        import inspect
+
+        for name, function in self._pipeline_running_experiments():
+            source = inspect.getsource(function)
+            runs = source.count("pipeline.run(")
+            forwarded = source.count("issuer_profile=issuer_profile")
+            assert forwarded >= runs, (
+                f"experiments.{name} calls pipeline.run {runs} times but forwards "
+                f"the profile {forwarded} times"
+            )

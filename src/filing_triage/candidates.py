@@ -2,7 +2,7 @@
 
 The shipped estimator is deliberately unremarkable, and the project's argument
 rests on that: swapping it moves the metric by a rounding error while swapping
-the validation scheme moves it by 0.220. A claim like that is worth checking
+the validation scheme moves it by 0.199. A claim like that is worth checking
 rather than asserting, which is what this registry is for.
 
 **Every candidate is a Pipeline, and that is a leakage decision.** Two of these

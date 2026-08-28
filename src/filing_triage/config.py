@@ -90,7 +90,7 @@ class PipelineConfig:
     The margin is small and the paired difference straddles zero, so the honest
     reading is not that this family is better but that the families are
     indistinguishable and this is what the leak-free procedure returned. Family
-    is worth 0.027 in average precision; the validation scheme is worth 0.220.
+    is worth 0.041 in average precision; the validation scheme is worth 0.199.
     """
 
     # -- measurement basis (not a correctness switch) ---------------------- #

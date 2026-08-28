@@ -296,18 +296,36 @@ def _pipeline_and_report(events, prices, membership, out: Path,
         sweep = pd.DataFrame()
     else:
         print("running the leakage study (5 configurations)...", flush=True)
-        study = experiments.run_leakage_study(events, prices, membership)
+        study = experiments.run_leakage_study(events, prices, membership,
+                                              issuer_profile=issuer_profile)
         print(study[["stage", "n_events", "average_precision", "roc_auc",
                      "impossible_entries", "median_hindsight_hours",
                      "checks_failed"]].to_string(index=False))
         print("sweeping the embargo...", flush=True)
-        sweep = experiments.embargo_sweep(events, prices, membership, SWEEP)
+        sweep = experiments.embargo_sweep(events, prices, membership, SWEEP,
+                                          issuer_profile=issuer_profile)
 
     BUILD.mkdir(parents=True, exist_ok=True)
     result.queue.to_csv(BUILD / "queue.csv", index=False)
     result.audit.to_frame().to_csv(BUILD / "audit.csv", index=False)
     if not study.empty:
         study.to_csv(BUILD / "leakage_study.csv", index=False)
+
+    # The ladder's last rung is the honest pipeline, the same configuration the
+    # headline tiles came from. They disagreed once, because the ladder was not
+    # handed the issuer profile the headline run received -- two pipelines, one
+    # page, and nothing saying so. The export learned to refuse that; the report
+    # is the more public artefact and had no such check.
+    if not study.empty:
+        honest = float(study.iloc[-1]["average_precision"])
+        headline = result.metrics.get("average_precision")
+        if headline is not None and abs(honest - headline) > 1e-9:
+            print(
+                f"\nladder's honest rung scores {honest:.6f} but the headline says "
+                f"{headline:.6f}; the report would show two different runs as one",
+                file=sys.stderr,
+            )
+            return 1
 
     if study.empty:
         print("\nreport needs the leakage study; rerun without --quick")

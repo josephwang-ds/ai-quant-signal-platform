@@ -5,8 +5,8 @@ is comes from `config.estimator` and the families live in `candidates`; this
 module owns the *splitting*, which is the part that matters.
 
 The estimator is deliberately unremarkable, and that is measured rather than
-asserted: across four families average precision spans 0.027, while the
-validation scheme moves it 0.220 -- eight times as far. That asymmetry is the
+asserted: across four families average precision spans 0.041, while the
+validation scheme moves it 0.199 -- five times as far. That asymmetry is the
 point of the project, so the interesting code is below, not in the estimator.
 
 `config.purged_cv` selects between the two schemes:
