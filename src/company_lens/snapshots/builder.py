@@ -197,7 +197,31 @@ def _assemble_snapshot(
         headlines=headlines,
         market_headlines=market_headlines,
         fundamentals=fundamentals,
+        disclosure_signal=_disclosure_signal(root, ticker),
     )
+
+
+def _disclosure_signal(data_dir: Path, ticker: str) -> dict | None:
+    """This issuer's latest-filing card, when a scoring run has produced one.
+
+    Read from a file rather than computed here, and absent by default. The
+    scoring pipeline is expensive and lives in `filing_triage`; importing it
+    would make every company page depend on a model being loadable, and a page
+    that cannot render without a model is a page that breaks whenever the model
+    does. Missing file, missing section, everything else unchanged.
+    """
+    path = Path(data_dir) / "self_relative_cards.json"
+    if not path.exists():
+        return None
+    try:
+        payload = json.loads(path.read_text())
+    except (json.JSONDecodeError, OSError):
+        return None
+    card = (payload.get("companies") or {}).get(str(ticker).upper())
+    if not card:
+        return None
+    return {**card, "model": payload.get("model", {}),
+            "boundary": payload.get("boundary", "")}
 
 
 def _provenance(path: Path) -> dict:

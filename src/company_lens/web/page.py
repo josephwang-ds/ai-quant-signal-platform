@@ -354,6 +354,7 @@ def _document(snapshot: CompanySnapshot) -> str:
         <div class="filing-list">{filings}</div>
   </section>
 
+  {_disclosure_signal(snapshot)}
   {_ask_section()}
 
   {evidence_context}
@@ -368,6 +369,92 @@ def _document(snapshot: CompanySnapshot) -> str:
 <script type="application/json" id="period-data">{payload}</script>
 <script>{_script(default_period, snapshot.ticker, snapshot.benchmark)}</script>
 </body></html>"""
+
+
+
+def _disclosure_signal(snapshot: CompanySnapshot) -> str:
+    """The latest filing measured against this issuer's own history.
+
+    Leads with the decision, because that is what a reader came for, and puts
+    every qualifier the decision rests on in the same block rather than a
+    footnote: how many of this issuer's earlier filings the baseline was built
+    from, how often this issuer clears its own bar anyway, and the boundary that
+    magnitude is not direction.
+
+    Absent data renders nothing at all. A card that says "unknown" in four slots
+    occupies the same space as a real answer and reads like a broken feature.
+    """
+    signal = snapshot.disclosure_signal
+    if not signal:
+        return ""
+
+    state = str(signal.get("state", "insufficient_history"))
+    words = {
+        "read_now": ("Read now", "urgent"),
+        "monitor": ("Monitor", "watch"),
+        "routine": ("Routine", "calm"),
+        "insufficient_history": ("Not enough history", "muted"),
+        "withheld": ("Withheld", "muted"),
+    }
+    label, tone = words.get(state, ("Not enough history", "muted"))
+
+    probability = signal.get("probability")
+    base = signal.get("issuer_base_rate")
+    depth = int(signal.get("eligible_history") or 0)
+
+    stats = ""
+    if probability is not None:
+        stats = (
+            f'<div class="signal-stats">'
+            f'<div><b>{probability:.0%}</b><span data-i18n="signal.probability">'
+            f'chance of an unusually large reaction</span></div>'
+            f'<div><b>{base:.0%}</b><span data-i18n="signal.base">'
+            f'how often this issuer clears its own bar</span></div>'
+            f'<div><b>{depth}</b><span data-i18n="signal.history">'
+            f'earlier filings behind the comparison</span></div>'
+            f'</div>'
+        )
+
+    reasons = "".join(f"<li>{html.escape(str(reason))}</li>"
+                      for reason in signal.get("reasons", []))
+    points = json.dumps(signal.get("points", []))
+    model = signal.get("model", {})
+    footer = html.escape(
+        f"{model.get('estimator', 'model')} · calibration "
+        f"{model.get('calibration', 'n/a')} · evaluated through "
+        f"{model.get('evaluated_through', 'n/a')}")
+
+    return f"""<section class="signal-section" id="signal">
+    <div class="section-heading"><div>
+    <p class="eyebrow" data-i18n="signal.eyebrow">THIS FILING VS ITS OWN HISTORY</p>
+    <h2 data-i18n="signal.title">Is this unusual for this company?</h2></div>
+    <span class="signal-badge {tone}" data-i18n="signal.state.{state}">{label}</span></div>
+    <p class="section-intro" data-i18n="signal.intro">Every number here compares this
+    filing with earlier filings from the same issuer. Nothing compares it with other
+    companies, and nothing here is a view on price direction.</p>
+    {stats}
+    <div class="signal-grid">
+      <div class="signal-why">
+        <h3 data-i18n="signal.why">Why</h3>
+        <ul>{reasons}</ul>
+        <p class="signal-boundary" data-i18n="signal.boundary">This estimates how
+        large a reaction may be, not which way it goes. It is a reading priority,
+        not investment advice.</p>
+      </div>
+      <figure class="signal-chart">
+        <svg viewBox="0 0 320 210" role="img"
+             aria-label="Each earlier filing from this issuer, plotted by how unusual its language was against how large its reaction turned out to be.">
+          <g id="signal-plot"></g>
+        </svg>
+        <figcaption>
+          <span data-i18n="signal.chart_x">Unusual language &rarr;</span>
+          <span data-i18n="signal.chart_y">&uarr; Reaction size</span>
+        </figcaption>
+      </figure>
+    </div>
+    <p class="signal-footer">{footer}</p>
+    <script type="application/json" id="signal-points">{points}</script>
+    </section>"""
 
 
 def _ask_section() -> str:
@@ -1254,6 +1341,24 @@ def _script(default_period: str, ticker: str, benchmark: str) -> str:
                 "mode.grounded": "Source-bounded AI",
                 "mode.fallback": "Source-backed summary",
                 "mode.unavailable": "Explanation unavailable",
+                "signal.eyebrow": "THIS FILING VS ITS OWN HISTORY",
+                "signal.title": "Is this unusual for this company?",
+                "signal.intro": ("Every number here compares this filing with earlier "
+                    "filings from the same issuer. Nothing compares it with other "
+                    "companies, and nothing here is a view on price direction."),
+                "signal.why": "Why",
+                "signal.boundary": ("This estimates how large a reaction may be, not "
+                    "which way it goes. It is a reading priority, not investment advice."),
+                "signal.probability": "chance of an unusually large reaction",
+                "signal.base": "how often this issuer clears its own bar",
+                "signal.history": "earlier filings behind the comparison",
+                "signal.chart_x": "Unusual language \u2192",
+                "signal.chart_y": "\u2191 Reaction size",
+                "signal.state.read_now": "Read now",
+                "signal.state.monitor": "Monitor",
+                "signal.state.routine": "Routine",
+                "signal.state.insufficient_history": "Not enough history",
+                "signal.state.withheld": "Withheld",
                 "ask.eyebrow": "CONTROLLED LLM Q&A",
                 "ask.title": "Ask the evidence",
                 "ask.validated": "Every answer is validated",
@@ -1601,6 +1706,23 @@ def _script(default_period: str, ticker: str, benchmark: str) -> str:
                 "mode.grounded": "来源受限的 AI",
                 "mode.fallback": "基于来源的摘要",
                 "mode.unavailable": "暂无解释",
+                "signal.eyebrow": "本次披露 vs 该公司自身历史",
+                "signal.title": "对这家公司来说，这次不寻常吗？",
+                "signal.intro": ("这里的每个数字都只把本次披露和同一家公司的历史披露相比，"
+                    "不与其他公司比较，也不构成对股价方向的判断。"),
+                "signal.why": "依据",
+                "signal.boundary": ("这里估计的是反应可能有多大，不是方向。"
+                    "它是阅读优先级，不是投资建议。"),
+                "signal.probability": "出现异常大反应的概率",
+                "signal.base": "该公司历史上越过自身标准的频率",
+                "signal.history": "作为比较基础的历史披露数",
+                "signal.chart_x": "语言异常度 \u2192",
+                "signal.chart_y": "\u2191 反应幅度",
+                "signal.state.read_now": "立即阅读",
+                "signal.state.monitor": "保持关注",
+                "signal.state.routine": "例行披露",
+                "signal.state.insufficient_history": "历史不足",
+                "signal.state.withheld": "已扣留",
                 "ask.eyebrow": "受控的 LLM 问答",
                 "ask.title": "向证据提问",
                 "ask.validated": "每个答案都经过校验",
@@ -2299,6 +2421,50 @@ function safeAskHref(value) {{
   return '#ask';
 }}
 
+
+// The self-history scatter. Each point is an earlier filing from this issuer:
+// how unusual its language was, against how large its reaction turned out to be.
+// Drawn from data already on the page rather than fetched, so it works offline
+// and cannot disagree with the card above it.
+(function () {{
+  const holder = document.getElementById('signal-points');
+  const plot = document.getElementById('signal-plot');
+  if (!holder || !plot) return;
+  let points = [];
+  try {{ points = JSON.parse(holder.textContent) || []; }} catch (error) {{ return; }}
+  if (!points.length) return;
+
+  const W = 320, H = 210, L = 34, R = 12, T = 14, B = 30;
+  const reactions = points.map(p => p.reaction);
+  // Clip the vertical scale at the 95th percentile: one twelve-sigma filing in
+  // an issuer's history would otherwise flatten every other point onto the axis.
+  const sorted = [...reactions].sort((a, b) => a - b);
+  const top = sorted[Math.min(sorted.length - 1, Math.floor(sorted.length * 0.95))];
+  const yMax = Math.max(top, 1) * 1.1;
+  const x = v => L + v * (W - L - R);
+  const y = v => H - B - Math.min(v / yMax, 1) * (H - T - B);
+
+  const parts = [
+    `<line x1="${{L}}" y1="${{H - B}}" x2="${{W - R}}" y2="${{H - B}}" class="ax"/>`,
+    `<line x1="${{L}}" y1="${{T}}" x2="${{L}}" y2="${{H - B}}" class="ax"/>`,
+  ];
+  // The materiality line, so a reader can see which points cleared the bar.
+  const bar = y(2.0);
+  if (bar > T && bar < H - B) {{
+    parts.push(`<line x1="${{L}}" y1="${{bar}}" x2="${{W - R}}" y2="${{bar}}" class="bar"/>`);
+    parts.push(`<text x="${{W - R}}" y="${{bar - 4}}" class="barlab">2σ</text>`);
+  }}
+  for (const p of points) {{
+    const cls = p.current ? 'pt now' : 'pt';
+    const r = p.current ? 5.5 : 3.2;
+    parts.push(
+      `<circle cx="${{x(p.novelty).toFixed(1)}}" cy="${{y(p.reaction).toFixed(1)}}" ` +
+      `r="${{r}}" class="${{cls}}"><title>${{p.date}} · ${{p.items}} · ` +
+      `${{p.reaction.toFixed(1)}}σ</title></circle>`);
+  }}
+  plot.innerHTML = parts.join('');
+}})();
+
 const pageNavLinks = Array.from(
   document.querySelectorAll('.page-nav a[href^="#"], .section-nav a[href^="#"]'),
 );
@@ -2554,7 +2720,7 @@ def _css() -> str:
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*{transition:none!important}}
 @media(max-width:620px){.profile-meta{flex-direction:column;align-items:flex-start;gap:3px}.timeline-heading,.reaction-heading,.comparison-heading{flex-direction:column;gap:6px}.reaction-grid,.change-list{grid-template-columns:1fr}.timeline-track{grid-auto-columns:minmax(145px,72vw)}.topbar .section-nav,.company-search-link{display:none}.topbar .company-nav .site-link{margin-left:auto;color:var(--muted);font-size:11px;font-weight:700;text-decoration:none;white-space:nowrap}.company-nav .site-link+.site-link{margin-left:16px}.company-nav .site-link:hover{color:var(--blue)}.company-nav{margin-left:auto}.company-hero{padding:24px 0 18px;gap:13px}.hero-copy{font-size:15px;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}.profile-meta>span{display:none}.profile-meta{margin-top:8px}.evidence-flow{display:none}.market-observation{width:100%;padding:11px 14px;border:1px solid var(--line);border-radius:12px;background:var(--panel);align-items:flex-start}.market-observation strong{font-size:29px}.brief-card{padding:19px}.brief-card h3{font-size:22px}.brief-card p,.brief-lead>p{font-size:16px}.brief-card-heading{flex-direction:column;gap:5px}.brief-metrics{grid-template-columns:1fr 1fr}.authority-row{gap:8px}.authority-row>em{display:none}.diagnostic-heading{align-items:start;flex-direction:column;gap:2px}.metric-grid{grid-template-columns:1fr 1fr}.metric-card{padding:13px}.trust-grid{gap:8px}}
 body{font-family:"Avenir Next","Segoe UI",sans-serif}.company-hero{border:0;border-radius:0;background:transparent;box-shadow:none;margin-bottom:0}.brief-section{border-radius:8px}.brief-grid{grid-template-columns:repeat(12,minmax(0,1fr));gap:0;border-top:1px solid #365166;border-bottom:1px solid #365166}.brief-card{border:0;border-radius:0;background:transparent}.brief-lead{border-right:1px solid #365166}.brief-metrics>div{padding:10px 0;border:0;border-radius:0;background:transparent}.brief-metrics>div+div{padding-left:18px;border-left:1px solid #28514e}.brief-boundary{grid-column:1/-1;margin:0;padding:17px 24px;color:#aebfca;font-size:12px}.brief-boundary strong{color:#e9b66d}.performance-section,.filings-section,.context-section{padding:58px 0;border:0;border-top:1px solid var(--line);border-radius:0;background:transparent;box-shadow:none}.diagnostics-disclosure{margin-top:20px;border-top:1px solid var(--line)}.diagnostics-disclosure>summary,.source-details>summary{padding:14px 0;color:var(--blue);font-size:12px;font-weight:750;cursor:pointer}.metric-card{border-radius:3px;background:rgba(255,255,255,.55)}.filing-card{border-radius:4px;background:#fff}.filing-card summary{min-height:76px}.reaction-panel,.comparison-panel{border-width:0 0 0 3px;border-radius:0}.reaction-grid>div{border:0;border-left:1px solid #dbe8e1;border-radius:0;background:transparent}.reaction-grid>div:first-child{border-left:0}.comparison-clear{display:flex;flex-direction:column;margin-top:14px;color:var(--muted);font-size:12px}.comparison-clear strong{margin-bottom:3px;color:var(--ink)}.source-details{margin-top:8px;border-top:1px solid var(--line)}.filing-columns aside{border-radius:3px}.context-freshness{margin:-14px 0 20px;color:var(--muted);font-size:10px}.headline-list{grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:0;border-top:1px solid var(--line)}.headline-card{padding:20px 22px;border:0;border-right:1px solid var(--line);border-radius:0;background:transparent}.headline-card:last-child{border-right:0}.headline-card h3{margin:10px 0 14px}.headline-meta{display:flex;flex-direction:row;flex-wrap:wrap;gap:5px 12px}.headline-meta span:first-child{color:var(--ink);font-weight:750}.headline-card>a{padding-top:2px}footer a{margin-top:5px;color:var(--blue);text-decoration:none}#brief,#ask,#performance,#filings,#context{scroll-margin-top:150px}
-.ask-section{padding:58px 0;border:0;border-top:1px solid var(--line);border-radius:0;background:transparent;box-shadow:none}.ask-validation{padding:7px 10px;border:1px solid #b9d8ca;border-radius:999px;color:var(--green);font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.07em}.ask-layout{display:grid;grid-template-columns:minmax(0,5fr) minmax(320px,4fr);border:1px solid var(--line);background:var(--panel)}.ask-form{padding:28px;border-right:1px solid var(--line)}.ask-controls{display:grid;grid-template-columns:minmax(0,1fr) 128px minmax(0,150px);gap:12px}.ask-form label{display:flex;flex-direction:column;gap:7px;color:var(--muted);font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.08em}.ask-form select,.ask-form textarea{width:100%;border:1px solid var(--line);border-radius:4px;background:#fff;color:var(--ink);font:500 14px/1.5 "Avenir Next","Segoe UI",sans-serif}.ask-form select{height:43px;padding:0 11px}.ask-form textarea{resize:vertical;min-height:90px;padding:12px}.ask-form select:focus,.ask-form textarea:focus{outline:3px solid rgba(40,100,220,.14);border-color:var(--blue)}.ask-question{margin-top:17px}.ask-suggestions{display:flex;flex-wrap:wrap;gap:7px;margin-top:10px}.ask-suggestions button{padding:6px 9px;border:1px solid var(--line);border-radius:999px;background:transparent;color:var(--blue);font-size:10px;cursor:pointer}.ask-suggestions button:hover{background:var(--blue-soft)}.ask-submit-row{display:flex;align-items:center;gap:13px;margin-top:20px}.ask-submit-row>button{min-width:120px;padding:11px 16px;border:0;border-radius:4px;background:var(--navy);color:#fff;font-weight:800;cursor:pointer}.ask-submit-row>button:disabled{opacity:.45;cursor:not-allowed}.ask-submit-row>span{color:var(--muted);font-size:10px}.ask-submit-row>span.ready{color:var(--green)}.ask-submit-row>span.error{color:#98473e}.ask-result{min-height:330px;padding:28px;background:#f8faf8;color:var(--muted);font-size:13px}.ask-result-kicker,.ask-answer-heading>span{margin:0;color:var(--green);font-size:10px;font-weight:850;letter-spacing:.1em}.ask-result>ol{margin:18px 0 0;padding:0;list-style:none}.ask-result>ol li{display:grid;grid-template-columns:25px 1fr;gap:10px;padding:12px 0;border-top:1px solid var(--line)}.ask-result>ol li span{color:var(--green);font-weight:850}.ask-result.loading{display:grid;place-items:center}.ask-result.error{display:grid;place-items:center;color:#98473e}.ask-answer-heading{display:flex;justify-content:space-between;gap:15px;padding-bottom:12px;border-bottom:1px solid var(--line)}.ask-answer-heading small{color:var(--muted)}.ask-result article{padding:15px 0;border-bottom:1px solid var(--line)}.ask-result article p{margin:0;color:var(--ink);font:500 17px/1.45 Georgia,serif}.ask-citations{display:flex;flex-wrap:wrap;gap:7px;margin-top:9px}.ask-citations a{color:var(--blue);font-size:10px;text-decoration:none;border-bottom:1px solid #aec2e9}.ask-limitations{margin-top:15px}.ask-limitations>summary{color:var(--amber);font-size:11px;font-weight:800;cursor:pointer}.ask-limitations article p{font:inherit;color:var(--muted)}.ask-boundary{margin:14px 0 0;color:var(--muted);font-size:10px}.ask-boundary strong{color:var(--ink)}
+.signal-section{padding:58px 0;border-top:1px solid var(--line)}.signal-badge{padding:8px 14px;border-radius:999px;font-size:11px;font-weight:850;text-transform:uppercase;letter-spacing:.07em;white-space:nowrap}.signal-badge.urgent{background:#fbeceb;color:#a4322a;border:1px solid #e8b6b0}.signal-badge.watch{background:#fdf4e3;color:#8a6412;border:1px solid #e6d3a4}.signal-badge.calm{background:#eef5f0;color:#2f6b4a;border:1px solid #bcd8c7}.signal-badge.muted{background:#f2f3f4;color:var(--muted);border:1px solid var(--line)}.signal-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:1px;margin:26px 0 0;background:var(--line);border:1px solid var(--line)}.signal-stats>div{background:#fff;padding:18px 20px}.signal-stats b{display:block;font:500 30px/1 Georgia,serif}.signal-stats span{display:block;margin-top:7px;color:var(--muted);font-size:11px;line-height:1.5}.signal-grid{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:28px;margin-top:26px;align-items:start}.signal-why h3{margin:0 0 10px;font:500 17px/1.3 Georgia,serif}.signal-why ul{margin:0;padding-left:18px}.signal-why li{margin-bottom:7px;font-size:14px;line-height:1.6}.signal-boundary{margin-top:16px;padding:12px 15px;background:#f6f7f8;border-left:3px solid var(--blue);color:var(--muted);font-size:12.5px;line-height:1.6}.signal-chart{margin:0;padding:14px;border:1px solid var(--line);background:#fff}.signal-chart svg{width:100%;height:auto;display:block}.signal-chart .ax{stroke:#d7dcdd;stroke-width:1}.signal-chart .bar{stroke:#c8b48a;stroke-width:1;stroke-dasharray:3 3}.signal-chart .barlab{fill:#a08a5e;font-size:8px;text-anchor:end}.signal-chart .pt{fill:#9fb2c4}.signal-chart .pt.now{fill:var(--blue);stroke:#fff;stroke-width:1.5}.signal-chart figcaption{display:flex;justify-content:space-between;margin-top:8px;color:var(--muted);font-size:10px}.signal-footer{margin-top:22px;color:var(--muted);font-size:11px}@media(max-width:820px){.signal-grid{grid-template-columns:1fr}}.ask-section{padding:58px 0;border:0;border-top:1px solid var(--line);border-radius:0;background:transparent;box-shadow:none}.ask-validation{padding:7px 10px;border:1px solid #b9d8ca;border-radius:999px;color:var(--green);font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.07em}.ask-layout{display:grid;grid-template-columns:minmax(0,5fr) minmax(320px,4fr);border:1px solid var(--line);background:var(--panel)}.ask-form{padding:28px;border-right:1px solid var(--line)}.ask-controls{display:grid;grid-template-columns:minmax(0,1fr) 128px minmax(0,150px);gap:12px}.ask-form label{display:flex;flex-direction:column;gap:7px;color:var(--muted);font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.08em}.ask-form select,.ask-form textarea{width:100%;border:1px solid var(--line);border-radius:4px;background:#fff;color:var(--ink);font:500 14px/1.5 "Avenir Next","Segoe UI",sans-serif}.ask-form select{height:43px;padding:0 11px}.ask-form textarea{resize:vertical;min-height:90px;padding:12px}.ask-form select:focus,.ask-form textarea:focus{outline:3px solid rgba(40,100,220,.14);border-color:var(--blue)}.ask-question{margin-top:17px}.ask-suggestions{display:flex;flex-wrap:wrap;gap:7px;margin-top:10px}.ask-suggestions button{padding:6px 9px;border:1px solid var(--line);border-radius:999px;background:transparent;color:var(--blue);font-size:10px;cursor:pointer}.ask-suggestions button:hover{background:var(--blue-soft)}.ask-submit-row{display:flex;align-items:center;gap:13px;margin-top:20px}.ask-submit-row>button{min-width:120px;padding:11px 16px;border:0;border-radius:4px;background:var(--navy);color:#fff;font-weight:800;cursor:pointer}.ask-submit-row>button:disabled{opacity:.45;cursor:not-allowed}.ask-submit-row>span{color:var(--muted);font-size:10px}.ask-submit-row>span.ready{color:var(--green)}.ask-submit-row>span.error{color:#98473e}.ask-result{min-height:330px;padding:28px;background:#f8faf8;color:var(--muted);font-size:13px}.ask-result-kicker,.ask-answer-heading>span{margin:0;color:var(--green);font-size:10px;font-weight:850;letter-spacing:.1em}.ask-result>ol{margin:18px 0 0;padding:0;list-style:none}.ask-result>ol li{display:grid;grid-template-columns:25px 1fr;gap:10px;padding:12px 0;border-top:1px solid var(--line)}.ask-result>ol li span{color:var(--green);font-weight:850}.ask-result.loading{display:grid;place-items:center}.ask-result.error{display:grid;place-items:center;color:#98473e}.ask-answer-heading{display:flex;justify-content:space-between;gap:15px;padding-bottom:12px;border-bottom:1px solid var(--line)}.ask-answer-heading small{color:var(--muted)}.ask-result article{padding:15px 0;border-bottom:1px solid var(--line)}.ask-result article p{margin:0;color:var(--ink);font:500 17px/1.45 Georgia,serif}.ask-citations{display:flex;flex-wrap:wrap;gap:7px;margin-top:9px}.ask-citations a{color:var(--blue);font-size:10px;text-decoration:none;border-bottom:1px solid #aec2e9}.ask-limitations{margin-top:15px}.ask-limitations>summary{color:var(--amber);font-size:11px;font-weight:800;cursor:pointer}.ask-limitations article p{font:inherit;color:var(--muted)}.ask-boundary{margin:14px 0 0;color:var(--muted);font-size:10px}.ask-boundary strong{color:var(--ink)}
 .ask-controls{margin-bottom:8px}.ask-scope-note{margin:0 0 22px;color:var(--muted);font-size:10px;line-height:1.5}.ask-scope-note[hidden]{display:none}.ask-step-heading{display:grid;grid-template-columns:26px 1fr;gap:10px;align-items:start}.ask-step-heading>span{display:grid;place-items:center;width:24px;height:24px;border:1px solid #b8c8df;border-radius:50%;color:var(--blue);font-size:10px;font-weight:850}.ask-step-heading>div{display:flex;flex-direction:column}.ask-step-heading strong{font-size:12px}.ask-step-heading small{color:var(--muted);font-size:10px}.ask-task-tabs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));margin-top:13px;border:1px solid var(--line)}.ask-task-tabs button{min-height:48px;padding:8px;border:0;border-left:1px solid var(--line);border-top:1px solid var(--line);background:#fff;color:var(--muted);font-size:10px;font-weight:750;cursor:pointer}.ask-task-tabs button:nth-child(-n+3){border-top:0}.ask-task-tabs button:nth-child(3n+1){border-left:0}.ask-task-tabs button:hover{background:var(--blue-soft);color:var(--blue)}.ask-task-tabs button.active{background:var(--navy);color:#fff}.ask-task-tabs button:focus-visible{position:relative;z-index:1;outline:3px solid rgba(40,100,220,.25);outline-offset:1px}.ask-task-preview{padding:15px 17px;border-width:0 1px 1px;border-style:solid;border-color:var(--line);background:#f8fafc;display:grid;grid-template-columns:1fr;gap:3px}.ask-task-preview>span{color:var(--blue);font-size:8px;font-weight:850;letter-spacing:.1em}.ask-task-preview>strong{font:500 18px/1.3 Georgia,serif}.ask-task-preview>p{margin:2px 0 0;color:var(--muted);font-size:11px}.ask-review-step{margin-top:23px}.ask-question{margin-top:10px}.ask-scope-groups{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:20px}.ask-scope-group{padding-top:12px;border-top:2px solid var(--green)}.ask-scope-group.out-scope{border-color:#b76a4f}.ask-scope-group>strong{color:var(--ink);font-size:11px}.ask-scope-group ul{margin:10px 0 0;padding-left:17px}.ask-scope-group li{margin:0 0 9px;font-size:11px;line-height:1.45}.ask-scope-group.in-scope li::marker{color:var(--green)}.ask-scope-group.out-scope li::marker{color:#b76a4f}.ask-control-flow{margin-top:18px;padding:12px;border:1px solid #cfe0d8;background:#fff;color:var(--green);font-size:9px;font-weight:800;text-align:center;text-transform:uppercase;letter-spacing:.05em}
 @media(max-width:900px){.brief-lead{border-right:0;border-bottom:1px solid #365166}.headline-card{border-right:0;border-bottom:1px solid var(--line)}}
 @media(max-width:900px){.ask-layout{grid-template-columns:1fr}.ask-form{border-right:0;border-bottom:1px solid var(--line)}}

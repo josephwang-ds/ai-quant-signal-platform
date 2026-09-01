@@ -410,31 +410,34 @@ tr.clean td,tr.pick td{{background:#1e2833}}}}
 <header>
 <a class="back" href="index.html">&larr; Company Lens</a>
 <p class="eyebrow">How the ranking was audited</p>
-<h1>The first version of this<br>pipeline was wrong</h1>
-<p class="lede">It ranked which SEC filings deserved a human read, and reported an
-average precision of {_num(naive['average_precision'])}. The version that survives
-its own audit reports {_num(honest['average_precision'])}. The gap is not model
-improvement &mdash; it is four bugs, none of which announced itself.</p>
+<h1>Ranking SEC filings,<br>audited against hindsight</h1>
+<p class="lede">This ranks which of a morning's SEC disclosures deserve a human
+read, and reports {_num(honest['average_precision'])} average precision after an
+audit that removes four common sources of hindsight. Written the ordinary way the
+same pipeline reports {_num(naive['average_precision'])} &mdash; and that gap is
+the measurement worth having, because none of the four announces itself.</p>
 <div class="swing">
 <b class="bad">{_num(naive['average_precision'])}</b><span class="arr">&rarr;</span>
 <b class="good">{_num(honest['average_precision'])}</b>
-<small>No feature or model changed between them. Only whether the pipeline was
-allowed to see things it could not have known at the time.</small>
+<small>Written the ordinary way &rarr; audited. No feature or model differs between
+them, only whether the pipeline may see what it could not have known at the time.
+Every number below is the audited one.</small>
 </div>
 </header>
 
 <section>
-<h2>Removing one bug at a time</h2>
-<p>Each row switches off exactly one form of hindsight. The metric moves
-erratically because every fix also changes which filings are measurable at all
-&mdash; so the column that carries the argument is the count of impossible
-entries, which is an invariant rather than a score.</p>
+<h2>What each form of hindsight is worth</h2>
+<p>Each row removes exactly one. The metric moves erratically because every
+correction also changes which filings are measurable at all &mdash; so the column
+carrying the argument is the count of impossible entries, an invariant rather
+than a score.</p>
 <div class="scroll"><table><thead><tr>
 <th>Stage</th><th class="n">Avg precision</th><th class="n">ROC AUC</th>
 <th class="n">Impossible entries</th><th class="n">Guards failing</th>
 </tr></thead><tbody>{_ladder(ladder)}</tbody></table></div>
 <div class="note">An <strong>impossible entry</strong> is a filing whose entry
-price was printed before EDGAR accepted the document. The naive rule creates
+price was printed before EDGAR accepted the document &mdash; a position taken on
+news that did not exist yet. The naive rule creates
 {int(float(naive['impossible_entries'])):,} of them, {_pct(naive['impossible_share'])}
 of measurable filings, at a median of {float(naive['median_hindsight_hours']):.1f}
 hours of hindsight. The corrected rule leaves none.</div>

@@ -1,6 +1,6 @@
 {
   "schema_version": "self-relative.v1",
-  "exported_at": "2026-09-01T01:49:46.891421+00:00",
+  "exported_at": "2026-09-01T02:55:19.333469+00:00",
   "target": {
     "definition": "|CAR| above the issuer's own prior resolved 80th percentile",
     "quantile": 0.8,

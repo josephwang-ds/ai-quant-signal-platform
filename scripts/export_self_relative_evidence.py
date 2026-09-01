@@ -163,6 +163,85 @@ def threshold_sweep(predictions, signals, policy: recommend.Policy) -> pd.DataFr
     return pd.DataFrame(rows)
 
 
+SCATTER_POINTS = 40
+
+
+def _write_company_cards(path: Path, data, predictions, states, metrics,
+                         policy) -> None:
+    """Per-issuer card data for the company page, plus its self-history points.
+
+    Written to `data/build` rather than `evidence/` because it is a page input,
+    not a research artifact: it carries one issuer's latest decision and the
+    scatter behind it, and it changes whenever the pages are rebuilt.
+
+    Keeping `company_lens` out of `filing_triage`'s pipeline is the point. The
+    page reads a file; it does not import a model, and a missing file degrades
+    the page to its existing content rather than breaking the build.
+    """
+    relative = data["relative"]
+    target = data["target"]
+    events = data["result"].events.set_index("event_id")
+    labels = data["result"].labels.set_index("event_id")
+
+    cards: dict[str, dict] = {}
+    for ticker, group in events.groupby("ticker"):
+        eligible = group.index.intersection(predictions.index)
+        if not len(eligible):
+            continue
+        latest = group.loc[eligible].sort_values("acceptance_time").index[-1]
+
+        history = group.index.intersection(relative.index)
+        points = []
+        for event_id in history:
+            novelty = relative.at[event_id, "self_novelty_pct"]
+            reaction = labels["reaction"].get(event_id)
+            if not (np.isfinite(novelty) and np.isfinite(reaction)):
+                continue
+            points.append({
+                "novelty": round(float(novelty), 4),
+                "reaction": round(float(reaction), 4),
+                "date": str(pd.Timestamp(events.at[event_id, "acceptance_time"]).date()),
+                "items": str(events.at[event_id, "items"] or ""),
+                "current": bool(event_id == latest),
+            })
+        points = sorted(points, key=lambda x: x["date"])[-SCATTER_POINTS:]
+
+        state = states.loc[latest]
+        cards[str(ticker)] = {
+            "event_id": str(latest),
+            "accepted": str(pd.Timestamp(events.at[latest, "acceptance_time"])),
+            "items": str(events.at[latest, "items"] or ""),
+            "state": str(state["state"]),
+            "reasons": list(state["reasons"]),
+            "probability": (round(float(state["probability"]), 4)
+                            if np.isfinite(state["probability"]) else None),
+            "issuer_base_rate": (
+                round(float(target["self_target"].reindex(history).mean()), 4)
+                if len(history) else None),
+            "confidence": str(target["self_target_confidence"].get(latest, "unknown")),
+            "eligible_history": int(relative["self_history_depth"].get(latest, 0)),
+            "resolved_history": int(relative["self_resolved_depth"].get(latest, 0)),
+            "points": points,
+        }
+
+    payload = {
+        "schema_version": "self-relative-card.v1",
+        "generated_at": datetime.now(UTC).isoformat(),
+        "model": {
+            "estimator": metrics.get("estimator"),
+            "calibration": metrics.get("calibration_method"),
+            "policy": policy.describe(),
+            "evaluated_through": str(pd.Timestamp(
+                data["event_time"].max()).date()),
+        },
+        "boundary": ("Reaction magnitude, never direction. This is a reading "
+                     "priority, not investment advice."),
+        "companies": cards,
+    }
+    path.write_text(json.dumps(payload, indent=1, default=str) + "\n")
+    print(f"  company cards for {len(cards)} issuers -> {path}")
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--build", type=Path, default=Path("data/build"))
@@ -244,6 +323,9 @@ def main() -> int:
     }
     (args.out / "self_relative_metrics.json").write_text(
         json.dumps(payload, indent=2, default=str) + "\n")
+
+    _write_company_cards(args.build / "self_relative_cards.json",
+                         data, predictions, states, calibrated.metrics, policy)
 
     print(f"self-relative evidence written to {args.out}")
     print(f"  target base rate {payload['target']['base_rate']:.1%} on "

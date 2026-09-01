@@ -216,6 +216,14 @@ class CompanySnapshot:
     from. Repeating the same general-market rows on every company page as if
     they were company evidence is exactly the confusion the split prevents."""
     fundamentals: FundamentalsSection | None = None
+    disclosure_signal: dict[str, Any] | None = None
+    """The latest filing measured against this issuer's own filing history.
+
+    Optional, and the page degrades rather than fails without it: it is produced
+    by a separate scoring run, and a company page must stay readable when that
+    run has not happened. Everything inside is issuer-relative -- a percentile
+    against this company's past, never a rank against other companies -- and it
+    describes reaction *magnitude*, which carries no direction."""
 
     def to_dict(self) -> dict[str, Any]:
         payload = asdict(self)
@@ -225,4 +233,6 @@ class CompanySnapshot:
             payload.pop("market_headlines")
         if self.fundamentals is None:
             payload.pop("fundamentals")
+        if self.disclosure_signal is None:
+            payload.pop("disclosure_signal")
         return payload
