@@ -163,3 +163,50 @@ def stage_deltas(study: pd.DataFrame) -> pd.DataFrame:
     for column in columns:
         out[f"{column}_delta"] = study[column].diff()
     return out
+
+
+def paired_pr_auc_difference(base: pd.DataFrame, other: pd.DataFrame,
+                             sessions: pd.Series, *, n_boot: int = N_BOOTSTRAP,
+                             seed: int = SEED) -> dict:
+    """Interval on the gap between two feature sets, measured on shared rows.
+
+    An ablation table of point estimates invites reading a 0.006 difference in
+    average precision as a finding. Both models score the same filings on the
+    same folds, so the comparison is paired: one resample of sessions, both
+    models rescored on it, and the difference taken inside the resample. That
+    keeps the shared noise -- a quiet week, an unusually reactive one -- from
+    landing in the interval, exactly as `bootstrap_daily_comparisons` does for
+    the operational baselines.
+
+    Rows are dropped unless both models scored them. In practice that is all of
+    them, since the layers differ only in columns; enforcing it means a layer
+    that silently loses rows cannot show up as an improvement.
+    """
+    shared = base.index.intersection(other.index)
+    if len(shared) == 0:
+        return {"difference": float("nan"), "low": float("nan"),
+                "high": float("nan"), "n_scored": 0}
+
+    y = base.loc[shared, "label"].to_numpy(dtype=int)
+    p_base = base.loc[shared, "probability"].to_numpy(dtype=float)
+    p_other = other.loc[shared, "probability"].to_numpy(dtype=float)
+    session = sessions.reindex(shared).astype(str).to_numpy()
+
+    point = (float(average_precision_score(y, p_other))
+             - float(average_precision_score(y, p_base)))
+
+    groups = pd.Series(np.arange(len(shared))).groupby(session).apply(
+        lambda idx: idx.to_numpy())
+    blocks = list(groups)
+    rng = np.random.default_rng(seed)
+    draws = np.full(n_boot, np.nan)
+    for i in range(n_boot):
+        picked = rng.integers(0, len(blocks), len(blocks))
+        rows = np.concatenate([blocks[j] for j in picked])
+        if len(np.unique(y[rows])) < 2:
+            continue
+        draws[i] = (float(average_precision_score(y[rows], p_other[rows]))
+                    - float(average_precision_score(y[rows], p_base[rows])))
+    low, high = _percentile_interval(draws)
+    return {"difference": point, "low": low, "high": high,
+            "n_scored": len(shared)}

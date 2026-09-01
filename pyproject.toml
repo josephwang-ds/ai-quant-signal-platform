@@ -17,6 +17,10 @@ dependencies = [
 [project.optional-dependencies]
 dev = ["pytest>=8.0", "ruff>=0.6"]
 rag = ["langchain-text-splitters>=1.0,<2.0", "pypdf>=5.0,<7.0"]
+# Financial-domain transformer features. Optional because torch is ~100 MB and
+# the whole project -- pipeline, evidence, every page -- runs without it; the
+# transformer columns simply do not appear.
+nlp = ["torch>=2.0", "transformers>=4.40"]
 
 [project.scripts]
 triage = "filing_triage.cli:main"

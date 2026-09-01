@@ -161,6 +161,15 @@ REQUIRED = ("metrics.json", "integrity.json", "leakage_study.csv",
             "anchoring_study.csv", "session_material_counts.csv",
             "oos_importance.csv", "manifest.json")
 
+# The issuer-relative layer is exported by a second command, so these are a
+# group rather than a requirement: all of them, or none. A partial set is the
+# dangerous state -- it would render a calibration table beside a policy fitted
+# in a different run -- so it fails loudly, while a clean absence simply omits
+# the sections.
+SELF_RELATIVE = ("self_relative_metrics.json", "calibration_comparison.csv",
+                 "calibration_curve.csv", "recommendation_confusion.csv",
+                 "history_depth_sensitivity.csv", "nlp_feature_ablation.csv")
+
 
 def load(evidence: Path) -> dict:
     missing = [name for name in REQUIRED if not (evidence / name).exists()]
@@ -186,7 +195,29 @@ def load(evidence: Path) -> dict:
         "anchoring": rows("anchoring_study.csv"),
         "material_counts": rows("session_material_counts.csv"),
         "importance": rows("oos_importance.csv"),
+        **_self_relative(evidence, rows),
     }
+
+
+def _self_relative(evidence: Path, rows) -> dict:
+    present = [name for name in SELF_RELATIVE if (evidence / name).exists()]
+    if not present:
+        return {"self_relative": None}
+    if len(present) != len(SELF_RELATIVE):
+        raise SystemExit(
+            f"{evidence} has a partial issuer-relative export: missing "
+            f"{[n for n in SELF_RELATIVE if n not in present]}. Run "
+            "`make self-relative-evidence`; half of it is worse than none, "
+            "because the sections would mix two runs."
+        )
+    return {"self_relative": {
+        "metrics": json.loads((evidence / "self_relative_metrics.json").read_text()),
+        "calibration": rows("calibration_comparison.csv"),
+        "curve": rows("calibration_curve.csv"),
+        "states": {r["state"]: r for r in rows("recommendation_confusion.csv")},
+        "depth": rows("history_depth_sensitivity.csv"),
+        "ablation": rows("nlp_feature_ablation.csv"),
+    }}
 
 
 def _pct(value, digits=1) -> str:
@@ -314,6 +345,245 @@ def _features(importance, limit=10) -> str:
             f"<code>{row['feature']}</code></li>"
         )
     return "".join(out)
+
+
+def _calibration(rows, shipped="identity") -> str:
+    """Three ways of turning a score into a probability, scored on the same folds."""
+    pretty = {"identity": "Leave the scores alone",
+              "isotonic": "Isotonic regression",
+              "sigmoid": "Platt scaling"}
+    out = []
+    for r in rows:
+        pick = r["method"] == shipped
+        out.append(
+            f"<tr{' class=pick' if pick else ''}><td>{pretty.get(r['method'], r['method'])}"
+            f"{' <em>(shipped)</em>' if pick else ''}</td>"
+            f"<td class='n'>{_num(r['ece'])}</td>"
+            f"<td class='n'>{_num(r['brier'])}</td>"
+            f"<td class='n'>{_pct(r['brier_skill'])}</td></tr>")
+    return "".join(out)
+
+
+def _reliability(rows, minimum=30) -> str:
+    """Stated probability against observed frequency, thin bins left out.
+
+    A bin holding nine filings sits wherever noise puts it, and a reader cannot
+    tell that from miscalibration -- so bins below `minimum` are dropped and the
+    count stays on every row that remains.
+    """
+    out = []
+    for r in rows:
+        count = int(r["count"])
+        if count < minimum:
+            continue
+        stated, observed = float(r["mean_predicted"]), float(r["observed_rate"])
+        gap = observed - stated
+        out.append(f"<tr><td>{_pct(r['bin_low'], 0)}&ndash;{_pct(r['bin_high'], 0)}</td>"
+                   f"<td class='n'>{count:,}</td>"
+                   f"<td class='n'>{_pct(stated)}</td>"
+                   f"<td class='n'>{_pct(observed)}</td>"
+                   f"<td class='n'>{gap:+.1%}</td></tr>")
+    return "".join(out)
+
+
+def _states(states, base_rate) -> str:
+    order = [
+        ("read_now", "Read now",
+         ("A calibrated probability above the threshold <em>and</em> a signal "
+          "the reader can check")),
+        ("monitor", "Monitor",
+         "Above the same threshold with nothing citable behind it"),
+        ("routine", "Routine", "Consistent with this issuer's usual filings"),
+    ]
+    out = []
+    for key, name, why in order:
+        r = states.get(key)
+        if not r or not r["precision"]:
+            continue
+        precision = float(r["precision"])
+        out.append(
+            f"<tr{' class=pick' if key == 'read_now' else ''}>"
+            f"<td><strong>{name}</strong><br><span class='soft'>{why}</span></td>"
+            f"<td class='n'>{int(r['count']):,}</td>"
+            f"<td class='n'>{_pct(r['share'])}</td>"
+            f"<td class='n'>{_pct(precision)}</td>"
+            f"<td class='n'>{precision / base_rate:.2f}&times;</td>"
+            f"<td class='n'>{_pct(r['recall'])}</td></tr>")
+    return "".join(out)
+
+
+def _ablation(rows) -> str:
+    pretty = {"structured": "Market state and filing metadata",
+              "deterministic_text": "&hellip; plus the wording features",
+              "transformer_text": "&hellip; plus FinBERT instead",
+              "all": "&hellip; everything at once"}
+    out = []
+    for r in rows:
+        separates = r["separates_from_zero"] == "True"
+        delta = float(r["pr_auc_vs_structured"])
+        if r["group"] == "structured":
+            interval = "<span class='soft'>reference</span>"
+        else:
+            mark = "" if separates else " <span class='soft'>(straddles zero)</span>"
+            interval = (f"[{float(r['diff_ci_low']):+.4f}, "
+                        f"{float(r['diff_ci_high']):+.4f}]{mark}")
+        out.append(
+            f"<tr{' class=pick' if r['group'] == 'structured' else ''}>"
+            f"<td>{pretty.get(r['group'], r['group'])}</td>"
+            f"<td class='n'>{int(r['features'])}</td>"
+            f"<td class='n'>{_num(r['pr_auc'])}</td>"
+            f"<td class='n'>{'&mdash;' if r['group'] == 'structured' else f'{delta:+.4f}'}</td>"
+            f"<td class='n'>{interval}</td></tr>")
+    return "".join(out)
+
+
+def _sentiment_verdict(data) -> str:
+    """One sentence on the FinBERT result, or silence if it was never run."""
+    self_relative = data.get("self_relative")
+    if not self_relative or not self_relative["ablation"]:
+        return ""
+    row = next((r for r in self_relative["ablation"]
+                if r["group"] == "transformer_text"), None)
+    if row is None:
+        return ""
+    return (f"It cost {abs(float(row['pr_auc_vs_structured'])):.4f} average "
+            f"precision, and the table below is where that was measured.")
+
+
+def _issuer_relative(data) -> str:
+    """The issuer-relative layer: target, probability, policy, and the ablation.
+
+    Returns nothing at all when that export is absent, rather than a section of
+    empty tables. The page is generated from evidence; a section with no
+    evidence behind it has nothing to say.
+    """
+    block = data.get("self_relative")
+    if not block:
+        return ""
+
+    metrics = block["metrics"]
+    target, history = metrics["target"], metrics["history"]
+    policy, calibration = metrics["recommendation"], metrics["calibration"]
+    base_rate = float(target["base_rate"])
+    depth = history["confidence_counts"]
+    covered = sum(v for k, v in depth.items() if k != "insufficient_history")
+    read_now = block["states"].get("read_now", {})
+    lift = (float(read_now["precision"]) / base_rate
+            if read_now.get("precision") else float("nan"))
+
+    return f"""
+<section>
+<h2>Ranking a filing against its own company</h2>
+<p>A cross-sectional ranking asks which filing looks most like a mover. That
+question quietly favours volatile small caps, which are not more newsworthy, only
+noisier. The second model asks a different one: is this filing unusual <em>for
+this company</em> &mdash; louder than {_pct(0.8, 0)} of what that same issuer has
+filed before, judged only against outcomes already known when it arrived.</p>
+<div class="stats">
+<div class="stat"><b>{int(target['eligible']):,}</b><span>filings with enough of
+their own history<br>out of {int(target['total']):,}</span></div>
+<div class="stat"><b>{_pct(base_rate)}</b><span>clear their own bar<br>
+the rate a coin-flip would have to beat</span></div>
+<div class="stat"><b>{int(history['median_depth'])}</b><span>median prior filings
+per issuer<br>up to {int(history['max_depth'])}</span></div>
+</div>
+<div class="note">An issuer with fewer than
+{int(history['policy']['minimum'])} earlier filings has no defensible normal, and
+{int(depth.get('insufficient_history', 0)):,} of them are told so rather than
+scored &mdash; the card shows the raw evidence and says the history is too short.
+Filling that gap with a cross-sectional percentile would answer a different
+question in the same visual slot, which is worse than answering none.
+{covered:,} filings have enough history to be scored.</div>
+</section>
+
+<section>
+<h2>Making the score mean sixty-four in a hundred</h2>
+<p>A gradient-boosted score between 0 and 1 is not a probability; it is monotone
+in the right direction and nothing more. Three ways of fixing that were scored on
+the same folds, each fitted on a later slice of its own training block so no
+calibrator ever sees the fold it corrects.</p>
+<div class="scroll"><table><thead><tr>
+<th>Method</th><th class="n">Calibration error</th><th class="n">Brier</th>
+<th class="n">Brier skill</th>
+</tr></thead><tbody>{_calibration(block['calibration'])}</tbody></table></div>
+<div class="note">The usual choice for a tree ensemble is isotonic regression,
+and here it made calibration <em>worse</em> &mdash; averaging over trees is already
+a calibrating operation, and fitting a flexible monotone map on a limited slice
+added more noise than it removed. So the raw scores ship, at
+{_num(calibration['ece'])} expected calibration error. That is a measurement, not
+a default: a calibration stage nobody checks is how a project ends up shipping a
+step function it never looked at.</div>
+<div class="scroll"><table><thead><tr>
+<th>Stated probability</th><th class="n">Filings</th><th class="n">Said</th>
+<th class="n">Happened</th><th class="n">Gap</th>
+</tr></thead><tbody>{_reliability(block['curve'])}</tbody></table></div>
+<div class="note">Bins holding fewer than 30 filings are left out. They sit
+wherever noise puts them, and a reader cannot tell that from miscalibration.</div>
+</section>
+
+<section>
+<h2>Read now, Monitor, or Routine</h2>
+<p>A probability is not an instruction. The policy fires <strong>Read now</strong>
+only when a calibrated probability clears
+{float(policy['read_now_threshold']):.2f} <em>and</em> at least one issuer-relative
+signal a person could check themselves is in that company's top
+{_pct(policy['support_percentile'], 0)} &mdash; unusually novel wording, unusually
+heavy pre-filing volume. Thresholds are chosen on training folds only and reported
+on the folds that follow.</p>
+<div class="scroll"><table><thead><tr>
+<th>State</th><th class="n">Filings</th><th class="n">Share</th>
+<th class="n">Precision</th><th class="n">Vs base rate</th><th class="n">Recall</th>
+</tr></thead><tbody>{_states(block['states'], base_rate)}</tbody></table></div>
+<div class="note"><strong>Read now</strong> runs at {_pct(read_now.get('precision', 0))}
+against a {_pct(base_rate)} base rate &mdash; {lift:.2f}&times; &mdash; on
+{_pct(read_now.get('share', 0))} of the queue. <strong>Monitor</strong> reaches
+almost the same precision, and the difference between the two states is not
+accuracy but whether the card can name a reason. Requiring a citable signal costs
+nothing measurable and buys an explanation, which is the trade this policy exists
+to make. Nothing here is a view on price: the target is the <em>size</em> of a
+reaction, and a direction cannot be recovered from it even in principle.</div>
+</section>
+
+{_transformer_section(block)}
+"""
+
+
+def _transformer_section(block) -> str:
+    """The FinBERT ablation, or nothing when the corpus was never encoded.
+
+    Kept separate from the sections above because it has its own precondition:
+    the issuer-relative evidence can exist without a text cache, and a section
+    describing an encode that never happened would be the one hand-written claim
+    on a page that has none.
+    """
+    metrics = block["metrics"]
+    if not block["ablation"] or not metrics.get("text"):
+        return ""
+    return f"""
+<section>
+<h2>What a financial transformer was worth</h2>
+<p>FinBERT reads the disclosure and returns a tone distribution and a dense
+representation of the text &mdash; a 2019 model whose training data ends in 2014,
+so scoring filings from {metrics['sample']['first_filing'][:4]} onward with it is
+not hindsight. All {int(metrics['text']['documents']):,} distinct disclosures were
+encoded once and the features added a family at a time, each row against the same folds, the
+difference bootstrapped over trading sessions so the two models are compared on
+the same days rather than separately.</p>
+<div class="scroll"><table><thead><tr>
+<th>Features</th><th class="n">Count</th><th class="n">Avg precision</th>
+<th class="n">Difference</th><th class="n">95% interval</th>
+</tr></thead><tbody>{_ablation(block['ablation'])}</tbody></table></div>
+<div class="note">The transformer does not merely fail to help; its interval sits
+below zero. The reason is structural rather than a defect in the model, and it is
+the part worth keeping: FinBERT predicts the <em>direction</em> of sentiment,
+while the target here is the <em>magnitude</em> of a reaction, which is
+direction-free by construction &mdash; a very good announcement and a very bad one
+are both positives. Tone is close to orthogonal to the question being asked, and
+six columns of near-orthogonal signal make a forest's splits worse rather than
+better. So it does not ship. The cache and the code stay, because a directional
+target would make it worth re-testing and the corpus is already encoded.</div>
+</section>
+"""
 
 
 def _glossary() -> str:
@@ -535,10 +805,11 @@ falls when that column is shuffled:</p>
 <div class="note">There are {len(data['importance'])} inputs in total; the rest are
 the remaining 8-K item codes and slower-moving market state. Notice what is
 <em>not</em> here: no price target, no analyst estimate, no sentiment score. A
-sentiment model trained today has read what happened afterwards, which is the
-same leak in a friendlier costume.</div>
+sentiment model trained <em>today</em> has read what happened afterwards, which is
+the same leak in a friendlier costume &mdash; and a sentiment model old enough to
+avoid that was tried and measured. {_sentiment_verdict(data)}</div>
 </section>
-
+{_issuer_relative(data)}
 <section>
 <h2>Terms used above</h2>
 <dl class="glossary">{_glossary()}</dl>

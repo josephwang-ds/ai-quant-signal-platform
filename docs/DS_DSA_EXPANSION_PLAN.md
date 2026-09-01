@@ -24,6 +24,45 @@ produce buy, sell, hold, target-price, or expected-return recommendations.
 
 ---
 
+## 1a. Implementation status
+
+Phases 1 and 2 are built and measured. What each one returned:
+
+| Plan section | Where it lives | Outcome |
+|---|---|---|
+| 5.1 issuer-relative ranking | `src/filing_triage/self_relative.py` | 10,674 of 11,665 filings have enough of their own history; 21.5% base rate |
+| 5.2 calibrated prediction | `src/filing_triage/calibration.py` | Three methods compared; **isotonic made it worse**, so raw scores ship at 0.011 ECE |
+| 5.3 reading recommendation | `src/filing_triage/recommend.py` | `Read now` 42.2% precision vs 21.5% base rate, on 9.1% of the queue |
+| 4.2 self-history visualization | `src/company_lens/web/page.py` | Scatter of this filing against the issuer's own history |
+| 5.4 financial NLP | `src/filing_triage/text_model.py` | FinBERT encoded, ablated, and **held out of the shipped model** |
+| 5.5 time-series foundation model | — | Not started; gated behind the sections above |
+
+Three places where the implementation departs from this document, each for a
+reason worth recording:
+
+**The transformer features do not ship.** §5.4 asks for the ablation and for an
+honest report of what it shows. It showed a paired, session-clustered interval of
+[−0.0102, −0.0010] average precision — below zero, not merely indistinguishable
+from it. FinBERT predicts the *direction* of sentiment; the target here is the
+*magnitude* of a reaction, which is direction-free by construction. Tone is close
+to orthogonal to the question, and six near-orthogonal columns make a forest's
+splits worse. The module and its cache remain, held beside the shipped feature
+matrix rather than inside it, with a test asserting they cannot reach it.
+
+**`text_model.py` lives in `filing_triage`, not `company_lens/nlp/`.**
+`company_lens` already imports `filing_triage`, so the placement this document
+specifies would close that into an import cycle. The features are consumed by the
+ranker, which is in `filing_triage`.
+
+**Outcome-derived issuer statistics are not features.** §5.1's point-in-time rule
+is necessary but not sufficient: a percentile of *how the issuer usually reacts*
+needs the earlier reaction to have finished resolving, which is strictly stronger
+than the earlier filing having been accepted. `self_reaction_pct` and
+`self_reaction_z` are computed for display and named in `OUTCOME_COLUMNS`, and
+`assert_no_outcome_features` raises if either reaches a model.
+
+---
+
 ## 2. Preserve the Current Framework
 
 No package or product rewrite is required.

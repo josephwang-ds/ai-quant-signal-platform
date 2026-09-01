@@ -273,6 +273,79 @@ test asserts this ledger balances.
 
 ---
 
+## The second question: is this filing unusual *for this company*?
+
+A cross-sectional ranking asks which filing looks most like a mover. That
+question quietly favours volatile small caps, which are not more newsworthy, only
+noisier. So a second model asks whether a filing is loud **relative to the
+issuer's own history** — above that company's prior 80th percentile of absolute
+abnormal reaction, judged only against outcomes already resolved when the filing
+arrived.
+
+Two cutoffs, not one, and the distinction is the whole correctness argument:
+
+```
+knowledge-time features   prior.acceptance_time  < acceptance_time
+outcome-derived features  prior.label_end_session < entry_session
+```
+
+A percentile of *what the issuer usually files* needs only the earlier filing to
+exist. A percentile of *how the issuer usually reacts* needs the earlier
+reaction to have finished resolving — strictly stronger, and the reason
+`assert_no_outcome_features` raises if an outcome-derived column reaches the
+feature matrix.
+
+| | |
+|---|---|
+| Filings with enough of their own history | 10,674 of 11,665 |
+| Base rate to beat | 21.5% |
+| Median prior filings per issuer | 30 (max 153) |
+| Issuers told their history is too short | 962 filings |
+
+**The score is turned into a probability, and which calibrator does that was
+measured rather than assumed.** Each fold splits its own training block in time
+order — the earlier part fits the model, the later part fits the calibrator, and
+the test fold sees neither. Isotonic regression is the usual choice for a tree
+ensemble; here it made calibration worse (0.027 expected calibration error
+against 0.011 for the raw scores), because averaging over trees is already a
+calibrating operation. The raw scores ship, as a result rather than a default.
+
+**A probability is not an instruction.** `Read now` fires only on a calibrated
+probability above the selected threshold *and* at least one issuer-relative
+signal a reader could check themselves. It runs at 42.2% precision against the
+21.5% base rate on 9.1% of the queue. `Monitor` reaches almost the same
+precision — the difference between the two states is not accuracy but whether
+the card can name a reason, and requiring a citable one costs nothing measurable.
+Thresholds are selected on training folds only.
+
+### FinBERT was tried, measured, and does not ship
+
+All 11,424 distinct 8-K disclosures were encoded with FinBERT — a 2019 model
+whose training data ends in 2014, so scoring a 2022–2026 sample with it is not
+hindsight. The features were then added a family at a time, each row scored on
+the same folds, the difference bootstrapped over trading sessions:
+
+| Features | Avg precision | Difference | 95% interval |
+|---|---|---|---|
+| Market state and filing metadata | 0.372 | — | reference |
+| … plus the wording features | 0.370 | −0.0019 | [−0.0061, +0.0024] |
+| … plus FinBERT instead | 0.366 | −0.0055 | [−0.0102, −0.0010] |
+| … everything at once | 0.365 | −0.0070 | [−0.0127, −0.0020] |
+
+The transformer's interval sits below zero. The reason is structural rather than
+a defect in the model: FinBERT predicts the *direction* of sentiment, while the
+target here is the *magnitude* of a reaction, which is direction-free by
+construction — a very good announcement and a very bad one are both positives.
+Tone is close to orthogonal to the question being asked.
+
+So the columns are held *beside* the shipped feature matrix rather than inside
+it, and a test asserts they cannot reach it. The encoder and its cache stay,
+because a directional target would make them worth re-testing and the corpus is
+already encoded. Build it with `make text-cache` after `pip install -e '.[nlp]'`;
+everything else in the project runs without torch installed.
+
+---
+
 ## What this is, and is not
 
 **Is:** a point-in-time event dataset built from EDGAR acceptance timestamps, a
@@ -333,7 +406,7 @@ embargo sweep, and writes a self-contained HTML report.
 
 ```bash
 make quick           # smaller, no leakage study, ~30s
-make test            # 468 tests (~12 min; the nested model selection dominates)
+make test            # 500 tests (~12 min; the nested model selection dominates)
 make audit           # the leakage checks as an exit code
 make llm-eval        # frozen English/Chinese grounded-output scorecard
 make llm-eval-openai-dry-run  # inspect 20-case paid benchmark scope; sends nothing
@@ -532,13 +605,17 @@ src/filing_triage/
   ingest/          EDGAR client, multi-source prices, interval-based membership
   features.py      features, each computable at decision time
   labels.py        market-model event study on a numpy session grid
+  self_relative.py issuer-relative percentiles and robust z, two cutoffs apart
+  calibration.py   score -> probability, with the calibrator's own held-out slice
+  recommend.py     Read now / Monitor / Routine, and when to abstain
+  text_model.py    FinBERT features: optional, cached, and measured out again
   model.py         the ranker
   evaluate.py      ranking metrics
   experiments.py   the leakage study, embargo sweep, reaction-capture profile
                    and hyperparameter sensitivity grid
   report.py        self-contained HTML
   synth.py         the offline corpus
-tests/             468 tests; test_guards, test_pipeline, test_uncertainty
+tests/             500 tests; test_guards, test_pipeline, test_uncertainty
                    and test_ingest_integration are the ones that matter
 docs/              METHODOLOGY.md, LEAKAGE.md, COMPANY_LENS.md
 ```

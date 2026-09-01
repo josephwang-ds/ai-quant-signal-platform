@@ -1,6 +1,6 @@
 {
   "schema_version": "self-relative.v1",
-  "exported_at": "2026-09-01T02:55:19.333469+00:00",
+  "exported_at": "2026-09-01T05:32:11.202319+00:00",
   "target": {
     "definition": "|CAR| above the issuer's own prior resolved 80th percentile",
     "quantile": 0.8,
@@ -47,6 +47,18 @@
       "read_now": 805,
       "monitor": 463
     }
+  },
+  "sample": {
+    "first_filing": "2022-01-03",
+    "last_filing": "2026-08-26"
+  },
+  "text": {
+    "model": "ProsusAI/finbert",
+    "revision": "main",
+    "max_tokens": 512,
+    "documents": 11424,
+    "dimensions": 768,
+    "scored_filings": 11665
   },
   "inputs": {
     "events": {

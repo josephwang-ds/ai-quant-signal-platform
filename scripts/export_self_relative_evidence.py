@@ -21,7 +21,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-from filing_triage import pipeline, recommend
+from filing_triage import pipeline, recommend, text_model
 from filing_triage.calibration import (
     calibrated_walk_forward,
     calibration_comparison,
@@ -38,8 +38,14 @@ from filing_triage.self_relative import (
     issuer_relative_target,
     self_relative_frame,
 )
+from filing_triage.uncertainty import paired_pr_auc_difference
 
 SHIPPED_CALIBRATION = "identity"
+
+# The four rows the expansion plan asks for. Each adds one family to the one
+# above it, so a difference is attributable to that family rather than to a
+# combination nobody isolated.
+ABLATION_GROUPS = ("structured", "deterministic_text", "transformer_text", "all")
 
 
 def build_inputs(events, prices, membership, profile):
@@ -53,7 +59,30 @@ def build_inputs(events, prices, membership, profile):
 
     features = result.features.join(feature_frame(relative))
     features["self_attention_pct"] = attention_percentile(relative)
+
     features = features.select_dtypes(include=[np.number])
+
+    # Held *beside* the shipped matrix, never joined into it. The ablation below
+    # measured these columns as worse than not having them -- a negative interval
+    # that separates from zero -- and a feature that failed its own ablation must
+    # not reach the model that writes the cards. Keeping them in a separate frame
+    # makes that structural: the only code that can use them is the code that
+    # measures them.
+    #
+    # Absent by default. Without the optional stack or a built cache the frame is
+    # empty and the ablation reports one row instead of four, rather than
+    # quietly filling the columns with zeros.
+    text_columns = pd.DataFrame(index=features.index)
+    cache_path = Path("data/build/text_cache")
+    if text_model.available() and (cache_path / "index.json").exists():
+        cache = text_model.TextCache(cache_path)
+        text = text_model.text_features(result.events, cache)
+        # Joined on event_id, never by position: the feature matrix and the
+        # event frame are built by different code paths, and a row order that
+        # happens to agree today is not a guarantee. Misalignment here would
+        # attach one filing's tone to another filing's outcome.
+        text_columns = text.set_index(result.events["event_id"]).reindex(
+            features.index).select_dtypes(include=[np.number])
 
     aligned = result.labels.set_index("event_id").reindex(result.features.index)
     indexed = result.events.set_index("event_id")
@@ -62,11 +91,13 @@ def build_inputs(events, prices, membership, profile):
         "relative": relative,
         "target": target,
         "features": features,
+        "text_features": text_columns,
         "event_time": indexed.loc[result.features.index, "acceptance_time"],
         "label_end_time": pd.to_datetime(
             aligned["label_end_session"]
         ).dt.tz_localize(result.events["acceptance_time"].dt.tz),
         "items": indexed.loc[result.features.index, "items"],
+        "session": indexed.loc[result.features.index, "entry_session"],
     }
 
 
@@ -242,6 +273,116 @@ def _write_company_cards(path: Path, data, predictions, states, metrics,
     print(f"  company cards for {len(cards)} issuers -> {path}")
 
 
+def _text_fingerprint(data) -> dict | None:
+    """What the transformer columns were built from, or None if they were not.
+
+    Recorded next to the ablation that judged them so the page can state the
+    corpus size without a number written into it by hand -- and so a rerun
+    against a different model shows up as a changed fingerprint rather than as a
+    quietly different table.
+    """
+    columns = data["text_features"]
+    if columns.empty or not len(columns.columns):
+        return None
+    cache = text_model.TextCache(Path("data/build/text_cache"))
+    fingerprint = cache.fingerprint()
+    fingerprint["scored_filings"] = int(columns.notna().any(axis=1).sum())
+    return fingerprint
+
+
+def _feature_groups(features: pd.DataFrame) -> dict[str, list[str]]:
+    """Which columns belong to which family.
+
+    Assigned by prefix rather than by hand: a new feature joins the family its
+    name says it belongs to, and a family cannot silently lose a column because
+    someone forgot to add it to a list.
+    """
+    text_deterministic = {"novelty", "first_filing", "log_doc_chars",
+                          "doc_chars_vs_median"}
+    transformer = [c for c in features.columns if c.startswith("fin_")]
+    deterministic = [c for c in features.columns if c in text_deterministic]
+    structured = [c for c in features.columns
+                  if c not in set(transformer) | set(deterministic)]
+    return {"structured": structured, "deterministic_text": deterministic,
+            "transformer_text": transformer}
+
+
+def text_feature_ablation(data, groups=ABLATION_GROUPS) -> pd.DataFrame:
+    """What each family of features is worth, added one at a time.
+
+    The question is not whether a transformer improves the number. It is whether
+    it improves it *beyond the deterministic text features already here*, which
+    is why `deterministic_text` sits between the baseline and the transformer
+    row rather than being folded into it. A transformer that only recovers what
+    a hashing vectorizer already found has not earned an optional dependency
+    weighing a hundred megabytes.
+
+    Reported whichever way it comes out. "We measured it and it did not help" is
+    a result, and a more useful one than an unmeasured feature that stays.
+    """
+    matrix = data["features"].join(data["text_features"])
+    families = _feature_groups(matrix)
+    if not families["transformer_text"]:
+        return pd.DataFrame(columns=["group", "features", "pr_auc", "roc_auc",
+                                     "brier", "n_scored"])
+
+    layers = {
+        "structured": families["structured"],
+        "deterministic_text": families["structured"] + families["deterministic_text"],
+        "transformer_text": families["structured"] + families["transformer_text"],
+        "all": (families["structured"] + families["deterministic_text"]
+                + families["transformer_text"]),
+    }
+    rows = []
+    predictions: dict[str, pd.DataFrame] = {}
+    for name in groups:
+        selected = layers.get(name)
+        if not selected:
+            continue
+        # Kept in the matrix's own order rather than concatenated by family. A
+        # forest samples features by position, so the same columns in a
+        # different order fit a different model: reordering alone moved average
+        # precision by 0.0007 here, which is noise this table cannot afford to
+        # mix into a 0.0055 effect. In matrix order the `deterministic_text` row
+        # is exactly the shipped configuration.
+        chosen = set(selected)
+        columns = [c for c in matrix.columns if c in chosen]
+        scored = calibrated_walk_forward(
+            matrix[columns], data["target"]["self_target"],
+            data["event_time"], data["label_end_time"],
+            method=SHIPPED_CALIBRATION)
+        if not scored.metrics:
+            continue
+        predictions[name] = scored.predictions
+        rows.append({
+            "group": name,
+            "features": len(columns),
+            "pr_auc": scored.metrics["pr_auc"],
+            "roc_auc": scored.metrics["roc_auc"],
+            "brier": scored.metrics["brier"],
+            "n_scored": scored.metrics["n_scored"],
+        })
+    table = pd.DataFrame(rows)
+    if table.empty or "structured" not in predictions:
+        return table
+
+    # The point estimates alone would let a reader treat a third of a percentage
+    # point of average precision as a finding. Paired, session-clustered, and
+    # reported as an interval, so the table can say "no measurable difference"
+    # in the only way that means anything.
+    baseline = predictions["structured"]
+    table["pr_auc_vs_structured"] = table["pr_auc"] - float(
+        table.loc[table["group"] == "structured", "pr_auc"].iloc[0])
+    intervals = [paired_pr_auc_difference(baseline, predictions[name],
+                                          data["session"])
+                 for name in table["group"]]
+    table["diff_ci_low"] = [i["low"] for i in intervals]
+    table["diff_ci_high"] = [i["high"] for i in intervals]
+    table["separates_from_zero"] = [
+        bool(np.isfinite(i["low"]) and (i["low"] > 0 or i["high"] < 0))
+        for i in intervals]
+    return table
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--build", type=Path, default=Path("data/build"))
@@ -288,6 +429,10 @@ def main() -> int:
         args.out / "recommendation_confusion.csv", index=False)
     threshold_sweep(predictions, signals, policy).to_csv(
         args.out / "recommendation_thresholds.csv", index=False)
+    ablation = text_feature_ablation(data)
+    if not ablation.empty:
+        ablation.to_csv(args.out / "nlp_feature_ablation.csv", index=False)
+
     history_depth_sensitivity(data, predictions).to_csv(
         args.out / "history_depth_sensitivity.csv", index=False)
     event_type_subgroups(data, predictions).to_csv(
@@ -318,6 +463,14 @@ def main() -> int:
             "support_percentile": policy.support,
             "state_counts": states["state"].value_counts().to_dict(),
         },
+        # The filing sample's own range, not the price history's. The prices go
+        # back to 1962; quoting that as the sample would misdescribe what these
+        # numbers were measured on.
+        "sample": {
+            "first_filing": str(events["acceptance_time"].min().date()),
+            "last_filing": str(events["acceptance_time"].max().date()),
+        },
+        "text": _text_fingerprint(data),
         "inputs": input_fingerprints(events, prices, membership),
         "environment": environment(),
     }
@@ -337,3 +490,5 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
+
+

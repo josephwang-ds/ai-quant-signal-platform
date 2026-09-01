@@ -110,3 +110,73 @@ class TestTheIndexLinksToIt:
             assert source.count(f"'{key}'") >= 2, (
                 f"{key} needs an English and a Chinese string"
             )
+
+
+@pytest.fixture(scope="module")
+def self_relative() -> dict:
+    path = EVIDENCE / "self_relative_metrics.json"
+    if not path.exists():
+        pytest.skip("no issuer-relative export in this checkout")
+    return json.loads(path.read_text())
+
+
+class TestTheIssuerRelativeSectionsCarryTheirEvidence:
+    """The second model's results reach the page the same way the first's do:
+    read from the export, never typed."""
+
+    def test_the_base_rate_it_has_to_beat_is_shown(self, page, self_relative):
+        assert f"{self_relative['target']['base_rate']:.1%}" in page
+
+    def test_the_shipped_calibration_is_marked_as_the_pick(self, page):
+        assert "Leave the scores alone" in page
+        assert "<em>(shipped)</em>" in page
+
+    def test_the_calibration_error_comes_from_the_export(self, page, self_relative):
+        assert f"{self_relative['calibration']['ece']:.3f}" in page
+
+    def test_the_read_now_threshold_is_the_selected_one(self, page, self_relative):
+        assert f"{self_relative['recommendation']['read_now_threshold']:.2f}" in page
+
+    def test_abstention_is_described_rather_than_hidden(self, page):
+        """An issuer with too little history is told so. A page that showed only
+        the states it could score would describe a different product."""
+        assert "too short" in page
+
+    def test_it_says_the_target_carries_no_direction(self, page):
+        """The one claim on the page that a reader could most damagingly
+        misread."""
+        assert "direction cannot be recovered" in page
+
+
+class TestTheTransformerResultIsReportedEitherWay:
+    def test_the_ablation_interval_appears_when_it_was_run(self, page):
+        if "financial transformer" not in page:
+            pytest.skip("no text cache in this checkout")
+        with (EVIDENCE / "nlp_feature_ablation.csv").open() as handle:
+            rows = {r["group"]: r for r in csv.DictReader(handle)}
+        row = rows["transformer_text"]
+        assert f"{float(row['diff_ci_low']):+.4f}" in page
+
+    def test_the_section_is_absent_without_a_text_cache(self):
+        """The page is generated from evidence; a section describing an encode
+        that never happened would be its one hand-written claim."""
+        from build_research_page import _transformer_section
+
+        assert _transformer_section({"ablation": [], "metrics": {}}) == ""
+        assert _transformer_section(
+            {"ablation": [{"group": "transformer_text"}], "metrics": {}}) == ""
+
+    def test_a_partial_issuer_relative_export_fails_loudly(self, tmp_path):
+        """Half of it is worse than none: the page would render a calibration
+        table beside a policy fitted in a different run."""
+        from build_research_page import _self_relative
+
+        (tmp_path / "calibration_comparison.csv").write_text("method\n")
+        with pytest.raises(SystemExit, match="partial issuer-relative"):
+            _self_relative(tmp_path, lambda name: [])
+
+    def test_no_issuer_relative_export_simply_omits_the_sections(self, tmp_path):
+        from build_research_page import _issuer_relative, _self_relative
+
+        assert _self_relative(tmp_path, lambda name: []) == {"self_relative": None}
+        assert _issuer_relative({"self_relative": None}) == ""

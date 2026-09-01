@@ -18,6 +18,7 @@ from filing_triage.config import PipelineConfig
 from filing_triage.uncertainty import (
     bootstrap_daily_comparisons,
     bootstrap_ranking_metrics,
+    paired_pr_auc_difference,
     stage_deltas,
 )
 
@@ -266,3 +267,67 @@ class TestIntervalsReachTheReader:
         table = report._baseline_table(bare.metrics, bare.baseline_comparisons)
         assert "nan" not in table.lower()
         assert "&mdash;" in table
+
+
+def _scored(labels, probabilities, sessions):
+    return pd.DataFrame({"label": labels, "probability": probabilities},
+                        index=[f"e{i}" for i in range(len(labels))]), pd.Series(
+        sessions, index=[f"e{i}" for i in range(len(labels))])
+
+
+class TestTheAblationDifferenceIsPaired:
+    """An ablation table of point estimates invites reading noise as a finding."""
+
+    def test_an_identical_model_has_zero_difference_and_a_zero_interval(self):
+        rng = np.random.default_rng(0)
+        labels = rng.integers(0, 2, 300)
+        scores = rng.random(300)
+        frame, sessions = _scored(labels, scores, [f"d{i // 10}" for i in range(300)])
+        result = paired_pr_auc_difference(frame, frame.copy(), sessions, n_boot=200)
+        assert result["difference"] == pytest.approx(0.0)
+        assert result["low"] == pytest.approx(0.0)
+        assert result["high"] == pytest.approx(0.0)
+
+    def test_a_genuinely_better_model_separates_from_zero(self):
+        """The interval has to be able to say yes, or its saying no means
+        nothing."""
+        rng = np.random.default_rng(1)
+        labels = rng.integers(0, 2, 600)
+        noise = rng.random(600)
+        informative = labels * 0.6 + rng.random(600) * 0.4
+        base, sessions = _scored(labels, noise, [f"d{i // 10}" for i in range(600)])
+        better = base.assign(probability=informative)
+        result = paired_pr_auc_difference(base, better, sessions, n_boot=300)
+        assert result["difference"] > 0
+        assert result["low"] > 0
+
+    def test_the_interval_widens_when_sessions_are_clustered(self):
+        """Resampling the session rather than the row is the whole point: with
+        every row in one block, the bootstrap has one thing to draw."""
+        rng = np.random.default_rng(2)
+        labels = rng.integers(0, 2, 200)
+        base, _ = _scored(labels, rng.random(200), ["d0"] * 200)
+        other = base.assign(probability=rng.random(200))
+        rows = paired_pr_auc_difference(
+            base, other, pd.Series([f"d{i}" for i in range(200)], index=base.index),
+            n_boot=200)
+        clustered = paired_pr_auc_difference(
+            base, other, pd.Series(["d0"] * 200, index=base.index), n_boot=200)
+        assert clustered["high"] - clustered["low"] <= rows["high"] - rows["low"]
+
+    def test_rows_only_one_model_scored_are_dropped(self):
+        rng = np.random.default_rng(3)
+        labels = rng.integers(0, 2, 200)
+        base, sessions = _scored(labels, rng.random(200),
+                                 [f"d{i // 10}" for i in range(200)])
+        result = paired_pr_auc_difference(base, base.iloc[:120], sessions, n_boot=50)
+        assert result["n_scored"] == 120
+
+    def test_no_shared_rows_returns_missing_not_zero(self):
+        rng = np.random.default_rng(4)
+        labels = rng.integers(0, 2, 50)
+        base, sessions = _scored(labels, rng.random(50), ["d0"] * 50)
+        other = base.set_axis([f"x{i}" for i in range(50)])
+        result = paired_pr_auc_difference(base, other, sessions, n_boot=10)
+        assert np.isnan(result["difference"])
+        assert result["n_scored"] == 0
