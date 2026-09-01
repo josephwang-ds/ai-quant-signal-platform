@@ -30,7 +30,7 @@ Phases 1 and 2 are built and measured. What each one returned:
 
 | Plan section | Where it lives | Outcome |
 |---|---|---|
-| 5.1 issuer-relative ranking | `src/filing_triage/self_relative.py` | 10,674 of 11,665 filings have enough of their own history; 21.5% base rate |
+| 5.1 issuer-relative ranking | `src/filing_triage/self_relative.py` | 10,674 of 11,665 filings have enough of their own history; 21.5% base rate. The **target** carries the layer; the features add nothing measurable |
 | 5.2 calibrated prediction | `src/filing_triage/calibration.py` | Three methods compared; **isotonic made it worse**, so raw scores ship at 0.011 ECE |
 | 5.3 reading recommendation | `src/filing_triage/recommend.py` | `Read now` 42.2% precision vs 21.5% base rate, on 9.1% of the queue |
 | 4.2 self-history visualization | `src/company_lens/web/page.py` | Scatter of this filing against the issuer's own history |
@@ -48,6 +48,16 @@ from it. FinBERT predicts the *direction* of sentiment; the target here is the
 to orthogonal to the question, and six near-orthogonal columns make a forest's
 splits worse. The module and its cache remain, held beside the shipped feature
 matrix rather than inside it, with a test asserting they cannot reach it.
+
+**The issuer-relative features are kept for a stated reason, not because they
+help.** §5.1 assumes the issuer-relative columns improve the model. Measured
+against the same folds, all three variants straddle zero: percentiles −0.0016
+[−0.0068, +0.0038], z-scores +0.0026 [−0.0027, +0.0080], both −0.0013 [−0.0079,
++0.0051]. The layer's contribution is the *target definition*, not the features.
+They remain in the matrix because the difference is unmeasurable in both
+directions and the shipped evidence package was computed with them; they earn
+their place on the card as the signals a `Read now` cites, which is a different
+job from being a model input.
 
 **The foundation model does not ship either, and the card still does.** §5.5
 sets the condition -- do not ship unless the intervals are calibrated -- and

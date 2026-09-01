@@ -1,0 +1,266 @@
+{
+ "schema_version": "recommendation-cases.v1",
+ "exported_at": "2026-09-01T14:09:53.747881+00:00",
+ "policy": "read_now p>=0.35 with a supporting signal >=80%; monitor p>=0.35",
+ "reading": "Each state shows its strongest examples and its clearest failures. A file with only the successes would describe a policy that does not exist: Read now is right about two times in five, which is its value against a one-in-five base rate, not a claim of reliability.",
+ "cases": {
+  "read_now": [
+   {
+    "event_id": "0001730168-25-000116",
+    "ticker": "AVGO",
+    "entry_session": "2025-12-12",
+    "items": "2.02,8.01,9.01",
+    "probability": 0.5732,
+    "reasons": [
+     "pre-filing volume above 83% of its own history"
+    ],
+    "prior_filings": 42,
+    "reaction_percentile": 0.9524,
+    "cleared_own_bar": true,
+    "outcome": "as expected"
+   },
+   {
+    "event_id": "0001571996-26-000021",
+    "ticker": "DELL",
+    "entry_session": "2026-05-29",
+    "items": "2.02,9.01",
+    "probability": 0.5641,
+    "reasons": [
+     "pre-filing volume above 97% of its own history"
+    ],
+    "prior_filings": 59,
+    "reaction_percentile": 0.9831,
+    "cleared_own_bar": true,
+    "outcome": "as expected"
+   },
+   {
+    "event_id": "0000002488-26-000072",
+    "ticker": "AMD",
+    "entry_session": "2026-05-06",
+    "items": "2.02,7.01,9.01",
+    "probability": 0.5617,
+    "reasons": [
+     "pre-filing volume above 83% of its own history"
+    ],
+    "prior_filings": 53,
+    "reaction_percentile": 0.9245,
+    "cleared_own_bar": true,
+    "outcome": "as expected"
+   },
+   {
+    "event_id": "0000202058-23-000054",
+    "ticker": "LHX",
+    "entry_session": "2023-10-27",
+    "items": "2.02,7.01,9.01",
+    "probability": 0.5842,
+    "reasons": [
+     "pre-filing volume above 80% of its own history"
+    ],
+    "prior_filings": 30,
+    "reaction_percentile": 0.4333,
+    "cleared_own_bar": false,
+    "outcome": "did not pan out"
+   },
+   {
+    "event_id": "0001628280-26-035071",
+    "ticker": "AMAT",
+    "entry_session": "2026-05-15",
+    "items": "2.02,9.01",
+    "probability": 0.577,
+    "reasons": [
+     "pre-filing volume above 98% of its own history"
+    ],
+    "prior_filings": 41,
+    "reaction_percentile": 0.6341,
+    "cleared_own_bar": false,
+    "outcome": "did not pan out"
+   },
+   {
+    "event_id": "0000898173-26-000006",
+    "ticker": "ORLY",
+    "entry_session": "2026-02-05",
+    "items": "2.02,9.01",
+    "probability": 0.5485,
+    "reasons": [
+     "pre-filing volume above 97% of its own history"
+    ],
+    "prior_filings": 61,
+    "reaction_percentile": 0.6885,
+    "cleared_own_bar": false,
+    "outcome": "did not pan out"
+   }
+  ],
+  "monitor": [
+   {
+    "event_id": "0000097476-26-000003",
+    "ticker": "TXN",
+    "entry_session": "2026-01-28",
+    "items": "2.02,9.01",
+    "probability": 0.5486,
+    "reasons": [
+     "elevated model probability without a confirming signal"
+    ],
+    "prior_filings": 36,
+    "reaction_percentile": 0.9722,
+    "cleared_own_bar": true,
+    "outcome": "as expected"
+   },
+   {
+    "event_id": "0000310764-25-000126",
+    "ticker": "SYK",
+    "entry_session": "2025-10-31",
+    "items": "2.02,9.01",
+    "probability": 0.5342,
+    "reasons": [
+     "elevated model probability without a confirming signal"
+    ],
+    "prior_filings": 36,
+    "reaction_percentile": 0.8889,
+    "cleared_own_bar": true,
+    "outcome": "as expected"
+   },
+   {
+    "event_id": "0001193125-26-241911",
+    "ticker": "SNPS",
+    "entry_session": "2026-05-28",
+    "items": "2.02,9.01",
+    "probability": 0.5337,
+    "reasons": [
+     "elevated model probability without a confirming signal"
+    ],
+    "prior_filings": 60,
+    "reaction_percentile": 0.9167,
+    "cleared_own_bar": true,
+    "outcome": "as expected"
+   },
+   {
+    "event_id": "0000316709-24-000011",
+    "ticker": "SCHW",
+    "entry_session": "2024-01-18",
+    "items": "2.02,9.01",
+    "probability": 0.5343,
+    "reasons": [
+     "elevated model probability without a confirming signal"
+    ],
+    "prior_filings": 24,
+    "reaction_percentile": 0.7083,
+    "cleared_own_bar": false,
+    "outcome": "did not pan out"
+   },
+   {
+    "event_id": "0001193125-26-022733",
+    "ticker": "NUE",
+    "entry_session": "2026-01-27",
+    "items": "2.02,7.01,9.01",
+    "probability": 0.5298,
+    "reasons": [
+     "elevated model probability without a confirming signal"
+    ],
+    "prior_filings": 33,
+    "reaction_percentile": 0.7576,
+    "cleared_own_bar": false,
+    "outcome": "did not pan out"
+   },
+   {
+    "event_id": "0001045810-25-000021",
+    "ticker": "NVDA",
+    "entry_session": "2025-02-27",
+    "items": "2.02,9.01",
+    "probability": 0.5265,
+    "reasons": [
+     "elevated model probability without a confirming signal"
+    ],
+    "prior_filings": 28,
+    "reaction_percentile": 0.6786,
+    "cleared_own_bar": false,
+    "outcome": "did not pan out"
+   }
+  ],
+  "routine": [
+   {
+    "event_id": "0000040533-26-000010",
+    "ticker": "GD",
+    "entry_session": "2026-04-30",
+    "items": "2.02,9.01",
+    "probability": 0.3499,
+    "reasons": [
+     "consistent with this issuer's usual disclosures"
+    ],
+    "prior_filings": 34,
+    "reaction_percentile": 0.5882,
+    "cleared_own_bar": false,
+    "outcome": "as expected"
+   },
+   {
+    "event_id": "0000764180-24-000100",
+    "ticker": "MO",
+    "entry_session": "2024-11-01",
+    "items": "2.02,9.01",
+    "probability": 0.3498,
+    "reasons": [
+     "consistent with this issuer's usual disclosures"
+    ],
+    "prior_filings": 32,
+    "reaction_percentile": 0.7188,
+    "cleared_own_bar": false,
+    "outcome": "as expected"
+   },
+   {
+    "event_id": "0000731766-25-000224",
+    "ticker": "UNH",
+    "entry_session": "2025-07-25",
+    "items": "8.01",
+    "probability": 0.3497,
+    "reasons": [
+     "consistent with this issuer's usual disclosures"
+    ],
+    "prior_filings": 55,
+    "reaction_percentile": 0.2727,
+    "cleared_own_bar": false,
+    "outcome": "as expected"
+   },
+   {
+    "event_id": "0000707549-24-000125",
+    "ticker": "LRCX",
+    "entry_session": "2024-10-24",
+    "items": "2.02,9.01",
+    "probability": 0.35,
+    "reasons": [
+     "consistent with this issuer's usual disclosures"
+    ],
+    "prior_filings": 23,
+    "reaction_percentile": 0.8261,
+    "cleared_own_bar": true,
+    "outcome": "did not pan out"
+   },
+   {
+    "event_id": "0000104169-25-000010",
+    "ticker": "WMT",
+    "entry_session": "2025-02-21",
+    "items": "2.02,9.01",
+    "probability": 0.3498,
+    "reasons": [
+     "consistent with this issuer's usual disclosures"
+    ],
+    "prior_filings": 38,
+    "reaction_percentile": 0.9474,
+    "cleared_own_bar": true,
+    "outcome": "did not pan out"
+   },
+   {
+    "event_id": "0001193125-24-042119",
+    "ticker": "D",
+    "entry_session": "2024-02-23",
+    "items": "7.01,8.01,9.01",
+    "probability": 0.3497,
+    "reasons": [
+     "consistent with this issuer's usual disclosures"
+    ],
+    "prior_filings": 37,
+    "reaction_percentile": 0.8333,
+    "cleared_own_bar": true,
+    "outcome": "did not pan out"
+   }
+  ]
+ }
+}

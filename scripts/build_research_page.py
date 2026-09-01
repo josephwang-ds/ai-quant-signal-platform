@@ -17,6 +17,7 @@ import argparse
 import csv
 import json
 from datetime import UTC, datetime
+from html import escape
 from pathlib import Path
 
 # Plain-language names for what the model reads. Semantics, not measurements:
@@ -168,7 +169,9 @@ REQUIRED = ("metrics.json", "integrity.json", "leakage_study.csv",
 # the sections.
 SELF_RELATIVE = ("self_relative_metrics.json", "calibration_comparison.csv",
                  "calibration_curve.csv", "recommendation_confusion.csv",
-                 "history_depth_sensitivity.csv", "nlp_feature_ablation.csv")
+                 "history_depth_sensitivity.csv", "nlp_feature_ablation.csv",
+                 "self_relative_ablation.csv", "self_relative_fold_metrics.csv",
+                 "recommendation_cases.json")
 
 # The volatility experiment is a third export and a third group, same rule: all
 # of it or none.
@@ -241,6 +244,9 @@ def _self_relative(evidence: Path, rows) -> dict:
         "states": {r["state"]: r for r in rows("recommendation_confusion.csv")},
         "depth": rows("history_depth_sensitivity.csv"),
         "ablation": rows("nlp_feature_ablation.csv"),
+        "self_ablation": rows("self_relative_ablation.csv"),
+        "folds": rows("self_relative_fold_metrics.csv"),
+        "cases": json.loads((evidence / "recommendation_cases.json").read_text()),
     }}
 
 
@@ -369,6 +375,70 @@ def _features(importance, limit=10) -> str:
             f"<code>{row['feature']}</code></li>"
         )
     return "".join(out)
+
+
+def _cases(payload, per_state=2) -> str:
+    """A few real filings per state, with the misses kept.
+
+    `Read now` is right about two times in five. A worked-examples block showing
+    only the hits would quietly claim otherwise, so each state contributes both,
+    and the outcome column is where the filing's reaction actually landed in that
+    issuer's own history.
+    """
+    labels = {"read_now": "Read now", "monitor": "Monitor", "routine": "Routine"}
+    out = []
+    for state, name in labels.items():
+        cases = payload.get("cases", {}).get(state, [])
+        hits = [c for c in cases if c["outcome"] == "as expected"][:per_state]
+        misses = [c for c in cases if c["outcome"] != "as expected"][:per_state]
+        for case in hits + misses:
+            landed = case.get("reaction_percentile")
+            right = case["cleared_own_bar"] == (state != "routine")
+            out.append(
+                f"<tr><td>{name}</td>"
+                f"<td>{escape(case['ticker'])}</td>"
+                f"<td class='n'>{escape(str(case['entry_session'] or ''))}</td>"
+                f"<td class='n'>{float(case['probability']):.0%}</td>"
+                f"<td class='n'>{_pct(landed) if landed is not None else '&mdash;'}</td>"
+                f"<td class='n'>{'as expected' if right else 'missed'}</td></tr>")
+    return "".join(out)
+
+
+def _self_ablation(rows) -> str:
+    """What the issuer-relative columns are worth as model inputs."""
+    pretty = {"base": "Market state and filing metadata",
+              "base_plus_percentiles": "&hellip; plus issuer percentiles",
+              "base_plus_z_scores": "&hellip; plus issuer z-scores",
+              "base_plus_self_relative": "&hellip; plus both"}
+    out = []
+    for r in rows:
+        name = r["group"]
+        if name == "base":
+            interval = "<span class='soft'>reference</span>"
+            delta = "&mdash;"
+        else:
+            separates = r["separates_from_zero"] == "True"
+            mark = "" if separates else " <span class='soft'>(straddles zero)</span>"
+            interval = (f"[{float(r['diff_ci_low']):+.4f}, "
+                        f"{float(r['diff_ci_high']):+.4f}]{mark}")
+            delta = f"{float(r['pr_auc_vs_base']):+.4f}"
+        out.append(f"<tr{' class=pick' if name == 'base' else ''}>"
+                   f"<td>{pretty.get(name, name)}</td>"
+                   f"<td class='n'>{int(r['features'])}</td>"
+                   f"<td class='n'>{_num(r['pr_auc'])}</td>"
+                   f"<td class='n'>{delta}</td>"
+                   f"<td class='n'>{interval}</td></tr>")
+    return "".join(out)
+
+
+def _folds(rows) -> str:
+    """Per fold, because a pooled number can hide one that failed."""
+    return "".join(
+        f"<tr><td>Fold {int(r['fold']) + 1}</td>"
+        f"<td class='n'>{int(r['n_scored']):,}</td>"
+        f"<td class='n'>{_pct(r['base_rate'])}</td>"
+        f"<td class='n'>{_num(r['pr_auc'])}</td>"
+        f"<td class='n'>{_num(r['roc_auc'])}</td></tr>" for r in rows)
 
 
 def _calibration(rows, shipped="identity") -> str:
@@ -518,6 +588,29 @@ scored &mdash; the card shows the raw evidence and says the history is too short
 Filling that gap with a cross-sectional percentile would answer a different
 question in the same visual slot, which is worse than answering none.
 {covered:,} filings have enough history to be scored.</div>
+
+<div class="scroll"><table><thead><tr>
+<th>Features</th><th class="n">Count</th><th class="n">Avg precision</th>
+<th class="n">Difference</th><th class="n">95% interval</th>
+</tr></thead><tbody>{_self_ablation(block['self_ablation'])}</tbody></table></div>
+<div class="note">The obvious next question, and the answer is worth stating
+plainly: <strong>as model inputs, the issuer-relative columns add nothing
+measurable.</strong> Every interval above contains zero, in both directions.
+What changed the problem was the <em>target</em> &mdash; asking whether a filing
+is loud for its own issuer rather than loud in the cross-section &mdash; not the
+columns that encode the same idea as features. And the percentiles still earn
+their place, just not there: they are what a <strong>Read now</strong> cites, and
+a recommendation whose reason a reader cannot check for themselves is one nobody
+should act on. A feature that is measured and kept for a stated reason is a
+different thing from one that is assumed to help.</div>
+
+<div class="scroll"><table><thead><tr>
+<th>Fold</th><th class="n">Filings</th><th class="n">Base rate</th>
+<th class="n">Avg precision</th><th class="n">ROC AUC</th>
+</tr></thead><tbody>{_folds(block['folds'])}</tbody></table></div>
+<div class="note">Walk-forward, so each fold is tested on a period later than the
+one it was fitted on. The spread is the honest width of the result: the weakest
+fold is also the one with the fewest positives to find.</div>
 </section>
 
 <section>
@@ -566,6 +659,18 @@ accuracy but whether the card can name a reason. Requiring a citable signal cost
 nothing measurable and buys an explanation, which is the trade this policy exists
 to make. Nothing here is a view on price: the target is the <em>size</em> of a
 reaction, and a direction cannot be recovered from it even in principle.</div>
+
+<div class="scroll"><table><thead><tr>
+<th>State</th><th>Issuer</th><th class="n">Entry session</th>
+<th class="n">Said</th><th class="n">Reaction landed at</th><th class="n">Outcome</th>
+</tr></thead><tbody>{_cases(block['cases'])}</tbody></table></div>
+<div class="note">Real filings, two that went as the state implies and two that
+did not, per state. &ldquo;Reaction landed at&rdquo; is where the filing&rsquo;s
+own reaction sits in that issuer&rsquo;s history &mdash; the bar is the 80th
+percentile. The misses are the point: at
+{_pct(read_now.get('precision', 0))} precision the policy is wrong more often
+than it is right, and its value is being wrong less often than the
+{_pct(base_rate)} base rate, not being reliable.</div>
 </section>
 
 {_transformer_section(block)}

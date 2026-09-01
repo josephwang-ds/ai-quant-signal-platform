@@ -20,11 +20,13 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
+from sklearn.metrics import average_precision_score, brier_score_loss, roc_auc_score
 
 from filing_triage import pipeline, recommend, text_model
 from filing_triage.calibration import (
     calibrated_walk_forward,
     calibration_comparison,
+    expected_calibration_error,
     within_fold_monotonicity,
 )
 from filing_triage.config import PipelineConfig
@@ -98,6 +100,7 @@ def build_inputs(events, prices, membership, profile):
         ).dt.tz_localize(result.events["acceptance_time"].dt.tz),
         "items": indexed.loc[result.features.index, "items"],
         "session": indexed.loc[result.features.index, "entry_session"],
+        "ticker": indexed.loc[result.features.index, "ticker"],
     }
 
 
@@ -273,6 +276,83 @@ def _write_company_cards(path: Path, data, predictions, states, metrics,
     print(f"  company cards for {len(cards)} issuers -> {path}")
 
 
+# How many worked examples per state, and how many of them must be failures.
+# Both are fixed here rather than chosen after looking, because a cases file
+# assembled by picking what reads well is an advertisement.
+CASES_PER_STATE = 3
+
+
+def _write_cases(path: Path, data, predictions, states, policy) -> int:
+    """Worked examples of every state, including the ones that went wrong.
+
+    A `Read now` at 42% precision is wrong more often than it is right, and a
+    cases file showing only the hits would describe a product that does not
+    exist. So each state contributes its highest-probability examples *and* its
+    clearest misses, labelled as such.
+
+    `self_reaction_pct` -- where the reaction actually landed in this issuer's own
+    history -- is what makes a case checkable. It is an outcome, listed in
+    OUTCOME_COLUMNS, and it appears here for exactly the reason it is banned from
+    the feature matrix: this file is read after the fact, by a person.
+    """
+    relative = data["relative"]
+    events = data["items"].to_frame("items")
+    joined = states.join(predictions[["label", "fold"]], rsuffix="_p")
+    joined = joined.join(relative[["self_reaction_pct", "self_history_depth"]])
+    joined = joined.join(events)
+    joined = joined.join(data["session"].rename("entry_session"))
+    joined = joined.join(data["ticker"].rename("ticker"))
+
+    cases = {}
+    for state in (recommend.READ_NOW, recommend.MONITOR, recommend.ROUTINE):
+        group = joined[joined["state"] == state].dropna(subset=["label"])
+        if group.empty:
+            continue
+        # For read_now and monitor a "miss" is a filing that did not react; for
+        # routine it is the opposite -- the one the policy waved through that
+        # turned out to matter. Both are the failure that state can have.
+        wanted = 0.0 if state != recommend.ROUTINE else 1.0
+        hits = group[group["label"] != wanted].nlargest(
+            CASES_PER_STATE, "probability")
+        misses = group[group["label"] == wanted].nlargest(
+            CASES_PER_STATE, "probability")
+        cases[state] = [_case(event_id, row, outcome)
+                        for outcome, block in (("as expected", hits),
+                                               ("did not pan out", misses))
+                        for event_id, row in block.iterrows()]
+
+    payload = {
+        "schema_version": "recommendation-cases.v1",
+        "exported_at": datetime.now(UTC).isoformat(),
+        "policy": policy.describe(),
+        "reading": ("Each state shows its strongest examples and its clearest "
+                    "failures. A file with only the successes would describe a "
+                    "policy that does not exist: Read now is right about two "
+                    "times in five, which is its value against a one-in-five "
+                    "base rate, not a claim of reliability."),
+        "cases": cases,
+    }
+    path.write_text(json.dumps(payload, indent=1, default=str) + "\n")
+    return sum(len(v) for v in cases.values())
+
+
+def _case(event_id, row, outcome: str) -> dict:
+    return {
+        "event_id": str(event_id),
+        "ticker": str(row.get("ticker", "")),
+        "entry_session": str(pd.Timestamp(row["entry_session"]).date())
+        if pd.notna(row.get("entry_session")) else None,
+        "items": str(row.get("items", "")),
+        "probability": round(float(row["probability"]), 4),
+        "reasons": list(row.get("reasons") or []),
+        "prior_filings": int(row.get("self_history_depth") or 0),
+        "reaction_percentile": round(float(row["self_reaction_pct"]), 4)
+        if pd.notna(row.get("self_reaction_pct")) else None,
+        "cleared_own_bar": bool(row["label"]),
+        "outcome": outcome,
+    }
+
+
 def _text_fingerprint(data) -> dict | None:
     """What the transformer columns were built from, or None if they were not.
 
@@ -296,15 +376,125 @@ def _feature_groups(features: pd.DataFrame) -> dict[str, list[str]]:
     Assigned by prefix rather than by hand: a new feature joins the family its
     name says it belongs to, and a family cannot silently lose a column because
     someone forgot to add it to a list.
+
+    Four families, not three. `base` and `self_relative` are separated because
+    the two ablations ask different questions of them: the text ablation treats
+    both together as "the structured features already here", while the
+    issuer-relative ablation exists precisely to ask what the `self_` columns are
+    worth on their own.
     """
     text_deterministic = {"novelty", "first_filing", "log_doc_chars",
                           "doc_chars_vs_median"}
     transformer = [c for c in features.columns if c.startswith("fin_")]
     deterministic = [c for c in features.columns if c in text_deterministic]
-    structured = [c for c in features.columns
-                  if c not in set(transformer) | set(deterministic)]
-    return {"structured": structured, "deterministic_text": deterministic,
+    self_relative = [c for c in features.columns if c.startswith("self_")]
+    taken = set(transformer) | set(deterministic) | set(self_relative)
+    base = [c for c in features.columns if c not in taken]
+    return {"base": base, "self_relative": self_relative,
+            "structured": base + self_relative,
+            "deterministic_text": deterministic,
             "transformer_text": transformer}
+
+
+def _score(matrix, data, columns) -> tuple[dict, pd.DataFrame]:
+    """One walk-forward run over a chosen slice of the feature matrix.
+
+    Columns are taken in matrix order rather than in the order the caller listed
+    them: a forest samples features by position, so the same columns in a
+    different order fit a different model, and an ablation that reordered its
+    own rows would be measuring that instead of the features.
+    """
+    chosen = set(columns)
+    ordered = [c for c in matrix.columns if c in chosen]
+    result = calibrated_walk_forward(
+        matrix[ordered], data["target"]["self_target"],
+        data["event_time"], data["label_end_time"],
+        method=SHIPPED_CALIBRATION)
+    return result.metrics, result.predictions
+
+
+def self_relative_ablation(data) -> pd.DataFrame:
+    """What the issuer-relative features are worth over the ranker without them.
+
+    The claim this whole layer rests on is that comparing a filing with its own
+    issuer's past beats comparing it with everything else. That claim was never
+    measured -- the FinBERT ablation measured a different family and left this one
+    assumed -- so here it is, on the same folds and the same target, with the
+    paired session-clustered interval that decides whether a difference is real.
+
+    The percentile and z-score rows are separated because they encode the same
+    history two ways: a rank, which is robust and discards magnitude, and a
+    median/MAD distance, which keeps magnitude and is fragile to a flat history.
+    If one of them carries the effect, that is worth knowing before both ship.
+    """
+    matrix = data["features"]
+    families = _feature_groups(matrix)
+    if not families["self_relative"]:
+        return pd.DataFrame()
+
+    percentiles = [c for c in families["self_relative"] if c.endswith("_pct")]
+    z_scores = [c for c in families["self_relative"] if c.endswith("_z")]
+    layers = {
+        "base": families["base"],
+        "base_plus_percentiles": families["base"] + percentiles,
+        "base_plus_z_scores": families["base"] + z_scores,
+        "base_plus_self_relative": families["base"] + families["self_relative"],
+    }
+
+    rows, predictions = [], {}
+    for name, columns in layers.items():
+        if not columns:
+            continue
+        metrics, scored = _score(matrix, data, columns)
+        if not metrics:
+            continue
+        predictions[name] = scored
+        rows.append({"group": name, "features": len(set(columns)),
+                     "pr_auc": metrics["pr_auc"], "roc_auc": metrics["roc_auc"],
+                     "brier": metrics["brier"], "ece": metrics["ece"],
+                     "n_scored": metrics["n_scored"]})
+
+    table = pd.DataFrame(rows)
+    if table.empty or "base" not in predictions:
+        return table
+    baseline = float(table.loc[table["group"] == "base", "pr_auc"].iloc[0])
+    table["pr_auc_vs_base"] = table["pr_auc"] - baseline
+    intervals = [paired_pr_auc_difference(predictions["base"], predictions[name],
+                                          data["session"])
+                 for name in table["group"]]
+    table["diff_ci_low"] = [i["low"] for i in intervals]
+    table["diff_ci_high"] = [i["high"] for i in intervals]
+    table["separates_from_zero"] = [
+        bool(np.isfinite(i["low"]) and (i["low"] > 0 or i["high"] < 0))
+        for i in intervals]
+    return table
+
+
+def fold_metrics(predictions: pd.DataFrame) -> pd.DataFrame:
+    """Per-fold results, because a pooled number can hide a fold that failed.
+
+    Five folds averaging 0.37 is a different result from four at 0.42 and one at
+    0.17, and only the second is a reason to look at what changed in that period.
+    """
+    rows = []
+    for fold, group in predictions.groupby("fold"):
+        y = group["label"].to_numpy()
+        if len(np.unique(y)) < 2:
+            rows.append({"fold": int(fold), "n_scored": len(group),
+                         "base_rate": float(y.mean()), "pr_auc": np.nan,
+                         "roc_auc": np.nan, "brier": np.nan, "ece": np.nan})
+            continue
+        p = group["probability"].to_numpy()
+        rows.append({
+            "fold": int(fold),
+            "n_scored": len(group),
+            "base_rate": float(y.mean()),
+            "pr_auc": float(average_precision_score(y, p)),
+            "roc_auc": float(roc_auc_score(y, p)),
+            "brier": float(brier_score_loss(y, p)),
+            "ece": expected_calibration_error(y, p),
+        })
+    return pd.DataFrame(rows)
 
 
 def text_feature_ablation(data, groups=ABLATION_GROUPS) -> pd.DataFrame:
@@ -413,8 +603,8 @@ def main() -> int:
     predictions = calibrated.predictions
 
     calibrated.reliability.to_csv(args.out / "calibration_curve.csv", index=False)
-    within_fold_monotonicity(calibrated).to_csv(
-        args.out / "calibration_monotonicity.csv", index=False)
+    monotonicity = within_fold_monotonicity(calibrated)
+    monotonicity.to_csv(args.out / "calibration_monotonicity.csv", index=False)
 
     signals = data["relative"].reindex(predictions.index)
     policy = recommend.select_thresholds(
@@ -432,6 +622,27 @@ def main() -> int:
     ablation = text_feature_ablation(data)
     if not ablation.empty:
         ablation.to_csv(args.out / "nlp_feature_ablation.csv", index=False)
+
+    self_ablation = self_relative_ablation(data)
+    if not self_ablation.empty:
+        self_ablation.to_csv(args.out / "self_relative_ablation.csv", index=False)
+
+    fold_metrics(calibrated.predictions).to_csv(
+        args.out / "self_relative_fold_metrics.csv", index=False)
+
+    # Split out of the payload as its own artifact. The plan names it separately
+    # because the calibration story is the one a reader is most likely to want
+    # without the rest, and a file is easier to point at than a nested key.
+    (args.out / "calibration_metrics.json").write_text(json.dumps({
+        "schema_version": "calibration.v1",
+        "exported_at": datetime.now(UTC).isoformat(),
+        "shipped": SHIPPED_CALIBRATION,
+        "share_held_back": calibrated.metrics.get("calibration_share"),
+        "metrics": calibrated.metrics,
+        "methods": comparison.to_dict(orient="records"),
+        "within_fold_monotone": bool(monotonicity["monotone"].all())
+        if not monotonicity.empty else None,
+    }, indent=2, default=str) + "\n")
 
     history_depth_sensitivity(data, predictions).to_csv(
         args.out / "history_depth_sensitivity.csv", index=False)
@@ -476,6 +687,10 @@ def main() -> int:
     }
     (args.out / "self_relative_metrics.json").write_text(
         json.dumps(payload, indent=2, default=str) + "\n")
+
+    written = _write_cases(args.out / "recommendation_cases.json", data,
+                           predictions, states, policy)
+    print(f"  {written} worked examples across states")
 
     _write_company_cards(args.build / "self_relative_cards.json",
                          data, predictions, states, calibrated.metrics, policy)

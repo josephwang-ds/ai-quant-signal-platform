@@ -1,0 +1,50 @@
+{
+  "schema_version": "calibration.v1",
+  "exported_at": "2026-09-01T14:09:46.768141+00:00",
+  "shipped": "identity",
+  "share_held_back": 0.3,
+  "metrics": {
+    "n_scored": 8895,
+    "base_rate": 0.2149522203485104,
+    "pr_auc": 0.370106899238709,
+    "roc_auc": 0.69309281896201,
+    "brier": 0.1553201571519176,
+    "brier_base_rate": 0.16874776331575583,
+    "ece": 0.011466594732626725,
+    "ece_uncalibrated": 0.011466594732626725,
+    "calibration_share": 0.3,
+    "calibration_method": "identity",
+    "estimator": "random_forest",
+    "brier_skill": 0.0795720541712478
+  },
+  "methods": [
+    {
+      "method": "identity",
+      "brier": 0.1553201571519176,
+      "brier_skill": 0.0795720541712478,
+      "ece": 0.011466594732626725,
+      "pr_auc": 0.370106899238709,
+      "roc_auc": 0.69309281896201,
+      "n_scored": 8895
+    },
+    {
+      "method": "isotonic",
+      "brier": 0.1574535882332669,
+      "brier_skill": 0.0669293320430896,
+      "ece": 0.027361967283751294,
+      "pr_auc": 0.35655053132396264,
+      "roc_auc": 0.675147676335296,
+      "n_scored": 8895
+    },
+    {
+      "method": "sigmoid",
+      "brier": 0.1575985216060952,
+      "brier_skill": 0.06607045622760943,
+      "ece": 0.01939905796023353,
+      "pr_auc": 0.35902730632490587,
+      "roc_auc": 0.6753168334095295,
+      "n_scored": 8895
+    }
+  ],
+  "within_fold_monotone": true
+}

@@ -230,3 +230,62 @@ class TestTheVolatilitySectionStatesItsOwnLimits:
 
         assert _volatility(tmp_path, lambda name: []) == {"volatility": None}
         assert _volatility_section(None) == ""
+
+
+class TestTheIssuerRelativeAblationIsShownEitherWay:
+    """The layer's own contribution, reported whichever way it came out. It came
+    out neutral, and a page that measured the transformer but assumed this one
+    would be applying its standard selectively."""
+
+    def test_the_ablation_reference_row_is_present(self, page):
+        assert "Market state and filing metadata" in page
+
+    def test_the_neutral_result_is_stated_not_buried(self, prose):
+        assert "add nothing measurable" in prose
+
+    def test_the_page_says_where_the_columns_do_earn_their_place(self, page):
+        """They are what a Read now cites, which is a different job from being a
+        model input."""
+        assert "cites" in page
+
+    def test_the_interval_comes_from_the_export(self, page):
+        with (EVIDENCE / "self_relative_ablation.csv").open() as handle:
+            rows = {r["group"]: r for r in csv.DictReader(handle)}
+        row = rows["base_plus_self_relative"]
+        assert f"{float(row['diff_ci_low']):+.4f}" in page
+
+    def test_per_fold_results_are_shown(self, page):
+        with (EVIDENCE / "self_relative_fold_metrics.csv").open() as handle:
+            folds = list(csv.DictReader(handle))
+        assert f"Fold {int(folds[0]['fold']) + 1}" in page
+        assert f"{float(folds[-1]['pr_auc']):.3f}" in page
+
+
+@pytest.fixture(scope="module")
+def prose(page) -> str:
+    """The page with tags and line breaks collapsed.
+
+    Prose assertions must not depend on where the source happened to wrap: a
+    sentence broken across two lines in the f-string is the same sentence to a
+    reader, and a test that failed on it would be testing the formatter.
+    """
+    return re.sub(r"\s+", " ", re.sub(r"<[^>]+>", " ", page))
+
+
+class TestTheWorkedCasesKeepTheMisses:
+    def test_both_outcomes_appear(self, page):
+        """A cases block showing only the hits would claim a reliability the
+        precision figure directly contradicts."""
+        assert "as expected" in page
+        assert "missed" in page
+
+    def test_a_real_missed_read_now_is_shown(self, page):
+        path = EVIDENCE / "recommendation_cases.json"
+        cases = json.loads(path.read_text())["cases"]
+        missed = [c for c in cases.get("read_now", [])
+                  if c["outcome"] != "as expected"]
+        assert missed, "the export produced no Read now failures to show"
+        assert missed[0]["ticker"] in page
+
+    def test_the_note_explains_what_the_precision_means(self, prose):
+        assert "wrong more often than it is right" in prose

@@ -302,6 +302,24 @@ feature matrix.
 | Median prior filings per issuer | 30 (max 153) |
 | Issuers told their history is too short | 962 filings |
 
+**And the issuer-relative columns add nothing measurable as model inputs.** The
+obvious question, asked with the same machinery as the FinBERT ablation and
+answered the same way:
+
+| Features | Avg precision | Difference | 95% interval |
+|---|---|---|---|
+| Market state and filing metadata | 0.373 | — | reference |
+| … plus issuer percentiles | 0.372 | −0.0016 | [−0.0068, +0.0038] |
+| … plus issuer z-scores | 0.376 | +0.0026 | [−0.0027, +0.0080] |
+| … plus both | 0.372 | −0.0013 | [−0.0079, +0.0051] |
+
+Every interval contains zero, in both directions. What changed the problem was
+the **target** — asking whether a filing is loud for its own issuer rather than
+loud in the cross-section — not the columns encoding the same idea as features.
+The percentiles still earn their place, just not there: they are what a
+`Read now` cites, and a recommendation whose reason a reader cannot check is one
+nobody should act on.
+
 **The score is turned into a probability, and which calibrator does that was
 measured rather than assumed.** Each fold splits its own training block in time
 order — the earlier part fits the model, the later part fits the calibrator, and
@@ -451,7 +469,7 @@ embargo sweep, and writes a self-contained HTML report.
 
 ```bash
 make quick           # smaller, no leakage study, ~30s
-make test            # 572 tests (~12 min; the nested model selection dominates)
+make test            # 580 tests (~12 min; the nested model selection dominates)
 make audit           # the leakage checks as an exit code
 make llm-eval        # frozen English/Chinese grounded-output scorecard
 make llm-eval-openai-dry-run  # inspect 20-case paid benchmark scope; sends nothing
@@ -662,7 +680,7 @@ src/filing_triage/
                    and hyperparameter sensitivity grid
   report.py        self-contained HTML
   synth.py         the offline corpus
-tests/             572 tests; test_guards, test_pipeline, test_uncertainty
+tests/             580 tests; test_guards, test_pipeline, test_uncertainty
                    and test_ingest_integration are the ones that matter
 docs/              METHODOLOGY.md, LEAKAGE.md, COMPANY_LENS.md
 ```
