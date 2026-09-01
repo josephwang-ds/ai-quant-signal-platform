@@ -37,7 +37,14 @@ CHUNK_ROWS = 200_000
 
 # The libraries whose version can move a number. Recorded with every result, so
 # a rerun that disagrees can be told apart from a rerun on a different stack.
-TRACKED_PACKAGES = ("pandas", "numpy", "scipy", "scikit-learn", "pyarrow", "yfinance")
+# The optional stacks are here too, and record `None` when absent -- which is
+# the informative answer, not a gap. `nlp_feature_ablation.csv` and the
+# volatility tables cannot be reproduced without them, and a transformers
+# release can move a tone score the same way a scikit-learn release moves a
+# split. The model ids and revisions are pinned in their caches; these are the
+# libraries around them.
+TRACKED_PACKAGES = ("pandas", "numpy", "scipy", "scikit-learn", "pyarrow",
+                    "yfinance", "torch", "transformers", "chronos-forecasting")
 
 
 def frame_digest(frame: pd.DataFrame, *, precision: int = FLOAT_PRECISION) -> str:

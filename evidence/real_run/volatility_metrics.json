@@ -1,6 +1,6 @@
 {
   "schema_version": "volatility.v1",
-  "exported_at": "2026-09-01T09:47:55.867095+00:00",
+  "exported_at": "2026-09-01T14:33:28.254518+00:00",
   "task": {
     "target": "annualised realized volatility over the next 20 sessions, starting at the entry session",
     "horizon": 20,
@@ -48,6 +48,38 @@
     "log_space": true,
     "forecasts": 11222
   },
+  "inputs": {
+    "events": {
+      "rows": 11716,
+      "columns": [
+        "acceptance_time",
+        "accession",
+        "cik",
+        "event_id",
+        "filing_date",
+        "form",
+        "items",
+        "period_of_report",
+        "primary_document",
+        "text",
+        "ticker"
+      ],
+      "sha256": "fec33e5bdc9a6f1fd51558b5df68752471874cb5c8702fbe5ff481c7d4fe871c"
+    },
+    "prices": {
+      "rows": 1982600,
+      "columns": [
+        "close",
+        "date",
+        "high",
+        "low",
+        "open",
+        "ticker",
+        "volume"
+      ],
+      "sha256": "d52cb1f58823e07ff4f810f1a4c7694825029d332e0acf9c6e4d699a63af14fd"
+    }
+  },
   "environment": {
     "python": "3.12.14",
     "platform": "macOS-26.5.2",
@@ -57,7 +89,10 @@
       "scipy": "1.18.1",
       "scikit-learn": "1.9.0",
       "pyarrow": "25.0.1",
-      "yfinance": "1.7.0"
+      "yfinance": "1.7.0",
+      "torch": "2.13.0",
+      "transformers": "5.16.1",
+      "chronos-forecasting": "2.3.1"
     }
   }
 }

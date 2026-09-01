@@ -25,7 +25,7 @@ from pathlib import Path
 import pandas as pd
 
 from filing_triage import chronos_model
-from filing_triage.fingerprint import environment
+from filing_triage.fingerprint import environment, frame_fingerprint
 from filing_triage.ingest.prices import load_prices, to_returns
 from filing_triage.pit import TradingClock
 from filing_triage.uncertainty import paired_pinball_difference
@@ -165,9 +165,18 @@ def main() -> int:
     args.out.mkdir(parents=True, exist_ok=True)
 
     events = pd.read_parquet(args.build / "events.parquet")
+    prices = load_prices(args.build / "prices.parquet")
+    # Both digests are taken here, before a derived column is added to either.
+    # A fingerprint of the frame after this script has worked on it identifies
+    # this script, not the data -- and would then disagree with the same input's
+    # digest in every other evidence file, which is precisely the false alarm
+    # that gets a check removed.
+    fingerprints = {"events": frame_fingerprint(events),
+                    "prices": frame_fingerprint(prices)}
+
     events["entry_session"] = events["acceptance_time"].map(
         TradingClock().entry_session)
-    returns = to_returns(load_prices(args.build / "prices.parquet"))
+    returns = to_returns(prices)
 
     frame, contexts = build_forecast_frame(events, returns)
     cache = chronos_model.ForecastCache(args.build / "volatility_cache")
@@ -226,6 +235,11 @@ def main() -> int:
         "gates": gates,
         "shipped": shipped,
         "foundation_model": cache.fingerprint() if cache.index["keys"] else None,
+        # The same two frames the ranking evidence fingerprints, for the same
+        # reason: vendor prices are adjusted as of the pull date, so a split
+        # rewrites this history without adding a row. Every number above would
+        # move and nothing would say why.
+        "inputs": fingerprints,
         "environment": environment(),
     }
     (args.out / "volatility_metrics.json").write_text(

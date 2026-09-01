@@ -1,6 +1,6 @@
 {
  "schema_version": "recommendation-cases.v1",
- "exported_at": "2026-09-01T14:09:53.747881+00:00",
+ "exported_at": "2026-09-01T14:30:14.616020+00:00",
  "policy": "read_now p>=0.35 with a supporting signal >=80%; monitor p>=0.35",
  "reading": "Each state shows its strongest examples and its clearest failures. A file with only the successes would describe a policy that does not exist: Read now is right about two times in five, which is its value against a one-in-five base rate, not a claim of reliability.",
  "cases": {

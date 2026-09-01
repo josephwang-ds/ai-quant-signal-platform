@@ -1,6 +1,6 @@
 {
   "schema_version": "self-relative.v1",
-  "exported_at": "2026-09-01T14:09:46.795935+00:00",
+  "exported_at": "2026-09-01T14:30:07.791075+00:00",
   "target": {
     "definition": "|CAR| above the issuer's own prior resolved 80th percentile",
     "quantile": 0.8,
@@ -115,7 +115,10 @@
       "scipy": "1.18.1",
       "scikit-learn": "1.9.0",
       "pyarrow": "25.0.1",
-      "yfinance": "1.7.0"
+      "yfinance": "1.7.0",
+      "torch": "2.13.0",
+      "transformers": "5.16.1",
+      "chronos-forecasting": "2.3.1"
     }
   }
 }
