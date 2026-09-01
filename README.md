@@ -346,6 +346,51 @@ everything else in the project runs without torch installed.
 
 ---
 
+## A third question: how wide a range is the next month?
+
+Separate from the ranker, and deliberately so &mdash; no forecast here is a
+feature there. At the moment a filing becomes actionable, this forecasts the
+issuer's annualised realized volatility over the next 20 sessions as a
+distribution. History stops at the session before entry, so the forecaster has
+seen nothing from the window it predicts.
+
+Scored on pinball loss *and* on interval coverage, because either alone is easy
+to game: an interval from zero to infinity has perfect coverage, and a sharp
+forecast can win on loss while its bands mean nothing.
+
+| Forecaster | Pinball loss | Vs HAR, 95% | 50% band holds | 80% band holds | Calibrated |
+|---|---|---|---|---|---|
+| Carry today forward | 0.0358 | +0.0074 [+0.0064, +0.0084] | 50.3% | 79.1% | yes |
+| This issuer's own history | 0.0303 | +0.0019 [+0.0015, +0.0023] | 49.0% | 80.3% | yes |
+| **HAR regression on log volatility** | **0.0284** | reference | 48.2% | 77.4% | **yes** |
+| Chronos-2, zero-shot | 0.0298 | +0.0014 [+0.0010, +0.0018] | 45.0% | 75.5% | no |
+
+Lower loss is better, so a positive difference is a loss. Chronos-2 was given its
+best configuration &mdash; forecasting log volatility, the same space every
+baseline works in &mdash; and still loses to a three-term linear regression by an
+interval that does not contain zero, while its 80% band holds 75.5% of outcomes.
+A pretrained foundation model lost to HAR, so HAR ships.
+
+The card exists only because something passed the gate. `volatility_cards.json`
+is written for a calibrated forecaster and **deleted** when none qualifies, so
+the page's precondition lives in the place that has the numbers rather than as a
+threshold repeated in the renderer.
+
+Two honest limits, both on the page: HAR's coverage falls from 79.6% in the calm
+third of the sample to 75.3% in the turbulent third &mdash; the band widens when
+the issuer is already turbulent, just not enough &mdash; and the card states a
+range and a horizon, never a direction.
+
+```bash
+make volatility-evidence
+```
+
+Chronos-2 is optional (`pip install -e '.[ts]'` then `make volatility-cache`).
+Without it the baselines still run and the comparison table simply has one row
+fewer.
+
+---
+
 ## What this is, and is not
 
 **Is:** a point-in-time event dataset built from EDGAR acceptance timestamps, a
@@ -406,7 +451,7 @@ embargo sweep, and writes a self-contained HTML report.
 
 ```bash
 make quick           # smaller, no leakage study, ~30s
-make test            # 500 tests (~12 min; the nested model selection dominates)
+make test            # 572 tests (~12 min; the nested model selection dominates)
 make audit           # the leakage checks as an exit code
 make llm-eval        # frozen English/Chinese grounded-output scorecard
 make llm-eval-openai-dry-run  # inspect 20-case paid benchmark scope; sends nothing
@@ -609,13 +654,15 @@ src/filing_triage/
   calibration.py   score -> probability, with the calibrator's own held-out slice
   recommend.py     Read now / Monitor / Routine, and when to abstain
   text_model.py    FinBERT features: optional, cached, and measured out again
+  volatility.py    the 20-session forecast target, three baselines, pinball/coverage
+  chronos_model.py Chronos-2, zero-shot and cached; measured against those baselines
   model.py         the ranker
   evaluate.py      ranking metrics
   experiments.py   the leakage study, embargo sweep, reaction-capture profile
                    and hyperparameter sensitivity grid
   report.py        self-contained HTML
   synth.py         the offline corpus
-tests/             500 tests; test_guards, test_pipeline, test_uncertainty
+tests/             572 tests; test_guards, test_pipeline, test_uncertainty
                    and test_ingest_integration are the ones that matter
 docs/              METHODOLOGY.md, LEAKAGE.md, COMPANY_LENS.md
 ```

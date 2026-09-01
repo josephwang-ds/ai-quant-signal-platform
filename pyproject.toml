@@ -21,6 +21,10 @@ rag = ["langchain-text-splitters>=1.0,<2.0", "pypdf>=5.0,<7.0"]
 # the whole project -- pipeline, evidence, every page -- runs without it; the
 # transformer columns simply do not appear.
 nlp = ["torch>=2.0", "transformers>=4.40"]
+# The time-series foundation model. Separate from [nlp] because the volatility
+# experiment and the filing ranker share no code path -- installing one should
+# not drag in the other.
+ts = ["torch>=2.0", "chronos-forecasting>=2.0"]
 
 [project.scripts]
 triage = "filing_triage.cli:main"

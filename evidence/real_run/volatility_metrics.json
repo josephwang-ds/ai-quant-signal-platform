@@ -1,0 +1,63 @@
+{
+  "schema_version": "volatility.v1",
+  "exported_at": "2026-09-01T09:47:55.867095+00:00",
+  "task": {
+    "target": "annualised realized volatility over the next 20 sessions, starting at the entry session",
+    "horizon": 20,
+    "quantiles": [
+      0.1,
+      0.25,
+      0.5,
+      0.75,
+      0.9
+    ],
+    "filings": 11683,
+    "scored": 11455,
+    "median_actual": 0.2557922513145935
+  },
+  "reference": "har",
+  "coverage_tolerance": 0.03,
+  "gates": {
+    "random_walk": {
+      "coverage_50_error": 0.002837189000436502,
+      "coverage_80_error": 0.00899170667830651,
+      "calibrated": true
+    },
+    "climatology": {
+      "coverage_50_error": 0.009821038847664776,
+      "coverage_80_error": 0.0033173286774333954,
+      "calibrated": true
+    },
+    "har": {
+      "coverage_50_error": 0.018114360541248375,
+      "coverage_80_error": 0.025752946311654368,
+      "calibrated": true
+    },
+    "chronos": {
+      "coverage_50_error": 0.050414666084679205,
+      "coverage_80_error": 0.045307725883893535,
+      "calibrated": false
+    }
+  },
+  "shipped": "har",
+  "foundation_model": {
+    "model": "amazon/chronos-2",
+    "revision": "main",
+    "horizon": 20,
+    "context_length": 512,
+    "log_space": true,
+    "forecasts": 11222
+  },
+  "environment": {
+    "python": "3.12.14",
+    "platform": "macOS-26.5.2",
+    "packages": {
+      "pandas": "3.0.5",
+      "numpy": "2.5.2",
+      "scipy": "1.18.1",
+      "scikit-learn": "1.9.0",
+      "pyarrow": "25.0.1",
+      "yfinance": "1.7.0"
+    }
+  }
+}

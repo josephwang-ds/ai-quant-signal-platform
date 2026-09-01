@@ -198,6 +198,7 @@ def _assemble_snapshot(
         market_headlines=market_headlines,
         fundamentals=fundamentals,
         disclosure_signal=_disclosure_signal(root, ticker),
+        volatility_forecast=_volatility_forecast(root, ticker),
     )
 
 
@@ -222,6 +223,29 @@ def _disclosure_signal(data_dir: Path, ticker: str) -> dict | None:
         return None
     return {**card, "model": payload.get("model", {}),
             "boundary": payload.get("boundary", "")}
+
+
+def _volatility_forecast(data_dir: Path, ticker: str) -> dict | None:
+    """The 20-session volatility band, when a forecaster earned the right to one.
+
+    The export writes this file only for a forecaster whose out-of-sample
+    intervals passed their coverage gate, and deletes it when none does. So the
+    card's precondition is enforced upstream, in the place that has the numbers,
+    rather than by a threshold repeated here where it would drift.
+    """
+    path = Path(data_dir) / "volatility_cards.json"
+    if not path.exists():
+        return None
+    try:
+        payload = json.loads(path.read_text())
+    except (json.JSONDecodeError, OSError):
+        return None
+    card = (payload.get("cards") or {}).get(str(ticker).upper())
+    if not card:
+        return None
+    return {**card,
+            "coverage_50": payload.get("coverage_50"),
+            "coverage_80": payload.get("coverage_80")}
 
 
 def _provenance(path: Path) -> dict:

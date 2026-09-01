@@ -16,7 +16,7 @@ PYTHON ?= $(shell   test -x .venv/bin/python && echo .venv/bin/python ||   comma
 # the project.
 export PYTHONPATH := $(CURDIR)/src$(if $(PYTHONPATH),:$(PYTHONPATH))
 
-.PHONY: help install lock install-locked demo earnings-calendar research-page self-relative-evidence text-cache quick audit doctor test lint ingest refresh-filings refresh-fundamentals refresh-headlines refresh-all vercel-bundle vercel-deploy run site company company-featured company-pages evidence nlp-eval llm-eval llm-eval-provider-dry-run llm-eval-openai-dry-run clean
+.PHONY: help install lock install-locked demo earnings-calendar research-page self-relative-evidence text-cache volatility-cache volatility-evidence quick audit doctor test lint ingest refresh-filings refresh-fundamentals refresh-headlines refresh-all vercel-bundle vercel-deploy run site company company-featured company-pages evidence nlp-eval llm-eval llm-eval-provider-dry-run llm-eval-openai-dry-run clean
 
 help:
 	@echo "make install   install the package and dev dependencies"
@@ -44,6 +44,8 @@ help:
 	@echo "make research-page  the audited findings, generated from evidence/"
 	@echo "make self-relative-evidence  issuer-relative percentiles, calibration, policy"
 	@echo "make text-cache    encode filings with FinBERT (needs the [nlp] extra)"
+	@echo "make volatility-evidence  score the 20-session volatility forecasters"
+	@echo "make volatility-cache     Chronos-2 forecasts (needs the [ts] extra)"
 	@echo "make evidence  export real-run metrics, intervals and studies (no raw data)"
 	@echo "make nlp-eval  evaluate prior-filing change detection on labeled spans"
 	@echo "make llm-eval  score frozen bilingual grounded-explanation fixtures"
@@ -168,6 +170,17 @@ refresh-all: check-python
 # text hash. Optional: `pip install -e '.[nlp]'` first. Nothing else needs it.
 text-cache: check-python
 	PYTHONPATH=src $(PYTHON) scripts/build_text_cache.py
+
+# One zero-shot pass of Chronos-2 over every filing's volatility history, cached
+# by model, revision and context digest. Optional: `pip install -e '.[ts]'`.
+# The baselines it is scored against need nothing.
+volatility-cache: check-python
+	PYTHONPATH=src $(PYTHON) scripts/build_volatility_cache.py
+
+# Scores the volatility forecasters against each other and decides, from the
+# numbers, whether any of them is calibrated enough to put on a card.
+volatility-evidence: check-python
+	PYTHONPATH=src $(PYTHON) scripts/export_volatility_evidence.py
 
 # The issuer-relative layer: self-benchmarking percentiles, the calibrated
 # impact probability and the reading policy, with the studies behind each of the

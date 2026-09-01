@@ -180,3 +180,53 @@ class TestTheTransformerResultIsReportedEitherWay:
 
         assert _self_relative(tmp_path, lambda name: []) == {"self_relative": None}
         assert _issuer_relative({"self_relative": None}) == ""
+
+
+@pytest.fixture(scope="module")
+def volatility() -> dict:
+    path = EVIDENCE / "volatility_metrics.json"
+    if not path.exists():
+        pytest.skip("no volatility export in this checkout")
+    return json.loads(path.read_text())
+
+
+class TestTheVolatilitySectionStatesItsOwnLimits:
+    def test_the_horizon_is_named(self, page, volatility):
+        assert f"{volatility['task']['horizon']} sessions" in page
+
+    def test_the_shipped_forecaster_is_the_one_that_passed_the_gate(self, page,
+                                                                    volatility):
+        shipped = volatility["shipped"]
+        assert volatility["gates"][shipped]["calibrated"] is True
+        assert f"Vs {volatility['reference'].upper()}" in page
+
+    def test_the_foundation_model_result_is_reported_not_omitted(self, page,
+                                                                 volatility):
+        if "chronos" not in volatility["gates"]:
+            pytest.skip("no foundation-model forecasts in this checkout")
+        with (EVIDENCE / "volatility_paired.csv").open() as handle:
+            paired = {r["forecaster"]: r for r in csv.DictReader(handle)}
+        assert f"{float(paired['chronos']['difference']):+.4f}" in page
+
+    def test_the_regime_split_is_shown_not_only_the_average(self, page):
+        """A forecaster can hit its nominal coverage overall by being too wide
+        when calm and too narrow when turbulent, which is backwards for a risk
+        card."""
+        assert "turbulent" in page
+        assert "widen enough" in page
+
+    def test_it_says_the_forecast_never_reaches_the_ranker(self, page):
+        assert "reaches the ranker" in page
+
+    def test_a_partial_volatility_export_fails_loudly(self, tmp_path):
+        from build_research_page import _volatility
+
+        (tmp_path / "volatility_paired.csv").write_text("forecaster\n")
+        with pytest.raises(SystemExit, match="partial volatility"):
+            _volatility(tmp_path, lambda name: [])
+
+    def test_no_volatility_export_omits_the_section(self, tmp_path):
+        from build_research_page import _volatility, _volatility_section
+
+        assert _volatility(tmp_path, lambda name: []) == {"volatility": None}
+        assert _volatility_section(None) == ""

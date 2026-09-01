@@ -210,3 +210,52 @@ def paired_pr_auc_difference(base: pd.DataFrame, other: pd.DataFrame,
     low, high = _percentile_interval(draws)
     return {"difference": point, "low": low, "high": high,
             "n_scored": len(shared)}
+
+
+def paired_pinball_difference(base: pd.DataFrame, other: pd.DataFrame,
+                              sessions: pd.Series, quantiles, *,
+                              n_boot: int = N_BOOTSTRAP, seed: int = SEED) -> dict:
+    """Interval on the gap between two quantile forecasters, session-clustered.
+
+    Pinball loss is a mean of per-row losses, so the paired difference can be
+    formed row by row and then resampled -- which is both simpler and tighter
+    than bootstrapping the two means separately, because the two forecasters see
+    the same filings on the same days and that pairing is information.
+
+    Negative means `other` loses less than `base`, i.e. `other` is better. The
+    sign is stated here because a loss difference is the one comparison in this
+    project where lower wins, and reading it backwards would invert a conclusion.
+    """
+    shared = base.index.intersection(other.index)
+    shared = shared[base.loc[shared, "actual"].notna()]
+    if len(shared) == 0:
+        return {"difference": float("nan"), "low": float("nan"),
+                "high": float("nan"), "n_scored": 0}
+
+    actual = base.loc[shared, "actual"].to_numpy(dtype=float)
+    per_row = np.zeros(len(shared))
+    for q in quantiles:
+        column = f"q{int(q * 100)}"
+        b = base.loc[shared, column].to_numpy(dtype=float)
+        o = other.loc[shared, column].to_numpy(dtype=float)
+        loss_base = np.maximum(q * (actual - b), (q - 1) * (actual - b))
+        loss_other = np.maximum(q * (actual - o), (q - 1) * (actual - o))
+        per_row += (loss_other - loss_base) / len(quantiles)
+
+    usable = np.isfinite(per_row)
+    per_row = per_row[usable]
+    session = sessions.reindex(shared).astype(str).to_numpy()[usable]
+    if per_row.size == 0:
+        return {"difference": float("nan"), "low": float("nan"),
+                "high": float("nan"), "n_scored": 0}
+
+    blocks = [index.to_numpy() for _, index in
+              pd.Series(np.arange(per_row.size)).groupby(session)]
+    rng = np.random.default_rng(seed)
+    draws = np.empty(n_boot)
+    for i in range(n_boot):
+        picked = rng.integers(0, len(blocks), len(blocks))
+        draws[i] = float(np.mean(per_row[np.concatenate([blocks[j] for j in picked])]))
+    low, high = _percentile_interval(draws)
+    return {"difference": float(np.mean(per_row)), "low": low, "high": high,
+            "n_scored": int(per_row.size)}

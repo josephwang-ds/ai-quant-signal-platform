@@ -224,6 +224,14 @@ class CompanySnapshot:
     run has not happened. Everything inside is issuer-relative -- a percentile
     against this company's past, never a rank against other companies -- and it
     describes reaction *magnitude*, which carries no direction."""
+    volatility_forecast: dict[str, Any] | None = None
+    """How wide a range the next twenty sessions are expected to cover.
+
+    Also optional, and present only when a forecaster passed its coverage gate
+    out of sample -- the export writes the file for a calibrated forecaster and
+    deletes it otherwise, so this field is absent rather than misleading when
+    nothing earned it. A band and a horizon, never a direction: it says how much
+    movement to expect, not which way."""
 
     def to_dict(self) -> dict[str, Any]:
         payload = asdict(self)
@@ -235,4 +243,6 @@ class CompanySnapshot:
             payload.pop("fundamentals")
         if self.disclosure_signal is None:
             payload.pop("disclosure_signal")
+        if self.volatility_forecast is None:
+            payload.pop("volatility_forecast")
         return payload

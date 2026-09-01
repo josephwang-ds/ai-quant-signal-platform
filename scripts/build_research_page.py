@@ -170,6 +170,11 @@ SELF_RELATIVE = ("self_relative_metrics.json", "calibration_comparison.csv",
                  "calibration_curve.csv", "recommendation_confusion.csv",
                  "history_depth_sensitivity.csv", "nlp_feature_ablation.csv")
 
+# The volatility experiment is a third export and a third group, same rule: all
+# of it or none.
+VOLATILITY = ("volatility_metrics.json", "volatility_forecasters.csv",
+              "volatility_by_regime.csv", "volatility_paired.csv")
+
 
 def load(evidence: Path) -> dict:
     missing = [name for name in REQUIRED if not (evidence / name).exists()]
@@ -196,7 +201,26 @@ def load(evidence: Path) -> dict:
         "material_counts": rows("session_material_counts.csv"),
         "importance": rows("oos_importance.csv"),
         **_self_relative(evidence, rows),
+        **_volatility(evidence, rows),
     }
+
+
+def _volatility(evidence: Path, rows) -> dict:
+    present = [name for name in VOLATILITY if (evidence / name).exists()]
+    if not present:
+        return {"volatility": None}
+    if len(present) != len(VOLATILITY):
+        raise SystemExit(
+            f"{evidence} has a partial volatility export: missing "
+            f"{[n for n in VOLATILITY if n not in present]}. Run "
+            "`make volatility-evidence`."
+        )
+    return {"volatility": {
+        "metrics": json.loads((evidence / "volatility_metrics.json").read_text()),
+        "forecasters": rows("volatility_forecasters.csv"),
+        "regimes": rows("volatility_by_regime.csv"),
+        "paired": {r["forecaster"]: r for r in rows("volatility_paired.csv")},
+    }}
 
 
 def _self_relative(evidence: Path, rows) -> dict:
@@ -586,6 +610,139 @@ target would make it worth re-testing and the corpus is already encoded.</div>
 """
 
 
+def _forecasters(rows, paired, reference, gates) -> str:
+    """Every forecaster on the same filings: loss, coverage, and interval width."""
+    pretty = {"random_walk": "Carry today forward",
+              "climatology": "This issuer\u2019s own history",
+              "har": "HAR regression on log volatility",
+              "chronos": "Chronos-2, zero-shot"}
+    out = []
+    for r in rows:
+        name = r["forecaster"]
+        gate = gates.get(name, {})
+        calibrated = gate.get("calibrated")
+        difference = paired.get(name)
+        if name == reference:
+            gap = "<span class='soft'>reference</span>"
+        elif difference:
+            worse = float(difference["difference"])
+            separates = difference["beats_reference"] == "True" or float(
+                difference["high"]) < 0
+            mark = "" if separates or float(difference["low"]) > 0 else \
+                " <span class='soft'>(straddles zero)</span>"
+            gap = (f"{worse:+.4f} [{float(difference['low']):+.4f}, "
+                   f"{float(difference['high']):+.4f}]{mark}")
+        else:
+            gap = "&mdash;"
+        out.append(
+            f"<tr{' class=pick' if name == reference else ''}>"
+            f"<td>{pretty.get(name, name)}</td>"
+            f"<td class='n'>{_num(r['pinball_mean'], 4)}</td>"
+            f"<td class='n'>{gap}</td>"
+            f"<td class='n'>{_pct(r['coverage_50'])}</td>"
+            f"<td class='n'>{_pct(r['coverage_80'])}</td>"
+            f"<td class='n'>{_pct(r['width_80'])}</td>"
+            f"<td class='n'>{'yes' if calibrated else 'no'}</td></tr>")
+    return "".join(out)
+
+
+def _regimes(rows, forecasters) -> str:
+    """Coverage inside each third of the sample, for the shipped forecaster and
+    the challenger it beat."""
+    order = ["calm", "ordinary", "turbulent"]
+    out = []
+    for name in forecasters:
+        for regime in order:
+            row = next((r for r in rows if r["forecaster"] == name
+                        and r["regime"] == regime), None)
+            if row is None:
+                continue
+            out.append(
+                f"<tr><td>{name}</td><td>{regime}</td>"
+                f"<td class='n'>{int(row['filings']):,}</td>"
+                f"<td class='n'>{_pct(row['median_actual'])}</td>"
+                f"<td class='n'>{_pct(row['coverage_80'])}</td>"
+                f"<td class='n'>{_pct(row['width_80'])}</td></tr>")
+    return "".join(out)
+
+
+def _volatility_section(block) -> str:
+    """The forecasting experiment, or nothing when it was never exported."""
+    if not block:
+        return ""
+    metrics = block["metrics"]
+    task, gates = metrics["task"], metrics["gates"]
+    shipped, reference = metrics["shipped"], metrics["reference"]
+    challenger = metrics.get("foundation_model")
+    chronos_gate = gates.get("chronos")
+    shipped_gate = gates.get(shipped, {})
+
+    def regime_coverage(forecaster, regime):
+        row = next((r for r in block["regimes"] if r["forecaster"] == forecaster
+                    and r["regime"] == regime), None)
+        return float(row["coverage_80"]) if row else float("nan")
+
+    verdict = ""
+    if challenger and chronos_gate:
+        difference = block["paired"].get("chronos", {})
+        held = next((float(r["coverage_80"]) for r in block["forecasters"]
+                     if r["forecaster"] == "chronos"), float("nan"))
+        verdict = f"""
+<div class="note">The foundation model claims an 80% band and holds
+{_pct(held)} of outcomes in it. On the paired comparison it loses
+{float(difference.get('difference', 0)):+.4f} more pinball loss than the
+regression, over an interval of [{float(difference.get('low', 0)):+.4f},
+{float(difference.get('high', 0)):+.4f}] that does not contain zero &mdash; so it
+is measurably behind, not tied. It was given its best configuration: forecasting
+log volatility, the same space every baseline works in, which is also the better
+of its own two settings. A pretrained foundation model lost to a three-term
+linear regression, and the regression ships.</div>"""
+
+    return f"""
+<section>
+<h2>How turbulent is the next month?</h2>
+<p>A different question from the rest of this page, and deliberately kept apart
+from it: no forecast here is an input to the filing ranker. At the moment a
+filing becomes actionable, this forecasts the issuer&rsquo;s annualised realized
+volatility over the next {int(task['horizon'])} sessions &mdash; as a band, not a
+number. History stops at the session before entry, so the forecaster has seen
+nothing from the window it predicts.</p>
+<p>Scored on pinball loss and on coverage, because either alone is easy to game:
+an interval from zero to infinity has perfect coverage, and a sharp forecast can
+win on loss while its bands quietly mean nothing. A forecaster ships only if its
+{_pct(0.8, 0)} band holds about {_pct(0.8, 0)} of outcomes.</p>
+<div class="scroll"><table><thead><tr>
+<th>Forecaster</th><th class="n">Pinball loss</th>
+<th class="n">Vs {reference.upper()}, 95%</th>
+<th class="n">50% band holds</th><th class="n">80% band holds</th>
+<th class="n">Band width</th><th class="n">Calibrated</th>
+</tr></thead><tbody>{_forecasters(block['forecasters'], block['paired'],
+                                  reference, gates)}</tbody></table></div>
+<div class="note">Lower pinball loss is better, so a positive difference is a
+loss. {int(task['scored']):,} of {int(task['filings']):,} filings have a complete
+{int(task['horizon'])}-session window and are scored; the rest sit too close to
+the end of the price data and are dropped rather than measured on a truncated
+window that would look artificially calm.</div>
+{verdict}
+<div class="scroll"><table><thead><tr>
+<th>Forecaster</th><th>Regime</th><th class="n">Filings</th>
+<th class="n">Median outcome</th><th class="n">80% band holds</th>
+<th class="n">Band width</th>
+</tr></thead><tbody>{_regimes(block['regimes'],
+                              [shipped] + (['chronos'] if challenger else []))
+}</tbody></table></div>
+<div class="note">Split into thirds by how volatile the issuer already was. The
+band does widen when the issuer is already turbulent &mdash; it just does not
+widen enough: coverage falls from {_pct(regime_coverage(shipped, 'calm'))} in the
+calm third to {_pct(regime_coverage(shipped, 'turbulent'))} in the turbulent one,
+which is the regime a reader would actually consult it about. The overall figure
+of {_pct(shipped_gate.get('coverage_80', 0))} averages that away, which is why
+the split is here and not only in the file. The card states the horizon and the
+band, never a direction, and nothing about it reaches the ranker.</div>
+</section>
+"""
+
+
 def _glossary() -> str:
     return "".join(f"<dt>{term}</dt><dd>{meaning}</dd>" for term, meaning in GLOSSARY)
 
@@ -810,6 +967,7 @@ the same leak in a friendlier costume &mdash; and a sentiment model old enough t
 avoid that was tried and measured. {_sentiment_verdict(data)}</div>
 </section>
 {_issuer_relative(data)}
+{_volatility_section(data['volatility'])}
 <section>
 <h2>Terms used above</h2>
 <dl class="glossary">{_glossary()}</dl>

@@ -277,13 +277,7 @@ def _document(snapshot: CompanySnapshot) -> str:
   <nav class="page-nav" id="page-nav" aria-label="On this page">
     <div><p class="eyebrow" data-i18n="workspace.eyebrow">ON THIS PAGE</p>
     <strong data-i18n="workspace.title">Read the brief, then verify below.</strong></div>
-    <div class="page-nav-links">
-      <a href="#brief"><span>01</span><b data-i18n="nav.overview">Overview</b></a>
-      <a href="#performance"><span>02</span><b data-i18n="nav.history">History</b></a>
-      <a href="#filings"><span>03</span><b data-i18n="nav.filings">Filings</b></a>
-      <a href="#ask"><span>04</span><b data-i18n="nav.ask">Ask AI</b></a>
-      {'<a href="#context"><span>05</span><b data-i18n="nav.company_news">Company news</b></a>' if evidence_context else ''}
-    </div>
+    <div class="page-nav-links">{_nav_links(snapshot)}</div>
   </nav>
 
   <section class="brief-section" id="brief" aria-labelledby="brief-title">
@@ -355,6 +349,7 @@ def _document(snapshot: CompanySnapshot) -> str:
   </section>
 
   {_disclosure_signal(snapshot)}
+  {_volatility_forecast(snapshot)}
   {_ask_section()}
 
   {evidence_context}
@@ -370,6 +365,30 @@ def _document(snapshot: CompanySnapshot) -> str:
 <script>{_script(default_period, snapshot.ticker, snapshot.benchmark)}</script>
 </body></html>"""
 
+
+
+def _nav_links(snapshot: CompanySnapshot) -> str:
+    """The section list, numbered from what the page actually contains.
+
+    Built rather than written out because three of these sections are
+    conditional -- the signal card, the volatility band and company news each
+    appear only when their data does -- and a hand-numbered list either skips a
+    number or points at a section that is not there.
+    """
+    entries = [("#brief", "nav.overview", "Overview"),
+               ("#performance", "nav.history", "History"),
+               ("#filings", "nav.filings", "Filings")]
+    if snapshot.disclosure_signal:
+        entries.append(("#signal", "nav.signal", "This filing"))
+    if snapshot.volatility_forecast:
+        entries.append(("#volatility", "nav.volatility", "Expected range"))
+    entries.append(("#ask", "nav.ask", "Ask AI"))
+    if snapshot.evidence_scope:
+        entries.append(("#context", "nav.company_news", "Company news"))
+    return "".join(
+        f'<a href="{href}"><span>{i:02d}</span>'
+        f'<b data-i18n="{key}">{label}</b></a>'
+        for i, (href, key, label) in enumerate(entries, start=1))
 
 
 def _disclosure_signal(snapshot: CompanySnapshot) -> str:
@@ -454,6 +473,75 @@ def _disclosure_signal(snapshot: CompanySnapshot) -> str:
     </div>
     <p class="signal-footer">{footer}</p>
     <script type="application/json" id="signal-points">{points}</script>
+    </section>"""
+
+
+def _volatility_forecast(snapshot: CompanySnapshot) -> str:
+    """The next twenty sessions as a range, next to what this issuer usually does.
+
+    A band on its own is unreadable -- 25% is calm for one issuer and alarming for
+    another -- so the issuer's own usual level sits beside it and the plain-word
+    state is a comparison of the two, not a threshold on the number.
+
+    The bar itself is the whole chart: the issuer's usual level is a tick on it,
+    so "wider than usual" is something a reader sees rather than something the
+    card asserts.
+    """
+    forecast = snapshot.volatility_forecast
+    if not forecast or forecast.get("median") is None:
+        return ""
+
+    median = float(forecast["median"])
+    low, high = float(forecast["band_low"]), float(forecast["band_high"])
+    usual = float(forecast.get("issuer_median") or 0.0)
+    state = str(forecast.get("state", "typical for this issuer"))
+    tone = {"elevated": "urgent", "slightly elevated": "watch",
+            "unusually calm": "calm"}.get(state, "muted")
+    # Sentence case, matching what the dictionary swaps in: a badge that changed
+    # capitalisation when the language toggle was pressed would look like a bug.
+    label = state[:1].upper() + state[1:]
+
+    # The bar spans a fixed range rather than the band's own, so two companies'
+    # cards are comparable at a glance and a narrow band looks narrow.
+    span = max(high, usual, 0.6) * 1.05
+    def at(value: float) -> float:
+        return max(0.0, min(100.0, 100.0 * value / span))
+
+    coverage = forecast.get("coverage_80")
+    footnote = (f"the 80% band held {float(coverage):.0%} of outcomes out of sample"
+                if coverage is not None else "")
+
+    names = {"har": "trailing-volatility regression",
+             "climatology": "this issuer\u2019s own history",
+             "random_walk": "today carried forward",
+             "chronos": "Chronos-2"}
+    forecaster = names.get(str(forecast.get("forecaster", "")),
+                           str(forecast.get("forecaster", "")))
+
+    return f"""<section class="vol-section" id="volatility">
+    <div class="section-heading"><div>
+    <p class="eyebrow" data-i18n="vol.eyebrow">THE NEXT {int(forecast.get('horizon_sessions', 20))} SESSIONS</p>
+    <h2 data-i18n="vol.title">How wide a range to expect</h2></div>
+    <span class="signal-badge {tone}" data-i18n="vol.state.{state.replace(' ', '_')}">{html.escape(label)}</span></div>
+    <p class="section-intro" data-i18n="vol.intro">How much this stock is expected to
+    move over the next month, as a range rather than a number. It says nothing about
+    which way &mdash; a wide range is as consistent with good news as with bad.</p>
+    <div class="vol-bar" role="img"
+         aria-label="Expected annualised volatility between {low:.0%} and {high:.0%}, most likely {median:.0%}, against this issuer's usual {usual:.0%}.">
+      <div class="vol-track">
+        <div class="vol-band" style="left:{at(low):.1f}%;width:{at(high) - at(low):.1f}%"></div>
+        <div class="vol-median" style="left:{at(median):.1f}%"></div>
+        <div class="vol-usual" style="left:{at(usual):.1f}%"></div>
+      </div>
+      <div class="vol-scale"><span>0%</span><span>{span:.0%}</span></div>
+    </div>
+    <div class="signal-stats">
+      <div><b>{median:.0%}</b><span data-i18n="vol.median">most likely, annualised</span></div>
+      <div><b>{low:.0%}&ndash;{high:.0%}</b><span data-i18n="vol.band">80% of the time, in this range</span></div>
+      <div><b>{usual:.0%}</b><span data-i18n="vol.usual">this issuer&rsquo;s usual level</span></div>
+    </div>
+    <p class="signal-footer">{html.escape(forecaster)} &middot;
+    as of {html.escape(str(forecast.get('as_of', '')))} &middot; {footnote}</p>
     </section>"""
 
 
@@ -1359,6 +1447,21 @@ def _script(default_period: str, ticker: str, benchmark: str) -> str:
                 "signal.state.routine": "Routine",
                 "signal.state.insufficient_history": "Not enough history",
                 "signal.state.withheld": "Withheld",
+                "nav.signal": "This filing",
+                "nav.volatility": "Expected range",
+                "vol.eyebrow": "THE NEXT 20 SESSIONS",
+                "vol.title": "How wide a range to expect",
+                "vol.intro": ("How much this stock is expected to move over the next "
+                    "month, as a range rather than a number. It says nothing about "
+                    "which way \u2014 a wide range is as consistent with good news as "
+                    "with bad."),
+                "vol.median": "most likely, annualised",
+                "vol.band": "80% of the time, in this range",
+                "vol.usual": "this issuer\u2019s usual level",
+                "vol.state.typical_for_this_issuer": "Typical for this issuer",
+                "vol.state.slightly_elevated": "Slightly elevated",
+                "vol.state.elevated": "Elevated",
+                "vol.state.unusually_calm": "Unusually calm",
                 "ask.eyebrow": "CONTROLLED LLM Q&A",
                 "ask.title": "Ask the evidence",
                 "ask.validated": "Every answer is validated",
@@ -1723,6 +1826,19 @@ def _script(default_period: str, ticker: str, benchmark: str) -> str:
                 "signal.state.routine": "例行披露",
                 "signal.state.insufficient_history": "历史不足",
                 "signal.state.withheld": "已扣留",
+                "nav.signal": "本次披露",
+                "nav.volatility": "预计区间",
+                "vol.eyebrow": "未来 20 个交易日",
+                "vol.title": "预计波动区间有多宽",
+                "vol.intro": ("未来一个月这只股票预计会有多大幅度的波动，给出的是一个区间"
+                    "而不是一个数字。它不说明方向——区间宽既可能是好消息，也可能是坏消息。"),
+                "vol.median": "最可能的年化波动率",
+                "vol.band": "80% 的情况落在这个区间",
+                "vol.usual": "该公司自身的常态水平",
+                "vol.state.typical_for_this_issuer": "与该公司常态相当",
+                "vol.state.slightly_elevated": "略高于常态",
+                "vol.state.elevated": "明显高于常态",
+                "vol.state.unusually_calm": "异常平静",
                 "ask.eyebrow": "受控的 LLM 问答",
                 "ask.title": "向证据提问",
                 "ask.validated": "每个答案都经过校验",
@@ -2720,7 +2836,7 @@ def _css() -> str:
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*{transition:none!important}}
 @media(max-width:620px){.profile-meta{flex-direction:column;align-items:flex-start;gap:3px}.timeline-heading,.reaction-heading,.comparison-heading{flex-direction:column;gap:6px}.reaction-grid,.change-list{grid-template-columns:1fr}.timeline-track{grid-auto-columns:minmax(145px,72vw)}.topbar .section-nav,.company-search-link{display:none}.topbar .company-nav .site-link{margin-left:auto;color:var(--muted);font-size:11px;font-weight:700;text-decoration:none;white-space:nowrap}.company-nav .site-link+.site-link{margin-left:16px}.company-nav .site-link:hover{color:var(--blue)}.company-nav{margin-left:auto}.company-hero{padding:24px 0 18px;gap:13px}.hero-copy{font-size:15px;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}.profile-meta>span{display:none}.profile-meta{margin-top:8px}.evidence-flow{display:none}.market-observation{width:100%;padding:11px 14px;border:1px solid var(--line);border-radius:12px;background:var(--panel);align-items:flex-start}.market-observation strong{font-size:29px}.brief-card{padding:19px}.brief-card h3{font-size:22px}.brief-card p,.brief-lead>p{font-size:16px}.brief-card-heading{flex-direction:column;gap:5px}.brief-metrics{grid-template-columns:1fr 1fr}.authority-row{gap:8px}.authority-row>em{display:none}.diagnostic-heading{align-items:start;flex-direction:column;gap:2px}.metric-grid{grid-template-columns:1fr 1fr}.metric-card{padding:13px}.trust-grid{gap:8px}}
 body{font-family:"Avenir Next","Segoe UI",sans-serif}.company-hero{border:0;border-radius:0;background:transparent;box-shadow:none;margin-bottom:0}.brief-section{border-radius:8px}.brief-grid{grid-template-columns:repeat(12,minmax(0,1fr));gap:0;border-top:1px solid #365166;border-bottom:1px solid #365166}.brief-card{border:0;border-radius:0;background:transparent}.brief-lead{border-right:1px solid #365166}.brief-metrics>div{padding:10px 0;border:0;border-radius:0;background:transparent}.brief-metrics>div+div{padding-left:18px;border-left:1px solid #28514e}.brief-boundary{grid-column:1/-1;margin:0;padding:17px 24px;color:#aebfca;font-size:12px}.brief-boundary strong{color:#e9b66d}.performance-section,.filings-section,.context-section{padding:58px 0;border:0;border-top:1px solid var(--line);border-radius:0;background:transparent;box-shadow:none}.diagnostics-disclosure{margin-top:20px;border-top:1px solid var(--line)}.diagnostics-disclosure>summary,.source-details>summary{padding:14px 0;color:var(--blue);font-size:12px;font-weight:750;cursor:pointer}.metric-card{border-radius:3px;background:rgba(255,255,255,.55)}.filing-card{border-radius:4px;background:#fff}.filing-card summary{min-height:76px}.reaction-panel,.comparison-panel{border-width:0 0 0 3px;border-radius:0}.reaction-grid>div{border:0;border-left:1px solid #dbe8e1;border-radius:0;background:transparent}.reaction-grid>div:first-child{border-left:0}.comparison-clear{display:flex;flex-direction:column;margin-top:14px;color:var(--muted);font-size:12px}.comparison-clear strong{margin-bottom:3px;color:var(--ink)}.source-details{margin-top:8px;border-top:1px solid var(--line)}.filing-columns aside{border-radius:3px}.context-freshness{margin:-14px 0 20px;color:var(--muted);font-size:10px}.headline-list{grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:0;border-top:1px solid var(--line)}.headline-card{padding:20px 22px;border:0;border-right:1px solid var(--line);border-radius:0;background:transparent}.headline-card:last-child{border-right:0}.headline-card h3{margin:10px 0 14px}.headline-meta{display:flex;flex-direction:row;flex-wrap:wrap;gap:5px 12px}.headline-meta span:first-child{color:var(--ink);font-weight:750}.headline-card>a{padding-top:2px}footer a{margin-top:5px;color:var(--blue);text-decoration:none}#brief,#ask,#performance,#filings,#context{scroll-margin-top:150px}
-.signal-section{padding:58px 0;border-top:1px solid var(--line)}.signal-badge{padding:8px 14px;border-radius:999px;font-size:11px;font-weight:850;text-transform:uppercase;letter-spacing:.07em;white-space:nowrap}.signal-badge.urgent{background:#fbeceb;color:#a4322a;border:1px solid #e8b6b0}.signal-badge.watch{background:#fdf4e3;color:#8a6412;border:1px solid #e6d3a4}.signal-badge.calm{background:#eef5f0;color:#2f6b4a;border:1px solid #bcd8c7}.signal-badge.muted{background:#f2f3f4;color:var(--muted);border:1px solid var(--line)}.signal-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:1px;margin:26px 0 0;background:var(--line);border:1px solid var(--line)}.signal-stats>div{background:#fff;padding:18px 20px}.signal-stats b{display:block;font:500 30px/1 Georgia,serif}.signal-stats span{display:block;margin-top:7px;color:var(--muted);font-size:11px;line-height:1.5}.signal-grid{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:28px;margin-top:26px;align-items:start}.signal-why h3{margin:0 0 10px;font:500 17px/1.3 Georgia,serif}.signal-why ul{margin:0;padding-left:18px}.signal-why li{margin-bottom:7px;font-size:14px;line-height:1.6}.signal-boundary{margin-top:16px;padding:12px 15px;background:#f6f7f8;border-left:3px solid var(--blue);color:var(--muted);font-size:12.5px;line-height:1.6}.signal-chart{margin:0;padding:14px;border:1px solid var(--line);background:#fff}.signal-chart svg{width:100%;height:auto;display:block}.signal-chart .ax{stroke:#d7dcdd;stroke-width:1}.signal-chart .bar{stroke:#c8b48a;stroke-width:1;stroke-dasharray:3 3}.signal-chart .barlab{fill:#a08a5e;font-size:8px;text-anchor:end}.signal-chart .pt{fill:#9fb2c4}.signal-chart .pt.now{fill:var(--blue);stroke:#fff;stroke-width:1.5}.signal-chart figcaption{display:flex;justify-content:space-between;margin-top:8px;color:var(--muted);font-size:10px}.signal-footer{margin-top:22px;color:var(--muted);font-size:11px}@media(max-width:820px){.signal-grid{grid-template-columns:1fr}}.ask-section{padding:58px 0;border:0;border-top:1px solid var(--line);border-radius:0;background:transparent;box-shadow:none}.ask-validation{padding:7px 10px;border:1px solid #b9d8ca;border-radius:999px;color:var(--green);font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.07em}.ask-layout{display:grid;grid-template-columns:minmax(0,5fr) minmax(320px,4fr);border:1px solid var(--line);background:var(--panel)}.ask-form{padding:28px;border-right:1px solid var(--line)}.ask-controls{display:grid;grid-template-columns:minmax(0,1fr) 128px minmax(0,150px);gap:12px}.ask-form label{display:flex;flex-direction:column;gap:7px;color:var(--muted);font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.08em}.ask-form select,.ask-form textarea{width:100%;border:1px solid var(--line);border-radius:4px;background:#fff;color:var(--ink);font:500 14px/1.5 "Avenir Next","Segoe UI",sans-serif}.ask-form select{height:43px;padding:0 11px}.ask-form textarea{resize:vertical;min-height:90px;padding:12px}.ask-form select:focus,.ask-form textarea:focus{outline:3px solid rgba(40,100,220,.14);border-color:var(--blue)}.ask-question{margin-top:17px}.ask-suggestions{display:flex;flex-wrap:wrap;gap:7px;margin-top:10px}.ask-suggestions button{padding:6px 9px;border:1px solid var(--line);border-radius:999px;background:transparent;color:var(--blue);font-size:10px;cursor:pointer}.ask-suggestions button:hover{background:var(--blue-soft)}.ask-submit-row{display:flex;align-items:center;gap:13px;margin-top:20px}.ask-submit-row>button{min-width:120px;padding:11px 16px;border:0;border-radius:4px;background:var(--navy);color:#fff;font-weight:800;cursor:pointer}.ask-submit-row>button:disabled{opacity:.45;cursor:not-allowed}.ask-submit-row>span{color:var(--muted);font-size:10px}.ask-submit-row>span.ready{color:var(--green)}.ask-submit-row>span.error{color:#98473e}.ask-result{min-height:330px;padding:28px;background:#f8faf8;color:var(--muted);font-size:13px}.ask-result-kicker,.ask-answer-heading>span{margin:0;color:var(--green);font-size:10px;font-weight:850;letter-spacing:.1em}.ask-result>ol{margin:18px 0 0;padding:0;list-style:none}.ask-result>ol li{display:grid;grid-template-columns:25px 1fr;gap:10px;padding:12px 0;border-top:1px solid var(--line)}.ask-result>ol li span{color:var(--green);font-weight:850}.ask-result.loading{display:grid;place-items:center}.ask-result.error{display:grid;place-items:center;color:#98473e}.ask-answer-heading{display:flex;justify-content:space-between;gap:15px;padding-bottom:12px;border-bottom:1px solid var(--line)}.ask-answer-heading small{color:var(--muted)}.ask-result article{padding:15px 0;border-bottom:1px solid var(--line)}.ask-result article p{margin:0;color:var(--ink);font:500 17px/1.45 Georgia,serif}.ask-citations{display:flex;flex-wrap:wrap;gap:7px;margin-top:9px}.ask-citations a{color:var(--blue);font-size:10px;text-decoration:none;border-bottom:1px solid #aec2e9}.ask-limitations{margin-top:15px}.ask-limitations>summary{color:var(--amber);font-size:11px;font-weight:800;cursor:pointer}.ask-limitations article p{font:inherit;color:var(--muted)}.ask-boundary{margin:14px 0 0;color:var(--muted);font-size:10px}.ask-boundary strong{color:var(--ink)}
+.signal-section{padding:58px 0;border-top:1px solid var(--line)}.signal-badge{padding:8px 14px;border-radius:999px;font-size:11px;font-weight:850;text-transform:uppercase;letter-spacing:.07em;white-space:nowrap}.signal-badge.urgent{background:#fbeceb;color:#a4322a;border:1px solid #e8b6b0}.signal-badge.watch{background:#fdf4e3;color:#8a6412;border:1px solid #e6d3a4}.signal-badge.calm{background:#eef5f0;color:#2f6b4a;border:1px solid #bcd8c7}.signal-badge.muted{background:#f2f3f4;color:var(--muted);border:1px solid var(--line)}.signal-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:1px;margin:26px 0 0;background:var(--line);border:1px solid var(--line)}.signal-stats>div{background:#fff;padding:18px 20px}.signal-stats b{display:block;font:500 30px/1 Georgia,serif}.signal-stats span{display:block;margin-top:7px;color:var(--muted);font-size:11px;line-height:1.5}.signal-grid{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:28px;margin-top:26px;align-items:start}.signal-why h3{margin:0 0 10px;font:500 17px/1.3 Georgia,serif}.signal-why ul{margin:0;padding-left:18px}.signal-why li{margin-bottom:7px;font-size:14px;line-height:1.6}.signal-boundary{margin-top:16px;padding:12px 15px;background:#f6f7f8;border-left:3px solid var(--blue);color:var(--muted);font-size:12.5px;line-height:1.6}.signal-chart{margin:0;padding:14px;border:1px solid var(--line);background:#fff}.signal-chart svg{width:100%;height:auto;display:block}.signal-chart .ax{stroke:#d7dcdd;stroke-width:1}.signal-chart .bar{stroke:#c8b48a;stroke-width:1;stroke-dasharray:3 3}.signal-chart .barlab{fill:#a08a5e;font-size:8px;text-anchor:end}.signal-chart .pt{fill:#9fb2c4}.signal-chart .pt.now{fill:var(--blue);stroke:#fff;stroke-width:1.5}.signal-chart figcaption{display:flex;justify-content:space-between;margin-top:8px;color:var(--muted);font-size:10px}.signal-footer{margin-top:22px;color:var(--muted);font-size:11px}@media(max-width:820px){.signal-grid{grid-template-columns:1fr}}.vol-section{padding:58px 0;border-top:1px solid var(--line)}.vol-bar{margin:26px 0 0}.vol-track{position:relative;height:44px;border:1px solid var(--line);background:#fff}.vol-band{position:absolute;top:0;bottom:0;background:var(--blue-soft);border-left:1px solid #aec2e9;border-right:1px solid #aec2e9}.vol-median{position:absolute;top:0;bottom:0;width:2px;background:var(--blue)}.vol-usual{position:absolute;top:-5px;bottom:-5px;width:1px;background:#a08a5e;border-left:1px dashed #a08a5e}.vol-scale{display:flex;justify-content:space-between;margin-top:6px;color:var(--muted);font-size:10px}@media(max-width:620px){.vol-section{padding:40px 0}}.ask-section{padding:58px 0;border:0;border-top:1px solid var(--line);border-radius:0;background:transparent;box-shadow:none}.ask-validation{padding:7px 10px;border:1px solid #b9d8ca;border-radius:999px;color:var(--green);font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.07em}.ask-layout{display:grid;grid-template-columns:minmax(0,5fr) minmax(320px,4fr);border:1px solid var(--line);background:var(--panel)}.ask-form{padding:28px;border-right:1px solid var(--line)}.ask-controls{display:grid;grid-template-columns:minmax(0,1fr) 128px minmax(0,150px);gap:12px}.ask-form label{display:flex;flex-direction:column;gap:7px;color:var(--muted);font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.08em}.ask-form select,.ask-form textarea{width:100%;border:1px solid var(--line);border-radius:4px;background:#fff;color:var(--ink);font:500 14px/1.5 "Avenir Next","Segoe UI",sans-serif}.ask-form select{height:43px;padding:0 11px}.ask-form textarea{resize:vertical;min-height:90px;padding:12px}.ask-form select:focus,.ask-form textarea:focus{outline:3px solid rgba(40,100,220,.14);border-color:var(--blue)}.ask-question{margin-top:17px}.ask-suggestions{display:flex;flex-wrap:wrap;gap:7px;margin-top:10px}.ask-suggestions button{padding:6px 9px;border:1px solid var(--line);border-radius:999px;background:transparent;color:var(--blue);font-size:10px;cursor:pointer}.ask-suggestions button:hover{background:var(--blue-soft)}.ask-submit-row{display:flex;align-items:center;gap:13px;margin-top:20px}.ask-submit-row>button{min-width:120px;padding:11px 16px;border:0;border-radius:4px;background:var(--navy);color:#fff;font-weight:800;cursor:pointer}.ask-submit-row>button:disabled{opacity:.45;cursor:not-allowed}.ask-submit-row>span{color:var(--muted);font-size:10px}.ask-submit-row>span.ready{color:var(--green)}.ask-submit-row>span.error{color:#98473e}.ask-result{min-height:330px;padding:28px;background:#f8faf8;color:var(--muted);font-size:13px}.ask-result-kicker,.ask-answer-heading>span{margin:0;color:var(--green);font-size:10px;font-weight:850;letter-spacing:.1em}.ask-result>ol{margin:18px 0 0;padding:0;list-style:none}.ask-result>ol li{display:grid;grid-template-columns:25px 1fr;gap:10px;padding:12px 0;border-top:1px solid var(--line)}.ask-result>ol li span{color:var(--green);font-weight:850}.ask-result.loading{display:grid;place-items:center}.ask-result.error{display:grid;place-items:center;color:#98473e}.ask-answer-heading{display:flex;justify-content:space-between;gap:15px;padding-bottom:12px;border-bottom:1px solid var(--line)}.ask-answer-heading small{color:var(--muted)}.ask-result article{padding:15px 0;border-bottom:1px solid var(--line)}.ask-result article p{margin:0;color:var(--ink);font:500 17px/1.45 Georgia,serif}.ask-citations{display:flex;flex-wrap:wrap;gap:7px;margin-top:9px}.ask-citations a{color:var(--blue);font-size:10px;text-decoration:none;border-bottom:1px solid #aec2e9}.ask-limitations{margin-top:15px}.ask-limitations>summary{color:var(--amber);font-size:11px;font-weight:800;cursor:pointer}.ask-limitations article p{font:inherit;color:var(--muted)}.ask-boundary{margin:14px 0 0;color:var(--muted);font-size:10px}.ask-boundary strong{color:var(--ink)}
 .ask-controls{margin-bottom:8px}.ask-scope-note{margin:0 0 22px;color:var(--muted);font-size:10px;line-height:1.5}.ask-scope-note[hidden]{display:none}.ask-step-heading{display:grid;grid-template-columns:26px 1fr;gap:10px;align-items:start}.ask-step-heading>span{display:grid;place-items:center;width:24px;height:24px;border:1px solid #b8c8df;border-radius:50%;color:var(--blue);font-size:10px;font-weight:850}.ask-step-heading>div{display:flex;flex-direction:column}.ask-step-heading strong{font-size:12px}.ask-step-heading small{color:var(--muted);font-size:10px}.ask-task-tabs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));margin-top:13px;border:1px solid var(--line)}.ask-task-tabs button{min-height:48px;padding:8px;border:0;border-left:1px solid var(--line);border-top:1px solid var(--line);background:#fff;color:var(--muted);font-size:10px;font-weight:750;cursor:pointer}.ask-task-tabs button:nth-child(-n+3){border-top:0}.ask-task-tabs button:nth-child(3n+1){border-left:0}.ask-task-tabs button:hover{background:var(--blue-soft);color:var(--blue)}.ask-task-tabs button.active{background:var(--navy);color:#fff}.ask-task-tabs button:focus-visible{position:relative;z-index:1;outline:3px solid rgba(40,100,220,.25);outline-offset:1px}.ask-task-preview{padding:15px 17px;border-width:0 1px 1px;border-style:solid;border-color:var(--line);background:#f8fafc;display:grid;grid-template-columns:1fr;gap:3px}.ask-task-preview>span{color:var(--blue);font-size:8px;font-weight:850;letter-spacing:.1em}.ask-task-preview>strong{font:500 18px/1.3 Georgia,serif}.ask-task-preview>p{margin:2px 0 0;color:var(--muted);font-size:11px}.ask-review-step{margin-top:23px}.ask-question{margin-top:10px}.ask-scope-groups{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:20px}.ask-scope-group{padding-top:12px;border-top:2px solid var(--green)}.ask-scope-group.out-scope{border-color:#b76a4f}.ask-scope-group>strong{color:var(--ink);font-size:11px}.ask-scope-group ul{margin:10px 0 0;padding-left:17px}.ask-scope-group li{margin:0 0 9px;font-size:11px;line-height:1.45}.ask-scope-group.in-scope li::marker{color:var(--green)}.ask-scope-group.out-scope li::marker{color:#b76a4f}.ask-control-flow{margin-top:18px;padding:12px;border:1px solid #cfe0d8;background:#fff;color:var(--green);font-size:9px;font-weight:800;text-align:center;text-transform:uppercase;letter-spacing:.05em}
 @media(max-width:900px){.brief-lead{border-right:0;border-bottom:1px solid #365166}.headline-card{border-right:0;border-bottom:1px solid var(--line)}}
 @media(max-width:900px){.ask-layout{grid-template-columns:1fr}.ask-form{border-right:0;border-bottom:1px solid var(--line)}}

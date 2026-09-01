@@ -18,6 +18,7 @@ from filing_triage.config import PipelineConfig
 from filing_triage.uncertainty import (
     bootstrap_daily_comparisons,
     bootstrap_ranking_metrics,
+    paired_pinball_difference,
     paired_pr_auc_difference,
     stage_deltas,
 )
@@ -329,5 +330,59 @@ class TestTheAblationDifferenceIsPaired:
         base, sessions = _scored(labels, rng.random(50), ["d0"] * 50)
         other = base.set_axis([f"x{i}" for i in range(50)])
         result = paired_pr_auc_difference(base, other, sessions, n_boot=10)
+        assert np.isnan(result["difference"])
+        assert result["n_scored"] == 0
+
+
+class TestThePinballDifferenceIsSignedTheRightWay:
+    """A loss difference is the one comparison here where lower wins, and
+    reading the sign backwards would invert a conclusion."""
+
+    @staticmethod
+    def _frame(q50, actual=None, n=200):
+        index = [f"e{i}" for i in range(n)]
+        rng = np.random.default_rng(7)
+        actual = rng.lognormal(-1.3, 0.35, n) if actual is None else actual
+        return pd.DataFrame(
+            {"actual": actual,
+             "q10": np.full(n, q50 * 0.7), "q25": np.full(n, q50 * 0.85),
+             "q50": np.full(n, q50), "q75": np.full(n, q50 * 1.15),
+             "q90": np.full(n, q50 * 1.3)}, index=index)
+
+    def _sessions(self, frame, per_day=10):
+        return pd.Series([f"d{i // per_day}" for i in range(len(frame))],
+                         index=frame.index)
+
+    def test_a_better_forecaster_gives_a_negative_difference(self):
+        rng = np.random.default_rng(7)
+        actual = rng.lognormal(-1.3, 0.35, 200)
+        good = self._frame(float(np.median(actual)), actual)
+        bad = self._frame(float(np.median(actual)) * 3, actual)
+        result = paired_pinball_difference(bad, good, self._sessions(good),
+                                           (0.1, 0.25, 0.5, 0.75, 0.9), n_boot=200)
+        assert result["difference"] < 0
+        assert result["high"] < 0
+
+    def test_an_identical_forecaster_gives_zero(self):
+        frame = self._frame(0.25)
+        result = paired_pinball_difference(frame, frame.copy(),
+                                           self._sessions(frame),
+                                           (0.1, 0.5, 0.9), n_boot=100)
+        assert result["difference"] == pytest.approx(0.0)
+        assert result["low"] == pytest.approx(0.0)
+
+    def test_rows_without_an_outcome_are_dropped(self):
+        frame = self._frame(0.25)
+        frame.loc[frame.index[:50], "actual"] = np.nan
+        result = paired_pinball_difference(frame, frame.copy(),
+                                           self._sessions(frame),
+                                           (0.5,), n_boot=50)
+        assert result["n_scored"] == 150
+
+    def test_no_shared_rows_returns_missing(self):
+        frame = self._frame(0.25)
+        other = frame.set_axis([f"x{i}" for i in range(len(frame))])
+        result = paired_pinball_difference(frame, other, self._sessions(frame),
+                                           (0.5,), n_boot=10)
         assert np.isnan(result["difference"])
         assert result["n_scored"] == 0

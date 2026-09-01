@@ -35,7 +35,7 @@ Phases 1 and 2 are built and measured. What each one returned:
 | 5.3 reading recommendation | `src/filing_triage/recommend.py` | `Read now` 42.2% precision vs 21.5% base rate, on 9.1% of the queue |
 | 4.2 self-history visualization | `src/company_lens/web/page.py` | Scatter of this filing against the issuer's own history |
 | 5.4 financial NLP | `src/filing_triage/text_model.py` | FinBERT encoded, ablated, and **held out of the shipped model** |
-| 5.5 time-series foundation model | — | Not started; gated behind the sections above |
+| 5.5 time-series foundation model | `src/filing_triage/volatility.py`, `chronos_model.py` | Chronos-2 measured and **not shipped**; HAR passed the coverage gate and the card uses it |
 
 Three places where the implementation departs from this document, each for a
 reason worth recording:
@@ -48,6 +48,16 @@ from it. FinBERT predicts the *direction* of sentiment; the target here is the
 to orthogonal to the question, and six near-orthogonal columns make a forest's
 splits worse. The module and its cache remain, held beside the shipped feature
 matrix rather than inside it, with a test asserting they cannot reach it.
+
+**The foundation model does not ship either, and the card still does.** §5.5
+sets the condition -- do not ship unless the intervals are calibrated -- and
+Chronos-2 fails it: its 80% band holds 75.5% of outcomes, and on a paired,
+session-clustered comparison it loses 0.0014 more pinball loss than a HAR
+regression over an interval of [0.0010, 0.0018] that excludes zero. It was given
+its best configuration, forecasting log volatility like every baseline. HAR
+passes the gate, so the card exists and HAR is behind it. The gate is enforced by
+the export, which writes the card file only for a calibrated forecaster and
+deletes it otherwise.
 
 **`text_model.py` lives in `filing_triage`, not `company_lens/nlp/`.**
 `company_lens` already imports `filing_triage`, so the placement this document
