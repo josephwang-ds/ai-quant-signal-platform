@@ -16,7 +16,7 @@ PYTHON ?= $(shell   test -x .venv/bin/python && echo .venv/bin/python ||   comma
 # the project.
 export PYTHONPATH := $(CURDIR)/src$(if $(PYTHONPATH),:$(PYTHONPATH))
 
-.PHONY: help install lock install-locked demo earnings-calendar research-page quick audit doctor test lint ingest refresh-filings refresh-fundamentals refresh-headlines refresh-all vercel-bundle vercel-deploy run site company company-featured company-pages evidence nlp-eval llm-eval llm-eval-provider-dry-run llm-eval-openai-dry-run clean
+.PHONY: help install lock install-locked demo earnings-calendar research-page self-relative-evidence quick audit doctor test lint ingest refresh-filings refresh-fundamentals refresh-headlines refresh-all vercel-bundle vercel-deploy run site company company-featured company-pages evidence nlp-eval llm-eval llm-eval-provider-dry-run llm-eval-openai-dry-run clean
 
 help:
 	@echo "make install   install the package and dev dependencies"
@@ -42,6 +42,7 @@ help:
 	@echo "make company-pages  build all locally available company pages"
 	@echo "make earnings-calendar  expected reporting dates for the universe"
 	@echo "make research-page  the audited findings, generated from evidence/"
+	@echo "make self-relative-evidence  issuer-relative percentiles, calibration, policy"
 	@echo "make evidence  export real-run metrics, intervals and studies (no raw data)"
 	@echo "make nlp-eval  evaluate prior-filing change detection on labeled spans"
 	@echo "make llm-eval  score frozen bilingual grounded-explanation fixtures"
@@ -161,6 +162,12 @@ refresh-all: check-python
 	  echo 'EDGAR_USER_AGENT is not set. The SEC requires a real name and email.'; \
 	  echo '  export EDGAR_USER_AGENT="Your Name you@example.com"'; exit 1; }
 	scripts/run_scheduled_refresh.sh
+
+# The issuer-relative layer: self-benchmarking percentiles, the calibrated
+# impact probability and the reading policy, with the studies behind each of the
+# three settings that were assumed rather than derived.
+self-relative-evidence: check-python
+	PYTHONPATH=src $(PYTHON) scripts/export_self_relative_evidence.py
 
 # The filing-triage findings as a page on the live site, generated from the
 # committed evidence so it cannot drift from it, plus the full generated report
