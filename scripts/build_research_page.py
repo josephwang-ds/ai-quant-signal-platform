@@ -20,6 +20,14 @@ from datetime import UTC, datetime
 from html import escape
 from pathlib import Path
 
+from filing_triage.calibration import CALIBRATION_SHARE, RELIABILITY_BINS
+from filing_triage.model import CV_EMBARGO, N_SPLITS
+from filing_triage.self_relative import TARGET_QUANTILE
+from filing_triage.uncertainty import N_BOOTSTRAP
+from filing_triage.volatility import HAR_LAGS, HORIZON, LOOKBACK, QUANTILES
+
+EMBARGO_DAYS = int(CV_EMBARGO.days)
+
 # Plain-language names for what the model reads. Semantics, not measurements:
 # the importances beside them come from the evidence, these do not, because a
 # feature's meaning does not change when the sample does.
@@ -544,177 +552,6 @@ def _sentiment_verdict(data) -> str:
             f"precision, and the table below is where that was measured.")
 
 
-def _issuer_relative(data) -> str:
-    """The issuer-relative layer: target, probability, policy, and the ablation.
-
-    Returns nothing at all when that export is absent, rather than a section of
-    empty tables. The page is generated from evidence; a section with no
-    evidence behind it has nothing to say.
-    """
-    block = data.get("self_relative")
-    if not block:
-        return ""
-
-    metrics = block["metrics"]
-    target, history = metrics["target"], metrics["history"]
-    policy, calibration = metrics["recommendation"], metrics["calibration"]
-    base_rate = float(target["base_rate"])
-    depth = history["confidence_counts"]
-    covered = sum(v for k, v in depth.items() if k != "insufficient_history")
-    read_now = block["states"].get("read_now", {})
-    lift = (float(read_now["precision"]) / base_rate
-            if read_now.get("precision") else float("nan"))
-
-    return f"""
-<section>
-<h2>Ranking a filing against its own company</h2>
-<p>A cross-sectional ranking asks which filing looks most like a mover. That
-question quietly favours volatile small caps, which are not more newsworthy, only
-noisier. The second model asks a different one: is this filing unusual <em>for
-this company</em> &mdash; louder than {_pct(0.8, 0)} of what that same issuer has
-filed before, judged only against outcomes already known when it arrived.</p>
-<div class="stats">
-<div class="stat"><b>{int(target['eligible']):,}</b><span>filings with enough of
-their own history<br>out of {int(target['total']):,}</span></div>
-<div class="stat"><b>{_pct(base_rate)}</b><span>clear their own bar<br>
-the rate a coin-flip would have to beat</span></div>
-<div class="stat"><b>{int(history['median_depth'])}</b><span>median prior filings
-per issuer<br>up to {int(history['max_depth'])}</span></div>
-</div>
-<div class="note">An issuer with fewer than
-{int(history['policy']['minimum'])} earlier filings has no defensible normal, and
-{int(depth.get('insufficient_history', 0)):,} of them are told so rather than
-scored &mdash; the card shows the raw evidence and says the history is too short.
-Filling that gap with a cross-sectional percentile would answer a different
-question in the same visual slot, which is worse than answering none.
-{covered:,} filings have enough history to be scored.</div>
-
-<div class="scroll"><table><thead><tr>
-<th>Features</th><th class="n">Count</th><th class="n">Avg precision</th>
-<th class="n">Difference</th><th class="n">95% interval</th>
-</tr></thead><tbody>{_self_ablation(block['self_ablation'])}</tbody></table></div>
-<div class="note">The obvious next question, and the answer is worth stating
-plainly: <strong>as model inputs, the issuer-relative columns add nothing
-measurable.</strong> Every interval above contains zero, in both directions.
-What changed the problem was the <em>target</em> &mdash; asking whether a filing
-is loud for its own issuer rather than loud in the cross-section &mdash; not the
-columns that encode the same idea as features. And the percentiles still earn
-their place, just not there: they are what a <strong>Read now</strong> cites, and
-a recommendation whose reason a reader cannot check for themselves is one nobody
-should act on. A feature that is measured and kept for a stated reason is a
-different thing from one that is assumed to help.</div>
-
-<div class="scroll"><table><thead><tr>
-<th>Fold</th><th class="n">Filings</th><th class="n">Base rate</th>
-<th class="n">Avg precision</th><th class="n">ROC AUC</th>
-</tr></thead><tbody>{_folds(block['folds'])}</tbody></table></div>
-<div class="note">Walk-forward, so each fold is tested on a period later than the
-one it was fitted on. The spread is the honest width of the result: the weakest
-fold is also the one with the fewest positives to find.</div>
-</section>
-
-<section>
-<h2>Making the score mean sixty-four in a hundred</h2>
-<p>A gradient-boosted score between 0 and 1 is not a probability; it is monotone
-in the right direction and nothing more. Three ways of fixing that were scored on
-the same folds, each fitted on a later slice of its own training block so no
-calibrator ever sees the fold it corrects.</p>
-<div class="scroll"><table><thead><tr>
-<th>Method</th><th class="n">Calibration error</th><th class="n">Brier</th>
-<th class="n">Brier skill</th>
-</tr></thead><tbody>{_calibration(block['calibration'])}</tbody></table></div>
-<div class="note">The usual choice for a tree ensemble is isotonic regression,
-and here it made calibration <em>worse</em> &mdash; averaging over trees is already
-a calibrating operation, and fitting a flexible monotone map on a limited slice
-added more noise than it removed. So the raw scores ship, at
-{_num(calibration['ece'])} expected calibration error. That is a measurement, not
-a default: a calibration stage nobody checks is how a project ends up shipping a
-step function it never looked at.</div>
-<div class="scroll"><table><thead><tr>
-<th>Stated probability</th><th class="n">Filings</th><th class="n">Said</th>
-<th class="n">Happened</th><th class="n">Gap</th>
-</tr></thead><tbody>{_reliability(block['curve'])}</tbody></table></div>
-<div class="note">Bins holding fewer than 30 filings are left out. They sit
-wherever noise puts them, and a reader cannot tell that from miscalibration.</div>
-</section>
-
-<section>
-<h2>Read now, Monitor, or Routine</h2>
-<p>A probability is not an instruction. The policy fires <strong>Read now</strong>
-only when a calibrated probability clears
-{float(policy['read_now_threshold']):.2f} <em>and</em> at least one issuer-relative
-signal a person could check themselves is in that company's top
-{_pct(policy['support_percentile'], 0)} &mdash; unusually novel wording, unusually
-heavy pre-filing volume. Thresholds are chosen on training folds only and reported
-on the folds that follow.</p>
-<div class="scroll"><table><thead><tr>
-<th>State</th><th class="n">Filings</th><th class="n">Share</th>
-<th class="n">Precision</th><th class="n">Vs base rate</th><th class="n">Recall</th>
-</tr></thead><tbody>{_states(block['states'], base_rate)}</tbody></table></div>
-<div class="note"><strong>Read now</strong> runs at {_pct(read_now.get('precision', 0))}
-against a {_pct(base_rate)} base rate &mdash; {lift:.2f}&times; &mdash; on
-{_pct(read_now.get('share', 0))} of the queue. <strong>Monitor</strong> reaches
-almost the same precision, and the difference between the two states is not
-accuracy but whether the card can name a reason. Requiring a citable signal costs
-nothing measurable and buys an explanation, which is the trade this policy exists
-to make. Nothing here is a view on price: the target is the <em>size</em> of a
-reaction, and a direction cannot be recovered from it even in principle.</div>
-
-<div class="scroll"><table><thead><tr>
-<th>State</th><th>Issuer</th><th class="n">Entry session</th>
-<th class="n">Said</th><th class="n">Reaction landed at</th><th class="n">Outcome</th>
-</tr></thead><tbody>{_cases(block['cases'])}</tbody></table></div>
-<div class="note">Real filings, two that went as the state implies and two that
-did not, per state. &ldquo;Reaction landed at&rdquo; is where the filing&rsquo;s
-own reaction sits in that issuer&rsquo;s history &mdash; the bar is the 80th
-percentile. The misses are the point: at
-{_pct(read_now.get('precision', 0))} precision the policy is wrong more often
-than it is right, and its value is being wrong less often than the
-{_pct(base_rate)} base rate, not being reliable.</div>
-</section>
-
-{_transformer_section(block)}
-"""
-
-
-def _transformer_section(block) -> str:
-    """The FinBERT ablation, or nothing when the corpus was never encoded.
-
-    Kept separate from the sections above because it has its own precondition:
-    the issuer-relative evidence can exist without a text cache, and a section
-    describing an encode that never happened would be the one hand-written claim
-    on a page that has none.
-    """
-    metrics = block["metrics"]
-    if not block["ablation"] or not metrics.get("text"):
-        return ""
-    return f"""
-<section>
-<h2>What a financial transformer was worth</h2>
-<p>FinBERT reads the disclosure and returns a tone distribution and a dense
-representation of the text &mdash; a 2019 model whose training data ends in 2014,
-so scoring filings from {metrics['sample']['first_filing'][:4]} onward with it is
-not hindsight. All {int(metrics['text']['documents']):,} distinct disclosures were
-encoded once and the features added a family at a time, each row against the same folds, the
-difference bootstrapped over trading sessions so the two models are compared on
-the same days rather than separately.</p>
-<div class="scroll"><table><thead><tr>
-<th>Features</th><th class="n">Count</th><th class="n">Avg precision</th>
-<th class="n">Difference</th><th class="n">95% interval</th>
-</tr></thead><tbody>{_ablation(block['ablation'])}</tbody></table></div>
-<div class="note">The transformer does not merely fail to help; its interval sits
-below zero. The reason is structural rather than a defect in the model, and it is
-the part worth keeping: FinBERT predicts the <em>direction</em> of sentiment,
-while the target here is the <em>magnitude</em> of a reaction, which is
-direction-free by construction &mdash; a very good announcement and a very bad one
-are both positives. Tone is close to orthogonal to the question being asked, and
-six columns of near-orthogonal signal make a forest's splits worse rather than
-better. So it does not ship. The cache and the code stay, because a directional
-target would make it worth re-testing and the corpus is already encoded.</div>
-</section>
-"""
-
-
 def _forecasters(rows, paired, reference, gates) -> str:
     """Every forecaster on the same filings: loss, coverage, and interval width."""
     pretty = {"random_walk": "Carry today forward",
@@ -771,85 +608,569 @@ def _regimes(rows, forecasters) -> str:
     return "".join(out)
 
 
+def _glossary() -> str:
+    return "".join(f"<dt>{term}</dt><dd>{meaning}</dd>" for term, meaning in GLOSSARY)
+
+
+# --------------------------------------------------------------------------- #
+# Page structure.
+#
+# Every section has the same four parts, in the same order: the question in
+# plain words, the answer in one sentence with its number, the evidence, and --
+# beside it -- the method that produced the evidence. The long argument for each
+# result is still on the page, folded under "Why this matters", so a reader with
+# a minute gets the answer and a reader with an hour loses nothing.
+#
+# The method notes read their parameters from the code that runs, not from
+# memory: a fold count typed here would be one more number that stops tracking
+# the pipeline the day someone changes it.
+# --------------------------------------------------------------------------- #
+
+
+def _method(**parts) -> str:
+    """The margin note: what technique produced the numbers beside it."""
+    rows = "".join(f"<dt>{escape(k.replace('_', ' '))}</dt><dd>{v}</dd>"
+                   for k, v in parts.items() if v)
+    return (f'<aside class="method"><span class="method-tag">Method</span>'
+            f'<dl>{rows}</dl></aside>')
+
+
+def _section(anchor: str, question: str, answer: str, evidence: str,
+             method: str, more: str = "") -> str:
+    """One section, in the shape every section on the page shares."""
+    details = (f'<details class="more"><summary>Why this matters</summary>'
+               f'<div>{more}</div></details>' if more else "")
+    return f"""
+<section id="{anchor}">
+<h2>{question}</h2>
+<p class="answer">{answer}</p>
+<div class="sec-body">
+<div class="sec-main">{evidence}{details}</div>
+{method}
+</div>
+</section>
+"""
+
+
+def _table(head: list[str], body: str) -> str:
+    cells = "".join(f"<th{'' if i == 0 else ' class=n'}>{h}</th>"
+                    for i, h in enumerate(head))
+    return (f'<div class="scroll"><table><thead><tr>{cells}</tr></thead>'
+            f'<tbody>{body}</tbody></table></div>')
+
+
+# --------------------------------------------------------------------------- #
+# The issuer-relative layer, the transformer, and the volatility experiment.
+# Each returns "" when its evidence is absent: the page is generated from
+# evidence, and a section with none behind it has nothing to say.
+# --------------------------------------------------------------------------- #
+
+def _issuer_relative(data) -> str:
+    block = data.get("self_relative")
+    if not block:
+        return ""
+
+    metrics = block["metrics"]
+    target, history = metrics["target"], metrics["history"]
+    policy, calibration = metrics["recommendation"], metrics["calibration"]
+    base_rate = float(target["base_rate"])
+    depth = history["confidence_counts"]
+    covered = sum(v for k, v in depth.items() if k != "insufficient_history")
+    read_now = block["states"].get("read_now", {})
+    lift = (float(read_now["precision"]) / base_rate
+            if read_now.get("precision") else float("nan"))
+    comparison = {r["method"]: r for r in block["calibration"]}
+    minimum = int(history["policy"]["minimum"])
+
+    own_company = _section(
+        "own-company",
+        "Is this filing unusual <em>for this company</em>?",
+        f"{int(target['eligible']):,} of {int(target['total']):,} filings have "
+        f"enough of their own history to answer; {_pct(base_rate)} of them turn "
+        f"out louder than that issuer&rsquo;s usual. As model inputs, the "
+        f"issuer-relative columns add nothing measurable &mdash; the "
+        f"<em>question</em> is what changed, not the features.",
+        f"""
+<div class="stats">
+<div class="stat"><b>{int(target['eligible']):,}</b><span>filings with enough of
+their own history<br>out of {int(target['total']):,}</span></div>
+<div class="stat"><b>{_pct(base_rate)}</b><span>clear their own bar<br>
+the rate a coin-flip would have to beat</span></div>
+<div class="stat"><b>{int(history['median_depth'])}</b><span>median earlier
+filings per issuer<br>up to {int(history['max_depth'])}</span></div>
+</div>
+{_table(["Features", "Count", "Avg precision", "Difference", "95% interval"],
+        _self_ablation(block['self_ablation']))}
+<div class="note"><strong>As model inputs, the issuer-relative columns add
+nothing measurable.</strong> Every interval contains zero, in both directions.
+The percentiles still earn their place, just elsewhere: they are what a
+<strong>Read now</strong> cites, and a reason a reader can check is a different
+job from a model input.</div>
+{_table(["Fold", "Filings", "Base rate", "Avg precision", "ROC AUC"],
+        _folds(block['folds']))}
+""",
+        _method(
+            target=(f"A filing counts as unusual when its absolute abnormal reaction "
+                    f"is above the {_pct(TARGET_QUANTILE, 0)} point of <em>that "
+                    f"issuer&rsquo;s own</em> earlier, already-resolved reactions."),
+            point_in_time=(f"Two cutoffs. Wording and volume percentiles use earlier "
+                           f"filings that were already <em>accepted</em>; reaction "
+                           f"percentiles use only earlier reactions that had already "
+                           f"<em>finished</em>. Fewer than {minimum} earlier filings "
+                           f"&rarr; no score, stated as such."),
+            validation=(f"Purged, embargoed walk-forward, {N_SPLITS} folds, "
+                        f"{EMBARGO_DAYS}-day embargo. Ablation rows share the same "
+                        f"folds and column order."),
+            uncertainty=(f"Paired difference in average precision, cluster bootstrap "
+                         f"over trading sessions, {N_BOOTSTRAP:,} draws, 95% "
+                         f"percentile interval."),
+        ),
+        f"""<p>A cross-sectional ranking asks which filing looks most like a mover,
+and that quietly favours volatile small caps, which are not more newsworthy, only
+noisier. This asks a different question: is the filing loud <em>for this
+company</em>. An issuer with fewer than {minimum} earlier filings has no
+defensible normal, and {int(depth.get('insufficient_history', 0)):,} filings are
+told so rather than scored &mdash; the card shows the raw evidence and says the
+history is too short. Filling that gap with a cross-sectional percentile would
+answer a different question in the same visual slot. {covered:,} filings have
+enough history to be scored.</p>
+<p>Walk-forward, so each fold is tested on a period later than the one it was
+fitted on. The spread across folds is the honest width of the result; the weakest
+fold is also the one with the fewest positives to find.</p>""",
+    )
+
+    probability = _section(
+        "probability",
+        "Is the score a real probability?",
+        f"Yes, and only after checking. The raw scores come out at "
+        f"{_num(calibration['ece'])} expected calibration error; the usual fix, "
+        f"isotonic regression, made it worse "
+        f"({_num(comparison.get('isotonic', {}).get('ece', float('nan')))}). "
+        f"So the scores ship untouched, as a measurement rather than a default.",
+        f"""
+{_table(["Method", "Calibration error", "Brier", "Brier skill"],
+        _calibration(block['calibration']))}
+{_table(["Stated probability", "Filings", "Said", "Happened", "Gap"],
+        _reliability(block['curve']))}
+<div class="note">A stated 30&ndash;40% should happen 30&ndash;40% of the time,
+and the table says whether it does. Bins holding fewer than 30 filings are left
+out: they sit wherever noise puts them.</div>
+""",
+        _method(
+            technique=("Three calibrators scored on the same folds: leave the scores "
+                       "alone, isotonic regression, Platt scaling (a logistic curve)."),
+            split=(f"Each training block is cut in time order: the earlier "
+                   f"{_pct(1 - CALIBRATION_SHARE, 0)} fits the model, the later "
+                   f"{_pct(CALIBRATION_SHARE, 0)} fits the calibrator. The test fold "
+                   f"sees neither."),
+            scores=(f"Expected calibration error over {RELIABILITY_BINS} bins, "
+                    f"weighted by bin size; Brier score and Brier skill against "
+                    f"predicting the base rate for everything."),
+        ),
+        """<p>A gradient-boosted score between 0 and 1 is not a probability; it is
+monotone in the right direction and nothing more. Calibration is what makes
+&ldquo;0.64&rdquo; mean <em>sixty-four in a hundred</em>, and without it the
+reading policy could not be stated in language a reader can check.</p>
+<p>Isotonic regression is the usual choice for a tree ensemble and here it made
+calibration worse. Averaging over trees is already a calibrating operation, and
+fitting a flexible monotone map on a limited slice added more noise than it
+removed. A calibration stage nobody checks is how a project ends up shipping a
+step function it never looked at.</p>""",
+    )
+
+    reading = _section(
+        "reading",
+        "How well does <em>Read now</em> hold up?",
+        f"<strong>Read now</strong> is right {_pct(read_now.get('precision', 0))} "
+        f"of the time against a {_pct(base_rate)} base rate &mdash; "
+        f"{lift:.1f}&times; a coin, on {_pct(read_now.get('share', 0))} of the "
+        f"queue. It is wrong more often than it is right; its value is being wrong "
+        f"less often than chance, not being reliable.",
+        f"""
+{_table(["State", "Filings", "Share", "Precision", "Vs base rate", "Recall"],
+        _states(block['states'], base_rate))}
+{_table(["State", "Issuer", "Entry session", "Said", "Reaction landed at", "Outcome"],
+        _cases(block['cases']))}
+<div class="note">Real filings, two hits and two misses per state.
+&ldquo;Reaction landed at&rdquo; is where it sat in that issuer&rsquo;s own
+history; the bar is the 80th percentile.</div>
+""",
+        _method(
+            policy=(f"<strong>Read now</strong> needs a probability of at least "
+                    f"{float(policy['read_now_threshold']):.2f} <em>and</em> one "
+                    f"issuer-relative signal a person could check &mdash; unusual "
+                    f"wording, unusual pre-filing volume &mdash; in that "
+                    f"company&rsquo;s top {_pct(1 - policy['support_percentile'], 0)}. "
+                    f"<strong>Monitor</strong> is the probability without the "
+                    f"signal. Everything else is <strong>Routine</strong>."),
+            thresholds=("Chosen on training folds only: the smallest threshold that "
+                        "reaches the target precision. Reported on the folds that "
+                        "follow."),
+            scoring=("Precision and recall per state, recall against every positive "
+                     "in the population so the states sum to the whole."),
+            boundary=("The target is the <em>size</em> of a reaction, and a direction "
+                      "cannot be recovered from it even in principle."),
+        ),
+        """<p><strong>Monitor</strong> reaches almost the same precision as
+<strong>Read now</strong>. The difference between the two states is not accuracy
+but whether the card can name a reason: requiring a citable signal costs nothing
+measurable and buys an explanation, which is the trade this policy exists to
+make. Nothing here is a view on price.</p>""",
+    )
+
+    return own_company + probability + reading + _transformer_section(block)
+
+
+def _transformer_section(block) -> str:
+    """The FinBERT ablation, or nothing when the corpus was never encoded."""
+    metrics = block["metrics"]
+    if not block["ablation"] or not metrics.get("text"):
+        return ""
+    row = next((r for r in block["ablation"] if r["group"] == "transformer_text"), None)
+    if row is None:
+        return ""
+    return _section(
+        "transformer",
+        "Does a financial language model help?",
+        f"No. Adding FinBERT costs {abs(float(row['pr_auc_vs_structured'])):.4f} "
+        f"average precision, with an interval of "
+        f"[{float(row['diff_ci_low']):+.4f}, {float(row['diff_ci_high']):+.4f}] "
+        f"that sits entirely below zero. The financial transformer does not ship.",
+        f"""
+{_table(["Features", "Count", "Avg precision", "Difference", "95% interval"],
+        _ablation(block['ablation']))}
+<div class="note">The reason is structural, and it is the part worth keeping:
+FinBERT predicts the <em>direction</em> of sentiment, and the target here is the
+<em>size</em> of a reaction, which has no direction &mdash; a very good
+announcement and a very bad one are both positives. Tone is close to orthogonal
+to the question, and six near-orthogonal columns make a forest&rsquo;s splits
+worse.</div>
+""",
+        _method(
+            model=(f"FinBERT (<code>{escape(metrics['text']['model'])}</code>), a 2019 "
+                   f"model whose training data ends in 2014 &mdash; before the first "
+                   f"filing here ({metrics['sample']['first_filing'][:4]}), so its "
+                   f"scores are not hindsight."),
+            text=(f"Each 8-K is cut to its first <em>Item</em> heading, past the "
+                  f"XBRL and SEC boilerplate, then the first "
+                  f"{int(metrics['text']['max_tokens'])} tokens are encoded. "
+                  f"{int(metrics['text']['documents']):,} distinct disclosures."),
+            features=("Tone distribution; robust z of negativity against the issuer's "
+                      "earlier filings; cosine distance to the issuer's previous "
+                      "filing and to the running centroid of its history."),
+            comparison=(f"Families added one at a time on the same folds, columns in "
+                        f"matrix order. Paired cluster bootstrap over sessions, "
+                        f"{N_BOOTSTRAP:,} draws."),
+        ),
+        """<p>Encoding the raw document encodes the envelope: the first 1,800 or so
+characters of a filed 8-K are XBRL tags, the SEC address block and checkbox
+instructions, near-identical across issuers. Measured that way the tone came out
+constant to three decimals. Cutting to the first item heading is what gave the
+features any resolution at all &mdash; and with resolution, they measured
+worse.</p>
+<p>The module and its cache stay. A directional target would make them worth
+re-testing, and re-testing costs one command because the corpus is already
+encoded.</p>""",
+    )
+
+
 def _volatility_section(block) -> str:
-    """The forecasting experiment, or nothing when it was never exported."""
     if not block:
         return ""
     metrics = block["metrics"]
     task, gates = metrics["task"], metrics["gates"]
     shipped, reference = metrics["shipped"], metrics["reference"]
     challenger = metrics.get("foundation_model")
-    chronos_gate = gates.get("chronos")
-    shipped_gate = gates.get(shipped, {})
+    forecasters = {r["forecaster"]: r for r in block["forecasters"]}
 
     def regime_coverage(forecaster, regime):
         row = next((r for r in block["regimes"] if r["forecaster"] == forecaster
                     and r["regime"] == regime), None)
         return float(row["coverage_80"]) if row else float("nan")
 
+    pretty = {"har": "a three-term regression (HAR)",
+              "climatology": "the issuer&rsquo;s own history",
+              "random_walk": "carrying today forward"}
     verdict = ""
-    if challenger and chronos_gate:
+    if challenger and "chronos" in gates:
         difference = block["paired"].get("chronos", {})
-        held = next((float(r["coverage_80"]) for r in block["forecasters"]
-                     if r["forecaster"] == "chronos"), float("nan"))
-        verdict = f"""
-<div class="note">The foundation model claims an 80% band and holds
-{_pct(held)} of outcomes in it. On the paired comparison it loses
-{float(difference.get('difference', 0)):+.4f} more pinball loss than the
-regression, over an interval of [{float(difference.get('low', 0)):+.4f},
-{float(difference.get('high', 0)):+.4f}] that does not contain zero &mdash; so it
-is measurably behind, not tied. It was given its best configuration: forecasting
-log volatility, the same space every baseline works in, which is also the better
-of its own two settings. A pretrained foundation model lost to a three-term
-linear regression, and the regression ships.</div>"""
+        held = float(forecasters.get("chronos", {}).get("coverage_80", float("nan")))
+        verdict = (f" Chronos-2, a pretrained foundation model, claims an 80% band "
+                   f"and holds {_pct(held)}; it loses "
+                   f"{float(difference.get('difference', 0)):+.4f} pinball loss "
+                   f"to the regression over [{float(difference.get('low', 0)):+.4f}, "
+                   f"{float(difference.get('high', 0)):+.4f}], and does not ship.")
 
-    return f"""
-<section>
-<h2>How turbulent is the next month?</h2>
-<p>A different question from the rest of this page, and deliberately kept apart
-from it: no forecast here is an input to the filing ranker. At the moment a
-filing becomes actionable, this forecasts the issuer&rsquo;s annualised realized
-volatility over the next {int(task['horizon'])} sessions &mdash; as a band, not a
-number. History stops at the session before entry, so the forecaster has seen
-nothing from the window it predicts.</p>
-<p>Scored on pinball loss and on coverage, because either alone is easy to game:
-an interval from zero to infinity has perfect coverage, and a sharp forecast can
-win on loss while its bands quietly mean nothing. A forecaster ships only if its
-{_pct(0.8, 0)} band holds about {_pct(0.8, 0)} of outcomes.</p>
-<div class="scroll"><table><thead><tr>
-<th>Forecaster</th><th class="n">Pinball loss</th>
-<th class="n">Vs {reference.upper()}, 95%</th>
-<th class="n">50% band holds</th><th class="n">80% band holds</th>
-<th class="n">Band width</th><th class="n">Calibrated</th>
-</tr></thead><tbody>{_forecasters(block['forecasters'], block['paired'],
-                                  reference, gates)}</tbody></table></div>
+    shipped_held = float(forecasters.get(shipped, {}).get("coverage_80", float("nan")))
+    answer = (f"A {int(task['horizon'])}-session volatility band ships, from "
+              f"{pretty.get(shipped, shipped)}: its 80% band holds "
+              f"{_pct(shipped_held)} of outcomes out of sample.{verdict}"
+              if shipped else
+              "No forecaster passed the calibration gate, so no band ships.")
+
+    evidence = f"""
+{_table(["Forecaster", "Pinball loss", f"Vs {reference.upper()}, 95%",
+         "50% band holds", "80% band holds", "Band width", "Calibrated"],
+        _forecasters(block['forecasters'], block['paired'], reference, gates))}
 <div class="note">Lower pinball loss is better, so a positive difference is a
 loss. {int(task['scored']):,} of {int(task['filings']):,} filings have a complete
-{int(task['horizon'])}-session window and are scored; the rest sit too close to
-the end of the price data and are dropped rather than measured on a truncated
-window that would look artificially calm.</div>
-{verdict}
-<div class="scroll"><table><thead><tr>
-<th>Forecaster</th><th>Regime</th><th class="n">Filings</th>
-<th class="n">Median outcome</th><th class="n">80% band holds</th>
-<th class="n">Band width</th>
-</tr></thead><tbody>{_regimes(block['regimes'],
-                              [shipped] + (['chronos'] if challenger else []))
-}</tbody></table></div>
+window and are scored.</div>
+{_table(["Forecaster", "Regime", "Filings", "Median outcome", "80% band holds",
+         "Band width"],
+        _regimes(block['regimes'], [shipped] + (['chronos'] if challenger else [])))}
 <div class="note">Split into thirds by how volatile the issuer already was. The
-band does widen when the issuer is already turbulent &mdash; it just does not
-widen enough: coverage falls from {_pct(regime_coverage(shipped, 'calm'))} in the
-calm third to {_pct(regime_coverage(shipped, 'turbulent'))} in the turbulent one,
-which is the regime a reader would actually consult it about. The overall figure
-of {_pct(shipped_gate.get('coverage_80', 0))} averages that away, which is why
-the split is here and not only in the file. The card states the horizon and the
-band, never a direction, and nothing about it reaches the ranker.</div>
-</section>
+band does widen when the issuer is turbulent &mdash; it just does not
+widen enough: coverage falls from {_pct(regime_coverage(shipped, 'calm'))} in the calm
+third to {_pct(regime_coverage(shipped, 'turbulent'))} in the turbulent one, the
+regime a reader would actually consult it about.</div>
+"""
+    quantiles = ", ".join(f"{q:g}" for q in QUANTILES)
+    method = _method(
+        target=(f"Annualised realized volatility over the {HORIZON} sessions "
+                f"starting at the entry session. The forecaster&rsquo;s history "
+                f"ends the session <em>before</em>, so it has seen nothing from "
+                f"the window it predicts."),
+        baselines=(f"All in log volatility. Carry today forward; the issuer&rsquo;s "
+                   f"own distribution over {LOOKBACK:,} sessions; HAR, a linear "
+                   f"regression on the {', '.join(map(str, HAR_LAGS))}-session "
+                   f"averages."),
+        challenger=(f"Chronos-2 (<code>{escape(challenger['model'])}</code>), "
+                    f"zero-shot, log space, {int(challenger['context_length'])}"
+                    f"-session context &mdash; its better configuration of the two "
+                    f"measured." if challenger else ""),
+        scoring=(f"Pinball loss at the {quantiles} quantiles; how often the 50% and "
+                 f"80% bands contain the outcome; band width. Paired cluster "
+                 f"bootstrap over sessions on the loss difference."),
+        gate=(f"A forecaster ships only if both bands hold within "
+              f"&plusmn;{_pct(metrics['coverage_tolerance'], 0)} of what they claim."),
+    )
+    more = """<p>A different question from the rest of this page, and kept apart
+from it: no forecast here is an input to the filing ranker, and nothing about it
+reaches the ranker. It says how much movement to expect, never which way.</p>
+<p>Scored on loss and on coverage because either alone is easy to game: an
+interval from zero to infinity has perfect coverage, and a sharp forecast can win
+on loss while its bands quietly mean nothing. The foundation model was given its
+best footing &mdash; forecasting log volatility, the same space every baseline
+works in &mdash; and a pretrained model still lost to a three-term linear
+regression.</p>"""
+    return _section("volatility", "How turbulent is the next month?",
+                    answer, evidence, method, more)
+
+
+# --------------------------------------------------------------------------- #
+# The page.
+# --------------------------------------------------------------------------- #
+
+STYLE = """
+:root{--ink:#102537;--muted:#667681;--blue:#2864dc;--paper:#f3f2ed;
+--panel:#fff;--line:#d7dcdd;--alarm:#b03a2e;--soft:#eef3fb}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);
+font:400 16px/1.65 Inter,-apple-system,"Segoe UI",sans-serif}
+.wrap{max-width:1040px;margin:0 auto;padding:0 22px 96px}
+header{padding:72px 0 40px;border-bottom:1px solid var(--line)}
+.eyebrow{color:var(--blue);font-size:11px;font-weight:800;letter-spacing:.14em;
+text-transform:uppercase;margin:0 0 16px}
+h1{margin:0 0 20px;font:500 clamp(34px,5.6vw,56px)/1.02 Georgia,serif;
+letter-spacing:-.035em;text-wrap:balance}
+h2{margin:0 0 10px;font:500 28px/1.15 Georgia,serif;letter-spacing:-.02em;
+text-wrap:balance}
+h3{margin:0 0 8px;font:500 18px/1.3 Georgia,serif}
+.lede{font:400 19px/1.55 Georgia,serif;max-width:62ch;margin:0}
+section{padding:48px 0;border-bottom:1px solid var(--line)}
+section:last-of-type{border-bottom:0}
+p{max-width:64ch}
+.answer{margin:0;font:400 18px/1.5 Georgia,serif;max-width:66ch}
+.answer strong{font-weight:700}
+.swing{display:flex;align-items:baseline;gap:18px;flex-wrap:wrap;margin:26px 0 0}
+.swing b{font:500 46px/1 Georgia,serif}
+.swing .bad{color:var(--alarm)}.swing .good{color:var(--blue)}
+.swing .arr{color:var(--muted);font-size:26px}
+.swing small{flex-basis:100%;color:var(--muted);font-size:14px;max-width:60ch}
+.brief{margin:30px 0 0;padding:0;list-style:none}
+.brief li{display:grid;grid-template-columns:130px minmax(0,1fr);gap:16px;
+align-items:baseline;padding:13px 0;border-top:1px solid var(--line)}
+.brief b{font:500 24px/1 Georgia,serif;color:var(--blue);
+font-variant-numeric:tabular-nums;white-space:nowrap}
+.brief span{font-size:15px;max-width:60ch}
+.howto{margin:26px 0 0;padding:14px 18px;background:var(--panel);
+border:1px solid var(--line);font-size:14px;color:var(--muted);max-width:none}
+.howto b{color:var(--ink)}
+.sec-body{display:grid;grid-template-columns:minmax(0,1fr) 250px;gap:36px;
+align-items:start;margin-top:20px}
+.method{position:sticky;top:18px;padding:16px 18px;background:var(--panel);
+border:1px solid var(--line);border-top:3px solid var(--blue);
+font-size:12.5px;line-height:1.55;color:var(--muted)}
+.method-tag{display:block;margin-bottom:4px;color:var(--blue);font-size:10px;
+font-weight:800;letter-spacing:.14em;text-transform:uppercase}
+.method dl{margin:0}
+.method dt{margin-top:11px;color:var(--ink);font-size:10.5px;font-weight:800;
+letter-spacing:.08em;text-transform:uppercase}
+.method dd{margin:3px 0 0}
+.method code{font-size:11px;color:var(--ink)}
+.more{margin-top:18px;border-top:1px solid var(--line);padding-top:12px}
+.more summary{cursor:pointer;color:var(--blue);font-size:13px;font-weight:700;
+list-style:none}
+.more summary::before{content:"+ ";font-weight:800}
+.more[open] summary::before{content:"\\2212 "}
+.more>div{margin-top:10px;color:var(--muted);font-size:14.5px}
+.more>div p{margin:0 0 10px}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));
+gap:1px;background:var(--line);border:1px solid var(--line);margin:0 0 18px}
+.stat{background:var(--panel);padding:18px}
+.stat b{display:block;font:500 28px/1 Georgia,serif}
+.stat span{display:block;margin-top:7px;font-size:12px;color:var(--muted);line-height:1.5}
+.scroll{overflow-x:auto;margin:0 0 6px}
+.scroll+.scroll{margin-top:22px}
+table{width:100%;border-collapse:collapse;font-size:14px;min-width:520px}
+th{text-align:left;padding:9px 11px;border-bottom:1px solid var(--ink);
+font-size:10px;letter-spacing:.09em;text-transform:uppercase;
+color:var(--muted);font-weight:700}
+td{padding:10px 11px;border-bottom:1px solid var(--line)}
+td.n{font-variant-numeric:tabular-nums;white-space:nowrap}
+tr.clean td,tr.pick td{background:var(--soft)}
+.soft{color:var(--muted);font-size:12px}
+.note{margin:14px 0 4px;padding:13px 16px;background:var(--panel);
+border-left:3px solid var(--blue);font-size:14px;color:var(--muted)}
+.note strong{color:var(--ink)}
+.features{margin:0;padding:0;list-style:none;counter-reset:f}
+.features li{position:relative;padding:14px 0 14px 44px;border-bottom:1px solid var(--line);
+counter-increment:f}
+.features li::before{content:counter(f);position:absolute;left:0;top:15px;
+color:var(--blue);font-size:12px;font-weight:800}
+.features b{font:500 17px/1.35 Georgia,serif;font-weight:500}
+.features .drop{margin-left:10px;color:var(--muted);font-size:12px;
+font-variant-numeric:tabular-nums}
+.features small{display:block;margin-top:5px;color:var(--muted);font-size:13.5px;
+line-height:1.55;max-width:60ch}
+.features code{display:inline-block;margin-top:7px;color:var(--muted);font-size:11px;
+font-family:ui-monospace,Menlo,monospace}
+.glossary{margin:18px 0 0}
+.glossary dt{margin-top:14px;font-weight:750;font-size:14px}
+.glossary dd{margin:4px 0 0;color:var(--muted);font-size:14px;max-width:64ch}
+.methods td:first-child{font-weight:700;white-space:nowrap}
+.env{font-family:ui-monospace,Menlo,monospace;font-size:12px;color:var(--muted);
+word-break:break-all}
+footer{padding:34px 0 0;color:var(--muted);font-size:13px}
+a{color:var(--blue)}
+.back{display:inline-block;margin-bottom:26px;font-size:13px;text-decoration:none}
+@media(max-width:860px){.sec-body{grid-template-columns:1fr;gap:18px}
+.method{position:static;order:-1}.brief li{grid-template-columns:1fr;gap:4px}}
+@media(prefers-color-scheme:dark){:root{--paper:#12171a;--panel:#1b2226;
+--ink:#e9eef0;--muted:#95a3ab;--line:#2b353a;--blue:#6ba2f5;--alarm:#e08376;
+--soft:#1e2833}}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
 """
 
 
-def _glossary() -> str:
-    return "".join(f"<dt>{term}</dt><dd>{meaning}</dd>" for term, meaning in GLOSSARY)
+def _brief(data, m, naive, honest, drop, spread) -> str:
+    """Six findings, one number each, for the reader with a minute."""
+    items = [
+        # The swing above already shows the before-and-after; repeating it here
+        # would be padding. Lead instead with the count the swing cannot show.
+        (f"{int(float(naive['impossible_entries'])):,}",
+         ("filings the ordinary way enters <em>before EDGAR accepted them</em> "
+          "&mdash; positions taken on news that did not exist yet. That is where "
+          f"the {_num(drop)} of hindsight comes from; the audited rule leaves none.")),
+        (_pct(m["daily_span_captured_at_5"], 0),
+         ("of the achievable gap between a random queue and a perfect one is "
+         "captured by reading the top five.")),
+        (_num(spread),
+         (f"is the most that swapping the model family moves the result. The "
+         f"validation scheme moves it {_num(drop)}. The interesting part was never "
+         f"the estimator.")),
+    ]
+    self_relative = data.get("self_relative")
+    if self_relative:
+        sr = self_relative["metrics"]
+        read_now = self_relative["states"].get("read_now", {})
+        items.append((
+            f"{_pct(read_now.get('precision', 0))} vs {_pct(sr['target']['base_rate'])}",
+            ("<strong>Read now</strong> against the base rate: about twice a coin, "
+            "and still wrong more often than right. Every reason it gives is one a "
+            "reader can check.")))
+        row = next((r for r in self_relative["ablation"]
+                    if r["group"] == "transformer_text"), None)
+        if row:
+            items.append((
+                f"{float(row['pr_auc_vs_structured']):+.4f}",
+                ("is what a financial language model (FinBERT) did to the ranking. "
+                "Measured, worse, not shipped.")))
+    volatility = data.get("volatility")
+    if volatility and volatility["metrics"].get("shipped"):
+        vm = volatility["metrics"]
+        shipped = vm["shipped"]
+        held = {r["forecaster"]: float(r["coverage_80"])
+                for r in volatility["forecasters"]}
+        cov = held.get(shipped, float("nan"))
+        tail = (f" A pretrained foundation model held {_pct(held['chronos'])} "
+                f"and did not." if "chronos" in held else "")
+        items.append((
+            _pct(cov),
+            (f"of outcomes fall inside the next-month volatility band that ships "
+            f"&mdash; a three-term regression that passed the calibration "
+            f"gate.{tail}")))
+    return "".join(f"<li><b>{n}</b><span>{t}</span></li>" for n, t in items)
+
+
+def _methods_index(data) -> str:
+    """Every method on the page, in one place, with what it guards against."""
+    rows = [
+        ("Leakage ladder", "How much hindsight inflates the result",
+         ("The same pipeline re-run with one correction at a time, so each "
+         "shortcut's cost is measured on its own.")),
+        ("Purged, embargoed walk-forward",
+         "Every out-of-sample number on this page",
+         (f"{N_SPLITS} folds in time order; training labels that overlap a test "
+         f"period are dropped, plus a {EMBARGO_DAYS}-day gap. Training on the "
+         "future is the leak this prevents.")),
+        ("Cluster bootstrap over sessions", "Every interval on this page",
+         (f"Trading days resampled, not filings, {N_BOOTSTRAP:,} draws. Filings "
+         "from one morning share a market, and treating them as independent "
+         "reports an interval narrower than the evidence supports.")),
+        ("Paired comparison", "Every &ldquo;vs&rdquo; column",
+         ("Both sides scored on the same resampled days, so the difference is "
+         "measured directly instead of comparing two separate estimates.")),
+        ("Nested model selection", "The choice of model family",
+         ("The family is chosen inside each training fold, so picking the best "
+         "row of a table you just read is priced rather than performed.")),
+        ("Permutation importance", "What the model looks at",
+         ("Each input shuffled on held-out folds; the drop in precision is its "
+         "importance. Out of sample, so it cannot reward memorisation.")),
+    ]
+    if data.get("self_relative"):
+        rows += [
+            ("Issuer-relative target", "Is this filing unusual for this company",
+             (f"The bar is the issuer's own {_pct(TARGET_QUANTILE, 0)} point, using "
+             "only reactions that had finished before this filing arrived.")),
+            ("Held-out calibration", "Is the score a real probability",
+             (f"The later {_pct(CALIBRATION_SHARE, 0)} of each training block fits "
+             "the calibrator; three methods compared on expected calibration error.")),
+            ("Threshold selection on training folds", "Read now / Monitor / Routine",
+             ("Thresholds chosen on earlier folds for a stated precision, reported "
+             "on later ones.")),
+            ("Feature-group ablation", "Issuer-relative columns; FinBERT",
+             ("Families added one at a time on the same folds, columns in matrix "
+             "order, with a paired interval on the difference.")),
+        ]
+    if data.get("volatility"):
+        rows += [
+            ("Quantile scoring and coverage", "The next-month volatility band",
+             ("Pinball loss for the band's shape; how often the 50% and 80% bands "
+             "contain the outcome for its honesty. Either alone is easy to game.")),
+            ("Calibration gate", "Whether a forecaster ships at all",
+             (f"Both bands must hold within &plusmn;"
+             f"{_pct(data['volatility']['metrics']['coverage_tolerance'], 0)} of "
+             "what they claim, out of sample.")),
+        ]
+    rows.append(("Content fingerprints", "What produced these numbers",
+                 ("sha256 over the canonicalised inputs and the library versions, "
+                 "so a rerun that disagrees can be told apart from a rerun on "
+                 "different data.")))
+    body = "".join(f"<tr><td>{a}</td><td>{b}</td><td>{c}</td></tr>" for a, b, c in rows)
+    return (f'<div class="scroll"><table class="methods"><thead><tr><th>Method</th>'
+            f'<th>Used for</th><th>What it prevents</th></tr></thead>'
+            f'<tbody>{body}</tbody></table></div>')
 
 
 def render(data: dict) -> str:
@@ -860,10 +1181,10 @@ def render(data: dict) -> str:
     inputs = manifest.get("inputs", {})
     open_anchored = data["anchoring"][1] if len(data["anchoring"]) > 1 else None
     shipped = manifest.get("pipeline_config", {}).get("estimator", "random_forest")
+    config = manifest.get("pipeline_config", {})
 
-    # The share of sessions holding nothing material, read rather than written:
-    # it is the reason the ceiling sits where it does, and hard-coding it here
-    # would put one drifting number on a page whose point is that none drift.
+    # Read rather than written: the share of sessions holding nothing material is
+    # why the ceiling sits where it does, and a typed copy would drift.
     empty = next((r for r in data["material_counts"]
                   if int(r["material_filings"]) == 0), None)
     empty_share = _pct(empty["share"], 0) if empty else "some"
@@ -871,236 +1192,261 @@ def render(data: dict) -> str:
     families = [r for r in data["families"] if r["candidate"] != "stratified_dummy"]
     spread = max(abs(float(r["difference"])) for r in families) if families else 0.0
     drop = float(naive["average_precision"]) - float(honest["average_precision"])
+    post = data["capture"].get("material, accepted post")
 
-    return f"""<!doctype html><html lang="en"><head><meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>How the ranking was audited &middot; Company Lens</title>
-<style>
-:root{{--ink:#102537;--muted:#667681;--blue:#2864dc;--paper:#f3f2ed;
---panel:#fff;--line:#d7dcdd;--alarm:#b03a2e}}
-*{{box-sizing:border-box}}
-body{{margin:0;background:var(--paper);color:var(--ink);
-font:400 16px/1.65 Inter,-apple-system,"Segoe UI",sans-serif}}
-.wrap{{max-width:860px;margin:0 auto;padding:0 22px 96px}}
-header{{padding:76px 0 40px;border-bottom:1px solid var(--line)}}
-.eyebrow{{color:var(--blue);font-size:11px;font-weight:800;letter-spacing:.14em;
-text-transform:uppercase;margin:0 0 16px}}
-h1{{margin:0 0 20px;font:500 clamp(34px,5.6vw,56px)/1.02 Georgia,serif;
-letter-spacing:-.035em}}
-h2{{margin:0 0 12px;font:500 30px/1.12 Georgia,serif;letter-spacing:-.022em}}
-.lede{{font:400 19px/1.55 Georgia,serif;color:var(--ink);max-width:62ch;margin:0}}
-section{{padding:52px 0;border-bottom:1px solid var(--line)}}
-section:last-of-type{{border-bottom:0}}
-p{{max-width:64ch}}
-.swing{{display:flex;align-items:baseline;gap:18px;flex-wrap:wrap;margin:26px 0 0}}
-.swing b{{font:500 46px/1 Georgia,serif}}
-.swing .bad{{color:var(--alarm)}}.swing .good{{color:var(--blue)}}
-.swing .arr{{color:var(--muted);font-size:26px}}
-.swing small{{flex-basis:100%;color:var(--muted);font-size:14px;max-width:60ch}}
-.stats{{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));
-gap:1px;background:var(--line);border:1px solid var(--line);margin:28px 0 0}}
-.stat{{background:var(--panel);padding:20px}}
-.stat b{{display:block;font:500 30px/1 Georgia,serif}}
-.stat span{{display:block;margin-top:7px;font-size:12px;color:var(--muted);line-height:1.5}}
-.scroll{{overflow-x:auto;margin:22px 0 0}}
-table{{width:100%;border-collapse:collapse;font-size:14px;min-width:520px}}
-th{{text-align:left;padding:9px 11px;border-bottom:1px solid var(--ink);
-font-size:10px;letter-spacing:.09em;text-transform:uppercase;
-color:var(--muted);font-weight:700}}
-td{{padding:11px;border-bottom:1px solid var(--line)}}
-td.n{{font-variant-numeric:tabular-nums;white-space:nowrap}}
-tr.clean td,tr.pick td{{background:#eef3fb}}
-.soft{{color:var(--muted);font-size:12px}}
-.note{{margin-top:18px;padding:15px 18px;background:var(--panel);
-border-left:3px solid var(--blue);font-size:14px;color:var(--muted)}}
-.note strong{{color:var(--ink)}}
-.features{{margin:24px 0 0;padding:0;list-style:none;counter-reset:f}}
-.features li{{position:relative;padding:16px 0 16px 44px;border-bottom:1px solid var(--line);
-counter-increment:f}}
-.features li::before{{content:counter(f);position:absolute;left:0;top:17px;
-color:var(--blue);font-size:12px;font-weight:800}}
-.features b{{font:500 17px/1.35 Georgia,serif;font-weight:500}}
-.features .drop{{margin-left:10px;color:var(--muted);font-size:12px;
-font-variant-numeric:tabular-nums}}
-.features small{{display:block;margin-top:5px;color:var(--muted);font-size:13.5px;
-line-height:1.55;max-width:60ch}}
-.features code{{display:inline-block;margin-top:7px;color:var(--muted);font-size:11px;
-font-family:ui-monospace,Menlo,monospace}}
-.glossary{{margin:22px 0 0}}
-.glossary dt{{margin-top:16px;font-weight:750;font-size:14px}}
-.glossary dd{{margin:5px 0 0;color:var(--muted);font-size:14px;max-width:64ch}}
-.env{{font-family:ui-monospace,Menlo,monospace;font-size:12px;color:var(--muted);
-word-break:break-all}}
-footer{{padding:34px 0 0;color:var(--muted);font-size:13px}}
-a{{color:var(--blue)}}
-.back{{display:inline-block;margin-bottom:26px;font-size:13px;text-decoration:none}}
-@media(prefers-color-scheme:dark){{:root{{--paper:#12171a;--panel:#1b2226;
---ink:#e9eef0;--muted:#95a3ab;--line:#2b353a;--blue:#6ba2f5;--alarm:#e08376}}
-tr.clean td,tr.pick td{{background:#1e2833}}}}
-</style></head><body><div class="wrap">
-
-<header>
-<a class="back" href="index.html">&larr; Company Lens</a>
-<p class="eyebrow">How the ranking was audited</p>
-<h1>Ranking SEC filings,<br>audited against hindsight</h1>
-<p class="lede">This ranks which of a morning's SEC disclosures deserve a human
-read, and reports {_num(honest['average_precision'])} average precision after an
-audit that removes four common sources of hindsight. Written the ordinary way the
-same pipeline reports {_num(naive['average_precision'])} &mdash; and that gap is
-the measurement worth having, because none of the four announces itself.</p>
-<div class="swing">
-<b class="bad">{_num(naive['average_precision'])}</b><span class="arr">&rarr;</span>
-<b class="good">{_num(honest['average_precision'])}</b>
-<small>Written the ordinary way &rarr; audited. No feature or model differs between
-them, only whether the pipeline may see what it could not have known at the time.
-Every number below is the audited one.</small>
-</div>
-</header>
-
-<section>
-<h2>What each form of hindsight is worth</h2>
-<p>Each row removes exactly one. The metric moves erratically because every
-correction also changes which filings are measurable at all &mdash; so the column
-carrying the argument is the count of impossible entries, an invariant rather
-than a score.</p>
-<div class="scroll"><table><thead><tr>
-<th>Stage</th><th class="n">Avg precision</th><th class="n">ROC AUC</th>
-<th class="n">Impossible entries</th><th class="n">Guards failing</th>
-</tr></thead><tbody>{_ladder(ladder)}</tbody></table></div>
+    hindsight = _section(
+        "hindsight",
+        "How much does hindsight inflate the result?",
+        f"Written the ordinary way, this pipeline reports "
+        f"{_num(naive['average_precision'])} average precision. Audited, "
+        f"{_num(honest['average_precision'])}. The {_num(drop)} between them is four "
+        f"ordinary shortcuts, and none of them announces itself.",
+        f"""
+{_table(["Stage", "Avg precision", "ROC AUC", "Impossible entries", "Guards failing"],
+        _ladder(ladder))}
 <div class="note">An <strong>impossible entry</strong> is a filing whose entry
 price was printed before EDGAR accepted the document &mdash; a position taken on
 news that did not exist yet. The naive rule creates
-{int(float(naive['impossible_entries'])):,} of them, {_pct(naive['impossible_share'])}
-of measurable filings, at a median of {float(naive['median_hindsight_hours']):.1f}
-hours of hindsight. The corrected rule leaves none.</div>
-</section>
+{int(float(naive['impossible_entries'])):,} of them,
+{_pct(naive['impossible_share'])} of measurable filings, at a median of
+{float(naive['median_hindsight_hours']):.1f} hours of hindsight. The corrected
+rule leaves none.</div>
+""",
+        _method(
+            technique=("A leakage ladder: the same pipeline run again with one "
+                       "correction added at a time, so each shortcut&rsquo;s cost "
+                       "is measured on its own."),
+            the_four=("Entering at the filing date instead of the acceptance time; "
+                      "trailing features that include the event&rsquo;s own session; "
+                      "a universe drawn from today&rsquo;s survivors; a train/test "
+                      "split that lets training labels overlap the test period."),
+            what_to_read=("The count of impossible entries. The score moves "
+                          "erratically because every correction also changes which "
+                          "filings are measurable at all; the count is an invariant."),
+        ),
+        """<p>Each row removes exactly one source of hindsight. No feature or model
+differs between the top row and the bottom one, only whether the pipeline may see
+what it could not have known at the time. Every number on this page below this
+point is the audited one.</p>""",
+    )
 
-<section>
-<h2>What the audited ranking is worth</h2>
+    worth = _section(
+        "worth",
+        "How good is the audited ranking?",
+        f"{_num(m['average_precision'])} average precision, 95% interval "
+        f"[{_num(m['average_precision_ci_low'])}, "
+        f"{_num(m['average_precision_ci_high'])}]. Reading the top five each morning "
+        f"finds material filings {_pct(m['daily_precision_at_5'])} of the time "
+        f"against a {_pct(m['daily_oracle_precision_at_5'])} ceiling &mdash; "
+        f"{_pct(m['daily_span_captured_at_5'], 0)} of the achievable gap.",
+        f"""
 <div class="stats">
 <div class="stat"><b>{_num(m['average_precision'])}</b><span>average precision<br>
 95% [{_num(m['average_precision_ci_low'])}, {_num(m['average_precision_ci_high'])}]</span></div>
 <div class="stat"><b>{_num(m['roc_auc'])}</b><span>ROC AUC<br>
 95% [{_num(m['roc_auc_ci_low'])}, {_num(m['roc_auc_ci_high'])}]</span></div>
 <div class="stat"><b>{_pct(m['daily_span_captured_at_5'], 0)}</b>
-<span>of the achievable gap captured<br>
-{_pct(m['daily_precision_at_5'])} against a
+<span>of the achievable gap captured<br>{_pct(m['daily_precision_at_5'])} against a
 {_pct(m['daily_oracle_precision_at_5'])} ceiling</span></div>
 <div class="stat"><b>{int(m['n_events']):,}</b><span>filings scored out of sample<br>
 over {int(m['sessions']):,} sessions</span></div>
 </div>
-<p style="margin-top:30px">Intervals are a cluster bootstrap over trading
-sessions, not over filings: two filings from the same morning share a market, and
-treating them as independent draws would report an interval narrower than the
-evidence supports.</p>
-<div class="scroll"><table><thead><tr>
-<th>Reading the top five by</th><th class="n">Material found</th>
-<th class="n">Model lift</th><th class="n">95% interval</th>
-<th class="n">Draws favouring it</th>
-</tr></thead><tbody>{_baselines(m, data['baselines'])}</tbody></table></div>
+{_table(["Reading the top five by", "Material found", "Model lift", "95% interval",
+         "Draws favouring it"], _baselines(m, data['baselines']))}
 <div class="note">The last column is the one to read first. A lift is only a
-result if it survives resampling; a comparison that loses a fifth of its draws to
-arrival order is a different claim from one that loses none.</div>
-</section>
+result if it survives resampling.</div>
+""",
+        _method(
+            validation=(f"Purged, embargoed walk-forward cross-validation: "
+                        f"{N_SPLITS} folds in time order, a {EMBARGO_DAYS}-day "
+                        f"embargo, training labels that overlap a test period "
+                        f"dropped."),
+            label=(f"Market-model event study: the abnormal return over "
+                   f"{int(config.get('event_window_sessions', 0))} sessions, scaled by "
+                   f"the residual volatility of a {int(config.get('estimation_sessions', 0))}"
+                   f"-session estimation window that ends "
+                   f"{int(config.get('estimation_gap_sessions', 0))} sessions before "
+                   f"the event. Material means "
+                   f"|reaction| &ge; {float(config.get('reaction_threshold', 0)):g}."),
+            uncertainty=(f"Cluster bootstrap over {int(m['sessions']):,} trading "
+                         f"sessions, {int(m.get('bootstrap_draws', N_BOOTSTRAP)):,} "
+                         f"draws, 95% percentile intervals. Baselines paired on the "
+                         f"same resample."),
+        ),
+        """<p>Intervals resample trading sessions, not filings: two filings from the
+same morning share a market, and treating them as independent draws would report
+an interval narrower than the evidence supports. Model and baselines see the same
+resampled days, so their difference is measured within a day rather than between
+two separate estimates.</p>""",
+    )
 
-<section>
-<h2>Five is an assumption, so it is reported as a range</h2>
-<p><em>k</em> is how many filings someone reads &mdash; not how many arrive. It
-was assumed from a reader's capacity rather than derived, so the whole tradeoff
-is published instead of one point. The lift depends heavily on that assumption;
-the share of achievable span barely does.</p>
-<div class="scroll"><table><thead><tr>
-<th class="n">Read k</th><th class="n">Sessions</th><th class="n">Random</th>
-<th class="n">Model</th><th class="n">Ceiling</th><th class="n">Lift</th>
-<th class="n">Span captured</th>
-</tr></thead><tbody>{_capacity(data['capacity'])}</tbody></table></div>
-<div class="note">The ceiling is below 100% and often far below: a session
-holding one material filing caps precision@5 at 20% however good the ranking is,
-and {empty_share} of eligible sessions hold none at all. Sessions fall away as
-<em>k</em> grows because a capacity above the day's filing count is reading
-everything, not triaging.</div>
-</section>
+    capacity = _section(
+        "capacity",
+        "What if a reader has time for more, or fewer, than five?",
+        "The lift over a random queue depends heavily on how many filings someone "
+        "reads. The share of the achievable gap barely does, so the whole tradeoff "
+        "is published rather than one point.",
+        f"""
+{_table(["Read k", "Sessions", "Random", "Model", "Ceiling", "Lift", "Span captured"],
+        _capacity(data['capacity']))}
+<div class="note">The ceiling is far below 100%: a session with one material
+filing caps precision@5 at 20% however good the ranking, and {empty_share} of
+sessions hold none at all.</div>
+""",
+        _method(
+            technique=("Precision at <em>k</em>, per session, for each capacity in "
+                       "the table."),
+            reference_points=("<em>Random</em> is the expected precision of a shuffled "
+                              "queue; <em>Ceiling</em> is the best possible order, "
+                              "which cannot exceed the number of material filings "
+                              "that day."),
+            sample=("Sessions with fewer than <em>k</em> filings are excluded at that "
+                    "<em>k</em>: a capacity above the day&rsquo;s count is reading "
+                    "everything, not triaging."),
+        ),
+    )
 
-<section>
-<h2>Useful triage, not a trading strategy</h2>
-<p>That sentence is usually a disclaimer. Here it is a measurement. The label is
-anchored at the previous close, so for a filing accepted after the bell some of
-the reaction has already happened by the time anyone could act.</p>
-<div class="scroll"><table><thead><tr>
-<th>Filings</th><th class="n">Count</th>
-<th class="n">Median share already in the opening print</th>
-</tr></thead><tbody>{_capture(data['capture'])}</tbody></table></div>
-<div class="note">The decomposition is the finding. Across all filings the gap
-barely matters, because most 8-Ks move nothing. Restrict to the ones that cleared
-the materiality threshold and it jumps; restrict to those filed after the close
-and nearly half the move is gone before the bell &mdash; concentrated exactly
-where the ranker is looking. Scored against an open-anchored label the same
-pipeline falls to
-{_num(open_anchored['average_precision']) if open_anchored else 'n/a'}. That is a
-harder question, not a failing ranker.</div>
-</section>
+    trading = _section(
+        "trading",
+        "Could this be traded?",
+        f"No, and that is a measurement rather than a disclaimer. For material "
+        f"filings released after the close, "
+        f"{_pct(post['median_share_in_open']) if post else 'much'} of the reaction "
+        f"is already in the opening print before anyone could act &mdash; "
+        f"concentrated exactly where the ranker is looking.",
+        f"""
+{_table(["Filings", "Count", "Median share already in the opening print"],
+        _capture(data['capture']))}
+<div class="note">Scored against an open-anchored label &mdash; only the
+movement after the open &mdash; the same pipeline falls to
+{_num(open_anchored['average_precision']) if open_anchored else 'n/a'}. A harder
+question, not a failing ranker.</div>
+""",
+        _method(
+            technique=("Reaction decomposition: the share of each filing&rsquo;s "
+                       "abnormal move realised between the prior close and the next "
+                       "open, by filing population."),
+            robustness=("The pipeline re-scored against a label anchored at the "
+                        "open instead of the prior close, so the reader sees what "
+                        "remains after the overnight move is removed."),
+        ),
+    )
 
-<section>
-<h2>The model family barely matters</h2>
-<p>The estimator is deliberately unremarkable, and that is measured rather than
-asserted. Differences are paired: every family saw the same filings on the same
-days, so the difference is measured within a resample.</p>
-<div class="scroll"><table><thead><tr>
-<th>Family</th><th class="n">vs shipped</th>
-<th class="n">95% interval on the difference</th>
-<th class="n">Draws favouring shipped</th>
-</tr></thead><tbody>{_families(data['families'], shipped)}</tbody></table></div>
-<div class="note">Swapping the family moves average precision by at most
-<strong>{_num(spread)}</strong>. Swapping the validation scheme moves it
-<strong>{_num(drop)}</strong>. The interesting code was never the estimator, and
-the shipped family was chosen by a nested procedure that prices the selection
-rather than performing it &mdash; because picking the top row of a table you just
-read is the one leak no per-row guard can catch.</div>
-</section>
+    family = _section(
+        "family",
+        "Does the choice of model matter?",
+        f"Barely. Swapping the family moves average precision by at most "
+        f"{_num(spread)}; swapping the validation scheme moves it {_num(drop)}. "
+        f"The interesting code was never the estimator.",
+        f"""
+{_table(["Family", "vs shipped", "95% interval on the difference",
+         "Draws favouring shipped"], _families(data['families'], shipped))}
+""",
+        _method(
+            technique=("Every family scored on the same filings on the same days; "
+                       "differences are paired within each resample."),
+            selection=("Nested: the shipped family was chosen inside each training "
+                       "fold by a procedure that prices the selection rather than "
+                       "performing it. Picking the top row of a table you just read "
+                       "is the one leak no per-row guard can catch."),
+            uncertainty=(f"Paired cluster bootstrap, {N_BOOTSTRAP:,} draws; "
+                         f"&ldquo;draws favouring shipped&rdquo; counts how often it "
+                         f"came out ahead."),
+        ),
+    )
 
-<section>
-<h2>What the model actually reads</h2>
-<p>Every input has to be computable at the moment the filing lands &mdash; nothing
-about what happened next. The ten it leans on most, ordered by how much the score
-falls when that column is shuffled:</p>
+    reads = _section(
+        "reads",
+        "What does the model look at?",
+        f"Ten inputs carry most of the ranking, out of {len(data['importance'])}. "
+        f"Every one is computable at the moment the filing lands &mdash; nothing "
+        f"about what happened next.",
+        f"""
 <ol class="features">{_features(data['importance'])}</ol>
-<div class="note">There are {len(data['importance'])} inputs in total; the rest are
-the remaining 8-K item codes and slower-moving market state. Notice what is
-<em>not</em> here: no price target, no analyst estimate, no sentiment score. A
-sentiment model trained <em>today</em> has read what happened afterwards, which is
-the same leak in a friendlier costume &mdash; and a sentiment model old enough to
-avoid that was tried and measured. {_sentiment_verdict(data)}</div>
-</section>
+<div class="note">Notice what is <em>not</em> here: no price target, no analyst
+estimate, no sentiment score. A sentiment model trained <em>today</em> has read
+what happened afterwards, which is the same leak in a friendlier costume &mdash;
+and a sentiment model old enough to avoid that was tried and measured.
+{_sentiment_verdict(data)}</div>
+""",
+        _method(
+            technique=("Permutation importance, out of sample: each column is "
+                       "shuffled on the held-out folds and the drop in average "
+                       "precision is recorded. Ordered by that drop."),
+            rule=("Every input is a knowledge-time quantity. Trailing statistics end "
+                  "the session before entry, so the event&rsquo;s own session is "
+                  "never inside its own features."),
+        ),
+    )
+
+    return f"""<!doctype html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>How the ranking was audited &middot; Company Lens</title>
+<style>{STYLE}</style></head><body><div class="wrap">
+
+<header>
+<a class="back" href="index.html">&larr; Company Lens</a>
+<p class="eyebrow">How the ranking was audited</p>
+<h1>Ranking SEC filings,<br>audited against hindsight</h1>
+<p class="lede">Each morning this ranks which SEC disclosures deserve a human
+read. Every number here was measured after removing the ordinary ways a result
+gets flattered by hindsight, and every section names the method that produced
+it.</p>
+<div class="swing">
+<b class="bad">{_num(naive['average_precision'])}</b><span class="arr">&rarr;</span>
+<b class="good">{_num(honest['average_precision'])}</b>
+<small>Average precision, written the ordinary way &rarr; audited. Same features,
+same model; only whether the pipeline may see what it could not have known.</small>
+</div>
+<ul class="brief">{_brief(data, m, naive, honest, drop, spread)}</ul>
+<p class="howto"><b>How to read this page.</b> Every section is one question, its
+answer in a sentence, the table that supports it, and &mdash; beside it &mdash;
+the <b>method</b> that produced the table. &ldquo;Why this matters&rdquo; opens
+the longer argument. A full index of methods is at the end.</p>
+</header>
+{hindsight}
+{worth}
+{capacity}
+{trading}
+{family}
+{reads}
 {_issuer_relative(data)}
 {_volatility_section(data['volatility'])}
-<section>
-<h2>Terms used above</h2>
-<dl class="glossary">{_glossary()}</dl>
+<section id="methods">
+<h2>Every method used on this page</h2>
+<p class="answer">The same handful of techniques, applied consistently. Each is
+listed with what it is used for and the mistake it exists to prevent.</p>
+{_methods_index(data)}
 </section>
 
-<section>
+<section id="terms">
+<h2>Terms used above</h2>
+<details class="more"><summary>Open the glossary</summary>
+<dl class="glossary">{_glossary()}</dl></details>
+</section>
+
+<section id="provenance">
 <h2>What produced these numbers</h2>
-<p>A result without a fingerprint of its inputs is a claim with its subject
-deleted. EDGAR grows, vendor prices are re-adjusted retroactively, and library
-versions move &mdash; so a rerun that disagrees could mean the code changed or
-the data did. Each export records which.</p>
-<div class="stats">
-<div class="stat"><b>{int(inputs.get('events', {}).get('rows', 0)):,}</b>
-<span>filings ingested<br>from {integ.get('events_total', 0):,} EDGAR records</span></div>
-<div class="stat"><b>{int(inputs.get('prices', {}).get('rows', 0)):,}</b>
-<span>daily price rows<br>{inputs.get('prices', {}).get('first_session', '?')}
-&rarr; {inputs.get('prices', {}).get('last_session', '?')}</span></div>
-<div class="stat"><b>{env.get('python', '?')}</b><span>Python<br>
-scikit-learn {env.get('packages', {}).get('scikit-learn', '?')} ·
-pandas {env.get('packages', {}).get('pandas', '?')}</span></div>
-</div>
-<p class="env" style="margin-top:22px">events sha256
-{inputs.get('events', {}).get('sha256', '')[:32]}&hellip;<br>
+<p class="answer">{int(inputs.get('events', {}).get('rows', 0)):,} filings from
+{integ.get('events_total', 0):,} EDGAR records; {int(inputs.get('prices', {}).get('rows', 0)):,}
+daily price rows; Python {env.get('python', '?')} with scikit-learn
+{env.get('packages', {}).get('scikit-learn', '?')}. Each export records a
+fingerprint of its inputs, so a rerun that disagrees can be told apart from a
+rerun on different data.</p>
+<div class="sec-body"><div class="sec-main">
+<p class="env">events sha256 {inputs.get('events', {}).get('sha256', '')[:32]}&hellip;<br>
 prices sha256 {inputs.get('prices', {}).get('sha256', '')[:32]}&hellip;</p>
 <div class="note">Digests are taken over canonicalised content rather than file
-bytes, so a pandas upgrade does not change them. A changed row count is the
+bytes, so a library upgrade does not change them. A changed row count is the
 source growing; an unchanged count with a changed digest is values moving
-underneath.</div>
+underneath &mdash; vendor prices re-adjusted after a split, say.</div>
+</div>
+{_method(technique=("sha256 over each input frame with columns and rows in "
+                    "canonical order and floats at fixed precision."),
+         recorded=("Row counts, date range, and the versions of every library "
+                   "that can move a number &mdash; including the optional "
+                   "transformer and forecasting stacks."))}
+</div>
 </section>
 
 <footer>
