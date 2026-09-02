@@ -58,6 +58,12 @@ def main(argv: list[str] | None = None) -> int:
     insiders.add_argument("--since", default="2022-01-01")
     insiders.add_argument("--limit", type=int, default=None,
                           help="stop after this many issuers (for a smoke test)")
+    insiders.add_argument("--shard", default=None, metavar="I/N",
+                          help="take every Nth issuer starting at I, so several "
+                               "processes can warm the shared cache at once")
+    insiders.add_argument("--out", default=None,
+                          help="where to write the transactions (default: "
+                               "data/build/insider_transactions.parquet)")
 
     run = sub.add_parser("run", help="run the pipeline over data/build")
     run.add_argument("--out", default=str(BUILD / "report.html"))
@@ -564,13 +570,23 @@ def _ingest_insiders(args) -> int:
     if args.limit:
         membership = membership.head(args.limit)
     membership = membership[membership["cik"].notna()]
+    membership = membership.drop_duplicates("cik").reset_index(drop=True)
+
+    if args.shard:
+        # Every Nth issuer rather than a contiguous block. Issuers arrive in
+        # alphabetical order and filing counts vary by an order of magnitude, so
+        # contiguous blocks would finish at wildly different times; interleaving
+        # gives every shard the same mix.
+        index, total = (int(part) for part in args.shard.split("/"))
+        membership = membership.iloc[index::total]
+        print(f"  shard {index + 1} of {total}: {len(membership)} issuers", flush=True)
 
     client = EdgarClient()
     print(f"  {client.check_access()}", flush=True)
     since = pd.Timestamp(args.since).date()
 
     transactions, failures, unparsed = [], [], 0
-    for row in membership.drop_duplicates("cik").itertuples():
+    for row in membership.itertuples():
         try:
             filings = parse_submissions(client.submissions(row.cik), row.cik,
                                         forms=("4",))
@@ -609,11 +625,17 @@ def _ingest_insiders(args) -> int:
 
     frame = pd.concat(transactions, ignore_index=True)
     BUILD.mkdir(parents=True, exist_ok=True)
-    frame.to_parquet(BUILD / "insider_transactions.parquet", index=False)
+    # A shard writes beside the canonical file rather than over it. The shards
+    # exist to fill the cache; the run that produces the real dataset is the one
+    # without --shard, which then reads every document from cache.
+    default = (BUILD / f"insider_transactions.shard{args.shard.replace('/', '-')}.parquet"
+               if args.shard else BUILD / "insider_transactions.parquet")
+    out = Path(args.out) if args.out else default
+    frame.to_parquet(out, index=False)
 
     open_market = frame["transaction_code"].isin({"P", "S"}).sum()
     print(f"\n{len(frame):,} transactions from {len(transactions)} issuers "
-          f"({len(failures)} failed, {unparsed} unparsed) -> {BUILD}")
+          f"({len(failures)} failed, {unparsed} unparsed) -> {out}")
     print(f"  {open_market:,} are open-market purchases or sales "
           f"({open_market / len(frame):.1%}); the rest is compensation machinery")
     return 0
