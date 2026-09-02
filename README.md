@@ -1,12 +1,63 @@
 # Filing Triage — and Company Lens
 
-**Which of today's SEC filings deserve a human read?**
+**Every trading day, US public companies file legally-required disclosures with
+the government. Most are routine. A few move the stock. An analyst has time to
+read about five before the opening bell.**
 
-A pipeline written the obvious way reports an **average precision of 0.597** on
-real SEC filings. The version that survives its own audit reports **0.397**.
+This ranks them, so the five they read are the right five. It runs on 11,716 real
+filings from 193 companies over four years, and there is a live site built on top
+of it: **[lens.josephjwang.com](https://lens.josephjwang.com)**.
 
-That gap is not model improvement. It is four common pipeline bugs, none of which
-announced itself — every one produced a result the author would have preferred.
+Reading the top five each morning finds a market-moving filing **19.8%** of the
+time. Reading five at random finds one 11.6% of the time. A perfect ranker would
+reach 28.3% — most days simply do not contain five important filings — so this
+captures about **half of everything there is to capture**.
+
+## The part worth reading about is what happened before that number
+
+The first working version scored far better. It was wrong, and not in a way that
+announced itself.
+
+In **11,224 cases** it had bought a stock at a price printed *before* the
+disclosure it was reacting to had been filed. Not a bug in the model — a
+one-line assumption about what a timestamp meant. Three other mistakes of the
+same family were hiding beside it, each one flattering the result, none of them
+visible in any score.
+
+Removing all four costs a **third of the apparent performance**. Both numbers are
+published side by side, along with the tooling that found the problem and the
+tests that now fail the build if it comes back.
+
+| | Written the ordinary way | After the audit |
+|---|---|---|
+| Score on the standard measure | 0.597 | **0.397** |
+| Filings entered before they existed | 11,224 | **0** |
+
+That is the whole argument of the project: **a result you are pleased with
+deserves more suspicion than one you are not**, and the difference is measurable.
+Three later experiments were measured the same way and reported the same way —
+a financial language model, a foundation forecasting model, and the project's own
+issuer-relative features all failed to earn their place, and all three say so on
+the public page rather than quietly not shipping.
+
+## What this is, in one paragraph
+
+A point-in-time event dataset built from SEC timestamps; a reusable audit library
+that fails the build rather than logging a warning; a ranker; and a
+source-backed company page with a controlled AI question-answering box that
+refuses to answer beyond its evidence. 649 tests. No price predictions, no
+trading strategy, no buy or sell recommendations anywhere — the model predicts
+*how big* a reaction will be, never which direction, because direction is a bet
+against desks with faster data and more capital.
+
+**Technical detail starts below.** Method: [docs/METHODOLOGY.md](docs/METHODOLOGY.md) ·
+Leakage: [docs/LEAKAGE.md](docs/LEAKAGE.md) ·
+Audited findings, generated from the evidence package:
+[the research page](https://lens.josephjwang.com/research.html)
+
+---
+
+## The leakage ladder, in full
 
 | Stage | Avg precision | ROC AUC | Impossible entries | Guards failing |
 |---|---|---|---|---|
@@ -26,10 +77,6 @@ universe row does not move at all — a metric is not the thing being fixed. The
 count is: 11,224 entries that used a price printed before the filing existed,
 reduced to zero. That column is an invariant, comparable across rows in a way the
 metric is not, because each fix also changes which filings are measurable.
-
-Full story, method and diagrams: **[the write-up](web/showcase.html)**.
-Details below, and in [docs/LEAKAGE.md](docs/LEAKAGE.md) and
-[docs/METHODOLOGY.md](docs/METHODOLOGY.md).
 
 ---
 
@@ -469,7 +516,7 @@ embargo sweep, and writes a self-contained HTML report.
 
 ```bash
 make quick           # smaller, no leakage study, ~30s
-make test            # 580 tests (~12 min; the nested model selection dominates)
+make test            # 649 tests (~12 min; the nested model selection dominates)
 make audit           # the leakage checks as an exit code
 make llm-eval        # frozen English/Chinese grounded-output scorecard
 make llm-eval-openai-dry-run  # inspect 20-case paid benchmark scope; sends nothing
@@ -621,15 +668,10 @@ committed is what goes live, so there is nothing that can fail to build.
 
 | | |
 |---|---|
-| `web/showcase.html` | the full write-up: story, method, findings, diagrams |
 | `lens.josephjwang.com/research.html` | the audited findings, generated from `evidence/real_run` so they cannot drift |
 | `lens.josephjwang.com/earnings.html` | expected reporting dates, inferred from each issuer's own cadence |
 | `web/index.html` | a short landing page |
 | `web/report.html` | the generated report from a run |
-
-`showcase.html` is one self-contained file with no external requests, so it also
-embeds directly into Streamlit or a personal site — see
-[web/EMBEDDING.md](web/EMBEDDING.md).
 
 ```bash
 make run     # or make demo
@@ -665,9 +707,10 @@ src/filing_triage/
   guards.py        the leakage checks, and purged/embargoed walk-forward CV
   uncertainty.py   cluster bootstrap; paired baseline intervals
   config.py        one config, four correctness switches
-  ingest/          EDGAR client, multi-source prices, interval-based membership
+  ingest/          EDGAR client, Form 4 XML, prices, interval-based membership
   features.py      features, each computable at decision time
   labels.py        market-model event study on a numpy session grid
+  insiders.py      Form 4: routine vs opportunistic, point-in-time
   self_relative.py issuer-relative percentiles and robust z, two cutoffs apart
   calibration.py   score -> probability, with the calibrator's own held-out slice
   recommend.py     Read now / Monitor / Routine, and when to abstain
@@ -680,12 +723,12 @@ src/filing_triage/
                    and hyperparameter sensitivity grid
   report.py        self-contained HTML
   synth.py         the offline corpus
-tests/             580 tests; test_guards, test_pipeline, test_uncertainty
+tests/             649 tests; test_guards, test_pipeline, test_uncertainty
                    and test_ingest_integration are the ones that matter
 docs/              METHODOLOGY.md, LEAKAGE.md, COMPANY_LENS.md
 ```
 
-About 16,489 lines under `src/`, plus 7,630 of tests. It is meant to be read
+About 17,942 lines under `src/`, plus 9,152 of tests. It is meant to be read
 end to end, and a test asserts these figures have not drifted from the code.
 
 ---

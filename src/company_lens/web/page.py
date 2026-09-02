@@ -78,6 +78,7 @@ def render_index(
 <title>Company Lens</title><style>{_index_css()}</style></head>
 <body><main><header class="index-topbar"><a class="index-brand" href="index.html">
 <span>CL</span><strong>Company Lens</strong></a><div>
+<a class="topbar-link" href="overview.html" data-index-i18n="nav.what">What this is</a>
 <a class="topbar-link" href="earnings.html" data-index-i18n="nav.earnings">Expected earnings</a>
 <a class="topbar-link" href="research.html" data-index-i18n="nav.research">How this is audited</a>
 <small data-index-i18n="nav.scope">{len(companies)}-company evidence universe</small>
@@ -112,6 +113,8 @@ company name from the current local universe.</p></form></div>
     return and risk calculations, deterministic NLP change filtering, and an optional
     source-bounded LLM explanation layer.</p></details>
     <div class="method-links">
+    <a href="overview.html"><strong data-index-i18n="method.overview">What this project is</strong>
+    <small data-index-i18n="method.overview_copy">The problem, the result, and the mistake that made it look twice as good &mdash; in plain words</small></a>
     <a href="research.html"><strong data-index-i18n="method.research">How the ranking was audited</strong>
     <small data-index-i18n="method.research_copy">The leakage ladder, the intervals, and what the label cannot claim</small></a>
     <a href="earnings.html"><strong data-index-i18n="method.earnings">Expected reporting dates</strong>
@@ -222,6 +225,7 @@ def _document(snapshot: CompanySnapshot) -> str:
     <a href="index.html" class="company-search-link" data-i18n="nav.find">Find a company</a>
     <span class="current-symbol" aria-current="page">{html.escape(snapshot.ticker)}</span>
     <a href="earnings.html" class="site-link" data-i18n="nav.earnings">Expected earnings</a>
+    <a href="overview.html" class="site-link" data-i18n="nav.what">What this is</a>
     <a href="research.html" class="site-link" data-i18n="nav.research">How this is audited</a>
   </nav>
   <nav class="section-nav" aria-label="Page storyline">
@@ -1091,6 +1095,7 @@ def _script(default_period: str, ticker: str, benchmark: str) -> str:
         {
             "en": {
                 "nav.earnings": "Expected earnings",
+                "nav.what": "What this is",
                 "nav.research": "How this is audited",
                 "nav.find": "Find a company",
                 "nav.overview": "Overview",
@@ -2415,6 +2420,9 @@ const normalize = value => value.trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
 const indexTranslations = {
   en: {
     'nav.earnings': 'Expected earnings',
+    'nav.what': 'What this is',
+    'method.overview': 'What this project is',
+    'method.overview_copy': ('The problem, the result, and the mistake that made it look twice as good \u2014 in plain words'),
     'nav.research': 'How this is audited',
     'nav.scope': '{count}-company evidence universe',
     'hero.eyebrow': 'SOURCE-BACKED COMPANY INTELLIGENCE',
