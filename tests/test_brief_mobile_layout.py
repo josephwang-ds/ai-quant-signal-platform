@@ -11,8 +11,6 @@ BRIEF_CLASSES = (
     "brief-numbers",
     "brief-reading",
     "brief-limit",
-    "brief-missing",
-    "brief-quality",
 )
 
 
@@ -70,17 +68,14 @@ def _cascade_scan(css: str, width: int) -> dict[str, dict[str, str]]:
 
 def test_brief_cards_span_full_width_at_390px() -> None:
     css = _css()
-    # Responsive full-width rule must come after unconditional brief span rules.
-    assert css.rfind(".brief-quality{grid-column:span 6}") < css.rfind(
-        ".brief-lead,.brief-numbers,.brief-reading,.brief-limit,.brief-missing,.brief-quality{grid-column:1/-1}"
-    )
 
     desktop = _cascade_scan(css, width=1200)
     mobile = _cascade_scan(css, width=390)
 
     assert "repeat(12" in desktop["brief-grid"].get("grid-template-columns", "")
     assert desktop["brief-lead"].get("grid-column") == "span 7"
-    assert desktop["brief-quality"].get("grid-column") == "span 6"
+    # The boundary card is alone on its row and takes the whole of it.
+    assert desktop["brief-limit"].get("grid-column") == "1/-1"
 
     assert mobile["brief-grid"].get("grid-template-columns") == "1fr"
     for name in BRIEF_CLASSES:

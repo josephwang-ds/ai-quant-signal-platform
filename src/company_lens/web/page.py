@@ -19,7 +19,6 @@ from company_lens.contracts import (
     FilingChange,
     FilingEntity,
     FilingTimelinePoint,
-    FundamentalsSection,
     HeadlineBrief,
 )
 from company_lens.profiles import DEMO_PROFILES
@@ -176,23 +175,9 @@ def _document(snapshot: CompanySnapshot) -> str:
         for label in snapshot.period_options
     )
     brief = _brief(snapshot)
-    fundamentals_available = (
-        snapshot.fundamentals is not None
-        and snapshot.fundamentals.status == "available"
-    )
-    if fundamentals_available:
-        intro_key = "brief.intro_with_trends"
-        intro = (
-            "Start with the latest disclosure, the historical ride, and source-linked "
-            "annual business trends. Price expectations and valuation are still not connected."
-        )
-    else:
-        intro_key = "brief.intro"
-        intro = (
-            "Start with the latest disclosure, the historical ride, and "
-            "the evidence boundary. Multi-year financials and price expectations "
-            "are not on this page yet."
-        )
+    intro_key = "brief.intro"
+    intro = ("Start with the latest disclosure, then the historical picture. "
+             "Every number links to its source.")
     evidence_context = _evidence_context(snapshot.evidence_scope, snapshot.headlines)
     context_nav = (
         '<a href="#context" data-i18n="nav.company_news">Company news</a>'
@@ -214,14 +199,12 @@ def _document(snapshot: CompanySnapshot) -> str:
         source_check_key = "filings.sec_unavailable"
         source_check_prefix = "SEC cache time unavailable"
     source_check_date = str(source_checked_at)[:10] if source_checked_at else ""
-    survivor_warning = ""
+    # Stated in the footer rather than as a banner over the page. It is true and
+    # it belongs on the page; it is not the first thing a reader needs.
     universe = snapshot.provenance.get("universe") or {}
-    if universe.get("survivorship_controlled") is False:
-        survivor_warning = (
-            '<div class="scope-warning"><strong>Universe limitation</strong>'
-            '<span>This cached demo uses a survivor convenience sample, not a '
-            'point-in-time index universe.</span></div>'
-        )
+    universe_note = ("<span>Universe: a convenience sample of current large caps, "
+                     "not a point-in-time index</span>"
+                     if universe.get("survivorship_controlled") is False else "")
 
     return f"""<!doctype html>
 <html lang="en">
@@ -253,10 +236,9 @@ def _document(snapshot: CompanySnapshot) -> str:
 </header>
 
 <main>
-  {survivor_warning}
   <section class="company-hero">
     <div>
-      <p class="eyebrow" data-i18n="hero.eyebrow">COMPANY OVERVIEW · REAL CACHED DATA</p>
+      <p class="eyebrow" data-i18n="hero.eyebrow">COMPANY OVERVIEW · SOURCE-BACKED</p>
       <div class="company-title"><h1>{html.escape(company_name)}</h1>
       <span>{html.escape(snapshot.ticker)}</span></div>
       <p class="profile-category" data-i18n="profile.category"
@@ -358,7 +340,7 @@ def _document(snapshot: CompanySnapshot) -> str:
 
     <footer><div><strong>Company Lens</strong><span data-i18n="footer.tagline">Understand the evidence before forming a view.</span>
     <a href="index.html#method" data-i18n="footer.how">How to read this lens</a></div>
-<div class="footer-meta"><span>Snapshot v{html.escape(snapshot.schema_version)}</span>
+<div class="footer-meta">{universe_note}<span>Snapshot v{html.escape(snapshot.schema_version)}</span>
 <span>Market through {html.escape(snapshot.as_of)}</span><span>SEC + adjusted daily prices</span></div></footer>
 
 <script type="application/json" id="period-data">{payload}</script>
@@ -738,7 +720,6 @@ def _brief(snapshot: CompanySnapshot) -> str:
         filing_title = "No local filing"
         filing_meta = '<span data-i18n="filing.evidence_unavailable">Evidence unavailable</span>'
         source_link = ""
-    fundamentals_card = _fundamentals_brief_card(snapshot.fundamentals)
     changed_en = str(changed.get("text", "Not available."))
     changed_zh = str(changed.get("text_zh") or changed_en)
     uncertainty_en = str(uncertainty.get("text", "Not available."))
@@ -767,182 +748,12 @@ def _brief(snapshot: CompanySnapshot) -> str:
       <span data-i18n="brief.boundary">Boundary:</span>
       <p data-i18n="brief.uncertainty_claim" data-i18n-en="{html.escape(uncertainty_en)}"
       data-i18n-zh="{html.escape(uncertainty_zh)}">{html.escape(uncertainty_en)}</p>
-    </article>
-    {fundamentals_card}"""
+    </article>"""
 
 
 def _first_claim(explanation: dict, section: str) -> dict:
     claims = explanation.get(section, [])
     return claims[0] if claims else {"text": "Not available.", "citations": []}
-
-
-def _fundamentals_brief_card(section: FundamentalsSection | None) -> str:
-    if section is None or section.status != "available":
-        return """<article class="brief-card brief-missing interpreted">
-      <span data-i18n="brief.missing_title">Not on this page yet</span>
-      <p data-i18n="brief.missing_copy">Valuation expectations and multi-year financial trends are not connected yet.
-      This brief does not estimate intrinsic value or say whether the business is cheap.</p>
-    </article>"""
-    rows = "".join(_fundamentals_trend_row(item) for item in _fundamentals_trend_rows(section))
-    return f"""<article class="brief-card brief-quality observed">
-      <span data-i18n="brief.quality_title">Annual business trends</span>
-      <ul class="brief-trends">{rows}</ul>
-      <p class="brief-valuation-note" data-i18n="brief.valuation_unconnected">Valuation expectations are still not connected.
-      This page does not estimate intrinsic value or say whether the business is cheap.</p>
-    </article>"""
-
-
-def _fundamentals_trend_rows(section: FundamentalsSection) -> list[dict[str, Any]]:
-    specs = (
-        ("revenue", "reported", "brief.metric_revenue", "Revenue", "USD"),
-        ("gross_margin", "derived", "brief.metric_gross_margin", "Gross margin", "ratio"),
-        (
-            "operating_margin",
-            "derived",
-            "brief.metric_operating_margin",
-            "Operating margin",
-            "ratio",
-        ),
-        (
-            "fcf_per_share",
-            "derived",
-            "brief.metric_fcf_per_share",
-            "Free cash flow / share",
-            "USD/shares",
-        ),
-        (
-            "diluted_shares",
-            "reported",
-            "brief.metric_diluted_shares",
-            "Diluted shares",
-            "shares",
-        ),
-    )
-    rows: list[dict[str, Any]] = []
-    for metric_id, kind, i18n_key, label, unit in specs:
-        series = _series_by_id(section, metric_id, kind)
-        if series is None:
-            continue
-        if kind == "derived":
-            observations = [
-                item for item in series.observations if item.status == "available"
-            ]
-        else:
-            observations = [
-                item
-                for item in series.observations
-                if "share_basis_noncomparable" not in item.quality_flags
-            ]
-        if len(observations) < 2:
-            continue
-        window = observations[-10:]
-        start = window[0]
-        latest = window[-1]
-        start_value = start.value
-        latest_value = latest.value
-        if start_value is None or latest_value is None:
-            continue
-        if latest_value > start_value * 1.02:
-            direction = "up"
-            direction_label = "Up"
-            direction_key = "brief.trend_up"
-        elif latest_value < start_value * 0.98:
-            direction = "down"
-            direction_label = "Down"
-            direction_key = "brief.trend_down"
-        else:
-            direction = "flat"
-            direction_label = "Flat"
-            direction_key = "brief.trend_flat"
-        source_url = ""
-        if kind == "reported":
-            source_url = latest.citation.source_url
-        else:
-            source_url = _component_source_url(section, latest.components)
-        coverage = (
-            "complete"
-            if len(window) >= section.requested_years
-            else "partial"
-        )
-        rows.append(
-            {
-                "label": label,
-                "i18n_key": i18n_key,
-                "start": _format_fundamental_value(float(start_value), unit),
-                "latest": _format_fundamental_value(float(latest_value), unit),
-                "direction": direction,
-                "direction_label": direction_label,
-                "direction_key": direction_key,
-                "period": f"FY{start.fiscal_year}-FY{latest.fiscal_year}",
-                "coverage": coverage,
-                "source_url": source_url,
-                "latest_year": latest.fiscal_year,
-            }
-        )
-    return rows
-
-
-def _series_by_id(section: FundamentalsSection, metric_id: str, kind: str):
-    pool = section.derived_series if kind == "derived" else section.reported_series
-    return next((item for item in pool if item.metric_id == metric_id), None)
-
-
-def _format_fundamental_value(value: float | None, unit: str) -> str:
-    if value is None:
-        return "n/a"
-    if unit == "ratio":
-        return f"{value * 100:.1f}%"
-    if unit in {"USD", "USD/shares"}:
-        scale = abs(value)
-        if scale >= 1_000_000_000:
-            return f"${value / 1_000_000_000:.1f}B"
-        if scale >= 1_000_000:
-            return f"${value / 1_000_000:.1f}M"
-        if unit == "USD/shares":
-            return f"${value:,.2f}"
-        return f"${value:,.0f}"
-    if unit == "shares":
-        scale = abs(value)
-        if scale >= 1_000_000_000:
-            return f"{value / 1_000_000_000:.2f}B"
-        if scale >= 1_000_000:
-            return f"{value / 1_000_000:.1f}M"
-        return f"{value:,.0f}"
-    return f"{value:,.4g}"
-
-
-def _fundamentals_trend_row(item: dict[str, Any]) -> str:
-    source = ""
-    if item["source_url"]:
-        source = (
-            f'<a href="{html.escape(item["source_url"])}" target="_blank" rel="noreferrer">'
-            f'FY{item["latest_year"]} 10-K ↗</a>'
-        )
-    return (
-        f'<li data-direction="{html.escape(item["direction"])}">'
-        f'<div class="trend-values"><strong>{html.escape(item["latest"])}</strong>'
-        f'<span>{html.escape(item["start"])} → {html.escape(item["latest"])}</span></div>'
-        f'<small><span data-i18n="{item["i18n_key"]}">{html.escape(item["label"])}</span>'
-        f' · {html.escape(item["period"])}'
-        f' · <span data-i18n="{item["direction_key"]}">{html.escape(item["direction_label"])}</span>'
-        f' · <span data-i18n="brief.coverage_{html.escape(item["coverage"])}">'
-        f'{html.escape(item["coverage"])}</span></small>'
-        f"{source}"
-        "</li>"
-    )
-
-
-def _component_source_url(section: FundamentalsSection, components: dict[str, str | None]) -> str:
-    ids = [value for value in components.values() if value]
-    citation_lookup = {
-        observation.citation.citation_id: observation.citation.source_url
-        for series in section.reported_series
-        for observation in series.observations
-    }
-    for citation_id in ids:
-        if citation_id in citation_lookup:
-            return citation_lookup[citation_id]
-    return ""
 
 
 def _mode_label(mode: Any) -> str:
@@ -1290,21 +1101,13 @@ def _script(default_period: str, ticker: str, benchmark: str) -> str:
                 "nav.trust": "Evidence, not prediction",
                 "workspace.eyebrow": "ON THIS PAGE",
                 "workspace.title": "Read the brief, then verify below.",
-                "hero.eyebrow": "COMPANY OVERVIEW · REAL CACHED DATA",
+                "hero.eyebrow": "COMPANY OVERVIEW · SOURCE-BACKED",
                 "hero.latest_close": "Latest adjusted close",
                 "hero.observed": "Observed",
                 "brief.eyebrow": "ONE-MINUTE BRIEF",
                 "brief.title": "What matters on this page",
-                "brief.intro": (
-                    "Start with the latest disclosure, the historical ride, and the "
-                    "evidence boundary. Multi-year financials and price expectations "
-                    "are not on this page yet."
-                ),
-                "brief.intro_with_trends": (
-                    "Start with the latest disclosure, the historical ride, and "
-                    "source-linked annual business trends. Price expectations and "
-                    "valuation are still not connected."
-                ),
+                "brief.intro": ("Start with the latest disclosure, then the historical "
+                               "picture. Every number links to its source."),
                 "brief.latest_disclosure": "Latest SEC disclosure",
                 "brief.selected_period": "Selected historical period",
                 "brief.total_return": "Total return",
@@ -1315,17 +1118,6 @@ def _script(default_period: str, ticker: str, benchmark: str) -> str:
                 "brief.explore_history": "Explore the full history ↓",
                 "brief.explore_filings": "Read the filing evidence ↓",
                 "brief.boundary": "Boundary:",
-                "brief.missing_title": "Not on this page yet",
-                "brief.missing_copy": (
-                    "Valuation expectations and multi-year financial trends are not "
-                    "connected yet. This brief does not estimate intrinsic value or "
-                    "say whether the business is cheap."
-                ),
-                "brief.quality_title": "Annual business trends",
-                "brief.valuation_unconnected": (
-                    "Valuation expectations are still not connected. This page does "
-                    "not estimate intrinsic value or say whether the business is cheap."
-                ),
                 "brief.metric_revenue": "Revenue",
                 "brief.metric_gross_margin": "Gross margin",
                 "brief.metric_operating_margin": "Operating margin",
@@ -1697,16 +1489,13 @@ def _script(default_period: str, ticker: str, benchmark: str) -> str:
                 "nav.trust": "基于证据，不做预测",
                 "workspace.eyebrow": "本页目录",
                 "workspace.title": "先读一分钟摘要，再核验下方证据。",
-                "hero.eyebrow": "公司概览 · 真实缓存数据",
+                "hero.eyebrow": "公司概览 · 有据可查",
                 "hero.latest_close": "最新复权收盘价",
                 "hero.observed": "观测日期",
                 "brief.eyebrow": "一分钟概览",
                 "brief.title": "这页最值得关注的内容",
                 "brief.intro": (
                     "先看最新披露、历史体验和证据边界。多年财务趋势和价格隐含预期尚未接入。"
-                ),
-                "brief.intro_with_trends": (
-                    "先看最新披露、历史体验，以及带来源链接的年度经营趋势。价格隐含预期和估值仍未接入。"
                 ),
                 "brief.latest_disclosure": "最新 SEC 披露",
                 "brief.selected_period": "所选历史期间",
@@ -1716,14 +1505,6 @@ def _script(default_period: str, ticker: str, benchmark: str) -> str:
                 "brief.explore_history": "查看完整历史 ↓",
                 "brief.explore_filings": "阅读披露证据 ↓",
                 "brief.boundary": "证据边界：",
-                "brief.missing_title": "本页尚未覆盖",
-                "brief.missing_copy": (
-                    "估值预期和多年财务趋势尚未接入。这份摘要不估计内在价值，也不判断公司是否便宜。"
-                ),
-                "brief.quality_title": "年度经营趋势",
-                "brief.valuation_unconnected": (
-                    "估值预期仍未接入。本页不估计内在价值，也不判断公司是否便宜。"
-                ),
                 "brief.metric_revenue": "营业收入",
                 "brief.metric_gross_margin": "毛利率",
                 "brief.metric_operating_margin": "营业利润率",
@@ -2825,14 +2606,14 @@ applyIndexLanguage(savedIndexLanguage === 'zh' ? 'zh' : 'en', false);
 def _css() -> str:
     return """
 :root{--paper:#f4f3ef;--panel:#fff;--ink:#12202b;--muted:#65727b;--line:#d9dedf;--blue:#2864dc;--blue-soft:#edf3ff;--green:#14765d;--green-soft:#eaf6f0;--amber:#a96418;--amber-soft:#fff5e8;--navy:#0d2538;--shadow:0 18px 50px rgba(24,42,53,.08)}
-*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:var(--paper);color:var(--ink);font-family:Inter,ui-sans-serif,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;font-size:16px;line-height:1.55}.topbar{height:70px;padding:0 max(28px,calc((100vw - 1240px)/2));display:flex;align-items:center;border-bottom:1px solid var(--line);background:rgba(244,243,239,.94);position:sticky;top:0;z-index:20;backdrop-filter:blur(16px)}.brand{display:flex;align-items:center;gap:10px;color:var(--navy);font-weight:760;text-decoration:none;letter-spacing:-.02em}.brand-mark{display:grid;place-items:center;width:32px;height:32px;border-radius:9px;background:var(--navy);color:white;font-size:11px;letter-spacing:.04em}.topbar nav{display:flex;align-items:center;margin-left:55px;gap:8px}.company-search-link{padding:7px 10px;border-radius:8px;color:var(--muted);font-size:12px;font-weight:700;text-decoration:none}.company-search-link:hover{background:var(--panel);color:var(--ink)}.current-symbol{padding:5px 8px;border:1px solid var(--line);border-radius:7px;background:var(--panel);color:var(--ink);font-size:11px;font-weight:800;letter-spacing:.06em}.trust-label{margin-left:auto;color:var(--green);font-size:12px;font-weight:750;text-transform:uppercase;letter-spacing:.08em}.language-toggle{margin-left:14px;padding:6px 10px;border:1px solid var(--line);border-radius:999px;background:var(--panel);color:var(--ink);font:750 11px/1.2 "Avenir Next","Segoe UI",sans-serif;cursor:pointer}.language-toggle:hover{border-color:#aebbc0;color:var(--blue)}.language-toggle:focus-visible{outline:3px solid rgba(40,100,220,.18);outline-offset:2px}main{max-width:1240px;margin:auto;padding:30px 28px 90px}.scope-warning{padding:11px 15px;border:1px solid #ead2ad;border-radius:10px;background:var(--amber-soft);display:flex;gap:15px;font-size:12px;color:#775020}.scope-warning strong{text-transform:uppercase;letter-spacing:.08em}.company-hero{display:flex;justify-content:space-between;align-items:end;padding:65px 0 48px}.eyebrow{margin:0 0 10px;color:var(--blue);font-size:11px;font-weight:800;letter-spacing:.13em}.company-title{display:flex;align-items:center;gap:16px}.company-title h1{margin:0;font-family:Georgia,"Times New Roman",serif;font-size:clamp(40px,5vw,68px);font-weight:500;line-height:1.05;letter-spacing:-.045em}.company-title>span{padding:7px 10px;background:var(--navy);border-radius:8px;color:#fff;font-size:13px;font-weight:800;letter-spacing:.06em}.hero-copy{max-width:650px;margin:17px 0 0;color:var(--muted);font-size:18px}.market-observation{min-width:220px;padding-left:25px;border-left:1px solid var(--line);display:flex;flex-direction:column;align-items:flex-end}.market-observation span,.ending-card>span{color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.08em;font-weight:700}.market-observation strong{font-family:Georgia,serif;font-size:38px;font-weight:500}.market-observation small{color:var(--muted)}section{margin-bottom:28px;padding:38px;border:1px solid var(--line);border-radius:20px;background:var(--panel);box-shadow:0 1px 0 rgba(255,255,255,.6)}.section-heading{display:flex;align-items:start;justify-content:space-between;gap:24px}.section-heading h2,.trust-section h2{margin:0;font-family:Georgia,serif;font-size:34px;font-weight:500;letter-spacing:-.025em}.mode-badge,.freshness{padding:7px 10px;border:1px solid var(--line);border-radius:999px;color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.06em}.brief-section{background:var(--navy);color:#fff;border-color:var(--navy);box-shadow:var(--shadow)}.brief-section .eyebrow{color:#78a7ff}.brief-section .mode-badge{border-color:#365166;color:#aebfca}.brief-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;margin-top:28px;background:#365166;border:1px solid #365166;border-radius:14px;overflow:hidden}.brief-card{min-height:190px;padding:25px;background:#122d41}.brief-card>span{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.1em}.brief-card.observed>span{color:#80aaff}.brief-card.calculated>span{color:#5fd0aa}.brief-card.interpreted>span{color:#e9b66d}.brief-card p{font-family:Georgia,serif;font-size:20px;line-height:1.45}.claim-links{display:flex;gap:8px}.claim-links a{font-size:11px;color:#d9e6ee;text-decoration:none;border-bottom:1px solid #6e8290}.authority-row{display:flex;gap:25px;margin-top:22px;color:#aebfca;font-size:11px}.authority-row span{display:flex;align-items:center;gap:7px}.dot{width:7px;height:7px;border-radius:50%}.dot.observed{background:#80aaff}.dot.calculated{background:#5fd0aa}.dot.interpreted{background:#e9b66d}.performance-section{padding-bottom:30px}.performance-heading{align-items:center}.period-control{display:flex;padding:4px;background:var(--paper);border-radius:10px}.period-button{border:0;background:transparent;padding:7px 13px;border-radius:7px;color:var(--muted);font-weight:750;cursor:pointer}.period-button:hover{color:var(--ink)}.period-button.active{background:var(--panel);color:var(--blue);box-shadow:0 2px 8px rgba(20,40,55,.08)}.section-intro{max-width:730px;margin:10px 0 28px;color:var(--muted)}.performance-layout{display:grid;grid-template-columns:minmax(0,1fr) 230px;gap:18px}.chart-panel{position:relative;border:1px solid var(--line);border-radius:14px;padding:18px;background:#fbfcfc}.chart-legend{height:25px;display:flex;align-items:center;gap:18px;color:var(--muted);font-size:11px}.chart-legend span:last-child{margin-left:auto}.line{display:inline-block;width:18px;height:3px;border-radius:2px;margin-right:6px;vertical-align:middle}.line.asset{background:var(--blue)}.line.benchmark{background:#8a969e}#growth-chart{display:block;width:100%;overflow:visible}#growth-chart path{fill:none;stroke-linecap:round;stroke-linejoin:round}#asset-path{stroke:var(--blue);stroke-width:3}#benchmark-path{stroke:#99a4ab;stroke-width:2}#chart-grid line{stroke:#e6eaeb;stroke-width:1}#chart-labels text{font-size:10px;fill:#7c888f}#hover-line{stroke:#91a0a8;stroke-dasharray:3 3;opacity:0;pointer-events:none}#asset-point{fill:var(--blue);stroke:white;stroke-width:2;opacity:0}#benchmark-point{fill:#89969e;stroke:white;stroke-width:2;opacity:0}.chart-hit{fill:transparent;cursor:crosshair}.chart-tooltip{position:absolute;top:72px;transform:translateX(-50%);display:none;min-width:155px;padding:10px 12px;background:var(--navy);color:#fff;border-radius:9px;box-shadow:var(--shadow);pointer-events:none;font-size:11px}.chart-tooltip.visible{display:flex;flex-direction:column}.chart-tooltip b{margin-bottom:4px}.ending-card{padding:24px;background:var(--blue-soft);border-radius:14px;display:flex;flex-direction:column}.ending-card>strong{margin:8px 0 2px;font-family:Georgia,serif;font-size:34px;font-weight:500;color:#173f91}.ending-card>small{color:#4d6d9f}.mini-comparison{margin-top:auto;padding-top:18px;border-top:1px solid #cfdbf3;display:flex;flex-direction:column;color:#4d6d9f;font-size:11px}.mini-comparison b{font-size:17px;color:#173f91}.metric-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:10px;margin-top:18px}.metric-card{padding:16px;border:1px solid var(--line);border-radius:12px}.metric-card>span{display:flex;justify-content:space-between;min-height:36px;color:var(--muted);font-size:11px;font-weight:700}.metric-card i{display:grid;place-items:center;width:17px;height:17px;border:1px solid var(--line);border-radius:50%;font-style:normal}.metric-card strong{display:block;font-family:Georgia,serif;font-size:25px;font-weight:500}.metric-card small{display:none}.risk-note{display:flex;gap:20px;margin-top:18px;padding:15px 18px;border-left:3px solid var(--amber);background:var(--amber-soft);color:#664b2e;font-size:13px}.risk-note strong{min-width:130px}.filing-list{display:flex;flex-direction:column;gap:10px}.filing-card{border:1px solid var(--line);border-radius:14px;overflow:hidden}.filing-card summary{list-style:none;padding:18px 20px;display:flex;align-items:center;justify-content:space-between;cursor:pointer}.filing-card summary::-webkit-details-marker{display:none}.filing-card summary>div:first-child{display:grid;grid-template-columns:auto 1fr;gap:2px 11px;align-items:center}.filing-card summary strong{font-size:15px}.filing-card summary small{grid-column:2;color:var(--muted)}.filing-form{grid-row:1/3;padding:7px 9px;background:var(--green-soft);color:var(--green);border-radius:8px;font-weight:800}.filing-summary-meta{display:flex;align-items:center;gap:18px;color:var(--muted);font-size:12px}.filing-summary-meta i{font-size:18px;transition:transform .2s}.filing-card[open] .filing-summary-meta i{transform:rotate(180deg)}.filing-body{padding:0 20px 22px;border-top:1px solid var(--line);background:#fbfcfc}.filing-items{display:flex;flex-wrap:wrap;gap:7px;padding:16px 0}.item-chip,.number-chip{padding:5px 8px;border-radius:7px;background:var(--paper);color:var(--muted);font-size:11px;text-decoration:none}.number-chip{background:var(--blue-soft);color:#2855a7;font-weight:750}.filing-columns{display:grid;grid-template-columns:minmax(0,1fr) 230px;gap:30px}.filing-columns h3{margin:16px 0 8px;font-size:11px;text-transform:uppercase;letter-spacing:.08em}.number-list{display:flex;flex-wrap:wrap;gap:6px}.passages{display:flex;flex-direction:column;gap:8px}blockquote{margin:0;padding:14px 16px;border-left:2px solid #9db8ed;background:#fff}blockquote p{margin:0 0 7px;font-family:Georgia,serif;font-size:15px}blockquote a,.filing-columns aside a{color:var(--blue);font-size:10px;text-decoration:none}.filing-columns aside{padding:16px;border-radius:10px;background:var(--paper);display:flex;flex-direction:column;align-items:start;gap:8px;font-size:11px;color:var(--muted)}.filing-columns aside>span{text-transform:uppercase;letter-spacing:.08em}.filing-columns aside code{word-break:break-all;color:var(--ink)}.missing,.empty{color:var(--muted);font-size:12px;font-style:italic}.trust-section{background:#e9ece9}.trust-section>.eyebrow{color:var(--green)}.trust-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:15px;margin-top:28px}.trust-grid article{padding:20px;background:rgba(255,255,255,.6);border-radius:12px}.trust-grid article>span{font-family:Georgia,serif;color:var(--green);font-size:24px}.trust-grid h3{margin:8px 0 4px}.trust-grid p{margin:0;color:var(--muted);font-size:13px}footer{max-width:1240px;margin:auto;padding:28px;display:flex;justify-content:space-between;border-top:1px solid var(--line);color:var(--muted);font-size:12px}footer>div:first-child{display:flex;flex-direction:column}.footer-meta{display:flex;gap:20px}
+*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:var(--paper);color:var(--ink);font-family:Inter,ui-sans-serif,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;font-size:16px;line-height:1.55}.topbar{height:70px;padding:0 max(28px,calc((100vw - 1240px)/2));display:flex;align-items:center;border-bottom:1px solid var(--line);background:rgba(244,243,239,.94);position:sticky;top:0;z-index:20;backdrop-filter:blur(16px)}.brand{display:flex;align-items:center;gap:10px;color:var(--navy);font-weight:760;text-decoration:none;letter-spacing:-.02em}.brand-mark{display:grid;place-items:center;width:32px;height:32px;border-radius:9px;background:var(--navy);color:white;font-size:11px;letter-spacing:.04em}.topbar nav{display:flex;align-items:center;margin-left:55px;gap:8px}.company-search-link{padding:7px 10px;border-radius:8px;color:var(--muted);font-size:12px;font-weight:700;text-decoration:none}.company-search-link:hover{background:var(--panel);color:var(--ink)}.current-symbol{padding:5px 8px;border:1px solid var(--line);border-radius:7px;background:var(--panel);color:var(--ink);font-size:11px;font-weight:800;letter-spacing:.06em}.trust-label{margin-left:auto;color:var(--green);font-size:12px;font-weight:750;text-transform:uppercase;letter-spacing:.08em}.language-toggle{margin-left:14px;padding:6px 10px;border:1px solid var(--line);border-radius:999px;background:var(--panel);color:var(--ink);font:750 11px/1.2 "Avenir Next","Segoe UI",sans-serif;cursor:pointer}.language-toggle:hover{border-color:#aebbc0;color:var(--blue)}.language-toggle:focus-visible{outline:3px solid rgba(40,100,220,.18);outline-offset:2px}main{max-width:1240px;margin:auto;padding:30px 28px 90px}.company-hero{display:flex;justify-content:space-between;align-items:end;padding:65px 0 48px}.eyebrow{margin:0 0 10px;color:var(--blue);font-size:11px;font-weight:800;letter-spacing:.13em}.company-title{display:flex;align-items:center;gap:16px}.company-title h1{margin:0;font-family:Georgia,"Times New Roman",serif;font-size:clamp(40px,5vw,68px);font-weight:500;line-height:1.05;letter-spacing:-.045em}.company-title>span{padding:7px 10px;background:var(--navy);border-radius:8px;color:#fff;font-size:13px;font-weight:800;letter-spacing:.06em}.hero-copy{max-width:650px;margin:17px 0 0;color:var(--muted);font-size:18px}.market-observation{min-width:220px;padding-left:25px;border-left:1px solid var(--line);display:flex;flex-direction:column;align-items:flex-end}.market-observation span,.ending-card>span{color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.08em;font-weight:700}.market-observation strong{font-family:Georgia,serif;font-size:38px;font-weight:500}.market-observation small{color:var(--muted)}section{margin-bottom:28px;padding:38px;border:1px solid var(--line);border-radius:20px;background:var(--panel);box-shadow:0 1px 0 rgba(255,255,255,.6)}.section-heading{display:flex;align-items:start;justify-content:space-between;gap:24px}.section-heading h2,.trust-section h2{margin:0;font-family:Georgia,serif;font-size:34px;font-weight:500;letter-spacing:-.025em}.mode-badge,.freshness{padding:7px 10px;border:1px solid var(--line);border-radius:999px;color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.06em}.brief-section{background:var(--navy);color:#fff;border-color:var(--navy);box-shadow:var(--shadow)}.brief-section .eyebrow{color:#78a7ff}.brief-section .mode-badge{border-color:#365166;color:#aebfca}.brief-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;margin-top:28px;background:#365166;border:1px solid #365166;border-radius:14px;overflow:hidden}.brief-card{min-height:190px;padding:25px;background:#122d41}.brief-card>span{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.1em}.brief-card.observed>span{color:#80aaff}.brief-card.calculated>span{color:#5fd0aa}.brief-card.interpreted>span{color:#e9b66d}.brief-card p{font-family:Georgia,serif;font-size:20px;line-height:1.45}.claim-links{display:flex;gap:8px}.claim-links a{font-size:11px;color:#d9e6ee;text-decoration:none;border-bottom:1px solid #6e8290}.authority-row{display:flex;gap:25px;margin-top:22px;color:#aebfca;font-size:11px}.authority-row span{display:flex;align-items:center;gap:7px}.dot{width:7px;height:7px;border-radius:50%}.dot.observed{background:#80aaff}.dot.calculated{background:#5fd0aa}.dot.interpreted{background:#e9b66d}.performance-section{padding-bottom:30px}.performance-heading{align-items:center}.period-control{display:flex;padding:4px;background:var(--paper);border-radius:10px}.period-button{border:0;background:transparent;padding:7px 13px;border-radius:7px;color:var(--muted);font-weight:750;cursor:pointer}.period-button:hover{color:var(--ink)}.period-button.active{background:var(--panel);color:var(--blue);box-shadow:0 2px 8px rgba(20,40,55,.08)}.section-intro{max-width:730px;margin:10px 0 28px;color:var(--muted)}.performance-layout{display:grid;grid-template-columns:minmax(0,1fr) 230px;gap:18px}.chart-panel{position:relative;border:1px solid var(--line);border-radius:14px;padding:18px;background:#fbfcfc}.chart-legend{height:25px;display:flex;align-items:center;gap:18px;color:var(--muted);font-size:11px}.chart-legend span:last-child{margin-left:auto}.line{display:inline-block;width:18px;height:3px;border-radius:2px;margin-right:6px;vertical-align:middle}.line.asset{background:var(--blue)}.line.benchmark{background:#8a969e}#growth-chart{display:block;width:100%;overflow:visible}#growth-chart path{fill:none;stroke-linecap:round;stroke-linejoin:round}#asset-path{stroke:var(--blue);stroke-width:3}#benchmark-path{stroke:#99a4ab;stroke-width:2}#chart-grid line{stroke:#e6eaeb;stroke-width:1}#chart-labels text{font-size:10px;fill:#7c888f}#hover-line{stroke:#91a0a8;stroke-dasharray:3 3;opacity:0;pointer-events:none}#asset-point{fill:var(--blue);stroke:white;stroke-width:2;opacity:0}#benchmark-point{fill:#89969e;stroke:white;stroke-width:2;opacity:0}.chart-hit{fill:transparent;cursor:crosshair}.chart-tooltip{position:absolute;top:72px;transform:translateX(-50%);display:none;min-width:155px;padding:10px 12px;background:var(--navy);color:#fff;border-radius:9px;box-shadow:var(--shadow);pointer-events:none;font-size:11px}.chart-tooltip.visible{display:flex;flex-direction:column}.chart-tooltip b{margin-bottom:4px}.ending-card{padding:24px;background:var(--blue-soft);border-radius:14px;display:flex;flex-direction:column}.ending-card>strong{margin:8px 0 2px;font-family:Georgia,serif;font-size:34px;font-weight:500;color:#173f91}.ending-card>small{color:#4d6d9f}.mini-comparison{margin-top:auto;padding-top:18px;border-top:1px solid #cfdbf3;display:flex;flex-direction:column;color:#4d6d9f;font-size:11px}.mini-comparison b{font-size:17px;color:#173f91}.metric-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:10px;margin-top:18px}.metric-card{padding:16px;border:1px solid var(--line);border-radius:12px}.metric-card>span{display:flex;justify-content:space-between;min-height:36px;color:var(--muted);font-size:11px;font-weight:700}.metric-card i{display:grid;place-items:center;width:17px;height:17px;border:1px solid var(--line);border-radius:50%;font-style:normal}.metric-card strong{display:block;font-family:Georgia,serif;font-size:25px;font-weight:500}.metric-card small{display:none}.risk-note{display:flex;gap:20px;margin-top:18px;padding:15px 18px;border-left:3px solid var(--amber);background:var(--amber-soft);color:#664b2e;font-size:13px}.risk-note strong{min-width:130px}.filing-list{display:flex;flex-direction:column;gap:10px}.filing-card{border:1px solid var(--line);border-radius:14px;overflow:hidden}.filing-card summary{list-style:none;padding:18px 20px;display:flex;align-items:center;justify-content:space-between;cursor:pointer}.filing-card summary::-webkit-details-marker{display:none}.filing-card summary>div:first-child{display:grid;grid-template-columns:auto 1fr;gap:2px 11px;align-items:center}.filing-card summary strong{font-size:15px}.filing-card summary small{grid-column:2;color:var(--muted)}.filing-form{grid-row:1/3;padding:7px 9px;background:var(--green-soft);color:var(--green);border-radius:8px;font-weight:800}.filing-summary-meta{display:flex;align-items:center;gap:18px;color:var(--muted);font-size:12px}.filing-summary-meta i{font-size:18px;transition:transform .2s}.filing-card[open] .filing-summary-meta i{transform:rotate(180deg)}.filing-body{padding:0 20px 22px;border-top:1px solid var(--line);background:#fbfcfc}.filing-items{display:flex;flex-wrap:wrap;gap:7px;padding:16px 0}.item-chip,.number-chip{padding:5px 8px;border-radius:7px;background:var(--paper);color:var(--muted);font-size:11px;text-decoration:none}.number-chip{background:var(--blue-soft);color:#2855a7;font-weight:750}.filing-columns{display:grid;grid-template-columns:minmax(0,1fr) 230px;gap:30px}.filing-columns h3{margin:16px 0 8px;font-size:11px;text-transform:uppercase;letter-spacing:.08em}.number-list{display:flex;flex-wrap:wrap;gap:6px}.passages{display:flex;flex-direction:column;gap:8px}blockquote{margin:0;padding:14px 16px;border-left:2px solid #9db8ed;background:#fff}blockquote p{margin:0 0 7px;font-family:Georgia,serif;font-size:15px}blockquote a,.filing-columns aside a{color:var(--blue);font-size:10px;text-decoration:none}.filing-columns aside{padding:16px;border-radius:10px;background:var(--paper);display:flex;flex-direction:column;align-items:start;gap:8px;font-size:11px;color:var(--muted)}.filing-columns aside>span{text-transform:uppercase;letter-spacing:.08em}.filing-columns aside code{word-break:break-all;color:var(--ink)}.missing,.empty{color:var(--muted);font-size:12px;font-style:italic}.trust-section{background:#e9ece9}.trust-section>.eyebrow{color:var(--green)}.trust-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:15px;margin-top:28px}.trust-grid article{padding:20px;background:rgba(255,255,255,.6);border-radius:12px}.trust-grid article>span{font-family:Georgia,serif;color:var(--green);font-size:24px}.trust-grid h3{margin:8px 0 4px}.trust-grid p{margin:0;color:var(--muted);font-size:13px}footer{max-width:1240px;margin:auto;padding:28px;display:flex;justify-content:space-between;border-top:1px solid var(--line);color:var(--muted);font-size:12px}footer>div:first-child{display:flex;flex-direction:column}.footer-meta{display:flex;gap:20px}
 .freshness-group{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:6px}.entity-chip{display:inline-flex;align-items:center;gap:6px}.entity-chip small{padding-right:6px;border-right:1px solid #b9c9e8;color:#60749a;font-size:8px;text-transform:uppercase;letter-spacing:.05em}.entity-mark{padding:1px 3px;border-radius:3px;background:#e8efff;color:inherit}.entity-mark.percentage{background:#e7f5ee}.entity-mark.date{background:#fff0da}.reaction-panel{margin:0 0 14px;padding:18px;border:1px solid #cfe0d8;border-radius:12px;background:#f3f8f5}.reaction-heading{display:flex;justify-content:space-between;gap:20px}.reaction-heading>div{display:flex;flex-direction:column}.reaction-heading span{color:var(--green);font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.07em}.reaction-heading strong{font-size:13px}.reaction-heading>small{color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:.07em}.reaction-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:13px}.reaction-grid>div{padding:12px;border:1px solid #dbe8e1;border-radius:9px;background:#fff;display:flex;flex-direction:column}.reaction-grid span{color:var(--muted);font-size:9px;text-transform:uppercase;letter-spacing:.07em}.reaction-grid strong{margin:3px 0;font-family:Georgia,serif;font-size:19px;font-weight:500}.reaction-grid small,.reaction-panel>p{color:var(--muted);font-size:10px}.reaction-panel>p{margin:12px 0 0}.reaction-empty{display:flex;flex-direction:column;margin:0 0 14px;padding:13px 15px;border:1px dashed #cfe0d8;border-radius:10px;color:var(--muted);font-size:11px}.reaction-empty strong{color:var(--ink)}.comparison-panel{margin:0 0 22px;padding:18px;border:1px solid #cddbed;border-radius:12px;background:#f5f8fd}.comparison-heading{display:flex;justify-content:space-between;gap:20px}.comparison-heading>div{display:flex;flex-direction:column}.comparison-heading span{color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:.07em}.comparison-heading strong{font-size:13px}.comparison-heading a,.change-quote a{color:var(--blue);font-size:10px;text-decoration:none}.change-counts{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px}.change-count{padding:4px 7px;border-radius:999px;font-size:10px;font-weight:750}.change-count.changed{background:#fff1d8;color:#825616}.change-count.added{background:var(--green-soft);color:var(--green)}.change-count.removed{background:#f8e9e7;color:#98473e}.change-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:12px}.change-card{padding:12px;border:1px solid var(--line);border-radius:9px;background:#fff}.change-card header{display:flex;justify-content:space-between;gap:10px}.change-card header>strong{font-size:11px;text-transform:uppercase;letter-spacing:.07em}.similarity{color:var(--muted);font-size:10px}.change-quote{margin-top:9px;padding-left:9px;border-left:2px solid #b9c8df}.change-quote>span{color:var(--muted);font-size:9px;text-transform:uppercase;letter-spacing:.08em}.change-quote p{margin:2px 0 5px;font-family:Georgia,serif;font-size:13px;line-height:1.4}.comparison-empty{display:flex;flex-direction:column;margin:0 0 22px;padding:13px 15px;border:1px dashed var(--line);border-radius:10px;color:var(--muted);font-size:11px}.comparison-empty strong{color:var(--ink)}.profile-category{margin:18px 0 0;color:var(--blue);font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.09em}.hero-copy{margin-top:6px}.profile-meta{display:flex;flex-wrap:wrap;gap:6px 16px;margin-top:14px;color:var(--muted);font-size:11px}.profile-meta a{color:var(--blue);text-decoration:none;border-bottom:1px solid #aac0eb}.metric-grid{grid-template-columns:repeat(4,1fr)}
 .timeline-panel{margin:0 0 20px;padding:18px;border:1px solid var(--line);border-radius:12px;background:#fbfcfc}.timeline-heading{display:flex;justify-content:space-between;gap:20px}.timeline-heading>div{display:flex;flex-direction:column}.timeline-heading span{color:var(--blue);font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.07em}.timeline-heading strong{font-size:13px}.timeline-heading>small{color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:.06em}.timeline-track{position:relative;display:grid;grid-auto-flow:column;grid-auto-columns:minmax(155px,1fr);gap:8px;margin-top:16px;padding-top:14px;overflow-x:auto;scrollbar-width:thin}.timeline-track:before{content:"";position:absolute;top:20px;left:12px;right:12px;height:1px;background:var(--line)}.timeline-event{position:relative;min-height:145px;padding:20px 12px 12px;border:1px solid var(--line);border-radius:9px;background:#fff;color:var(--ink);text-decoration:none;display:flex;flex-direction:column}.timeline-event>i{position:absolute;top:-10px;left:14px;width:13px;height:13px;border:3px solid #fff;border-radius:50%;background:#8d989f;box-shadow:0 0 0 1px var(--line)}.timeline-event.positive>i{background:var(--green)}.timeline-event.negative>i{background:#a74e43}.timeline-event>span,.timeline-event>small{color:var(--muted);font-size:9px;text-transform:uppercase;letter-spacing:.05em}.timeline-event>strong{margin:5px 0 2px;font-size:11px;line-height:1.35}.timeline-event>b{margin-top:auto;font-size:12px}.timeline-event>em{color:var(--muted);font-size:9px;font-style:normal}.timeline-panel>p{margin:11px 0 0;color:var(--muted);font-size:10px}
 .topbar .section-nav{margin-left:auto;gap:3px}.section-nav a{padding:7px 9px;border-radius:7px;color:var(--muted);font-size:11px;font-weight:750;text-decoration:none}.section-nav a:hover{background:var(--panel);color:var(--blue)}.trust-label{margin-left:22px}.company-hero{padding:46px 0 34px}.evidence-flow{display:flex;align-items:center;gap:9px;margin-top:18px;color:var(--muted);font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.07em}.evidence-flow span{padding:5px 8px;border:1px solid var(--line);border-radius:999px;background:rgba(255,255,255,.62)}.evidence-flow i{color:var(--blue);font-style:normal}.brief-section{background:linear-gradient(135deg,#0d2436 0%,#132f43 100%)}.brief-intro{max-width:680px;margin:9px 0 0;color:#aebfca;font-size:13px}.brief-grid{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:10px;margin-top:26px;background:transparent;border:0;border-radius:0;overflow:visible}.brief-card{min-height:0;padding:24px;border:1px solid #365166;border-radius:13px;background:rgba(16,43,62,.82)}.brief-lead{grid-column:span 7;background:linear-gradient(145deg,#173a55,#122d41)}.brief-numbers{grid-column:span 5;background:#102f38}.brief-reading,.brief-limit{grid-column:span 6}.brief-limit{background:#302c2a;border-color:#5b4a3b}.brief-card>span,.brief-card-heading>span{font-size:10px;font-weight:850;text-transform:uppercase;letter-spacing:.11em}.brief-card.observed>span,.brief-card.observed .brief-card-heading>span{color:#80aaff}.brief-card.calculated>span{color:#5fd0aa}.brief-card.interpreted>span{color:#b7c9ff}.brief-card.guardrail>span{color:#e9b66d}.brief-card-heading{display:flex;justify-content:space-between;gap:18px}.brief-lead a,.brief-numbers a{color:#d9e6ee;font-size:10px;text-decoration:none;border-bottom:1px solid #6e8290}.filing-lead-header{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:12px 16px;align-items:center;padding:18px 20px;border-bottom:1px solid var(--line)}.filing-lead-header .eyebrow{margin:0 0 4px}.filing-lead-header h3{margin:0;font-size:18px;line-height:1.25}.filing-lead-header small{color:var(--muted)}.filing-lead-header a{color:var(--blue);font-size:11px;font-weight:750;text-decoration:none}.filing-lead .filing-body{border-top:0}.brief-card h3{max-width:540px;margin:18px 0 7px;font-family:Georgia,serif;font-size:26px;font-weight:500;line-height:1.15}.brief-card p{margin:11px 0;font-family:Georgia,serif;font-size:17px;line-height:1.48}.brief-lead>p{font-size:19px}.brief-meta{display:flex;flex-wrap:wrap;gap:6px;margin:18px 0 8px}.brief-meta span{padding:5px 7px;border:1px solid #466177;border-radius:6px;color:#bacad4;font-size:9px}.brief-metrics{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:19px 0 14px}.brief-metrics>div{padding:14px;border:1px solid #28514e;border-radius:10px;background:rgba(9,33,37,.55)}.brief-metrics strong{display:block;font-family:Georgia,serif;font-size:31px;font-weight:500;color:#77ddb8}.brief-metrics small{color:#9bb9ae;font-size:9px;text-transform:uppercase;letter-spacing:.06em}.brief-numbers p{color:#b8c9c4;font-family:inherit;font-size:11px}.claim-links{flex-wrap:wrap}.authority-row{align-items:center}.authority-row span b{color:#fff;font-size:9px}.authority-row>em{color:#627786;font-style:normal}.diagnostic-heading{display:flex;justify-content:space-between;align-items:end;margin-top:22px;padding-top:17px;border-top:1px solid var(--line)}.diagnostic-heading span{font-size:12px;font-weight:800}.diagnostic-heading small{color:var(--muted);font-size:10px}.metric-grid{grid-template-columns:repeat(3,1fr);margin-top:10px}.metric-card{background:#fbfcfc;transition:border-color .18s,transform .18s}.metric-card:hover{border-color:#b9c9d8;transform:translateY(-1px)}.trust-grid article>b{display:block;margin-top:7px;color:var(--green);font-size:8px;letter-spacing:.1em}#brief,#ask,#performance,#filings,#context,#page-nav,#method{scroll-margin-top:150px}.section-nav a:focus-visible,.brief-card a:focus-visible,.headline-card a:focus-visible{outline:3px solid #80aaff;outline-offset:3px}
 .page-nav{position:sticky;top:70px;z-index:14;display:grid;grid-template-columns:auto minmax(0,1fr);align-items:center;gap:28px;margin:0 0 28px;padding:12px 14px;border:1px solid var(--line);background:rgba(244,243,239,.96);backdrop-filter:blur(14px)}.page-nav p{margin:0}.page-nav>div:first-child{min-width:170px}.page-nav>div:first-child strong{font:500 17px/1.2 Georgia,serif}.page-nav-links{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(108px,1fr);gap:5px;overflow-x:auto}.page-nav-links a{display:grid;grid-template-columns:auto 1fr;align-items:center;gap:8px;padding:10px 11px;border:1px solid transparent;color:var(--muted);text-decoration:none}.page-nav-links a span{color:#97a3aa;font-size:9px;font-weight:800}.page-nav-links a b{font-size:11px}.page-nav-links a:hover{border-color:var(--line);background:var(--panel);color:var(--blue)}.page-nav-links a.active{border-color:var(--navy);background:var(--navy);color:#fff}.page-nav-links a.active span{color:#87afff}.section-nav a.active{background:var(--panel);color:var(--blue)}#page-nav{scroll-margin-top:82px}
 .context-section{background:#f9faf8}.context-status{padding:7px 10px;border:1px solid var(--line);border-radius:999px;color:var(--green);font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.07em}.context-status.stale{color:var(--amber);border-color:#e5c89e;background:var(--amber-soft)}.headline-list{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}.headline-card{padding:17px;border:1px solid var(--line);border-radius:12px;background:#fff;display:flex;flex-direction:column;align-items:flex-start}.headline-card h3{margin:13px 0 11px;font:500 18px/1.35 Georgia,serif}.headline-meta{display:flex;flex-direction:column;color:var(--muted);font-size:10px}.headline-card>a{margin-top:auto;padding-top:15px;color:var(--blue);font-size:10px;font-weight:750;text-decoration:none}
 @media(max-width:900px){.trust-label{display:none}.company-hero{align-items:start}.brief-grid,.trust-grid{grid-template-columns:1fr}.brief-card{min-height:auto}.performance-layout{grid-template-columns:1fr}.ending-card{min-height:190px}.metric-grid{grid-template-columns:repeat(3,1fr)}.filing-columns{grid-template-columns:1fr}.authority-row{flex-wrap:wrap}.section-nav{display:none}.brief-grid{gap:8px}.brief-metrics strong{font-size:28px}.headline-list{grid-template-columns:1fr}}
-@media(max-width:620px){.topbar{padding:0 16px}.topbar nav{margin-left:auto}.company-search-link{padding:6px}.trust-label{display:none}.brand>span:last-child{display:none}main{padding:18px 14px 60px}.scope-warning{flex-direction:column;gap:2px}.company-hero{padding:42px 0 30px;flex-direction:column;gap:25px}.market-observation{align-items:start;border-left:0;padding-left:0}.company-title{align-items:start}.company-title h1{font-size:42px}section{padding:24px 18px}.section-heading{flex-direction:column}.performance-heading{align-items:start}.metric-grid{grid-template-columns:repeat(2,1fr)}.period-control{width:100%}.period-button{flex:1}.risk-note{flex-direction:column;gap:4px}.filing-card summary strong{max-width:190px}.filing-summary-meta>span{display:none}.footer-meta{display:none}}
+@media(max-width:620px){.topbar{padding:0 16px}.topbar nav{margin-left:auto}.company-search-link{padding:6px}.trust-label{display:none}.brand>span:last-child{display:none}main{padding:18px 14px 60px}.company-hero{padding:42px 0 30px;flex-direction:column;gap:25px}.market-observation{align-items:start;border-left:0;padding-left:0}.company-title{align-items:start}.company-title h1{font-size:42px}section{padding:24px 18px}.section-heading{flex-direction:column}.performance-heading{align-items:start}.metric-grid{grid-template-columns:repeat(2,1fr)}.period-control{width:100%}.period-button{flex:1}.risk-note{flex-direction:column;gap:4px}.filing-card summary strong{max-width:190px}.filing-summary-meta>span{display:none}.footer-meta{display:none}}
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*{transition:none!important}}
 @media(max-width:620px){.profile-meta{flex-direction:column;align-items:flex-start;gap:3px}.timeline-heading,.reaction-heading,.comparison-heading{flex-direction:column;gap:6px}.reaction-grid,.change-list{grid-template-columns:1fr}.timeline-track{grid-auto-columns:minmax(145px,72vw)}.topbar .section-nav,.company-search-link{display:none}.topbar .company-nav .site-link{margin-left:auto;color:var(--muted);font-size:11px;font-weight:700;text-decoration:none;white-space:nowrap}.company-nav .site-link+.site-link{margin-left:16px}.company-nav .site-link:hover{color:var(--blue)}.company-nav{margin-left:auto}.company-hero{padding:24px 0 18px;gap:13px}.hero-copy{font-size:15px;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}.profile-meta>span{display:none}.profile-meta{margin-top:8px}.evidence-flow{display:none}.market-observation{width:100%;padding:11px 14px;border:1px solid var(--line);border-radius:12px;background:var(--panel);align-items:flex-start}.market-observation strong{font-size:29px}.brief-card{padding:19px}.brief-card h3{font-size:22px}.brief-card p,.brief-lead>p{font-size:16px}.brief-card-heading{flex-direction:column;gap:5px}.brief-metrics{grid-template-columns:1fr 1fr}.authority-row{gap:8px}.authority-row>em{display:none}.diagnostic-heading{align-items:start;flex-direction:column;gap:2px}.metric-grid{grid-template-columns:1fr 1fr}.metric-card{padding:13px}.trust-grid{gap:8px}}
 body{font-family:"Avenir Next","Segoe UI",sans-serif}.company-hero{border:0;border-radius:0;background:transparent;box-shadow:none;margin-bottom:0}.brief-section{border-radius:8px}.brief-grid{grid-template-columns:repeat(12,minmax(0,1fr));gap:0;border-top:1px solid #365166;border-bottom:1px solid #365166}.brief-card{border:0;border-radius:0;background:transparent}.brief-lead{border-right:1px solid #365166}.brief-metrics>div{padding:10px 0;border:0;border-radius:0;background:transparent}.brief-metrics>div+div{padding-left:18px;border-left:1px solid #28514e}.brief-boundary{grid-column:1/-1;margin:0;padding:17px 24px;color:#aebfca;font-size:12px}.brief-boundary strong{color:#e9b66d}.performance-section,.filings-section,.context-section{padding:58px 0;border:0;border-top:1px solid var(--line);border-radius:0;background:transparent;box-shadow:none}.diagnostics-disclosure{margin-top:20px;border-top:1px solid var(--line)}.diagnostics-disclosure>summary,.source-details>summary{padding:14px 0;color:var(--blue);font-size:12px;font-weight:750;cursor:pointer}.metric-card{border-radius:3px;background:rgba(255,255,255,.55)}.filing-card{border-radius:4px;background:#fff}.filing-card summary{min-height:76px}.reaction-panel,.comparison-panel{border-width:0 0 0 3px;border-radius:0}.reaction-grid>div{border:0;border-left:1px solid #dbe8e1;border-radius:0;background:transparent}.reaction-grid>div:first-child{border-left:0}.comparison-clear{display:flex;flex-direction:column;margin-top:14px;color:var(--muted);font-size:12px}.comparison-clear strong{margin-bottom:3px;color:var(--ink)}.source-details{margin-top:8px;border-top:1px solid var(--line)}.filing-columns aside{border-radius:3px}.context-freshness{margin:-14px 0 20px;color:var(--muted);font-size:10px}.headline-list{grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:0;border-top:1px solid var(--line)}.headline-card{padding:20px 22px;border:0;border-right:1px solid var(--line);border-radius:0;background:transparent}.headline-card:last-child{border-right:0}.headline-card h3{margin:10px 0 14px}.headline-meta{display:flex;flex-direction:row;flex-wrap:wrap;gap:5px 12px}.headline-meta span:first-child{color:var(--ink);font-weight:750}.headline-card>a{padding-top:2px}footer a{margin-top:5px;color:var(--blue);text-decoration:none}#brief,#ask,#performance,#filings,#context{scroll-margin-top:150px}
@@ -2842,8 +2623,8 @@ body{font-family:"Avenir Next","Segoe UI",sans-serif}.company-hero{border:0;bord
 @media(max-width:900px){.ask-layout{grid-template-columns:1fr}.ask-form{border-right:0;border-bottom:1px solid var(--line)}}
 @media(max-width:620px){.ask-section,.performance-section,.filings-section,.context-section{padding:40px 0}.ask-controls{grid-template-columns:1fr}.ask-form,.ask-result{padding:20px}.ask-submit-row{align-items:flex-start;flex-direction:column}.ask-task-tabs{grid-template-columns:1fr 1fr}.ask-task-tabs button:nth-child(3){border-left:0}.ask-task-tabs button:nth-child(n+3){border-top:1px solid var(--line)}.ask-scope-groups{grid-template-columns:1fr}.brief-section{border-radius:4px}.reaction-grid>div{padding-left:0;border-left:0;border-top:1px solid #dbe8e1}.reaction-grid>div:first-child{border-top:0}.filing-summary-meta span:first-child{display:block}.filing-summary-meta span:nth-child(2){display:none}}
 @media(max-width:760px){.page-nav{top:70px;display:block;margin-left:-14px;margin-right:-14px;padding:10px 14px;border-left:0;border-right:0}.page-nav>div:first-child{display:none}.page-nav-links{grid-auto-columns:minmax(95px,1fr)}.page-nav-links a{padding:9px}.page-nav-links a span{display:none}}
-.brief-reading,.brief-limit,.brief-missing,.brief-quality{grid-column:span 6}.brief-limit{background:#2a3338}.brief-missing,.brief-quality{background:#1d2a38}.brief-trends{margin:16px 0 10px;padding:0;list-style:none;display:flex;flex-direction:column;gap:10px}.brief-trends li{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1.4fr) auto;gap:8px;align-items:end}.brief-trends .trend-values{display:flex;flex-direction:column;gap:2px}.brief-trends strong{font:500 22px/1 Georgia,serif;color:#d9e6ee}.brief-trends .trend-values span{color:#9bb0bd;font-size:10px}.brief-trends small{color:#9bb0bd;font-size:10px;text-transform:uppercase;letter-spacing:.06em}.brief-trends a{color:#d9e6ee;font-size:10px;text-decoration:none;border-bottom:1px solid #6e8290}.brief-valuation-note{margin:12px 0 0;color:#aebfca;font-family:inherit;font-size:12px}.brief-lead a,.brief-numbers>a,.brief-lead .brief-card-heading+a{display:inline-block;margin-top:10px;color:#d9e6ee;font-size:10px;text-decoration:none;border-bottom:1px solid #6e8290}#brief,#ask,#performance,#filings,#context,#page-nav{scroll-margin-top:150px}.filing-lead-header{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:12px 16px;align-items:center;padding:18px 20px;border-bottom:1px solid var(--line)}.filing-lead-header .eyebrow{margin:0 0 4px}.filing-lead-header h3{margin:0;font-size:18px;line-height:1.25}.filing-lead-header small{color:var(--muted)}.filing-lead-header a{color:var(--blue);font-size:11px;font-weight:750;text-decoration:none}.filing-lead .filing-body{border-top:0}#ask-retry,#ask-stop{min-width:0;border:1px solid var(--line);background:#fff;color:var(--ink)}.ask-submit-row>span.notice{color:var(--muted)}@media(max-width:900px){.filing-lead-header{grid-template-columns:auto 1fr;align-items:start}.filing-lead-header a{grid-column:1/-1}}
-@media(max-width:900px){.brief-grid{grid-template-columns:1fr}.brief-lead,.brief-numbers,.brief-reading,.brief-limit,.brief-missing,.brief-quality{grid-column:1/-1}}
+.brief-reading,.brief-limit{grid-column:1/-1}.brief-limit{background:#2a3338}.brief-lead a,.brief-numbers>a,.brief-lead .brief-card-heading+a{display:inline-block;margin-top:10px;color:#d9e6ee;font-size:10px;text-decoration:none;border-bottom:1px solid #6e8290}#brief,#ask,#performance,#filings,#context,#page-nav{scroll-margin-top:150px}.filing-lead-header{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:12px 16px;align-items:center;padding:18px 20px;border-bottom:1px solid var(--line)}.filing-lead-header .eyebrow{margin:0 0 4px}.filing-lead-header h3{margin:0;font-size:18px;line-height:1.25}.filing-lead-header small{color:var(--muted)}.filing-lead-header a{color:var(--blue);font-size:11px;font-weight:750;text-decoration:none}.filing-lead .filing-body{border-top:0}#ask-retry,#ask-stop{min-width:0;border:1px solid var(--line);background:#fff;color:var(--ink)}.ask-submit-row>span.notice{color:var(--muted)}@media(max-width:900px){.filing-lead-header{grid-template-columns:auto 1fr;align-items:start}.filing-lead-header a{grid-column:1/-1}}
+@media(max-width:900px){.brief-grid{grid-template-columns:1fr}.brief-lead,.brief-numbers,.brief-reading,.brief-limit{grid-column:1/-1}}
 """
 
 

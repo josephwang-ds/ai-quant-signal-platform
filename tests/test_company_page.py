@@ -196,8 +196,10 @@ def test_company_page_is_self_contained_and_source_linked(tmp_path) -> None:
     assert "Source-backed summary" in page
     assert "Latest SEC disclosure" in page
     assert "Selected historical period" in page
-    assert "Not on this page yet" in page
-    assert "Valuation expectations and multi-year financial trends are not connected yet." in page
+    # No placeholder for features that are not there: a card that says "not
+    # connected yet" occupies the slot of a finding and reads as a broken one.
+    assert "Not on this page yet" not in page
+    assert "not connected" not in page
     assert "Ask the evidence" in page
     assert "Every answer is validated" in page
     assert 'id="ask-model"' in page
@@ -256,9 +258,10 @@ def test_company_page_is_self_contained_and_source_linked(tmp_path) -> None:
     assert "fundamentals" not in _snapshot().to_dict()
 
 
-def test_company_page_renders_source_linked_annual_trends_when_fundamentals_available(
-    tmp_path,
-) -> None:
+def test_company_page_keeps_financial_statements_off_the_brief(tmp_path) -> None:
+    """Fundamentals stay available to the Ask tasks but are not laid out on the
+    page: a table of margins and share counts is not what a reader came for, and
+    the valuation it invites is exactly what this page refuses to offer."""
     fixtures = Path(__file__).resolve().parent / "fixtures" / "sec"
     section = build_fundamentals_section(
         json.loads((fixtures / "aapl_companyfacts_2016_2025.json").read_text()),
@@ -268,35 +271,23 @@ def test_company_page_renders_source_linked_annual_trends_when_fundamentals_avai
     snapshot = replace(_snapshot(), fundamentals=section)
     page = render_company_page(snapshot, tmp_path / "abc.html").read_text()
 
-    assert 'class="brief-card brief-quality observed"' in page
-    assert 'class="brief-card brief-missing interpreted"' not in page
-    assert "Gross margin" in page
-    assert "Revenue" in page
-    assert "FY2016-FY2025" in page or "FY20" in page
-    assert "https://www.sec.gov/Archives/edgar/data/320193/" in page
-    assert "aapl-20250927x10k.htm" in page
-    assert "Valuation expectations are still not connected" in page
-    assert "does not estimate intrinsic value" in page
-    assert "source-linked annual business trends" in page
-    assert "Annual business trends" in page
-    script = page.rsplit("<script>", 1)[-1]
-    assert "operating_cash_flow" not in script
-    assert "abs(capex)" not in script
-    assert "gross_profit /" not in script
-    assert '"reported_series"' not in script
+    assert "Annual business trends" not in page
+    assert "brief-quality" not in page
+    assert "brief-missing" not in page
+    assert "Valuation expectations" not in page
+    assert "annual business trends" not in page
+    # The evidence still reaches the guided questions.
     assert "ask.task_quality_question" in page
     assert 'data-ask-task="quality"' in page
     assert 'data-ask-task="cash"' in page
     assert 'data-ask-task="capital"' in page
-    assert 'data-ask-task="thesis"' in page
-    assert 'data-ask-task="missing"' in page
 
 
-def test_company_page_keeps_missing_fundamentals_placeholder(tmp_path) -> None:
+def test_company_page_states_the_universe_in_the_footer_not_a_banner(tmp_path) -> None:
     page = render_company_page(_snapshot(), tmp_path / "abc.html").read_text()
-    assert 'class="brief-card brief-missing interpreted"' in page
-    assert 'class="brief-card brief-quality observed"' not in page
-    assert "Valuation expectations and multi-year financial trends are not connected yet." in page
+    assert "scope-warning" not in page
+    assert "Universe limitation" not in page
+    assert "REAL CACHED DATA" not in page
 
 
 def test_company_page_renders_at_most_three_safe_source_linked_headlines(tmp_path) -> None:
