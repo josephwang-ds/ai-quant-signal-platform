@@ -97,10 +97,17 @@ def anchored_events(events: pd.DataFrame, anchor: str,
     """
     out = events.copy()
     if anchor == "acceptance_time":
+        out = out[out["acceptance_time"].notna()]
         out["entry_session"] = out["acceptance_time"].map(clock.entry_session)
     else:
-        traded = pd.to_datetime(out["first_transaction_date"]).dt.date
-        out["entry_session"] = traded.map(naive_entry_session_from_filing_date)
+        traded = pd.to_datetime(out["first_transaction_date"], errors="coerce")
+        # Dropped before the calendar lookup, not after: the session rule raises
+        # on a missing date rather than returning nothing, and one Form 4 with an
+        # unparseable date must not abort an export over a hundred thousand of
+        # them.
+        out = out[traded.notna()]
+        out["entry_session"] = traded[traded.notna()].dt.date.map(
+            naive_entry_session_from_filing_date)
     return out.dropna(subset=["entry_session"])
 
 
