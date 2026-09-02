@@ -52,6 +52,13 @@ def main(argv: list[str] | None = None) -> int:
     ingest.add_argument("--limit", type=int, default=None,
                         help="stop after this many issuers (for a smoke test)")
 
+    insiders = sub.add_parser(
+        "ingest-insiders", help="pull Form 4 insider transactions for the universe")
+    insiders.add_argument("--universe", default=str(BUILD / "universe.csv"))
+    insiders.add_argument("--since", default="2022-01-01")
+    insiders.add_argument("--limit", type=int, default=None,
+                          help="stop after this many issuers (for a smoke test)")
+
     run = sub.add_parser("run", help="run the pipeline over data/build")
     run.add_argument("--out", default=str(BUILD / "report.html"))
 
@@ -62,7 +69,8 @@ def main(argv: list[str] | None = None) -> int:
     doctor.add_argument("--universe", default=str(BUILD / "universe.csv"))
 
     args = parser.parse_args(argv)
-    return {"demo": _demo, "ingest": _ingest, "run": _run, "audit": _audit,
+    return {"demo": _demo, "ingest": _ingest, "ingest-insiders": _ingest_insiders,
+            "run": _run, "audit": _audit,
             "doctor": _doctor}[args.command](args)
 
 
@@ -529,6 +537,85 @@ def _ingest(args) -> int:
 
     print(f"\n{len(events):,} filings from {len(filings)} issuers "
           f"({len(failures)} failed) -> {BUILD}")
+    return 0
+
+
+def _ingest_insiders(args) -> int:
+    """Pull Form 4 transactions for the universe, alongside the 8-K build.
+
+    Written to its own file rather than merged into `events.parquet`. The two
+    are different units -- a filing versus a transaction -- and a Form 4 issuer
+    files twenty times as often, so concatenating them would bury the 8-Ks and
+    make every existing count ambiguous.
+
+    Prices are not re-fetched. This runs against a build that already has them,
+    which is also what keeps the two sources fingerprint-comparable: the same
+    price frame backs both studies.
+    """
+    from filing_triage.ingest.edgar import (
+        SEC_ARCHIVE_URL,
+        EdgarClient,
+        parse_submissions,
+    )
+    from filing_triage.ingest.ownership import parse_form4, raw_document
+    from filing_triage.ingest.universe import load_membership
+
+    membership = load_membership(args.universe)
+    if args.limit:
+        membership = membership.head(args.limit)
+    membership = membership[membership["cik"].notna()]
+
+    client = EdgarClient()
+    print(f"  {client.check_access()}", flush=True)
+    since = pd.Timestamp(args.since).date()
+
+    transactions, failures, unparsed = [], [], 0
+    for row in membership.drop_duplicates("cik").itertuples():
+        try:
+            filings = parse_submissions(client.submissions(row.cik), row.cik,
+                                        forms=("4",))
+            filings = filings[filings["filing_date"] >= since]
+            issuer_rows = []
+            for filing in filings.itertuples():
+                raw = client._cached(
+                    f"form4/{filing.accession.replace('-', '')}.xml",
+                    SEC_ARCHIVE_URL.format(
+                        cik=int(row.cik),
+                        accession=filing.accession.replace("-", ""),
+                        document=raw_document(filing.primary_document)),
+                )
+                parsed = parse_form4(raw.decode("utf-8", errors="ignore"),
+                                     accession=filing.accession)
+                if parsed.empty:
+                    unparsed += 1
+                    continue
+                # The knowledge time is attached here, from the submissions feed,
+                # because the document itself does not carry it -- the filer
+                # cannot know when EDGAR will accept what they are writing.
+                parsed["acceptance_time"] = filing.acceptance_time
+                parsed["ticker"] = row.ticker
+                issuer_rows.append(parsed)
+            if issuer_rows:
+                transactions.append(pd.concat(issuer_rows, ignore_index=True))
+            print(f"  {row.ticker:<6} {len(filings):>4} filings, "
+                  f"{sum(len(f) for f in issuer_rows):>5} transactions", flush=True)
+        except Exception as error:            # noqa: BLE001 - one bad issuer must
+            failures.append((row.ticker, str(error)))   # not abort a long pull
+            print(f"  {row.ticker:<6} FAILED: {error}", flush=True)
+
+    if not transactions:
+        print("nothing ingested", file=sys.stderr)
+        return 1
+
+    frame = pd.concat(transactions, ignore_index=True)
+    BUILD.mkdir(parents=True, exist_ok=True)
+    frame.to_parquet(BUILD / "insider_transactions.parquet", index=False)
+
+    open_market = frame["transaction_code"].isin({"P", "S"}).sum()
+    print(f"\n{len(frame):,} transactions from {len(transactions)} issuers "
+          f"({len(failures)} failed, {unparsed} unparsed) -> {BUILD}")
+    print(f"  {open_market:,} are open-market purchases or sales "
+          f"({open_market / len(frame):.1%}); the rest is compensation machinery")
     return 0
 
 
