@@ -186,6 +186,11 @@ SELF_RELATIVE = ("self_relative_metrics.json", "calibration_comparison.csv",
 VOLATILITY = ("volatility_metrics.json", "volatility_forecasters.csv",
               "volatility_by_regime.csv", "volatility_paired.csv")
 
+# The Form 4 study is a fourth export and a fourth group, same rule: all of it
+# or none.
+INSIDERS = ("insider_metrics.json", "insider_disclosure_ladder.csv",
+            "insider_gap_profile.csv", "insider_reaction_by_kind.csv")
+
 
 def load(evidence: Path) -> dict:
     missing = [name for name in REQUIRED if not (evidence / name).exists()]
@@ -213,7 +218,27 @@ def load(evidence: Path) -> dict:
         "importance": rows("oos_importance.csv"),
         **_self_relative(evidence, rows),
         **_volatility(evidence, rows),
+        **_insiders(evidence, rows),
     }
+
+
+def _insiders(evidence: Path, rows) -> dict:
+    present = [name for name in INSIDERS if (evidence / name).exists()]
+    if not present:
+        return {"insiders": None}
+    if len(present) != len(INSIDERS):
+        raise SystemExit(
+            f"{evidence} has a partial insider export: missing "
+            f"{[n for n in INSIDERS if n not in present]}. Run "
+            "`make insider-evidence`."
+        )
+    return {"insiders": {
+        "metrics": json.loads((evidence / "insider_metrics.json").read_text()),
+        "ladder": {r["anchor"]: r for r in rows("insider_disclosure_ladder.csv")},
+        "gap": {r["statistic"]: r for r in rows("insider_gap_profile.csv")},
+        "by_kind": rows("insider_reaction_by_kind.csv"),
+        "agreement": rows("insider_behaviour_agreement.csv"),
+    }}
 
 
 def _volatility(evidence: Path, rows) -> dict:
@@ -874,6 +899,124 @@ encoded.</p>""",
     )
 
 
+def _insider_kinds(rows, cuts=("direction", "behaviour", "disclosed plan")) -> str:
+    """Reaction magnitude by what the filing reported, thin groups already gone."""
+    out = []
+    for cut in cuts:
+        for row in [r for r in rows if r["cut"] == cut]:
+            out.append(f"<tr><td>{escape(cut)}</td><td>{escape(row['group'])}</td>"
+                       f"<td class='n'>{int(row['filings']):,}</td>"
+                       f"<td class='n'>{float(row['median_abs_reaction']):.2f}</td>"
+                       f"<td class='n'>{_pct(row['material_share'])}</td></tr>")
+    return "".join(out)
+
+
+def _insider_ladder(ladder) -> str:
+    words = {"transaction_date": "The day the insider traded",
+             "acceptance_time": "The day the market could see it"}
+    out = []
+    for anchor, row in ladder.items():
+        honest = row["honest"] == "True"
+        out.append(
+            f"<tr{' class=pick' if honest else ''}>"
+            f"<td>{words.get(anchor, anchor)}"
+            f"{' <em>(the only honest one)</em>' if honest else ''}</td>"
+            f"<td class='n'>{int(row['filings']):,}</td>"
+            f"<td class='n'>{float(row['median_abs_reaction']):.3f}</td>"
+            f"<td class='n'>{_pct(row['material_share'])}</td></tr>")
+    return "".join(out)
+
+
+def _insider_section(block) -> str:
+    """The Form 4 study: a second dataset, and the same bug in a new place."""
+    if not block:
+        return ""
+    metrics = block["metrics"]
+    sample, summary = metrics["sample"], metrics["disclosure_ladder"]
+    gap = block["gap"]
+    naive = block["ladder"].get("transaction_date", {})
+    honest = block["ladder"].get("acceptance_time", {})
+    if not naive or not honest:
+        return ""
+
+    float(summary["inflation_in_material_share"])
+    naive_share = float(naive["material_share"])
+    honest_share = float(honest["material_share"])
+    ratio = naive_share / honest_share if honest_share else float("nan")
+
+    agreement = ""
+    if block["agreement"]:
+        rows = "".join(
+            f"<tr><td>{escape(r['behaviour'])}</td>"
+            f"<td class='n'>{int(r['trades']):,}</td>"
+            f"<td class='n'>{_pct(r['share_of_sample'])}</td>"
+            f"<td class='n'>{_pct(r['disclosed_under_a_plan'])}</td></tr>"
+            for r in block["agreement"])
+        agreement = f"""
+{_table(["Inferred as", "Trades", "Share", "Actually under a disclosed plan"], rows)}
+<div class="note">Cohen, Malloy and Pomorski had to <em>infer</em> which insiders
+trade on a schedule, from whether they trade the same calendar month year after
+year. Since 2023 the filer has had to <em>state</em> it. Scoring the inference
+against the statement costs nothing, because both columns are already parsed, and
+it is a check on a well-known method against ground truth it never had.</div>"""
+
+    return _section(
+        "insiders",
+        "The same mistake, in a different dataset",
+        f"A Form 4 says an executive bought or sold their own company&rsquo;s "
+        f"stock. It carries two dates, and anchoring on the wrong one puts the "
+        f"share of filings that look material at {_pct(naive_share)} instead of "
+        f"{_pct(honest_share)} &mdash; {ratio:.1f}&times; too high, manufactured "
+        f"entirely out of days the market had not yet seen the filing.",
+        f"""
+{_table(["Entered on", "Filings", "Median reaction", "Look material"],
+        _insider_ladder(block['ladder']))}
+<div class="note">The SEC allows two business days between the trade and the
+filing. The window is {float(gap.get('p50', {}).get('calendar_days', 0)):.0f}
+calendar days at the median and
+{float(gap.get('p99', {}).get('calendar_days', 0)):.0f} at the 99th percentile;
+the longest in the sample is
+{float(gap.get('p100', {}).get('calendar_days', 0)):.0f}. The transaction date is
+the <em>more precise</em> field and it sits right there in the XML, which is what
+makes reaching for it the natural mistake rather than a careless one.</div>
+{_table(["Cut", "Group", "Filings", "Median reaction", "Look material"],
+        _insider_kinds(block['by_kind']))}
+{agreement}
+""",
+        _method(
+            source=(f"{int(sample['transactions']):,} reported transactions from "
+                    f"{int(sample['issuers']):,} issuers, "
+                    f"{sample['first_filing']} to {sample['last_filing']}."),
+            what_counts=(f"Only open-market purchases and sales &mdash; "
+                         f"{int(sample['open_market_trades']):,} of them, "
+                         f"{int(sample['purchases']):,} purchases. Everything "
+                         f"else on a Form 4 is compensation machinery: a grant "
+                         f"vesting, the shares withheld to pay tax on it, an "
+                         f"option exercised. None is a decision about the price."),
+            schedule=("An insider counts as trading on a schedule when they "
+                      "traded this calendar month in each of the three previous "
+                      "years &mdash; computed from their earlier trades only, so "
+                      "the label exists at the moment the filing lands. Too "
+                      "little history gives <em>unknown</em>, not a guess."),
+            boundary=("Reaction magnitude, never direction. Insider buying is "
+                      "the half of this literature with documented predictive "
+                      "power and it is directional; it is named here and not "
+                      "modelled."),
+        ),
+        """<p>This is a second dataset chosen because the first one was thin: the
+8-K ranker&rsquo;s strongest input is simply whether the filing is an earnings
+release, and a financial language model found nothing in the text beyond that. A
+Form 4 is structured rather than prose, and it is about a person&rsquo;s
+behaviour rather than a corporate event.</p>
+<p><strong>Survivorship is not controlled here, and it cuts one way.</strong> The
+universe is companies listed today. Small companies fail often, and the
+observations most likely to be missing are insiders who bought shortly before
+their company collapsed &mdash; so any result about insider buying is flattered
+by an unknown amount. Free price sources do not serve delisted tickers, so this
+is stated rather than fixed.</p>"""
+    )
+
+
 def _volatility_section(block) -> str:
     if not block:
         return ""
@@ -1412,6 +1555,7 @@ the longer argument. A full index of methods is at the end.</p>
 {reads}
 {_issuer_relative(data)}
 {_volatility_section(data['volatility'])}
+{_insider_section(data['insiders'])}
 <section id="methods">
 <h2>Every method used on this page</h2>
 <p class="answer">The same handful of techniques, applied consistently. Each is
