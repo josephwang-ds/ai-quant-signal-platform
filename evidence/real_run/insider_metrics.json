@@ -1,0 +1,95 @@
+{
+  "schema_version": "insiders.v1",
+  "exported_at": "2026-09-02T09:58:55.533585+00:00",
+  "source": "SEC Form 4 ownership filings",
+  "sample": {
+    "issuers": 360,
+    "transactions": 208083,
+    "open_market_trades": 53253,
+    "purchases": 16118,
+    "sales": 37135,
+    "purchase_share": 0.3026683942688675,
+    "filings_with_a_decision": 26548,
+    "first_filing": "2018-01-02",
+    "last_filing": "2026-09-02"
+  },
+  "behaviour_counts": {
+    "unknown": 17990,
+    "opportunistic": 7426,
+    "routine": 1132
+  },
+  "disclosure_ladder": {
+    "shared_filings": 25684,
+    "inflation_in_material_share": 0.012186575299797539,
+    "inflation_in_median_reaction": 0.03618036679528802,
+    "late_filings_excluded": 581,
+    "on_time_inflation_in_material_share": 0.013012335853561471
+  },
+  "boundary": "Reaction magnitude, never direction. Insider buying is the half of this literature with documented predictive power and it is directional; it is named here and not modelled.",
+  "survivorship": "NOT controlled, and the bias favours insider buying: the universe is companies listed today, small companies fail often, and insiders who bought shortly before a collapse are the observations most likely to be missing.",
+  "universe": {
+    "universe_quality": "screened-sample",
+    "survivorship_controlled": false,
+    "note": "Companies currently listed whose screened market cap falls in the band. Not an index and not point-in-time. Survivorship is NOT controlled and matters more here than for large caps: small companies fail more often, and insiders who bought shortly before a collapse are the observations most likely to be missing -- which biases insider buying to look better than it was. A random subsample was taken to bound the crawl; the sampling rule and seed are recorded so it is reproducible.",
+    "screen": {
+      "min_market_cap": 300000000,
+      "max_market_cap": 3000000000,
+      "shares_from": "SEC XBRL dei:EntityCommonStockSharesOutstanding",
+      "price_from": "last available daily close",
+      "caveat": "Screening market cap only. Share counts are as last reported and prices are current, so the product is an approximation adequate for bucketing and not for display."
+    },
+    "issuers": 400,
+    "market_cap_percentiles": {
+      "p10": 367477375.13033724,
+      "p50": 940645686.8224623,
+      "p90": 2429467044.8855205
+    },
+    "candidates_screened": 4555,
+    "start_date": "2018-01-02",
+    "sampled_from": 1368,
+    "sampling": "uniform random sample of 400 from the 1368 screened issuers, seed 20260902. Random rather than by size: selecting the smallest would choose on a variable plausibly related to the outcome.",
+    "sampling_seed": 20260902
+  },
+  "inputs": {
+    "transactions": {
+      "rows": 208083,
+      "columns": [
+        "acceptance_time",
+        "accession",
+        "acquired",
+        "derivative",
+        "is_director",
+        "is_officer",
+        "is_ten_percent_owner",
+        "issuer_cik",
+        "officer_title",
+        "owner_cik",
+        "owner_name",
+        "plan_10b5_1",
+        "price",
+        "security",
+        "shares",
+        "shares_after",
+        "ticker",
+        "transaction_code",
+        "transaction_date"
+      ],
+      "sha256": "797b8c7686c2e954b6a495326c4e4958d4e88e9a1b15e61560cd9f0d783041c2"
+    }
+  },
+  "environment": {
+    "python": "3.12.14",
+    "platform": "macOS-26.5.2",
+    "packages": {
+      "pandas": "3.0.5",
+      "numpy": "2.5.2",
+      "scipy": "1.18.1",
+      "scikit-learn": "1.9.0",
+      "pyarrow": "25.0.1",
+      "yfinance": "1.7.0",
+      "torch": "2.13.0",
+      "transformers": "5.16.1",
+      "chronos-forecasting": "2.3.1"
+    }
+  }
+}

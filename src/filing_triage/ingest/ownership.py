@@ -188,6 +188,25 @@ def parse_form4(xml: str, *, accession: str) -> pd.DataFrame:
     return pd.DataFrame(rows, columns=list(COLUMNS))
 
 
+def is_readable(xml: str) -> bool:
+    """Whether the document is well-formed XML at all.
+
+    Exists to keep two very different things apart in the ingest's counters. A
+    Form 4 that produces no rows is usually not broken: it reported a *holding*
+    rather than a transaction, which happens when beneficial ownership changes
+    form or a position is restated, and about one filing in two hundred does it.
+    A Form 4 that will not parse is a data-quality alarm.
+
+    Counting them together makes the alarm meaningless, and sends whoever reads
+    the log looking for a parser bug that is not there.
+    """
+    try:
+        ET.fromstring(xml)
+    except ET.ParseError:
+        return False
+    return True
+
+
 def _empty() -> pd.DataFrame:
     return pd.DataFrame({name: pd.Series(dtype="object") for name in COLUMNS})
 

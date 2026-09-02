@@ -58,6 +58,17 @@ from filing_triage.pit import TradingClock, naive_entry_session_from_filing_date
 
 MARKET = "SPY"
 
+# The SEC's deadline is two business days. Ten calendar days covers that plus a
+# holiday weekend and is the line between "filed on time" and "filed late".
+#
+# The tail matters in a way that is worth stating, because it runs against
+# intuition: a filing whose transaction is twenty years old -- and a handful are --
+# puts the naive anchor's entry in an unrelated decade, which is noise rather
+# than hindsight. Noise pulls that arm toward the mean and makes the leak look
+# *smaller*. So the headline keeps every filing, and this cap is reported beside
+# it as the version where the naive anchor is doing what it is accused of.
+ON_TIME_DAYS = 10
+
 # The two ways to anchor the study. `acceptance` is the only honest one; the
 # other is here to be measured, not to be used.
 ANCHORS = ("transaction_date", "acceptance_time")
@@ -220,6 +231,14 @@ def main() -> int:
     returns = to_returns(price_panel(events["ticker"].unique()))
     ladder_table, ladder_summary = ladder(events, returns, config)
     ladder_table.to_csv(args.out / "insider_disclosure_ladder.csv", index=False)
+
+    on_time = events[events["disclosure_gap_days"] <= ON_TIME_DAYS]
+    sensitivity, on_time_summary = ladder(on_time, returns, config)
+    sensitivity.insert(0, "sample", f"filed within {ON_TIME_DAYS} days")
+    sensitivity.to_csv(args.out / "insider_ladder_sensitivity.csv", index=False)
+    ladder_summary["late_filings_excluded"] = len(events) - len(on_time)
+    ladder_summary["on_time_inflation_in_material_share"] = on_time_summary[
+        "inflation_in_material_share"]
 
     honest = anchored_events(events, "acceptance_time", TradingClock())
     labels = build_labels(honest, returns, config)

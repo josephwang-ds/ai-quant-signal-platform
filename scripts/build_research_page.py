@@ -939,10 +939,27 @@ def _insider_section(block) -> str:
     if not naive or not honest:
         return ""
 
-    float(summary["inflation_in_material_share"])
+    inflation = float(summary["inflation_in_material_share"])
     naive_share = float(naive["material_share"])
     honest_share = float(honest["material_share"])
     ratio = naive_share / honest_share if honest_share else float("nan")
+
+    # A handful of filings report a trade from years earlier. Those put the naive
+    # anchor's entry in an unrelated period, which is noise rather than
+    # foresight -- and noise pulls that arm toward the mean, making the leak look
+    # smaller. Worth saying, because the intuition runs the other way.
+    late = int(summary.get("late_filings_excluded", 0))
+    on_time = summary.get("on_time_inflation_in_material_share")
+    late_note = ""
+    if late and on_time is not None:
+        late_note = (
+            f" A long tail files much later &mdash; {late:,} filings report a trade "
+            f"more than ten days old, the oldest by "
+            f"{float(gap.get('p100', {}).get('calendar_days', 0)):,.0f} days. Those "
+            f"put the naive entry in an unrelated period, which is noise rather "
+            f"than foresight, and noise pulls that arm toward the middle: drop "
+            f"them and the gap <em>widens</em> to "
+            f"{float(on_time):+.4f} from {inflation:+.4f}.")
 
     agreement = ""
     if block["agreement"]:
@@ -960,6 +977,20 @@ year. Since 2023 the filer has had to <em>state</em> it. Scoring the inference
 against the statement costs nothing, because both columns are already parsed, and
 it is a check on a well-known method against ground truth it never had.</div>"""
 
+    kinds = {r["group"]: r for r in block["by_kind"] if r["cut"] == "direction"}
+    buy, sell = kinds.get("buy"), kinds.get("sell")
+    asymmetry = ""
+    if buy and sell:
+        buy_share, sell_share = float(buy["material_share"]), float(sell["material_share"])
+        asymmetry = (
+            f" And the reason for moving to small companies shows up immediately: "
+            f"a filing reporting a <strong>purchase</strong> is followed by a "
+            f"material reaction {_pct(buy_share)} of the time against "
+            f"{_pct(sell_share)} for a sale &mdash; "
+            f"{buy_share / sell_share:.1f}&times; &mdash; on "
+            f"{int(buy['filings']):,} purchases that a mega-cap universe does not "
+            f"contain.")
+
     return _section(
         "insiders",
         "The same mistake, in a different dataset",
@@ -967,18 +998,16 @@ it is a check on a well-known method against ground truth it never had.</div>"""
         f"stock. It carries two dates, and anchoring on the wrong one puts the "
         f"share of filings that look material at {_pct(naive_share)} instead of "
         f"{_pct(honest_share)} &mdash; {ratio:.1f}&times; too high, manufactured "
-        f"entirely out of days the market had not yet seen the filing.",
+        f"out of days the market had not yet seen the filing.{asymmetry}",
         f"""
 {_table(["Entered on", "Filings", "Median reaction", "Look material"],
         _insider_ladder(block['ladder']))}
 <div class="note">The SEC allows two business days between the trade and the
-filing. The window is {float(gap.get('p50', {}).get('calendar_days', 0)):.0f}
-calendar days at the median and
-{float(gap.get('p99', {}).get('calendar_days', 0)):.0f} at the 99th percentile;
-the longest in the sample is
-{float(gap.get('p100', {}).get('calendar_days', 0)):.0f}. The transaction date is
-the <em>more precise</em> field and it sits right there in the XML, which is what
-makes reaching for it the natural mistake rather than a careless one.</div>
+filing, and the window is {float(gap.get('p50', {}).get('calendar_days', 0)):.0f}
+calendar days at the median. The transaction date is the <em>more precise</em>
+field and it sits right there in the XML, which is what makes reaching for it the
+natural mistake rather than a careless one.
+{late_note}</div>
 {_table(["Cut", "Group", "Filings", "Median reaction", "Look material"],
         _insider_kinds(block['by_kind']))}
 {agreement}

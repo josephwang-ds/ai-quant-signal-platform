@@ -20,6 +20,7 @@ import pytest
 
 from filing_triage.ingest.ownership import (
     OPEN_MARKET_CODES,
+    is_readable,
     open_market,
     parse_form4,
     raw_document,
@@ -197,3 +198,29 @@ class TestValueFollowsWhatMoved:
         """The two disagree occasionally; the field that says what moved wins."""
         odd = parse_form4(_document(code="P", acquired="D"), accession="a")
         assert signed_value(odd).iloc[0] < 0
+
+
+class TestAQuietFilingIsNotABrokenOne:
+    """About one Form 4 in two hundred reports a *holding* rather than a trade --
+    beneficial ownership changing form, or a position restated. Counting those
+    together with documents that will not parse makes the parse-failure count
+    meaningless, and sends whoever reads the log hunting a parser bug that is not
+    there. It sent the author hunting one."""
+
+    def test_a_holdings_only_filing_is_readable_but_empty(self):
+        xml = _document().replace(
+            "<nonDerivativeTable><nonDerivativeTransaction>",
+            "<nonDerivativeTable><nonDerivativeHolding>").replace(
+            "</nonDerivativeTransaction></nonDerivativeTable>",
+            "</nonDerivativeHolding></nonDerivativeTable>")
+        assert parse_form4(xml, accession="a").empty
+        assert is_readable(xml)
+
+    def test_a_malformed_filing_is_neither(self):
+        broken = "<ownershipDocument><unclosed>"
+        assert parse_form4(broken, accession="a").empty
+        assert not is_readable(broken)
+
+    def test_a_filing_with_trades_is_readable(self):
+        assert is_readable(_document())
+        assert not parse_form4(_document(), accession="a").empty

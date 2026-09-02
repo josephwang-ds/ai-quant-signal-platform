@@ -1,0 +1,3 @@
+sample,anchor,honest,filings,median_abs_reaction,mean_abs_reaction,material_share
+filed within 10 days,transaction_date,False,25130,0.6088171352336667,0.9187485495790093,0.0886191802626343
+filed within 10 days,acceptance_time,True,25130,0.572711846928067,0.8414971175008645,0.07560684440907282

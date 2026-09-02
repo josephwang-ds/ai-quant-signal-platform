@@ -563,7 +563,11 @@ def _ingest_insiders(args) -> int:
         EdgarClient,
         parse_submissions,
     )
-    from filing_triage.ingest.ownership import parse_form4, raw_document
+    from filing_triage.ingest.ownership import (
+        is_readable,
+        parse_form4,
+        raw_document,
+    )
     from filing_triage.ingest.universe import load_membership
 
     membership = load_membership(args.universe)
@@ -585,7 +589,10 @@ def _ingest_insiders(args) -> int:
     print(f"  {client.check_access()}", flush=True)
     since = pd.Timestamp(args.since).date()
 
-    transactions, failures, unparsed = [], [], 0
+    transactions, failures = [], []
+    # Kept apart on purpose: a filing that reports a holding rather than a trade
+    # is ordinary, and a filing that will not parse is not.
+    holdings_only, unreadable = 0, 0
     for row in membership.itertuples():
         try:
             filings = parse_submissions(client.submissions(row.cik), row.cik,
@@ -600,10 +607,13 @@ def _ingest_insiders(args) -> int:
                         accession=filing.accession.replace("-", ""),
                         document=raw_document(filing.primary_document)),
                 )
-                parsed = parse_form4(raw.decode("utf-8", errors="ignore"),
-                                     accession=filing.accession)
+                document = raw.decode("utf-8", errors="ignore")
+                parsed = parse_form4(document, accession=filing.accession)
                 if parsed.empty:
-                    unparsed += 1
+                    if is_readable(document):
+                        holdings_only += 1
+                    else:
+                        unreadable += 1
                     continue
                 # The knowledge time is attached here, from the submissions feed,
                 # because the document itself does not carry it -- the filer
@@ -635,7 +645,8 @@ def _ingest_insiders(args) -> int:
 
     open_market = frame["transaction_code"].isin({"P", "S"}).sum()
     print(f"\n{len(frame):,} transactions from {len(transactions)} issuers "
-          f"({len(failures)} failed, {unparsed} unparsed) -> {out}")
+          f"({len(failures)} issuers failed, {holdings_only:,} filings reported "
+          f"holdings rather than trades, {unreadable} would not parse) -> {out}")
     print(f"  {open_market:,} are open-market purchases or sales "
           f"({open_market / len(frame):.1%}); the rest is compensation machinery")
     return 0
