@@ -774,13 +774,16 @@ public page instead of quietly dropped. A tool can write a feature extractor. It
 cannot decide to go looking for the reason a number is too good, and it cannot
 decide to publish the number that replaces it.
 
+Data scientist (MS, Northwestern and Waterloo), working on machine learning,
+predictive modelling and decision analytics.
+
 **What it is meant to demonstrate:** point-in-time data design, event-study
 methodology, honest evaluation under leakage, calibration and abstention, and the
 engineering to keep a result reproducible — a fingerprinted evidence package,
 generated pages that cannot drift from it, and a test suite that fails the build
 when a leak returns.
 
-**Contact:** jiuliang.joseph.wang@gmail.com ·
+**Contact:** [linkedin.com/in/josephwang-ds](https://www.linkedin.com/in/josephwang-ds) ·
 [github.com/josephwang-ds](https://github.com/josephwang-ds) ·
 live at [lens.josephjwang.com](https://lens.josephjwang.com)
 
