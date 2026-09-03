@@ -780,8 +780,9 @@ engineering to keep a result reproducible — a fingerprinted evidence package,
 generated pages that cannot drift from it, and a test suite that fails the build
 when a leak returns.
 
-<!-- Add before sharing: contact (LinkedIn or email) and the roles you are
-     targeting. Both left out deliberately rather than guessed at. -->
+**Contact:** jiuliang.joseph.wang@gmail.com ·
+[github.com/josephwang-ds](https://github.com/josephwang-ds) ·
+live at [lens.josephjwang.com](https://lens.josephjwang.com)
 
 ## License
 
