@@ -1,0 +1,68 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 820 404"
+     width="820" height="404" font-family="-apple-system,Segoe UI,Helvetica,Arial,sans-serif"
+     role="img" aria-label="Average precision falls from 0.597 to 0.397 as four sources of hindsight are removed, and filings entered before they existed fall from 11,224 to 0.">
+  <style>
+    .bg { fill: #f5f4ef; }
+    .title { font-size: 17px; font-weight: 700; fill: #14202b; }
+    .sub { font-size: 12.5px; fill: #5f6f7a; }
+    .stage { font-size: 13px; fill: #14202b; }
+    .score { font-size: 14px; font-weight: 700; }
+    .count { font-size: 13px; font-variant-numeric: tabular-nums; }
+    .head { font-size: 10px; font-weight: 700; letter-spacing: .09em; fill: #84929c; }
+    .bar { opacity: .92; }
+    .bar.bad { fill: #a8382c; }
+    .bar.mid { fill: #9aa7b0; }
+    .bar.good { fill: #2258c9; }
+    .score.bad { fill: #a8382c; }
+    .score.mid { fill: #5f6f7a; }
+    .score.good { fill: #2258c9; }
+    .count.nonzero { fill: #a8382c; font-weight: 700; }
+    .count.zero { fill: #1d7a4f; font-weight: 700; }
+    @media (prefers-color-scheme: dark) {
+      .bg { fill: #11171b; }
+      .title, .stage { fill: #e9eef0; }
+      .sub, .score.mid { fill: #93a1a9; }
+      .bar.mid { fill: #46535c; }
+      .bar.good, .score.good { fill: #6ea4f7; }
+      .bar.bad, .score.bad, .count.nonzero { fill: #e0857a; }
+      .count.zero { fill: #5fc08c; }
+    }
+  </style>
+  <rect class="bg" width="820" height="404"/>
+  <text class="title" x="20" y="30">Four ordinary shortcuts, and what each one was worth</text>
+  <text class="sub" x="20" y="51">Same features, same model. Only what the pipeline was allowed to know.</text>
+  <text class="head" x="268" y="74">SCORE</text>
+  <text class="head" x="800" y="74" text-anchor="end">ENTERED BEFORE THE FILING EXISTED</text>
+
+  <text class="stage" x="252" y="101.0" text-anchor="end">Written the ordinary way</text>
+  <rect class="bar bad" x="268" y="85.0" width="402.0"
+        height="22" rx="2"/>
+  <text class="score bad" x="680.0" y="101.0">0.597</text>
+  <text class="count nonzero"
+        x="800" y="101.0" text-anchor="end">11,224</text>
+  <text class="stage" x="252" y="159.0" text-anchor="end">Stop training on the future</text>
+  <rect class="bar mid" x="268" y="143.0" width="397.8"
+        height="22" rx="2"/>
+  <text class="score mid" x="675.7660069520437" y="159.0">0.590</text>
+  <text class="count nonzero"
+        x="800" y="159.0" text-anchor="end">11,224</text>
+  <text class="stage" x="252" y="217.0" text-anchor="end">Stop features seeing the event day</text>
+  <rect class="bar mid" x="268" y="201.0" width="295.7"
+        height="22" rx="2"/>
+  <text class="score mid" x="573.744859727557" y="217.0">0.439</text>
+  <text class="count nonzero"
+        x="800" y="217.0" text-anchor="end">11,224</text>
+  <text class="stage" x="252" y="275.0" text-anchor="end">Stop using today's company list</text>
+  <rect class="bar mid" x="268" y="259.0" width="295.7"
+        height="22" rx="2"/>
+  <text class="score mid" x="573.744859727557" y="275.0">0.439</text>
+  <text class="count nonzero"
+        x="800" y="275.0" text-anchor="end">11,224</text>
+  <text class="stage" x="252" y="333.0" text-anchor="end">Stop entering before the filing exists</text>
+  <rect class="bar good" x="268" y="317.0" width="267.6"
+        height="22" rx="2"/>
+  <text class="score good" x="545.6164517705149" y="333.0">0.397</text>
+  <text class="count zero"
+        x="800" y="333.0" text-anchor="end">0</text>
+  <text class="sub" x="20" y="382">The score moves erratically because each fix also changes which filings are measurable. The count on the right does not.</text>
+</svg>

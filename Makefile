@@ -16,7 +16,7 @@ PYTHON ?= $(shell   test -x .venv/bin/python && echo .venv/bin/python ||   comma
 # the project.
 export PYTHONPATH := $(CURDIR)/src$(if $(PYTHONPATH),:$(PYTHONPATH))
 
-.PHONY: help install lock install-locked demo earnings-calendar overview-page research-page self-relative-evidence text-cache volatility-cache volatility-evidence quick audit doctor test lint ingest refresh-filings refresh-fundamentals refresh-headlines refresh-all vercel-bundle vercel-deploy run site company company-featured company-pages evidence nlp-eval llm-eval llm-eval-provider-dry-run llm-eval-openai-dry-run clean
+.PHONY: help install lock install-locked demo earnings-calendar ladder-chart overview-page research-page self-relative-evidence text-cache volatility-cache volatility-evidence quick audit doctor test lint ingest refresh-filings refresh-fundamentals refresh-headlines refresh-all vercel-bundle vercel-deploy run site company company-featured company-pages evidence nlp-eval llm-eval llm-eval-provider-dry-run llm-eval-openai-dry-run clean
 
 help:
 	@echo "make install   install the package and dev dependencies"
@@ -42,6 +42,7 @@ help:
 	@echo "make company-pages  build all locally available company pages"
 	@echo "make earnings-calendar  expected reporting dates for the universe"
 	@echo "make overview-page  the project in plain words, for a non-specialist"
+	@echo "make ladder-chart   regenerate the README figure from evidence/"
 	@echo "make research-page  the audited findings, generated from evidence/"
 	@echo "make self-relative-evidence  issuer-relative percentiles, calibration, policy"
 	@echo "make text-cache    encode filings with FinBERT (needs the [nlp] extra)"
@@ -196,6 +197,11 @@ self-relative-evidence: check-python
 # The project in ordinary words, for a reader with no finance or ML background.
 # Generated from the same evidence package as everything else, because the
 # hand-written write-up this replaces had drifted three numbers out of date.
+# The README's one picture: the leakage ladder, drawn from the same evidence the
+# pages read, so it cannot drift into showing a number the code has moved past.
+ladder-chart: check-python
+	PYTHONPATH=src $(PYTHON) scripts/build_ladder_chart.py
+
 overview-page: check-python
 	PYTHONPATH=src $(PYTHON) scripts/build_overview_page.py
 

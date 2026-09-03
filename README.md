@@ -13,6 +13,8 @@ time. Reading five at random finds one 11.6% of the time. A perfect ranker would
 reach 28.3% — most days simply do not contain five important filings — so this
 captures about **half of everything there is to capture**.
 
+![Average precision falls from 0.597 to 0.397 as four sources of hindsight are removed, while filings entered before they existed fall from 11,224 to zero.](docs/leakage-ladder.svg)
+
 ## The part worth reading about is what happened before that number
 
 The first working version scored far better. It was wrong, and not in a way that
@@ -45,7 +47,7 @@ the public page rather than quietly not shipping.
 A point-in-time event dataset built from SEC timestamps; a reusable audit library
 that fails the build rather than logging a warning; a ranker; and a
 source-backed company page with a controlled AI question-answering box that
-refuses to answer beyond its evidence. 662 tests. No price predictions, no
+refuses to answer beyond its evidence. 671 tests. No price predictions, no
 trading strategy, no buy or sell recommendations anywhere — the model predicts
 *how big* a reaction will be, never which direction, because direction is a bet
 against desks with faster data and more capital.
@@ -58,6 +60,9 @@ Audited findings, generated from the evidence package:
 ---
 
 ## The leakage ladder, in full
+
+The chart above with the two columns it leaves out: ROC AUC, and how many of the
+audit's own guards were failing at each stage.
 
 | Stage | Avg precision | ROC AUC | Impossible entries | Guards failing |
 |---|---|---|---|---|
@@ -516,7 +521,7 @@ embargo sweep, and writes a self-contained HTML report.
 
 ```bash
 make quick           # smaller, no leakage study, ~30s
-make test            # 662 tests (~12 min; the nested model selection dominates)
+make test            # 671 tests (~12 min; the nested model selection dominates)
 make audit           # the leakage checks as an exit code
 make llm-eval        # frozen English/Chinese grounded-output scorecard
 make llm-eval-openai-dry-run  # inspect 20-case paid benchmark scope; sends nothing
@@ -723,7 +728,7 @@ src/filing_triage/
                    and hyperparameter sensitivity grid
   report.py        self-contained HTML
   synth.py         the offline corpus
-tests/             662 tests; test_guards, test_pipeline, test_uncertainty
+tests/             671 tests; test_guards, test_pipeline, test_uncertainty
                    and test_ingest_integration are the ones that matter
 docs/              METHODOLOGY.md, LEAKAGE.md, COMPANY_LENS.md
 ```
@@ -752,6 +757,31 @@ end to end, and a test asserts these figures have not drifted from the code.
   per-issuer loop, the parquet round trip, and into the pipeline. Only the
   transport itself — rate limiting, backoff, resumability — has not been
   exercised against the live SEC.
+
+## Who built this, and how
+
+Joseph Wang. 193 commits across 30 working days, July to September 2026, on a
+codebase of about 27,000 lines including tests.
+
+**Built with AI assistance, and the git history says so.** The method choices are
+mine and they are the part worth judging: what the label should be, which four
+shortcuts to go looking for, that the impossible-entry count is a better argument
+than the metric, that a foundation model has to clear a stated calibration bar
+before it ships. The clearest evidence of that judgement is what the project
+*refused* to ship — a financial language model, Amazon's Chronos-2, and its own
+issuer-relative features all measured out, and all three are reported on the
+public page instead of quietly dropped. A tool can write a feature extractor. It
+cannot decide to go looking for the reason a number is too good, and it cannot
+decide to publish the number that replaces it.
+
+**What it is meant to demonstrate:** point-in-time data design, event-study
+methodology, honest evaluation under leakage, calibration and abstention, and the
+engineering to keep a result reproducible — a fingerprinted evidence package,
+generated pages that cannot drift from it, and a test suite that fails the build
+when a leak returns.
+
+<!-- Add before sharing: contact (LinkedIn or email) and the roles you are
+     targeting. Both left out deliberately rather than guessed at. -->
 
 ## License
 
