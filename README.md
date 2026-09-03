@@ -783,9 +783,11 @@ engineering to keep a result reproducible — a fingerprinted evidence package,
 generated pages that cannot drift from it, and a test suite that fails the build
 when a leak returns.
 
-**Contact:** [linkedin.com/in/josephwang-ds](https://www.linkedin.com/in/josephwang-ds) ·
-[github.com/josephwang-ds](https://github.com/josephwang-ds) ·
-live at [lens.josephjwang.com](https://lens.josephjwang.com)
+**Contact:** [josephjwang.com](https://www.josephjwang.com/) ·
+[linkedin.com/in/josephwang-ds](https://www.linkedin.com/in/josephwang-ds) ·
+[github.com/josephwang-ds](https://github.com/josephwang-ds)
+
+This project is live at [lens.josephjwang.com](https://lens.josephjwang.com).
 
 ## License
 
